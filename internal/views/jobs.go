@@ -180,7 +180,7 @@ func (v *JobsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 	if v.pages != nil && v.pages.GetPageCount() > 1 {
 		return event // Let modal handle it
 	}
-	
+
 	switch event.Key() {
 	case tcell.KeyF2:
 		v.showJobTemplateSelector()
@@ -271,7 +271,7 @@ func (v *JobsView) updateTable() {
 
 		timeUsed := job.TimeUsed
 		if timeUsed == "" && job.StartTime != nil {
-			timeUsed = formatDuration(time.Since(*job.StartTime))
+			timeUsed = FormatDurationDetailed(time.Since(*job.StartTime))
 		}
 
 		priority := fmt.Sprintf("%.0f", job.Priority)
@@ -307,7 +307,7 @@ func (v *JobsView) updateStatusBar(message string) {
 	v.mu.RUnlock()
 
 	filtered := len(v.table.GetFilteredData())
-	
+
 	status := fmt.Sprintf("Total: %d", total)
 	if filtered < total {
 		status += fmt.Sprintf(" | Filtered: %d", filtered)
@@ -336,11 +336,11 @@ func (v *JobsView) scheduleRefresh() {
 	if !v.autoRefresh {
 		return
 	}
-	
+
 	if v.refreshTimer != nil {
 		v.refreshTimer.Stop()
 	}
-	
+
 	v.refreshTimer = time.AfterFunc(v.refreshRate, func() {
 		go v.Refresh()
 	})
@@ -421,7 +421,7 @@ func (v *JobsView) cancelSelectedJob() {
 // performCancelJob performs the job cancel operation
 func (v *JobsView) performCancelJob(jobID string) {
 	v.updateStatusBar(fmt.Sprintf("Cancelling job %s...", jobID))
-	
+
 	err := v.client.Jobs().Cancel(jobID)
 	if err != nil {
 		v.updateStatusBar(fmt.Sprintf("[red]Failed to cancel job %s: %v[white]", jobID, err))
@@ -429,7 +429,7 @@ func (v *JobsView) performCancelJob(jobID string) {
 	}
 
 	v.updateStatusBar(fmt.Sprintf("[green]Job %s cancelled successfully[white]", jobID))
-	
+
 	// Refresh the view
 	time.Sleep(500 * time.Millisecond)
 	v.Refresh()
@@ -453,7 +453,7 @@ func (v *JobsView) holdSelectedJob() {
 
 	go func() {
 		v.updateStatusBar(fmt.Sprintf("Holding job %s...", jobID))
-		
+
 		err := v.client.Jobs().Hold(jobID)
 		if err != nil {
 			v.updateStatusBar(fmt.Sprintf("[red]Failed to hold job %s: %v[white]", jobID, err))
@@ -461,7 +461,7 @@ func (v *JobsView) holdSelectedJob() {
 		}
 
 		v.updateStatusBar(fmt.Sprintf("[green]Job %s held successfully[white]", jobID))
-		
+
 		// Refresh the view
 		time.Sleep(500 * time.Millisecond)
 		v.Refresh()
@@ -486,7 +486,7 @@ func (v *JobsView) releaseSelectedJob() {
 
 	go func() {
 		v.updateStatusBar(fmt.Sprintf("Releasing job %s...", jobID))
-		
+
 		err := v.client.Jobs().Release(jobID)
 		if err != nil {
 			v.updateStatusBar(fmt.Sprintf("[red]Failed to release job %s: %v[white]", jobID, err))
@@ -494,7 +494,7 @@ func (v *JobsView) releaseSelectedJob() {
 		}
 
 		v.updateStatusBar(fmt.Sprintf("[green]Job %s released successfully[white]", jobID))
-		
+
 		// Refresh the view
 		time.Sleep(500 * time.Millisecond)
 		v.Refresh()
@@ -509,7 +509,7 @@ func (v *JobsView) showJobDetails() {
 	}
 
 	jobID := data[0]
-	
+
 	// Fetch full job details
 	job, err := v.client.Jobs().Get(jobID)
 	if err != nil {
@@ -519,7 +519,7 @@ func (v *JobsView) showJobDetails() {
 
 	// Create details view
 	details := v.formatJobDetails(job)
-	
+
 	textView := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(details).
@@ -567,43 +567,43 @@ func (v *JobsView) formatJobDetails(job *dao.Job) string {
 	details.WriteString(fmt.Sprintf("[yellow]Name:[white] %s\n", job.Name))
 	details.WriteString(fmt.Sprintf("[yellow]User:[white] %s\n", job.User))
 	details.WriteString(fmt.Sprintf("[yellow]Account:[white] %s\n", job.Account))
-	
+
 	stateColor := dao.GetJobStateColor(job.State)
 	details.WriteString(fmt.Sprintf("[yellow]State:[white] [%s]%s[white]\n", stateColor, job.State))
-	
+
 	details.WriteString(fmt.Sprintf("[yellow]Partition:[white] %s\n", job.Partition))
 	details.WriteString(fmt.Sprintf("[yellow]QOS:[white] %s\n", job.QOS))
 	details.WriteString(fmt.Sprintf("[yellow]Priority:[white] %.0f\n", job.Priority))
 	details.WriteString(fmt.Sprintf("[yellow]Node Count:[white] %d\n", job.NodeCount))
-	
+
 	if job.NodeList != "" {
 		details.WriteString(fmt.Sprintf("[yellow]Node List:[white] %s\n", job.NodeList))
 	}
-	
+
 	details.WriteString(fmt.Sprintf("[yellow]Time Limit:[white] %s\n", job.TimeLimit))
 	details.WriteString(fmt.Sprintf("[yellow]Time Used:[white] %s\n", job.TimeUsed))
-	
+
 	details.WriteString(fmt.Sprintf("[yellow]Submit Time:[white] %s\n", job.SubmitTime.Format("2006-01-02 15:04:05")))
-	
+
 	if job.StartTime != nil {
 		details.WriteString(fmt.Sprintf("[yellow]Start Time:[white] %s\n", job.StartTime.Format("2006-01-02 15:04:05")))
 	}
-	
+
 	if job.EndTime != nil {
 		details.WriteString(fmt.Sprintf("[yellow]End Time:[white] %s\n", job.EndTime.Format("2006-01-02 15:04:05")))
 	}
-	
+
 	details.WriteString(fmt.Sprintf("[yellow]Working Dir:[white] %s\n", job.WorkingDir))
 	details.WriteString(fmt.Sprintf("[yellow]Command:[white] %s\n", job.Command))
-	
+
 	if job.StdOut != "" {
 		details.WriteString(fmt.Sprintf("[yellow]StdOut:[white] %s\n", job.StdOut))
 	}
-	
+
 	if job.StdErr != "" {
 		details.WriteString(fmt.Sprintf("[yellow]StdErr:[white] %s\n", job.StdErr))
 	}
-	
+
 	if job.ExitCode != nil {
 		details.WriteString(fmt.Sprintf("[yellow]Exit Code:[white] %d\n", *job.ExitCode))
 	}
@@ -620,9 +620,9 @@ func (v *JobsView) showJobOutput() {
 
 	jobID := data[0]
 	jobName := data[1]
-	
+
 	v.updateStatusBar(fmt.Sprintf("Fetching output for job %s...", jobID))
-	
+
 	go func() {
 		output, err := v.client.Jobs().GetOutput(jobID)
 		if err != nil {
@@ -677,7 +677,7 @@ func (v *JobsView) showJobOutput() {
 		if v.pages != nil {
 			v.pages.AddPage("job-output", centeredModal, true, true)
 		}
-		
+
 		v.updateStatusBar("")
 	}()
 }
@@ -1020,7 +1020,7 @@ func (v *JobsView) toggleStateFilter(state string) {
 			v.stateFilter = append(v.stateFilter, state)
 		}
 	}
-	
+
 	go v.Refresh()
 }
 
@@ -1030,7 +1030,7 @@ func (v *JobsView) promptUserFilter() {
 		SetLabel("Filter by user: ").
 		SetFieldWidth(20).
 		SetText(v.userFilter)
-	
+
 	input.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
 			v.userFilter = input.GetText()
@@ -1046,8 +1046,8 @@ func (v *JobsView) promptUserFilter() {
 	v.app.SetRoot(input, true)
 }
 
-// formatDuration formats a duration to a readable string
-func formatDuration(d time.Duration) string {
+// FormatDurationDetailed formats a duration to a readable string
+func FormatDurationDetailed(d time.Duration) string {
 	days := int(d.Hours() / 24)
 	hours := int(d.Hours()) % 24
 	minutes := int(d.Minutes()) % 60
@@ -1062,7 +1062,7 @@ func formatDuration(d time.Duration) string {
 // toggleAutoRefresh toggles automatic refresh mode
 func (v *JobsView) toggleAutoRefresh() {
 	v.autoRefresh = !v.autoRefresh
-	
+
 	if v.autoRefresh {
 		v.updateStatusBar("[green]Auto-refresh enabled[white]")
 		v.scheduleRefresh()
@@ -1078,42 +1078,42 @@ func (v *JobsView) toggleAutoRefresh() {
 func (v *JobsView) showBatchOperations() {
 	// Create batch operations menu
 	list := tview.NewList()
-	
+
 	list.AddItem("Select All Running Jobs", "Select all currently running jobs", 0, func() {
 		v.selectJobsByState(dao.JobStateRunning)
 		v.closeBatchMenu()
 	})
-	
+
 	list.AddItem("Select All Pending Jobs", "Select all pending jobs", 0, func() {
 		v.selectJobsByState(dao.JobStatePending)
 		v.closeBatchMenu()
 	})
-	
+
 	list.AddItem("Cancel All Selected", "Cancel all selected jobs", 0, func() {
 		v.batchCancelSelected()
 		v.closeBatchMenu()
 	})
-	
+
 	list.AddItem("Hold All Selected", "Hold all selected jobs", 0, func() {
 		v.batchHoldSelected()
 		v.closeBatchMenu()
 	})
-	
+
 	list.AddItem("Release All Selected", "Release all selected jobs", 0, func() {
 		v.batchReleaseSelected()
 		v.closeBatchMenu()
 	})
-	
+
 	list.AddItem("Clear Selection", "Clear all selected jobs", 0, func() {
 		v.clearJobSelection()
 		v.closeBatchMenu()
 	})
-	
+
 	list.AddItem("Show Selected Jobs", "View currently selected jobs", 0, func() {
 		v.showSelectedJobs()
 		v.closeBatchMenu()
 	})
-	
+
 	list.AddItem("Cancel", "Close batch operations menu", 0, func() {
 		v.closeBatchMenu()
 	})
@@ -1163,7 +1163,7 @@ func (v *JobsView) selectJobsByState(state string) {
 		}
 	}
 	v.mu.RUnlock()
-	
+
 	v.updateStatusBar(fmt.Sprintf("[green]Selected %d jobs in state %s[white]", count, state))
 }
 
@@ -1181,7 +1181,7 @@ func (v *JobsView) showSelectedJobs() {
 	}
 
 	list := tview.NewList()
-	
+
 	v.mu.RLock()
 	for _, job := range v.jobs {
 		if v.selectedJobs[job.ID] {
@@ -1190,7 +1190,7 @@ func (v *JobsView) showSelectedJobs() {
 		}
 	}
 	v.mu.RUnlock()
-	
+
 	list.AddItem("Close", "Close this view", 0, func() {
 		if v.pages != nil {
 			v.pages.RemovePage("selected-jobs")
@@ -1235,7 +1235,7 @@ func (v *JobsView) batchCancelSelected() {
 
 	count := len(v.selectedJobs)
 	confirmText := fmt.Sprintf("Cancel %d selected jobs?\n\nThis action cannot be undone.", count)
-	
+
 	modal := tview.NewModal().
 		SetText(confirmText).
 		AddButtons([]string{"Cancel Jobs", "Keep Running"}).
@@ -1261,7 +1261,7 @@ func (v *JobsView) batchCancelSelected() {
 func (v *JobsView) performBatchCancel() {
 	success := 0
 	failed := 0
-	
+
 	for jobID := range v.selectedJobs {
 		err := v.client.Jobs().Cancel(jobID)
 		if err != nil {
@@ -1270,10 +1270,10 @@ func (v *JobsView) performBatchCancel() {
 			success++
 		}
 	}
-	
+
 	v.updateStatusBar(fmt.Sprintf("[green]Batch cancel completed: %d success, %d failed[white]", success, failed))
 	v.clearJobSelection()
-	
+
 	// Refresh the view
 	time.Sleep(500 * time.Millisecond)
 	v.Refresh()
@@ -1289,7 +1289,7 @@ func (v *JobsView) batchHoldSelected() {
 	go func() {
 		success := 0
 		failed := 0
-		
+
 		for jobID := range v.selectedJobs {
 			err := v.client.Jobs().Hold(jobID)
 			if err != nil {
@@ -1298,10 +1298,10 @@ func (v *JobsView) batchHoldSelected() {
 				success++
 			}
 		}
-		
+
 		v.updateStatusBar(fmt.Sprintf("[green]Batch hold completed: %d success, %d failed[white]", success, failed))
 		v.clearJobSelection()
-		
+
 		// Refresh the view
 		time.Sleep(500 * time.Millisecond)
 		v.Refresh()
@@ -1318,7 +1318,7 @@ func (v *JobsView) batchReleaseSelected() {
 	go func() {
 		success := 0
 		failed := 0
-		
+
 		for jobID := range v.selectedJobs {
 			err := v.client.Jobs().Release(jobID)
 			if err != nil {
@@ -1327,10 +1327,10 @@ func (v *JobsView) batchReleaseSelected() {
 				success++
 			}
 		}
-		
+
 		v.updateStatusBar(fmt.Sprintf("[green]Batch release completed: %d success, %d failed[white]", success, failed))
 		v.clearJobSelection()
-		
+
 		// Refresh the view
 		time.Sleep(500 * time.Millisecond)
 		v.Refresh()

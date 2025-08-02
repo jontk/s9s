@@ -105,7 +105,7 @@ func (h *Header) updateDisplay() {
 			}
 			
 			if view == h.currentView {
-				content.WriteString(fmt.Sprintf("[black:yellow] %s [white::-]", strings.ToUpper(view)))
+				content.WriteString(fmt.Sprintf("[black:yellow] %s [white:-:-]", strings.ToUpper(view)))
 			} else {
 				content.WriteString(fmt.Sprintf("[cyan]%s[white]", strings.ToUpper(view)))
 			}

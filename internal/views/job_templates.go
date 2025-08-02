@@ -29,23 +29,23 @@ type JobTemplateManager struct {
 func NewJobTemplateManager() *JobTemplateManager {
 	homeDir, _ := os.UserHomeDir()
 	templatesDir := filepath.Join(homeDir, ".s9s", "templates")
-	
+
 	// Create templates directory if it doesn't exist
 	os.MkdirAll(templatesDir, 0755)
-	
+
 	manager := &JobTemplateManager{
 		templatesDir: templatesDir,
 		templates:    []JobTemplate{},
 	}
-	
+
 	// Load existing templates
 	manager.loadTemplates()
-	
+
 	// Add default templates if none exist
 	if len(manager.templates) == 0 {
 		manager.createDefaultTemplates()
 	}
-	
+
 	return manager
 }
 
@@ -55,7 +55,7 @@ func (m *JobTemplateManager) loadTemplates() {
 	if err != nil {
 		return
 	}
-	
+
 	m.templates = []JobTemplate{}
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".json") {
@@ -64,12 +64,12 @@ func (m *JobTemplateManager) loadTemplates() {
 			if err != nil {
 				continue
 			}
-			
+
 			var template JobTemplate
 			if err := json.Unmarshal(data, &template); err != nil {
 				continue
 			}
-			
+
 			m.templates = append(m.templates, template)
 		}
 	}
@@ -81,14 +81,14 @@ func (m *JobTemplateManager) saveTemplate(template JobTemplate) error {
 	filename := strings.ReplaceAll(template.Name, " ", "_")
 	filename = strings.ReplaceAll(filename, "/", "_")
 	filename = strings.ToLower(filename) + ".json"
-	
+
 	templatePath := filepath.Join(m.templatesDir, filename)
-	
+
 	data, err := json.MarshalIndent(template, "", "  ")
 	if err != nil {
 		return err
 	}
-	
+
 	return os.WriteFile(templatePath, data, 0644)
 }
 
@@ -101,13 +101,13 @@ func (m *JobTemplateManager) deleteTemplate(name string) error {
 			break
 		}
 	}
-	
+
 	// Remove from disk
 	filename := strings.ReplaceAll(name, " ", "_")
 	filename = strings.ReplaceAll(filename, "/", "_")
 	filename = strings.ToLower(filename) + ".json"
 	templatePath := filepath.Join(m.templatesDir, filename)
-	
+
 	return os.Remove(templatePath)
 }
 
@@ -135,7 +135,7 @@ func (m *JobTemplateManager) addTemplate(template JobTemplate) error {
 			return m.saveTemplate(template)
 		}
 	}
-	
+
 	// Add new template
 	m.templates = append(m.templates, template)
 	return m.saveTemplate(template)
@@ -215,7 +215,7 @@ func (m *JobTemplateManager) createDefaultTemplates() {
 			},
 		},
 	}
-	
+
 	for _, template := range defaultTemplates {
 		m.addTemplate(template)
 	}
@@ -226,11 +226,11 @@ func (v *JobsView) showJobTemplateSelector() {
 	if v.templateManager == nil {
 		v.templateManager = NewJobTemplateManager()
 	}
-	
+
 	templates := v.templateManager.getTemplates()
-	
+
 	list := tview.NewList()
-	
+
 	// Add templates to list
 	for _, template := range templates {
 		template := template // Capture for closure
@@ -241,7 +241,7 @@ func (v *JobsView) showJobTemplateSelector() {
 			}
 		})
 	}
-	
+
 	// Add "Custom Job" option
 	list.AddItem("Custom Job", "Create a new job from scratch", 0, func() {
 		v.showJobSubmissionForm()
@@ -249,7 +249,7 @@ func (v *JobsView) showJobTemplateSelector() {
 			v.pages.RemovePage("template-selector")
 		}
 	})
-	
+
 	// Add "Save Current as Template" option if a job is selected
 	data := v.table.GetSelectedData()
 	if data != nil && len(data) > 0 {
@@ -260,17 +260,17 @@ func (v *JobsView) showJobTemplateSelector() {
 			}
 		})
 	}
-	
+
 	list.AddItem("Cancel", "Close template selector", 0, func() {
 		if v.pages != nil {
 			v.pages.RemovePage("template-selector")
 		}
 	})
-	
+
 	list.SetBorder(true).
 		SetTitle(" Job Templates ").
 		SetTitleAlign(tview.AlignCenter)
-	
+
 	// Create centered modal layout
 	centeredModal := tview.NewFlex().
 		AddItem(nil, 0, 1, false).
@@ -279,7 +279,7 @@ func (v *JobsView) showJobTemplateSelector() {
 			AddItem(list, 0, 6, true).
 			AddItem(nil, 0, 1, false), 0, 6, true).
 		AddItem(nil, 0, 1, false)
-	
+
 	// Handle ESC key
 	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc {
@@ -290,7 +290,7 @@ func (v *JobsView) showJobTemplateSelector() {
 		}
 		return event
 	})
-	
+
 	if v.pages != nil {
 		v.pages.AddPage("template-selector", centeredModal, true, true)
 	}
@@ -398,7 +398,7 @@ func (v *JobsView) saveJobAsTemplate(jobID string) {
 		v.updateStatusBar(fmt.Sprintf("[red]Failed to get job details: %v[white]", err))
 		return
 	}
-	
+
 	// Show template save form
 	v.showSaveTemplateForm(job)
 }
@@ -407,7 +407,7 @@ func (v *JobsView) saveJobAsTemplate(jobID string) {
 func (v *JobsView) saveFormAsTemplate(form *tview.Form) {
 	// Extract form values
 	jobSub := v.extractJobSubmissionFromForm(form)
-	
+
 	// Show template save form
 	v.showSaveTemplateFormFromSubmission(jobSub)
 }
@@ -461,7 +461,7 @@ func (v *JobsView) showSaveTemplateForm(job *dao.Job) {
 		TimeLimit:   job.TimeLimit,
 		WorkingDir:  job.WorkingDir,
 	}
-	
+
 	v.showSaveTemplateFormFromSubmission(jobSub)
 }
 
@@ -470,7 +470,7 @@ func (v *JobsView) showSaveTemplateFormFromSubmission(jobSub *dao.JobSubmission)
 	if v.templateManager == nil {
 		v.templateManager = NewJobTemplateManager()
 	}
-	
+
 	form := tview.NewForm().
 		AddInputField("Template Name", jobSub.Name+"_template", 30, nil, nil).
 		AddInputField("Description", "Custom job template", 50, nil, nil)
@@ -478,25 +478,25 @@ func (v *JobsView) showSaveTemplateFormFromSubmission(jobSub *dao.JobSubmission)
 	form.AddButton("Save", func() {
 		templateName := form.GetFormItemByLabel("Template Name").(*tview.InputField).GetText()
 		description := form.GetFormItemByLabel("Description").(*tview.InputField).GetText()
-		
+
 		if templateName == "" {
 			v.updateStatusBar("[red]Template name is required[white]")
 			return
 		}
-		
+
 		template := JobTemplate{
 			Name:        templateName,
 			Description: description,
 			JobSubmission: jobSub,
 		}
-		
+
 		err := v.templateManager.addTemplate(template)
 		if err != nil {
 			v.updateStatusBar(fmt.Sprintf("[red]Failed to save template: %v[white]", err))
 		} else {
 			v.updateStatusBar(fmt.Sprintf("[green]Template '%s' saved successfully[white]", templateName))
 		}
-		
+
 		if v.pages != nil {
 			v.pages.RemovePage("save-template")
 		}

@@ -248,6 +248,22 @@ func IsNodeAvailable(state string) bool {
 	}
 }
 
+// GetPartitionStateColor returns the color for a partition state
+func GetPartitionStateColor(state string) string {
+	switch state {
+	case PartitionStateUp:
+		return "green"
+	case PartitionStateDown:
+		return "red"
+	case PartitionStateDrain:
+		return "orange"
+	case PartitionStateInactive:
+		return "gray"
+	default:
+		return "white"
+	}
+}
+
 // QoS represents a SLURM Quality of Service
 type QoS struct {
 	Name                  string

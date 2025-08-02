@@ -25,6 +25,8 @@ type NodesView struct {
 	filter       string
 	stateFilter  []string
 	partFilter   string
+	groupBy      string  // "none", "partition", "state", "features"
+	groupExpanded map[string]bool
 	container    *tview.Flex
 	filterInput  *tview.InputField
 	statusBar    *tview.TextView
@@ -40,10 +42,12 @@ func (v *NodesView) SetPages(pages *tview.Pages) {
 // NewNodesView creates a new nodes view
 func NewNodesView(client dao.SlurmClient) *NodesView {
 	v := &NodesView{
-		BaseView:    NewBaseView("nodes", "Nodes"),
-		client:      client,
-		refreshRate: 30 * time.Second,
-		nodes:       []*dao.Node{},
+		BaseView:      NewBaseView("nodes", "Nodes"),
+		client:        client,
+		refreshRate:   30 * time.Second,
+		nodes:         []*dao.Node{},
+		groupBy:       "none",
+		groupExpanded: make(map[string]bool),
 	}
 
 	// Create table with node columns
@@ -158,6 +162,8 @@ func (v *NodesView) Hints() []string {
 		"[yellow]R[white] Refresh",
 		"[yellow]p[white] Partition",
 		"[yellow]a[white] All States",
+		"[yellow]g[white] Group By",
+		"[yellow]Space[white] Toggle Group",
 	}
 }
 
@@ -193,6 +199,12 @@ func (v *NodesView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		case 'p', 'P':
 			v.promptPartitionFilter()
 			return nil
+		case 'g', 'G':
+			v.promptGroupBy()
+			return nil
+		case ' ':
+			v.toggleGroupExpansion()
+			return nil
 		}
 	case tcell.KeyEnter:
 		v.showNodeDetails()
@@ -225,51 +237,93 @@ func (v *NodesView) updateTable() {
 	v.mu.RLock()
 	defer v.mu.RUnlock()
 
+	if v.groupBy == "none" {
+		v.updateTableFlat()
+	} else {
+		v.updateTableGrouped()
+	}
+}
+
+// updateTableFlat updates the table with flat node data
+func (v *NodesView) updateTableFlat() {
 	data := make([][]string, len(v.nodes))
 	for i, node := range v.nodes {
-		stateColor := dao.GetNodeStateColor(node.State)
-		coloredState := fmt.Sprintf("[%s]%s[white]", stateColor, node.State)
+		data[i] = v.formatNodeRow(node)
+	}
+	v.table.SetData(data)
+}
 
-		// CPU usage bar
-		cpuUsage := v.createUsageBar(node.CPUsAllocated, node.CPUsTotal)
-		cpuUsageText := fmt.Sprintf("%s %d/%d", cpuUsage, node.CPUsAllocated, node.CPUsTotal)
+// updateTableGrouped updates the table with grouped node data
+func (v *NodesView) updateTableGrouped() {
+	groups := v.groupNodes()
+	var data [][]string
 
-		// Memory usage bar
-		memUsage := v.createUsageBar(int(node.MemoryAllocated), int(node.MemoryTotal))
-		memUsageText := fmt.Sprintf("%s %s/%s", memUsage, formatMemory(node.MemoryAllocated), formatMemory(node.MemoryTotal))
-
-		// Partitions
-		partitions := strings.Join(node.Partitions, ",")
-		if len(partitions) > 14 {
-			partitions = partitions[:11] + "..."
+	for groupName, nodes := range groups {
+		// Add group header
+		expanded := v.groupExpanded[groupName]
+		expandIcon := "▶"
+		if expanded {
+			expandIcon = "▼"
 		}
 
-		// Features
-		features := strings.Join(node.Features, ",")
-		if len(features) > 19 {
-			features = features[:16] + "..."
-		}
+		groupHeader := fmt.Sprintf("[yellow]%s %s (%d nodes)[white]", expandIcon, groupName, len(nodes))
+		data = append(data, []string{groupHeader, "", "", "", "", "", "", "", ""})
 
-		// Reason
-		reason := node.Reason
-		if len(reason) > 24 {
-			reason = reason[:21] + "..."
-		}
-
-		data[i] = []string{
-			node.Name,
-			coloredState,
-			partitions,
-			cpuUsageText,
-			memUsageText,
-			fmt.Sprintf("%d", node.CPUsTotal),
-			formatMemory(node.MemoryTotal),
-			features,
-			reason,
+		// Add nodes if expanded
+		if expanded {
+			for _, node := range nodes {
+				nodeRow := v.formatNodeRow(node)
+				nodeRow[0] = "  " + nodeRow[0] // Indent node names
+				data = append(data, nodeRow)
+			}
 		}
 	}
 
 	v.table.SetData(data)
+}
+
+// formatNodeRow formats a single node row
+func (v *NodesView) formatNodeRow(node *dao.Node) []string {
+	stateColor := dao.GetNodeStateColor(node.State)
+	coloredState := fmt.Sprintf("[%s]%s[white]", stateColor, node.State)
+
+	// CPU usage bar
+	cpuUsage := v.createUsageBar(node.CPUsAllocated, node.CPUsTotal)
+	cpuUsageText := fmt.Sprintf("%s %d/%d", cpuUsage, node.CPUsAllocated, node.CPUsTotal)
+
+	// Memory usage bar
+	memUsage := v.createUsageBar(int(node.MemoryAllocated), int(node.MemoryTotal))
+	memUsageText := fmt.Sprintf("%s %s/%s", memUsage, FormatMemory(node.MemoryAllocated), FormatMemory(node.MemoryTotal))
+
+	// Partitions
+	partitions := strings.Join(node.Partitions, ",")
+	if len(partitions) > 14 {
+		partitions = partitions[:11] + "..."
+	}
+
+	// Features
+	features := strings.Join(node.Features, ",")
+	if len(features) > 19 {
+		features = features[:16] + "..."
+	}
+
+	// Reason
+	reason := node.Reason
+	if len(reason) > 24 {
+		reason = reason[:21] + "..."
+	}
+
+	return []string{
+		node.Name,
+		coloredState,
+		partitions,
+		cpuUsageText,
+		memUsageText,
+		fmt.Sprintf("%d", node.CPUsTotal),
+		FormatMemory(node.MemoryTotal),
+		features,
+		reason,
+	}
 }
 
 // createUsageBar creates a visual usage bar
@@ -283,7 +337,7 @@ func (v *NodesView) createUsageBar(used, total int) string {
 	filled := int(percentage * float64(barLength))
 
 	var bar strings.Builder
-	
+
 	// Choose color based on usage
 	var color string
 	if percentage < 0.5 {
@@ -295,33 +349,23 @@ func (v *NodesView) createUsageBar(used, total int) string {
 	}
 
 	bar.WriteString(fmt.Sprintf("[%s]", color))
-	
+
 	// Add filled bars
 	for i := 0; i < filled; i++ {
 		bar.WriteString("▰")
 	}
-	
+
 	// Add empty bars
 	bar.WriteString("[gray]")
 	for i := filled; i < barLength; i++ {
 		bar.WriteString("▱")
 	}
-	
+
 	bar.WriteString("[white]")
-	
+
 	return bar.String()
 }
 
-// formatMemory formats memory size
-func formatMemory(mb int64) string {
-	if mb < 1024 {
-		return fmt.Sprintf("%dM", mb)
-	} else if mb < 1024*1024 {
-		return fmt.Sprintf("%.1fG", float64(mb)/1024)
-	} else {
-		return fmt.Sprintf("%.1fT", float64(mb)/(1024*1024))
-	}
-}
 
 // updateStatusBar updates the status bar
 func (v *NodesView) updateStatusBar(message string) {
@@ -355,12 +399,24 @@ func (v *NodesView) updateStatusBar(message string) {
 	v.mu.RUnlock()
 
 	filtered := len(v.table.GetFilteredData())
-	
-	status := fmt.Sprintf("Total: %d | [green]Idle: %d[white] | [blue]Allocated: %d[white] | [yellow]Mixed: %d[white] | [red]Down: %d[white] | [orange]Drain: %d[white]", 
+
+	status := fmt.Sprintf("Total: %d | [green]Idle: %d[white] | [blue]Allocated: %d[white] | [yellow]Mixed: %d[white] | [red]Down: %d[white] | [orange]Drain: %d[white]",
 		total, idle, allocated, mixed, down, drain)
-	
+
 	if filtered < total {
 		status += fmt.Sprintf(" | Filtered: %d", filtered)
+	}
+
+	// Add grouping information
+	if v.groupBy != "none" {
+		groups := v.groupNodes()
+		expandedCount := 0
+		for _, expanded := range v.groupExpanded {
+			if expanded {
+				expandedCount++
+			}
+		}
+		status += fmt.Sprintf(" | Grouped by: %s (%d groups, %d expanded)", v.groupBy, len(groups), expandedCount)
 	}
 
 	if v.IsRefreshing() {
@@ -426,7 +482,7 @@ func (v *NodesView) drainSelectedNode() {
 	input := tview.NewInputField().
 		SetLabel("Drain reason: ").
 		SetFieldWidth(50)
-		
+
 	input.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
 			reason := input.GetText()
@@ -448,7 +504,7 @@ func (v *NodesView) drainSelectedNode() {
 // performDrainNode performs the node drain operation
 func (v *NodesView) performDrainNode(nodeName, reason string) {
 	v.updateStatusBar(fmt.Sprintf("Draining node %s...", nodeName))
-	
+
 	err := v.client.Nodes().Drain(nodeName, reason)
 	if err != nil {
 		v.updateStatusBar(fmt.Sprintf("[red]Failed to drain node %s: %v[white]", nodeName, err))
@@ -456,7 +512,7 @@ func (v *NodesView) performDrainNode(nodeName, reason string) {
 	}
 
 	v.updateStatusBar(fmt.Sprintf("[green]Node %s drained successfully[white]", nodeName))
-	
+
 	// Refresh the view
 	time.Sleep(500 * time.Millisecond)
 	v.Refresh()
@@ -495,7 +551,7 @@ func (v *NodesView) resumeSelectedNode() {
 // performResumeNode performs the node resume operation
 func (v *NodesView) performResumeNode(nodeName string) {
 	v.updateStatusBar(fmt.Sprintf("Resuming node %s...", nodeName))
-	
+
 	err := v.client.Nodes().Resume(nodeName)
 	if err != nil {
 		v.updateStatusBar(fmt.Sprintf("[red]Failed to resume node %s: %v[white]", nodeName, err))
@@ -503,7 +559,7 @@ func (v *NodesView) performResumeNode(nodeName string) {
 	}
 
 	v.updateStatusBar(fmt.Sprintf("[green]Node %s resumed successfully[white]", nodeName))
-	
+
 	// Refresh the view
 	time.Sleep(500 * time.Millisecond)
 	v.Refresh()
@@ -517,7 +573,7 @@ func (v *NodesView) showNodeDetails() {
 	}
 
 	nodeName := data[0]
-	
+
 	// Fetch full node details
 	node, err := v.client.Nodes().Get(nodeName)
 	if err != nil {
@@ -527,7 +583,7 @@ func (v *NodesView) showNodeDetails() {
 
 	// Create details view
 	details := v.formatNodeDetails(node)
-	
+
 	textView := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(details).
@@ -572,12 +628,12 @@ func (v *NodesView) formatNodeDetails(node *dao.Node) string {
 	var details strings.Builder
 
 	details.WriteString(fmt.Sprintf("[yellow]Node Name:[white] %s\n", node.Name))
-	
+
 	stateColor := dao.GetNodeStateColor(node.State)
 	details.WriteString(fmt.Sprintf("[yellow]State:[white] [%s]%s[white]\n", stateColor, node.State))
-	
+
 	details.WriteString(fmt.Sprintf("[yellow]Partitions:[white] %s\n", strings.Join(node.Partitions, ", ")))
-	
+
 	details.WriteString("\n[teal]CPU Information:[white]\n")
 	details.WriteString(fmt.Sprintf("[yellow]  Total CPUs:[white] %d\n", node.CPUsTotal))
 	details.WriteString(fmt.Sprintf("[yellow]  Allocated CPUs:[white] %d\n", node.CPUsAllocated))
@@ -587,28 +643,28 @@ func (v *NodesView) formatNodeDetails(node *dao.Node) string {
 		cpuPercent = float64(node.CPUsAllocated) * 100.0 / float64(node.CPUsTotal)
 	}
 	details.WriteString(fmt.Sprintf("[yellow]  CPU Usage:[white] %.1f%%\n", cpuPercent))
-	
+
 	details.WriteString("\n[teal]Memory Information:[white]\n")
-	details.WriteString(fmt.Sprintf("[yellow]  Total Memory:[white] %s\n", formatMemory(node.MemoryTotal)))
-	details.WriteString(fmt.Sprintf("[yellow]  Allocated Memory:[white] %s\n", formatMemory(node.MemoryAllocated)))
-	details.WriteString(fmt.Sprintf("[yellow]  Free Memory:[white] %s\n", formatMemory(node.MemoryFree)))
+	details.WriteString(fmt.Sprintf("[yellow]  Total Memory:[white] %s\n", FormatMemory(node.MemoryTotal)))
+	details.WriteString(fmt.Sprintf("[yellow]  Allocated Memory:[white] %s\n", FormatMemory(node.MemoryAllocated)))
+	details.WriteString(fmt.Sprintf("[yellow]  Free Memory:[white] %s\n", FormatMemory(node.MemoryFree)))
 	memPercent := 0.0
 	if node.MemoryTotal > 0 {
 		memPercent = float64(node.MemoryAllocated) * 100.0 / float64(node.MemoryTotal)
 	}
 	details.WriteString(fmt.Sprintf("[yellow]  Memory Usage:[white] %.1f%%\n", memPercent))
-	
+
 	if len(node.Features) > 0 {
 		details.WriteString(fmt.Sprintf("\n[yellow]Features:[white] %s\n", strings.Join(node.Features, ", ")))
 	}
-	
+
 	if node.Reason != "" {
 		details.WriteString(fmt.Sprintf("\n[yellow]Reason:[white] %s\n", node.Reason))
 		if node.ReasonTime != nil {
 			details.WriteString(fmt.Sprintf("[yellow]Reason Time:[white] %s\n", node.ReasonTime.Format("2006-01-02 15:04:05")))
 		}
 	}
-	
+
 	if len(node.AllocatedJobs) > 0 {
 		details.WriteString(fmt.Sprintf("\n[yellow]Allocated Jobs:[white] %s\n", strings.Join(node.AllocatedJobs, ", ")))
 	}
@@ -624,7 +680,7 @@ func (v *NodesView) sshToNode() {
 	}
 
 	nodeName := data[0]
-	
+
 	// TODO: Implement SSH functionality
 	v.updateStatusBar(fmt.Sprintf("[yellow]SSH not yet implemented for node %s[white]", nodeName))
 }
@@ -647,7 +703,7 @@ func (v *NodesView) toggleStateFilter(state string) {
 			v.stateFilter = append(v.stateFilter, state)
 		}
 	}
-	
+
 	go v.Refresh()
 }
 
@@ -657,7 +713,7 @@ func (v *NodesView) promptPartitionFilter() {
 		SetLabel("Filter by partition: ").
 		SetFieldWidth(20).
 		SetText(v.partFilter)
-	
+
 	input.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
 			v.partFilter = input.GetText()
@@ -671,4 +727,142 @@ func (v *NodesView) promptPartitionFilter() {
 		SetTitleAlign(tview.AlignCenter)
 
 	v.app.SetRoot(input, true)
+}
+
+// groupNodes groups nodes based on the current groupBy setting
+func (v *NodesView) groupNodes() map[string][]*dao.Node {
+	groups := make(map[string][]*dao.Node)
+
+	for _, node := range v.nodes {
+		var groupKey string
+
+		switch v.groupBy {
+		case "partition":
+			if len(node.Partitions) > 0 {
+				groupKey = node.Partitions[0] // Use first partition
+			} else {
+				groupKey = "<no partition>"
+			}
+		case "state":
+			groupKey = node.State
+		case "features":
+			if len(node.Features) > 0 {
+				groupKey = node.Features[0] // Use first feature
+			} else {
+				groupKey = "<no features>"
+			}
+		default:
+			groupKey = "All Nodes"
+		}
+
+		groups[groupKey] = append(groups[groupKey], node)
+	}
+
+	return groups
+}
+
+// promptGroupBy prompts for grouping method
+func (v *NodesView) promptGroupBy() {
+	options := []string{"none", "partition", "state", "features"}
+	currentIndex := 0
+
+	// Find current selection
+	for i, opt := range options {
+		if opt == v.groupBy {
+			currentIndex = i
+			break
+		}
+	}
+
+	modal := tview.NewList()
+	modal.SetBorder(true).
+		SetTitle(" Group Nodes By ").
+		SetTitleAlign(tview.AlignCenter)
+
+	for i, option := range options {
+		text := strings.Title(option)
+		if option == v.groupBy {
+			text = fmt.Sprintf("[yellow]● %s[white]", text)
+		} else {
+			text = fmt.Sprintf("  %s", text)
+		}
+
+		modal.AddItem(text, "", rune('1'+i), func() {
+			selectedOption := options[modal.GetCurrentItem()]
+			v.setGroupBy(selectedOption)
+			if v.pages != nil {
+				v.pages.RemovePage("group-by")
+			}
+		})
+	}
+
+	modal.SetCurrentItem(currentIndex)
+
+	// Handle ESC key
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			if v.pages != nil {
+				v.pages.RemovePage("group-by")
+			}
+			return nil
+		}
+		return event
+	})
+
+	// Create centered modal layout
+	centeredModal := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(modal, 0, 3, true).
+			AddItem(nil, 0, 1, false), 0, 3, true).
+		AddItem(nil, 0, 1, false)
+
+	if v.pages != nil {
+		v.pages.AddPage("group-by", centeredModal, true, true)
+	}
+}
+
+// setGroupBy sets the grouping method and refreshes the view
+func (v *NodesView) setGroupBy(groupBy string) {
+	v.groupBy = groupBy
+	if groupBy != "none" {
+		// Expand all groups by default when switching to grouped view
+		v.expandAllGroups()
+	}
+	v.updateTable()
+	v.updateStatusBar("")
+}
+
+// toggleGroupExpansion toggles expansion of the selected group
+func (v *NodesView) toggleGroupExpansion() {
+	if v.groupBy == "none" {
+		return
+	}
+
+	data := v.table.GetSelectedData()
+	if data == nil || len(data) == 0 {
+		return
+	}
+
+	selectedText := data[0]
+
+	// Check if this is a group header (starts with ▶ or ▼)
+	if strings.HasPrefix(selectedText, "[yellow]▶") || strings.HasPrefix(selectedText, "[yellow]▼") {
+		// Extract group name
+		parts := strings.Split(selectedText, " ")
+		if len(parts) >= 3 {
+			groupName := parts[1]
+			v.groupExpanded[groupName] = !v.groupExpanded[groupName]
+			v.updateTable()
+		}
+	}
+}
+
+// expandAllGroups expands all groups
+func (v *NodesView) expandAllGroups() {
+	groups := v.groupNodes()
+	for groupName := range groups {
+		v.groupExpanded[groupName] = true
+	}
 }

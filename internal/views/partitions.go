@@ -55,9 +55,10 @@ func NewPartitionsView(client dao.SlurmClient) *PartitionsView {
 		components.NewColumn("Queue Depth").Width(20).Align(tview.AlignCenter).Build(),
 		components.NewColumn("Running").Width(8).Align(tview.AlignRight).Sortable(true).Build(),
 		components.NewColumn("Pending").Width(8).Align(tview.AlignRight).Sortable(true).Build(),
-		components.NewColumn("Default Time").Width(12).Build(),
-		components.NewColumn("Max Time").Width(12).Build(),
-		components.NewColumn("QOS").Width(20).Build(),
+		components.NewColumn("Avg Wait").Width(10).Align(tview.AlignRight).Sortable(true).Build(),
+		components.NewColumn("Max Wait").Width(10).Align(tview.AlignRight).Sortable(true).Build(),
+		components.NewColumn("Efficiency").Width(12).Align(tview.AlignCenter).Build(),
+		components.NewColumn("QOS").Width(15).Build(),
 	}
 
 	v.table = components.NewTableBuilder().
@@ -156,6 +157,8 @@ func (v *PartitionsView) Hints() []string {
 		"[yellow]Enter[white] Details",
 		"[yellow]j[white] Jobs",
 		"[yellow]n[white] Nodes",
+		"[yellow]a[white] Analytics",
+		"[yellow]w[white] Wait Times",
 		"[yellow]/[white] Filter",
 		"[yellow]1-9[white] Sort",
 		"[yellow]R[white] Refresh",
@@ -172,6 +175,12 @@ func (v *PartitionsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 			return nil
 		case 'n', 'N':
 			v.showPartitionNodes()
+			return nil
+		case 'a', 'A':
+			v.showPartitionAnalytics()
+			return nil
+		case 'w', 'W':
+			v.showWaitTimeAnalytics()
 			return nil
 		case 'R':
 			go v.Refresh()
@@ -213,7 +222,7 @@ func (v *PartitionsView) updateTable() {
 
 	data := make([][]string, len(v.partitions))
 	for i, partition := range v.partitions {
-		stateColor := GetPartitionStateColor(partition.State)
+		stateColor := dao.GetPartitionStateColor(partition.State)
 		coloredState := fmt.Sprintf("[%s]%s[white]", stateColor, partition.State)
 
 		// Get queue info
@@ -221,17 +230,40 @@ func (v *PartitionsView) updateTable() {
 		queueDepth := ""
 		running := "0"
 		pending := "0"
-		
+		avgWait := "-"
+		maxWait := "-"
+		efficiency := ""
+
 		if queueInfo != nil {
 			queueDepth = v.createQueueDepthBar(queueInfo.PendingJobs, queueInfo.RunningJobs)
 			running = fmt.Sprintf("%d", queueInfo.RunningJobs)
 			pending = fmt.Sprintf("%d", queueInfo.PendingJobs)
+
+			if queueInfo.AverageWait > 0 {
+				avgWait = FormatTimeDuration(queueInfo.AverageWait)
+			}
+			if queueInfo.LongestWait > 0 {
+				maxWait = FormatTimeDuration(queueInfo.LongestWait)
+			}
+
+			// Calculate efficiency (running / total capacity)
+			if partition.TotalCPUs > 0 {
+				efficiencyPct := float64(queueInfo.RunningJobs) * 100.0 / float64(partition.TotalCPUs)
+				if efficiencyPct > 100 {
+					efficiencyPct = 100 // Cap at 100%
+				}
+				efficiency = v.createEfficiencyBar(efficiencyPct)
+			} else {
+				efficiency = "[gray]▱▱▱▱▱[white]"
+			}
+		} else {
+			efficiency = "[gray]▱▱▱▱▱[white]"
 		}
 
 		// QOS list
 		qos := strings.Join(partition.QOS, ",")
-		if len(qos) > 19 {
-			qos = qos[:16] + "..."
+		if len(qos) > 14 {
+			qos = qos[:11] + "..."
 		}
 
 		data[i] = []string{
@@ -242,8 +274,9 @@ func (v *PartitionsView) updateTable() {
 			queueDepth,
 			running,
 			pending,
-			partition.DefaultTime,
-			partition.MaxTime,
+			avgWait,
+			maxWait,
+			efficiency,
 			qos,
 		}
 	}
@@ -306,6 +339,45 @@ func (v *PartitionsView) createQueueDepthBar(pending, running int) string {
 	return bar.String()
 }
 
+// createEfficiencyBar creates a visual efficiency representation
+func (v *PartitionsView) createEfficiencyBar(percentage float64) string {
+	barLength := 5
+	filled := int(percentage / 20.0) // Each bar represents 20%
+
+	if filled > barLength {
+		filled = barLength
+	}
+
+	var bar strings.Builder
+
+	// Choose color based on efficiency
+	var color string
+	if percentage < 50 {
+		color = "red"      // Low efficiency
+	} else if percentage < 80 {
+		color = "yellow"   // Medium efficiency
+	} else {
+		color = "green"    // High efficiency
+	}
+
+	bar.WriteString(fmt.Sprintf("[%s]", color))
+
+	// Add filled bars
+	for i := 0; i < filled; i++ {
+		bar.WriteString("▰")
+	}
+
+	// Add empty bars
+	bar.WriteString("[gray]")
+	for i := filled; i < barLength; i++ {
+		bar.WriteString("▱")
+	}
+
+	bar.WriteString(fmt.Sprintf("[white] %.0f%%", percentage))
+
+	return bar.String()
+}
+
 // calculateQueueInfo calculates queue information for a partition
 func (v *PartitionsView) calculateQueueInfo(partitionName string) (*dao.QueueInfo, error) {
 	// Fetch jobs for this partition
@@ -335,6 +407,8 @@ func (v *PartitionsView) calculateQueueInfo(partitionName string) (*dao.QueueInf
 			// Calculate wait time
 			waitTime := now.Sub(job.SubmitTime)
 			waitTimes = append(waitTimes, waitTime)
+		case dao.JobStateCompleting:
+			info.RunningJobs++ // Count completing jobs as running
 		}
 		info.TotalJobs++
 	}
@@ -379,10 +453,10 @@ func (v *PartitionsView) updateStatusBar(message string) {
 	v.mu.RUnlock()
 
 	filtered := len(v.table.GetFilteredData())
-	
-	status := fmt.Sprintf("Partitions: %d | Jobs: [green]%d running[white], [yellow]%d pending[white], %d total", 
+
+	status := fmt.Sprintf("Partitions: %d | Jobs: [green]%d running[white], [yellow]%d pending[white], %d total",
 		total, totalRunning, totalPending, totalJobs)
-	
+
 	if filtered < total {
 		status += fmt.Sprintf(" | Filtered: %d", filtered)
 	}
@@ -438,7 +512,7 @@ func (v *PartitionsView) showPartitionDetails() {
 	}
 
 	partitionName := data[0]
-	
+
 	// Fetch full partition details
 	partition, err := v.client.Partitions().Get(partitionName)
 	if err != nil {
@@ -448,7 +522,7 @@ func (v *PartitionsView) showPartitionDetails() {
 
 	// Create details view
 	details := v.formatPartitionDetails(partition)
-	
+
 	textView := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(details).
@@ -493,20 +567,20 @@ func (v *PartitionsView) formatPartitionDetails(partition *dao.Partition) string
 	var details strings.Builder
 
 	details.WriteString(fmt.Sprintf("[yellow]Partition Name:[white] %s\n", partition.Name))
-	
-	stateColor := GetPartitionStateColor(partition.State)
+
+	stateColor := dao.GetPartitionStateColor(partition.State)
 	details.WriteString(fmt.Sprintf("[yellow]State:[white] [%s]%s[white]\n", stateColor, partition.State))
-	
+
 	details.WriteString(fmt.Sprintf("[yellow]Total Nodes:[white] %d\n", partition.TotalNodes))
 	details.WriteString(fmt.Sprintf("[yellow]Total CPUs:[white] %d\n", partition.TotalCPUs))
-	
+
 	details.WriteString(fmt.Sprintf("[yellow]Default Time:[white] %s\n", partition.DefaultTime))
 	details.WriteString(fmt.Sprintf("[yellow]Max Time:[white] %s\n", partition.MaxTime))
-	
+
 	if len(partition.QOS) > 0 {
 		details.WriteString(fmt.Sprintf("[yellow]QOS:[white] %s\n", strings.Join(partition.QOS, ", ")))
 	}
-	
+
 	if len(partition.Nodes) > 0 {
 		nodeList := strings.Join(partition.Nodes, ", ")
 		if len(nodeList) > 100 {
@@ -522,13 +596,13 @@ func (v *PartitionsView) formatPartitionDetails(partition *dao.Partition) string
 		details.WriteString(fmt.Sprintf("[yellow]  Total Jobs:[white] %d\n", queueInfo.TotalJobs))
 		details.WriteString(fmt.Sprintf("[yellow]  Running Jobs:[white] %d\n", queueInfo.RunningJobs))
 		details.WriteString(fmt.Sprintf("[yellow]  Pending Jobs:[white] %d\n", queueInfo.PendingJobs))
-		
+
 		if queueInfo.AverageWait > 0 {
-			details.WriteString(fmt.Sprintf("[yellow]  Average Wait:[white] %s\n", formatDuration(queueInfo.AverageWait)))
+			details.WriteString(fmt.Sprintf("[yellow]  Average Wait:[white] %s\n", FormatTimeDuration(queueInfo.AverageWait)))
 		}
-		
+
 		if queueInfo.LongestWait > 0 {
-			details.WriteString(fmt.Sprintf("[yellow]  Longest Wait:[white] %s\n", formatDuration(queueInfo.LongestWait)))
+			details.WriteString(fmt.Sprintf("[yellow]  Longest Wait:[white] %s\n", FormatTimeDuration(queueInfo.LongestWait)))
 		}
 	}
 	v.mu.RUnlock()
@@ -544,7 +618,7 @@ func (v *PartitionsView) showPartitionJobs() {
 	}
 
 	partitionName := data[0]
-	
+
 	// TODO: Switch to jobs view with partition filter
 	v.updateStatusBar(fmt.Sprintf("[yellow]Job view filtering not yet implemented for partition %s[white]", partitionName))
 }
@@ -557,7 +631,329 @@ func (v *PartitionsView) showPartitionNodes() {
 	}
 
 	partitionName := data[0]
-	
+
 	// TODO: Switch to nodes view with partition filter
 	v.updateStatusBar(fmt.Sprintf("[yellow]Node view filtering not yet implemented for partition %s[white]", partitionName))
+}
+
+
+// showPartitionAnalytics shows comprehensive analytics for the selected partition
+func (v *PartitionsView) showPartitionAnalytics() {
+	data := v.table.GetSelectedData()
+	if data == nil || len(data) == 0 {
+		return
+	}
+
+	partitionName := data[0]
+
+	// Fetch full partition details
+	partition, err := v.client.Partitions().Get(partitionName)
+	if err != nil {
+		v.updateStatusBar(fmt.Sprintf("[red]Failed to get partition details: %v[white]", err))
+		return
+	}
+
+	// Create analytics view
+	analytics := v.formatPartitionAnalytics(partition)
+
+	textView := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText(analytics).
+		SetScrollable(true)
+
+	modal := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(textView, 0, 1, true).
+		AddItem(tview.NewTextView().SetText("Press ESC to close | R to refresh"), 1, 0, false)
+
+	modal.SetBorder(true).
+		SetTitle(fmt.Sprintf(" Analytics: %s ", partitionName)).
+		SetTitleAlign(tview.AlignCenter)
+
+	// Create centered modal layout
+	centeredModal := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(modal, 0, 8, true).
+			AddItem(nil, 0, 1, false), 0, 8, true).
+		AddItem(nil, 0, 1, false)
+
+	// Handle keys
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEsc:
+			if v.pages != nil {
+				v.pages.RemovePage("partition-analytics")
+			}
+			return nil
+		case tcell.KeyRune:
+			if event.Rune() == 'R' || event.Rune() == 'r' {
+				// Refresh and update the display
+				go func() {
+					v.Refresh()
+					// Update the analytics display
+					newAnalytics := v.formatPartitionAnalytics(partition)
+					textView.SetText(newAnalytics)
+				}()
+				return nil
+			}
+		}
+		return event
+	})
+
+	if v.pages != nil {
+		v.pages.AddPage("partition-analytics", centeredModal, true, true)
+	}
+}
+
+// formatPartitionAnalytics formats comprehensive analytics for display
+func (v *PartitionsView) formatPartitionAnalytics(partition *dao.Partition) string {
+	var analytics strings.Builder
+
+	analytics.WriteString(fmt.Sprintf("[yellow]Partition Analytics: %s[white]\n\n", partition.Name))
+
+	// Basic information
+	stateColor := dao.GetPartitionStateColor(partition.State)
+	analytics.WriteString(fmt.Sprintf("[teal]Basic Information:[white]\n"))
+	analytics.WriteString(fmt.Sprintf("[yellow]  State:[white] [%s]%s[white]\n", stateColor, partition.State))
+	analytics.WriteString(fmt.Sprintf("[yellow]  Total Nodes:[white] %d\n", partition.TotalNodes))
+	analytics.WriteString(fmt.Sprintf("[yellow]  Total CPUs:[white] %d\n", partition.TotalCPUs))
+	analytics.WriteString(fmt.Sprintf("[yellow]  Default Time Limit:[white] %s\n", partition.DefaultTime))
+	analytics.WriteString(fmt.Sprintf("[yellow]  Maximum Time Limit:[white] %s\n", partition.MaxTime))
+
+	// Queue analytics
+	v.mu.RLock()
+	queueInfo := v.queueInfo[partition.Name]
+	v.mu.RUnlock()
+
+	if queueInfo != nil {
+		analytics.WriteString("\n[teal]Queue Analytics:[white]\n")
+		analytics.WriteString(fmt.Sprintf("[yellow]  Total Jobs:[white] %d\n", queueInfo.TotalJobs))
+		analytics.WriteString(fmt.Sprintf("[yellow]  Running Jobs:[white] [green]%d[white]\n", queueInfo.RunningJobs))
+		analytics.WriteString(fmt.Sprintf("[yellow]  Pending Jobs:[white] [yellow]%d[white]\n", queueInfo.PendingJobs))
+
+		if queueInfo.TotalJobs > 0 {
+			runningPct := float64(queueInfo.RunningJobs) * 100.0 / float64(queueInfo.TotalJobs)
+			pendingPct := float64(queueInfo.PendingJobs) * 100.0 / float64(queueInfo.TotalJobs)
+			analytics.WriteString(fmt.Sprintf("[yellow]  Running Percentage:[white] %.1f%%\n", runningPct))
+			analytics.WriteString(fmt.Sprintf("[yellow]  Pending Percentage:[white] %.1f%%\n", pendingPct))
+		}
+
+		// Utilization analytics
+		if partition.TotalCPUs > 0 {
+			utilizationPct := float64(queueInfo.RunningJobs) * 100.0 / float64(partition.TotalCPUs)
+			analytics.WriteString("\n[teal]Resource Utilization:[white]\n")
+			analytics.WriteString(fmt.Sprintf("[yellow]  CPU Utilization:[white] %.1f%%\n", utilizationPct))
+
+			utilizationBar := v.createEfficiencyBar(utilizationPct)
+			analytics.WriteString(fmt.Sprintf("[yellow]  Utilization Visual:[white] %s\n", utilizationBar))
+
+			// Performance assessment
+			analytics.WriteString("\n[teal]Performance Assessment:[white]\n")
+			if utilizationPct < 30 {
+				analytics.WriteString("[yellow]  Status:[white] [red]Under-utilized[white] - Consider job promotion or resource reallocation\n")
+			} else if utilizationPct < 70 {
+				analytics.WriteString("[yellow]  Status:[white] [yellow]Moderate utilization[white] - Room for growth\n")
+			} else if utilizationPct < 95 {
+				analytics.WriteString("[yellow]  Status:[white] [green]Well-utilized[white] - Optimal performance\n")
+			} else {
+				analytics.WriteString("[yellow]  Status:[white] [red]Over-subscribed[white] - Consider expanding capacity\n")
+			}
+		}
+
+		// Wait time analytics
+		if queueInfo.AverageWait > 0 || queueInfo.LongestWait > 0 {
+			analytics.WriteString("\n[teal]Wait Time Analytics:[white]\n")
+			if queueInfo.AverageWait > 0 {
+				analytics.WriteString(fmt.Sprintf("[yellow]  Average Wait Time:[white] %s\n", FormatTimeDuration(queueInfo.AverageWait)))
+			}
+			if queueInfo.LongestWait > 0 {
+				analytics.WriteString(fmt.Sprintf("[yellow]  Longest Wait Time:[white] %s\n", FormatTimeDuration(queueInfo.LongestWait)))
+
+				// Wait time assessment
+				hours := queueInfo.LongestWait.Hours()
+				if hours < 1 {
+					analytics.WriteString("[yellow]  Wait Assessment:[white] [green]Excellent[white] - Quick turnaround\n")
+				} else if hours < 6 {
+					analytics.WriteString("[yellow]  Wait Assessment:[white] [yellow]Good[white] - Reasonable wait times\n")
+				} else if hours < 24 {
+					analytics.WriteString("[yellow]  Wait Assessment:[white] [orange]Moderate[white] - Some delays expected\n")
+				} else {
+					analytics.WriteString("[yellow]  Wait Assessment:[white] [red]Poor[white] - Long wait times detected\n")
+				}
+			}
+		}
+	} else {
+		analytics.WriteString("\n[yellow]Queue information not available[white]\n")
+	}
+
+	// QoS and limits
+	if len(partition.QOS) > 0 {
+		analytics.WriteString("\n[teal]Quality of Service:[white]\n")
+		for _, qos := range partition.QOS {
+			analytics.WriteString(fmt.Sprintf("[yellow]  - %s[white]\n", qos))
+		}
+	}
+
+	analytics.WriteString("\n[gray]Last updated: " + time.Now().Format("15:04:05") + "[white]")
+
+	return analytics.String()
+}
+
+// showWaitTimeAnalytics shows detailed wait time analytics for all partitions
+func (v *PartitionsView) showWaitTimeAnalytics() {
+	// Create wait time analytics view
+	analytics := v.formatWaitTimeAnalytics()
+
+	textView := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText(analytics).
+		SetScrollable(true)
+
+	modal := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(textView, 0, 1, true).
+		AddItem(tview.NewTextView().SetText("Press ESC to close | R to refresh"), 1, 0, false)
+
+	modal.SetBorder(true).
+		SetTitle(" Wait Time Analytics (All Partitions) ").
+		SetTitleAlign(tview.AlignCenter)
+
+	// Create centered modal layout
+	centeredModal := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(modal, 0, 8, true).
+			AddItem(nil, 0, 1, false), 0, 8, true).
+		AddItem(nil, 0, 1, false)
+
+	// Handle keys
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEsc:
+			if v.pages != nil {
+				v.pages.RemovePage("wait-analytics")
+			}
+			return nil
+		case tcell.KeyRune:
+			if event.Rune() == 'R' || event.Rune() == 'r' {
+				// Refresh and update the display
+				go func() {
+					v.Refresh()
+					// Update the analytics display
+					newAnalytics := v.formatWaitTimeAnalytics()
+					textView.SetText(newAnalytics)
+				}()
+				return nil
+			}
+		}
+		return event
+	})
+
+	if v.pages != nil {
+		v.pages.AddPage("wait-analytics", centeredModal, true, true)
+	}
+}
+
+// formatWaitTimeAnalytics formats wait time analytics for all partitions
+func (v *PartitionsView) formatWaitTimeAnalytics() string {
+	var analytics strings.Builder
+
+	analytics.WriteString("[yellow]Cluster-Wide Wait Time Analytics[white]\n\n")
+
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
+	if len(v.queueInfo) == 0 {
+		analytics.WriteString("[yellow]No queue information available[white]\n")
+		return analytics.String()
+	}
+
+	// Calculate cluster-wide statistics
+	var totalPending, totalRunning int
+	var allWaitTimes []time.Duration
+	var longestWait time.Duration
+
+	for _, info := range v.queueInfo {
+		totalPending += info.PendingJobs
+		totalRunning += info.RunningJobs
+		if info.AverageWait > 0 {
+			allWaitTimes = append(allWaitTimes, info.AverageWait)
+		}
+		if info.LongestWait > longestWait {
+			longestWait = info.LongestWait
+		}
+	}
+
+	// Cluster summary
+	analytics.WriteString("[teal]Cluster Summary:[white]\n")
+	analytics.WriteString(fmt.Sprintf("[yellow]  Total Pending Jobs:[white] %d\n", totalPending))
+	analytics.WriteString(fmt.Sprintf("[yellow]  Total Running Jobs:[white] %d\n", totalRunning))
+	analytics.WriteString(fmt.Sprintf("[yellow]  Cluster-wide Longest Wait:[white] %s\n", FormatTimeDuration(longestWait)))
+
+	if len(allWaitTimes) > 0 {
+		var totalWait time.Duration
+		for _, wait := range allWaitTimes {
+			totalWait += wait
+		}
+		avgClusterWait := totalWait / time.Duration(len(allWaitTimes))
+		analytics.WriteString(fmt.Sprintf("[yellow]  Average Wait Across Partitions:[white] %s\n", FormatTimeDuration(avgClusterWait)))
+	}
+
+	// Per-partition breakdown
+	analytics.WriteString("\n[teal]Per-Partition Breakdown:[white]\n")
+	analytics.WriteString("[yellow]Partition          Pending  Running  Avg Wait    Max Wait     Status[white]\n")
+	analytics.WriteString("─────────────────────────────────────────────────────────────────────\n")
+
+	for _, partition := range v.partitions {
+		info := v.queueInfo[partition.Name]
+		if info == nil {
+			continue
+		}
+
+		name := partition.Name
+		if len(name) > 18 {
+			name = name[:15] + "..."
+		}
+		name = fmt.Sprintf("%-18s", name)
+
+		pending := fmt.Sprintf("%7d", info.PendingJobs)
+		running := fmt.Sprintf("%7d", info.RunningJobs)
+
+		avgWait := "-"
+		maxWait := "-"
+		if info.AverageWait > 0 {
+			avgWait = fmt.Sprintf("%10s", FormatTimeDuration(info.AverageWait))
+		} else {
+			avgWait = fmt.Sprintf("%10s", "-")
+		}
+		if info.LongestWait > 0 {
+			maxWait = fmt.Sprintf("%10s", FormatTimeDuration(info.LongestWait))
+		} else {
+			maxWait = fmt.Sprintf("%10s", "-")
+		}
+
+		// Status assessment
+		status := "OK"
+		statusColor := "green"
+		if info.LongestWait.Hours() > 24 {
+			status = "CRITICAL"
+			statusColor = "red"
+		} else if info.LongestWait.Hours() > 6 {
+			status = "WARNING"
+			statusColor = "yellow"
+		} else if info.PendingJobs > info.RunningJobs*2 {
+			status = "BACKLOG"
+			statusColor = "orange"
+		}
+
+		analytics.WriteString(fmt.Sprintf("%s %s %s %s %s [%s]%s[white]\n",
+			name, pending, running, avgWait, maxWait, statusColor, status))
+	}
+
+	analytics.WriteString("\n[gray]Last updated: " + time.Now().Format("15:04:05") + "[white]")
+
+	return analytics.String()
 }

@@ -3,6 +3,7 @@ package views
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -122,7 +123,7 @@ func (v *BaseView) OnFocus() error {
 	return nil
 }
 
-// OnLoseFocus provides default focus loss handling  
+// OnLoseFocus provides default focus loss handling
 func (v *BaseView) OnLoseFocus() error {
 	return nil
 }
@@ -150,7 +151,7 @@ func (v *BaseView) Stop() error {
 // ColoredState returns a colored string based on state type
 func ColoredState(state, stateType string) string {
 	var color string
-	
+
 	switch stateType {
 	case "job":
 		color = GetJobStateColor(state)
@@ -161,7 +162,7 @@ func ColoredState(state, stateType string) string {
 	default:
 		color = "white"
 	}
-	
+
 	return fmt.Sprintf("[%s]%s[white]", color, state)
 }
 
@@ -235,6 +236,20 @@ func FormatDuration(d string) string {
 	return d
 }
 
+// FormatTimeDuration formats a time.Duration for display
+func FormatTimeDuration(d time.Duration) string {
+	if d < time.Minute {
+		return fmt.Sprintf("%.0fs", d.Seconds())
+	} else if d < time.Hour {
+		return fmt.Sprintf("%.0fm", d.Minutes())
+	} else if d < 24*time.Hour {
+		return fmt.Sprintf("%.1fh", d.Hours())
+	} else {
+		days := int(d.Hours() / 24)
+		return fmt.Sprintf("%dd", days)
+	}
+}
+
 // FormatMemory formats memory size in MB to human-readable format
 func FormatMemory(mb int64) string {
 	if mb < 1024 {
@@ -295,10 +310,10 @@ func (vm *ViewManager) AddView(view View) error {
 	if _, exists := vm.views[name]; exists {
 		return fmt.Errorf("view %s already exists", name)
 	}
-	
+
 	vm.views[name] = view
 	vm.viewOrder = append(vm.viewOrder, name)
-	
+
 	// Set the app and pages reference if the view supports it
 	// Try to set app via type assertion to views that embed BaseView
 	switch v := view.(type) {
@@ -331,7 +346,7 @@ func (vm *ViewManager) AddView(view View) error {
 		v.app = vm.app
 		v.pages = vm.pages
 	}
-	
+
 	return nil
 }
 
@@ -358,17 +373,17 @@ func (vm *ViewManager) SetCurrentView(name string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Call OnLoseFocus on the old view
 	if vm.currentView != "" {
 		if oldView, err := vm.GetView(vm.currentView); err == nil {
 			oldView.OnLoseFocus()
 		}
 	}
-	
+
 	// Set the new current view
 	vm.currentView = name
-	
+
 	// Call OnFocus on the new view
 	return newView.OnFocus()
 }
@@ -378,7 +393,7 @@ func (vm *ViewManager) NextView() error {
 	if len(vm.viewOrder) == 0 {
 		return fmt.Errorf("no views available")
 	}
-	
+
 	currentIndex := -1
 	for i, name := range vm.viewOrder {
 		if name == vm.currentView {
@@ -386,7 +401,7 @@ func (vm *ViewManager) NextView() error {
 			break
 		}
 	}
-	
+
 	nextIndex := (currentIndex + 1) % len(vm.viewOrder)
 	return vm.SetCurrentView(vm.viewOrder[nextIndex])
 }
@@ -396,7 +411,7 @@ func (vm *ViewManager) PreviousView() error {
 	if len(vm.viewOrder) == 0 {
 		return fmt.Errorf("no views available")
 	}
-	
+
 	currentIndex := -1
 	for i, name := range vm.viewOrder {
 		if name == vm.currentView {
@@ -404,18 +419,37 @@ func (vm *ViewManager) PreviousView() error {
 			break
 		}
 	}
-	
+
 	prevIndex := currentIndex - 1
 	if prevIndex < 0 {
 		prevIndex = len(vm.viewOrder) - 1
 	}
-	
+
 	return vm.SetCurrentView(vm.viewOrder[prevIndex])
 }
 
 // GetViewNames returns all registered view names in order
 func (vm *ViewManager) GetViewNames() []string {
 	return vm.viewOrder
+}
+
+// RefreshCurrentView refreshes the current active view
+func (vm *ViewManager) RefreshCurrentView() error {
+	if vm.currentView == "" {
+		return fmt.Errorf("no current view set")
+	}
+
+	view, err := vm.GetView(vm.currentView)
+	if err != nil {
+		return err
+	}
+
+	// Check if the view supports refreshing
+	if refreshable, ok := view.(interface{ Refresh() error }); ok {
+		return refreshable.Refresh()
+	}
+
+	return fmt.Errorf("current view does not support refreshing")
 }
 
 // StopAll stops all views

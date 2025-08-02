@@ -53,14 +53,14 @@ func NewSlurmAdapter(ctx context.Context, cfg *config.ClusterConfig) (*SlurmAdap
 	// Create the client
 	var slurmClient slurm.SlurmClient
 	var err error
-	
+
 	if cfg.APIVersion != "" {
 		slurmClient, err = slurm.NewClientWithVersion(ctx, cfg.APIVersion, opts...)
 	} else {
 		// Auto-detect version
 		slurmClient, err = slurm.NewClient(ctx, opts...)
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("creating slurm client: %w", err)
 	}
@@ -206,12 +206,12 @@ func (j *jobManager) Submit(job *JobSubmission) (*Job, error) {
 	}); ok {
 		// Convert our JobSubmission to the format expected by slurm-client
 		slurmJob := convertJobSubmissionToSlurm(job)
-		
+
 		result, err := submitter.Submit(j.ctx, slurmJob)
 		if err != nil {
 			return nil, fmt.Errorf("submitting job via slurm-client: %w", err)
 		}
-		
+
 		// Convert the result back to our Job type
 		if slurmJobResult, ok := result.(interface {
 			GetJobID() string
@@ -227,7 +227,7 @@ func (j *jobManager) Submit(job *JobSubmission) (*Job, error) {
 			}, nil
 		}
 	}
-	
+
 	// Fallback: If slurm-client doesn't support submission or we're in a testing context,
 	// simulate job submission with a basic implementation
 	return j.simulateJobSubmission(job)
@@ -237,7 +237,7 @@ func (j *jobManager) Submit(job *JobSubmission) (*Job, error) {
 func (j *jobManager) simulateJobSubmission(job *JobSubmission) (*Job, error) {
 	// Generate a simple job ID (in real implementation, this would come from SLURM)
 	jobID := fmt.Sprintf("sim_%d", time.Now().Unix())
-	
+
 	return &Job{
 		ID:          jobID,
 		Name:        job.Name,
@@ -311,7 +311,7 @@ func (j *jobManager) Requeue(id string) (*Job, error) {
 		if err != nil {
 			return nil, fmt.Errorf("requeuing job %s via slurm-client: %w", id, err)
 		}
-		
+
 		// Convert result back to Job if possible
 		if job, ok := result.(interface {
 			GetJobID() string
@@ -321,7 +321,7 @@ func (j *jobManager) Requeue(id string) (*Job, error) {
 			return j.Get(job.GetJobID())
 		}
 	}
-	
+
 	// Fallback: simulate requeue for testing/demo purposes
 	return j.simulateRequeue(id)
 }
@@ -333,12 +333,12 @@ func (j *jobManager) simulateRequeue(id string) (*Job, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting job %s for requeue: %w", id, err)
 	}
-	
+
 	// Check if job can be requeued (must be completed, failed, or cancelled)
 	if existingJob.State != "COMPLETED" && existingJob.State != "FAILED" && existingJob.State != "CANCELLED" {
 		return nil, fmt.Errorf("job %s cannot be requeued (current state: %s)", id, existingJob.State)
 	}
-	
+
 	// Create a new job with a new ID but same parameters
 	newJobID := fmt.Sprintf("sim_%d", time.Now().Unix())
 	requeuedJob := *existingJob // Copy the job
@@ -349,7 +349,7 @@ func (j *jobManager) simulateRequeue(id string) (*Job, error) {
 	requeuedJob.EndTime = nil
 	requeuedJob.ExitCode = nil
 	requeuedJob.TimeUsed = "0:00:00"
-	
+
 	return &requeuedJob, nil
 }
 
@@ -360,7 +360,7 @@ func (j *jobManager) GetOutput(id string) (string, error) {
 	}); ok {
 		return outputGetter.GetOutput(j.ctx, id)
 	}
-	
+
 	// Fallback: simulate job output for testing/demo purposes
 	return j.simulateJobOutput(id)
 }
@@ -372,20 +372,20 @@ func (j *jobManager) simulateJobOutput(id string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("getting job %s for output: %w", id, err)
 	}
-	
+
 	// Create simulated output based on job state and type
 	output := fmt.Sprintf("=== Job %s (%s) Output ===\n", job.ID, job.Name)
 	output += fmt.Sprintf("User: %s\n", job.User)
 	output += fmt.Sprintf("Partition: %s\n", job.Partition)
 	output += fmt.Sprintf("Submit Time: %s\n", job.SubmitTime.Format("2006-01-02 15:04:05"))
-	
+
 	if job.StartTime != nil {
 		output += fmt.Sprintf("Start Time: %s\n", job.StartTime.Format("2006-01-02 15:04:05"))
 	}
-	
+
 	output += fmt.Sprintf("State: %s\n", job.State)
 	output += "\n=== Command Output ===\n"
-	
+
 	switch job.State {
 	case "PENDING":
 		output += "Job is waiting in queue...\n"
@@ -413,7 +413,7 @@ func (j *jobManager) simulateJobOutput(id string) (string, error) {
 	default:
 		output += fmt.Sprintf("Job state: %s\n", job.State)
 	}
-	
+
 	output += "\n=== End of Output ===\n"
 	return output, nil
 }
@@ -579,7 +579,7 @@ func convertJob(job *slurm.Job) *Job {
 	if job.ExitCode != 0 {
 		exitCode = &job.ExitCode
 	}
-	
+
 	return &Job{
 		ID:          job.ID,
 		Name:        job.Name,
@@ -790,12 +790,12 @@ func convertUser(user *slurm.User) *User {
 	for i, acc := range user.Accounts {
 		accountNames[i] = acc.AccountName
 	}
-	
+
 	// Find default QoS and other info from first account association
 	var defaultQoS string
 	var qosList []string
 	var maxJobs, maxNodes, maxCPUs, maxSubmit int
-	
+
 	if len(user.Accounts) > 0 {
 		defaultAccount := user.Accounts[0]
 		defaultQoS = defaultAccount.DefaultQoS
@@ -814,7 +814,7 @@ func convertUser(user *slurm.User) *User {
 			}
 		}
 	}
-	
+
 	return &User{
 		Name:           user.Name,
 		UID:            user.UID,

@@ -122,7 +122,7 @@ func (v *JobsView) buildDependencyTree(job *dao.Job) string {
 			case "waiting":
 				statusColor = "yellow"
 			}
-			
+
 			content.WriteString(fmt.Sprintf("  [%s]●[white] %s\n", statusColor, dep.Type))
 			for _, depJobID := range dep.DependsOn {
 				content.WriteString(fmt.Sprintf("    └── Job %s [%s](%s)[white]\n", depJobID, statusColor, dep.Status))
@@ -162,9 +162,9 @@ func (v *JobsView) buildDependencyTree(job *dao.Job) string {
 func (v *JobsView) getMockDependencies(jobID string) []JobDependency {
 	// In a real implementation, this would query the SLURM database
 	// For now, create some mock dependencies based on job ID patterns
-	
+
 	var deps []JobDependency
-	
+
 	// Create different dependency patterns based on job characteristics
 	if strings.Contains(jobID, "200") { // Higher numbered jobs might depend on others
 		deps = append(deps, JobDependency{
@@ -181,20 +181,20 @@ func (v *JobsView) getMockDependencies(jobID string) []JobDependency {
 			Status:    "waiting",
 		})
 	}
-	
+
 	return deps
 }
 
 // getMockReverseDependencies returns jobs that depend on the given job
 func (v *JobsView) getMockReverseDependencies(jobID string) []string {
 	var reverseDeps []string
-	
+
 	// Mock some reverse dependencies
 	if strings.Contains(jobID, "100") {
 		reverseDeps = append(reverseDeps, fmt.Sprintf("%d", atoi(jobID)+1))
 		reverseDeps = append(reverseDeps, fmt.Sprintf("%d", atoi(jobID)+5))
 	}
-	
+
 	return reverseDeps
 }
 
@@ -236,19 +236,19 @@ func (v *JobsView) showAddDependencyForm(jobID string) {
 	depForm := tview.NewForm().
 		AddInputField("Depends on Job ID", "", 20, nil, nil).
 		AddDropDown("Dependency Type", []string{"afterok", "afternotok", "afterany", "after"}, 0, nil)
-		
+
 	depForm.AddButton("Add", func() {
 		dependsOnJobID := depForm.GetFormItemByLabel("Depends on Job ID").(*tview.InputField).GetText()
 		_, depType := depForm.GetFormItemByLabel("Dependency Type").(*tview.DropDown).GetCurrentOption()
-		
+
 		if dependsOnJobID == "" {
 			v.updateStatusBar("[red]Job ID is required[white]")
 			return
 		}
-		
+
 		// In a real implementation, this would update the job dependencies
 		v.updateStatusBar(fmt.Sprintf("[green]Added %s dependency on job %s[white]", depType, dependsOnJobID))
-		
+
 		if v.pages != nil {
 			v.pages.RemovePage("add-dependency")
 			v.pages.RemovePage("job-dependencies") // Close parent dialog too
@@ -282,21 +282,21 @@ func (v *JobsView) showAddDependencyForm(jobID string) {
 func (v *JobsView) showRemoveDependencyForm(jobID string) {
 	// Get current dependencies for the job
 	dependencies := v.getMockDependencies(jobID)
-	
+
 	if len(dependencies) == 0 {
 		v.updateStatusBar("[yellow]No dependencies to remove[white]")
 		return
 	}
 
 	list := tview.NewList()
-	
+
 	for _, dep := range dependencies {
 		for _, depJobID := range dep.DependsOn {
 			depInfo := fmt.Sprintf("Job %s (%s)", depJobID, dep.Type)
 			list.AddItem(depInfo, "", 0, func() {
 				// In a real implementation, this would remove the dependency
 				v.updateStatusBar(fmt.Sprintf("[green]Removed dependency on job %s[white]", depJobID))
-				
+
 				if v.pages != nil {
 					v.pages.RemovePage("remove-dependency")
 					v.pages.RemovePage("job-dependencies") // Close parent dialog too
@@ -304,7 +304,7 @@ func (v *JobsView) showRemoveDependencyForm(jobID string) {
 			})
 		}
 	}
-	
+
 	list.AddItem("Cancel", "Close without removing", 0, func() {
 		if v.pages != nil {
 			v.pages.RemovePage("remove-dependency")

@@ -19,24 +19,24 @@ type S9s struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	config *config.Config
-	
+
 	// SLURM client
 	client dao.SlurmClient
-	
+
 	// UI components
 	app        *tview.Application
 	pages      *tview.Pages
 	header     *components.Header
 	statusBar  *components.StatusBar
 	viewMgr    *views.ViewManager
-	
+
 	// Main layout
 	mainLayout *tview.Flex
-	
+
 	// Command line
 	cmdLine    *tview.InputField
 	cmdVisible bool
-	
+
 	// State
 	refreshTicker *time.Ticker
 	isRunning     bool
@@ -66,11 +66,11 @@ func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
 				}
 			}
 		}
-		
+
 		if clusterConfig == nil {
 			return nil, fmt.Errorf("no cluster configuration found for context: %s", cfg.CurrentContext)
 		}
-		
+
 		// Create real SLURM adapter
 		adapter, err := dao.NewSlurmAdapter(appCtx, clusterConfig)
 		if err != nil {
@@ -112,9 +112,9 @@ func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
 // Run starts the application
 func (s *S9s) Run() error {
 	s.isRunning = true
-	
+
 	// Start background services (removed updateLoop to prevent duplicate refreshes)
-	
+
 	// Start refresh ticker if configured
 	if s.config.RefreshRate != "" {
 		duration, err := time.ParseDuration(s.config.RefreshRate)
@@ -122,7 +122,7 @@ func (s *S9s) Run() error {
 			s.startRefreshTimer(duration)
 		}
 	}
-	
+
 	// Set initial view
 	if err := s.viewMgr.SetCurrentView("jobs"); err != nil {
 		s.statusBar.Error(fmt.Sprintf("Failed to set initial view: %v", err))
@@ -130,10 +130,10 @@ func (s *S9s) Run() error {
 		// Update the display to show the initial view
 		s.updateCurrentView()
 	}
-	
+
 	// Set the root and run the application
 	s.app.SetRoot(s.pages, true)
-	
+
 	// Run will block until Stop is called
 	return s.app.Run()
 }
@@ -152,24 +152,24 @@ func (s *S9s) HideModal(name string) {
 // Stop gracefully stops the application
 func (s *S9s) Stop() error {
 	s.isRunning = false
-	
+
 	// Stop refresh timer
 	if s.refreshTicker != nil {
 		s.refreshTicker.Stop()
 	}
-	
+
 	// Stop header
 	s.header.Stop()
-	
+
 	// Stop all views
 	s.viewMgr.StopAll()
-	
+
 	// Stop the tview application
 	s.app.Stop()
-	
+
 	// Cancel the application context
 	s.cancel()
-	
+
 	return nil
 }
 
@@ -177,14 +177,14 @@ func (s *S9s) Stop() error {
 func (s *S9s) initUI() error {
 	// Create header
 	s.header = components.NewHeader()
-	
+
 	// Create status bar
 	s.statusBar = components.NewStatusBar()
-	
+
 	// Create view manager
 	s.viewMgr = views.NewViewManager(s.app)
 	s.viewMgr.SetPages(s.pages)
-	
+
 	// Create command line (hidden by default)
 	s.cmdLine = tview.NewInputField().
 		SetLabel(":").
@@ -192,20 +192,20 @@ func (s *S9s) initUI() error {
 		SetFieldTextColor(tcell.ColorWhite).
 		SetDoneFunc(s.onCommandDone)
 	s.cmdLine.SetBorder(false)
-	
+
 	// Create main layout placeholder
 	s.mainLayout = tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(s.header, 2, 0, false).
 		AddItem(tview.NewTextView().SetText("Loading..."), 0, 1, true).
 		AddItem(s.cmdLine, 1, 0, false).
 		AddItem(s.statusBar, 1, 0, false)
-	
+
 	// Hide command line initially
 	s.hideCommandLine()
-	
+
 	// Add main page
 	s.pages.AddPage("main", s.mainLayout, true, true)
-	
+
 	return nil
 }
 
@@ -217,21 +217,21 @@ func (s *S9s) initViews() error {
 		return fmt.Errorf("failed to initialize jobs view: %w", err)
 	}
 	s.viewMgr.AddView(jobsView)
-	
+
 	// Create nodes view
 	nodesView := views.NewNodesView(s.client)
 	if err := nodesView.Init(s.ctx); err != nil {
 		return fmt.Errorf("failed to initialize nodes view: %w", err)
 	}
 	s.viewMgr.AddView(nodesView)
-	
+
 	// Create partitions view
 	partitionsView := views.NewPartitionsView(s.client)
 	if err := partitionsView.Init(s.ctx); err != nil {
 		return fmt.Errorf("failed to initialize partitions view: %w", err)
 	}
 	s.viewMgr.AddView(partitionsView)
-	
+
 	// Create reservations view
 	reservationsView := views.NewReservationsView(s.client)
 	if err := reservationsView.Init(s.ctx); err != nil {
@@ -262,7 +262,7 @@ func (s *S9s) initViews() error {
 
 	// Update header with view names
 	s.header.SetViews(s.viewMgr.GetViewNames())
-	
+
 	return nil
 }
 
@@ -273,14 +273,24 @@ func (s *S9s) setupKeyboardShortcuts() {
 		if s.cmdVisible {
 			return event // Let command line handle it
 		}
-		
+
 		// Check if a modal is open by checking if there are multiple pages
 		isModalOpen := s.pages.GetPageCount() > 1
-		
+
 		// Global shortcuts
 		switch event.Key() {
 		case tcell.KeyCtrlC:
 			s.app.Stop()
+			return nil
+		case tcell.KeyF1:
+			// Show help modal
+			views.ShowHelpModal(s.pages)
+			return nil
+		case tcell.KeyF5:
+			// Refresh current view
+			if err := s.viewMgr.RefreshCurrentView(); err != nil {
+				s.statusBar.Error(fmt.Sprintf("Failed to refresh: %v", err))
+			}
 			return nil
 		case tcell.KeyEsc:
 			if s.cmdVisible {
@@ -316,7 +326,7 @@ func (s *S9s) setupKeyboardShortcuts() {
 					return event
 				}
 			}
-			
+
 			// Normal global shortcuts when no modal is open
 			switch event.Rune() {
 			case ':':
@@ -351,14 +361,14 @@ func (s *S9s) setupKeyboardShortcuts() {
 				return nil
 			}
 		}
-		
+
 		// Pass to current view if not handled and no modal is open
 		if !isModalOpen {
 			if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
 				return currentView.OnKey(event)
 			}
 		}
-		
+
 		return event
 	})
 }
@@ -367,7 +377,7 @@ func (s *S9s) setupKeyboardShortcuts() {
 func (s *S9s) updateLoop() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -387,7 +397,7 @@ func (s *S9s) updateClusterInfo() {
 	if err == nil {
 		s.header.SetClusterInfo(clusterInfo)
 	}
-	
+
 	// Get cluster metrics
 	if infoMgr := s.client.Info(); infoMgr != nil {
 		metrics, err := infoMgr.GetStats()
@@ -413,17 +423,17 @@ func (s *S9s) updateCurrentView() {
 		s.statusBar.Error(fmt.Sprintf("No current view: %v", err))
 		return
 	}
-	
+
 	// Update header with current view
 	s.header.SetCurrentView(currentView.Name())
-	
+
 	// Update status bar with view hints
 	s.statusBar.SetHints(currentView.Hints())
-	
+
 	// Replace the main content with the current view
 	s.mainLayout.RemoveItem(s.mainLayout.GetItem(1))
 	s.mainLayout.AddItem(currentView.Render(), 0, 1, true)
-	
+
 	// Set focus to the view
 	s.app.SetFocus(currentView.Render())
 }
@@ -440,7 +450,7 @@ func (s *S9s) showCommandLine() {
 func (s *S9s) hideCommandLine() {
 	s.cmdVisible = false
 	s.mainLayout.ResizeItem(s.cmdLine, 0, 0)
-	
+
 	// Return focus to current view
 	if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
 		s.app.SetFocus(currentView.Render())
@@ -450,16 +460,16 @@ func (s *S9s) hideCommandLine() {
 // onCommandDone handles command line completion
 func (s *S9s) onCommandDone(key tcell.Key) {
 	defer s.hideCommandLine()
-	
+
 	if key != tcell.KeyEnter {
 		return
 	}
-	
+
 	command := s.cmdLine.GetText()
 	if command == "" {
 		return
 	}
-	
+
 	s.executeCommand(command)
 }
 
@@ -512,7 +522,7 @@ func (s *S9s) showHelp() {
 
 [teal]Commands:[white]
   [yellow]:jobs, :j[white]      Switch to Jobs view
-  [yellow]:nodes, :n[white]     Switch to Nodes view  
+  [yellow]:nodes, :n[white]     Switch to Nodes view
   [yellow]:partitions, :p[white] Switch to Partitions view
   [yellow]:reservations[white]  Switch to Reservations view
   [yellow]:qos[white]           Switch to QoS view
@@ -549,7 +559,7 @@ Press [yellow]ESC[white] to close this help.`
 // startRefreshTimer starts the automatic refresh timer
 func (s *S9s) startRefreshTimer(duration time.Duration) {
 	s.refreshTicker = time.NewTicker(duration)
-	
+
 	go func() {
 		for {
 			select {
