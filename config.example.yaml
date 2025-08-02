@@ -1,0 +1,106 @@
+# S9S Configuration Example
+# Copy this file to ~/.s9s/config.yaml and modify as needed
+
+# Refresh rate for automatic updates
+refreshRate: 2s
+
+# Maximum retries for API calls
+maxRetries: 3
+
+# Current context (cluster) to use
+currentContext: production
+
+# Cluster contexts
+contexts:
+  - name: production
+    cluster:
+      endpoint: https://slurm-prod.example.com:6820
+      token: ${SLURM_JWT}  # Can use environment variables
+      apiVersion: v0.0.40
+      insecure: false
+      timeout: 30s
+    namespace: default
+    readOnly: false
+    
+  - name: development
+    cluster:
+      endpoint: https://slurm-dev.example.com:6820
+      token: ${SLURM_DEV_JWT}
+      apiVersion: v0.0.40
+    namespace: dev
+    readOnly: false
+
+# UI settings
+ui:
+  skin: default  # Options: default, monokai, dracula
+  logoless: false
+  crumbsless: false
+  statusless: false
+  headless: false
+  noIcons: false
+  enableMouse: true
+
+# View-specific settings
+views:
+  jobs:
+    columns: [id, name, user, state, time, nodes, priority]
+    showOnlyActive: true
+    defaultSort: time
+    maxJobs: 1000
+    
+  nodes:
+    groupBy: partition  # Options: partition, state, feature
+    showUtilization: true
+    maxNodes: 500
+    
+  partitions:
+    showQueueDepth: true
+    showWaitTime: true
+
+# Feature flags
+features:
+  streaming: true   # Enable real-time updates via WebSocket
+  pulseye: true    # Enable health scanner
+  xray: false      # Enable deep inspection mode
+
+# Custom keyboard shortcuts
+shortcuts:
+  - key: ctrl+j
+    action: "view:jobs"
+    description: "Switch to jobs view"
+    
+  - key: ctrl+n
+    action: "view:nodes"
+    description: "Switch to nodes view"
+    
+  - key: ctrl+x
+    action: "xray:toggle"
+    description: "Toggle Xray mode"
+    
+  - key: ctrl+h
+    action: "pulseye:scan"
+    description: "Run health scan"
+
+# Command aliases
+aliases:
+  ctx: context
+  kj: "kill job"
+  dj: "describe job"
+  dn: "describe node"
+  sub: "submit job"
+  q: quit
+  h: help
+
+# Plugin configuration
+plugins:
+  - name: job-analyzer
+    path: ~/.s9s/plugins/job-analyzer.so
+    config:
+      verbose: false
+      maxAnalyzeTime: 5m
+    
+  - name: cost-tracker
+    path: ~/.s9s/plugins/cost-tracker.so
+    config:
+      hourlyRate: 0.10
+      currency: USD
