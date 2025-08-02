@@ -1,0 +1,402 @@
+package monitoring
+
+import (
+	"fmt"
+	"sync"
+	"time"
+)
+
+// AlertType represents the type of alert
+type AlertType string
+
+const (
+	AlertTypeHealth     AlertType = "health"
+	AlertTypePerformance AlertType = "performance"
+	AlertTypeResource   AlertType = "resource"
+	AlertTypeJob        AlertType = "job"
+	AlertTypeNode       AlertType = "node"
+	AlertTypeSystem     AlertType = "system"
+)
+
+// AlertSeverity represents the severity level of an alert
+type AlertSeverity string
+
+const (
+	AlertSeverityInfo     AlertSeverity = "info"
+	AlertSeverityWarning  AlertSeverity = "warning"
+	AlertSeverityCritical AlertSeverity = "critical"
+)
+
+// Alert represents a cluster alert
+type Alert struct {
+	ID           string
+	Type         AlertType
+	Severity     AlertSeverity
+	Title        string
+	Message      string
+	Component    string
+	Timestamp    time.Time
+	Acknowledged bool
+	AckedBy      string
+	AckedAt      *time.Time
+	Resolved     bool
+	ResolvedAt   *time.Time
+	Count        int
+	LastSeen     time.Time
+	Metadata     map[string]interface{}
+}
+
+// AlertManager manages cluster alerts
+type AlertManager struct {
+	alerts    map[string]*Alert
+	listeners []AlertListener
+	mu        sync.RWMutex
+}
+
+// AlertListener defines the interface for alert listeners
+type AlertListener interface {
+	OnAlert(alert *Alert)
+	OnAlertResolved(alert *Alert)
+}
+
+// AlertStats provides statistics about alerts
+type AlertStats struct {
+	Total         int
+	Critical      int
+	Warning       int
+	Info          int
+	Acknowledged  int
+	Unacknowledged int
+	Active        int
+	Resolved      int
+}
+
+// NewAlertManager creates a new alert manager
+func NewAlertManager() *AlertManager {
+	return &AlertManager{
+		alerts:    make(map[string]*Alert),
+		listeners: []AlertListener{},
+	}
+}
+
+// AddAlert adds a new alert or updates an existing one
+func (am *AlertManager) AddAlert(alert *Alert) {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+
+	// Check if similar alert exists
+	existingID := am.findSimilarAlert(alert)
+	if existingID != "" {
+		// Update existing alert
+		existing := am.alerts[existingID]
+		existing.Count++
+		existing.LastSeen = alert.Timestamp
+		existing.Message = alert.Message
+
+		// If it was resolved, mark as active again
+		if existing.Resolved {
+			existing.Resolved = false
+			existing.ResolvedAt = nil
+		}
+
+		alert = existing
+	} else {
+		// New alert
+		alert.Count = 1
+		alert.LastSeen = alert.Timestamp
+		am.alerts[alert.ID] = alert
+	}
+
+	// Notify listeners
+	for _, listener := range am.listeners {
+		listener.OnAlert(alert)
+	}
+}
+
+// GetAlert retrieves an alert by ID
+func (am *AlertManager) GetAlert(id string) *Alert {
+	am.mu.RLock()
+	defer am.mu.RUnlock()
+
+	if alert, exists := am.alerts[id]; exists {
+		// Return a copy to avoid race conditions
+		alertCopy := *alert
+		return &alertCopy
+	}
+	return nil
+}
+
+// GetAlerts returns all alerts, optionally filtered by parameters
+func (am *AlertManager) GetAlerts(filter AlertFilter) []*Alert {
+	am.mu.RLock()
+	defer am.mu.RUnlock()
+
+	var result []*Alert
+	for _, alert := range am.alerts {
+		if am.matchesFilter(alert, filter) {
+			// Create copy to avoid race conditions
+			alertCopy := *alert
+			result = append(result, &alertCopy)
+		}
+	}
+
+	return result
+}
+
+// AlertFilter defines criteria for filtering alerts
+type AlertFilter struct {
+	Types        []AlertType
+	Severities   []AlertSeverity
+	Components   []string
+	Acknowledged *bool
+	Resolved     *bool
+	SinceTime    *time.Time
+	UntilTime    *time.Time
+}
+
+// GetActiveAlerts returns all unresolved alerts
+func (am *AlertManager) GetActiveAlerts() []*Alert {
+	resolved := false
+	return am.GetAlerts(AlertFilter{Resolved: &resolved})
+}
+
+// GetCriticalAlerts returns all critical alerts
+func (am *AlertManager) GetCriticalAlerts() []*Alert {
+	return am.GetAlerts(AlertFilter{
+		Severities: []AlertSeverity{AlertSeverityCritical},
+		Resolved:   boolPtr(false),
+	})
+}
+
+// AcknowledgeAlert marks an alert as acknowledged
+func (am *AlertManager) AcknowledgeAlert(id, ackedBy string) error {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+
+	alert, exists := am.alerts[id]
+	if !exists {
+		return fmt.Errorf("alert %s not found", id)
+	}
+
+	if alert.Acknowledged {
+		return fmt.Errorf("alert %s already acknowledged", id)
+	}
+
+	now := time.Now()
+	alert.Acknowledged = true
+	alert.AckedBy = ackedBy
+	alert.AckedAt = &now
+
+	return nil
+}
+
+// ResolveAlert marks an alert as resolved
+func (am *AlertManager) ResolveAlert(id string) error {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+
+	alert, exists := am.alerts[id]
+	if !exists {
+		return fmt.Errorf("alert %s not found", id)
+	}
+
+	if alert.Resolved {
+		return fmt.Errorf("alert %s already resolved", id)
+	}
+
+	now := time.Now()
+	alert.Resolved = true
+	alert.ResolvedAt = &now
+
+	// Notify listeners
+	for _, listener := range am.listeners {
+		listener.OnAlertResolved(alert)
+	}
+
+	return nil
+}
+
+// ClearResolvedAlerts removes all resolved alerts older than the specified duration
+func (am *AlertManager) ClearResolvedAlerts(olderThan time.Duration) int {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+
+	cutoff := time.Now().Add(-olderThan)
+	cleared := 0
+
+	for id, alert := range am.alerts {
+		if alert.Resolved && alert.ResolvedAt != nil && alert.ResolvedAt.Before(cutoff) {
+			delete(am.alerts, id)
+			cleared++
+		}
+	}
+
+	return cleared
+}
+
+// GetStats returns statistics about alerts
+func (am *AlertManager) GetStats() AlertStats {
+	am.mu.RLock()
+	defer am.mu.RUnlock()
+
+	stats := AlertStats{}
+
+	for _, alert := range am.alerts {
+		stats.Total++
+
+		switch alert.Severity {
+		case AlertSeverityCritical:
+			stats.Critical++
+		case AlertSeverityWarning:
+			stats.Warning++
+		case AlertSeverityInfo:
+			stats.Info++
+		}
+
+		if alert.Acknowledged {
+			stats.Acknowledged++
+		} else {
+			stats.Unacknowledged++
+		}
+
+		if alert.Resolved {
+			stats.Resolved++
+		} else {
+			stats.Active++
+		}
+	}
+
+	return stats
+}
+
+// AddListener adds an alert listener
+func (am *AlertManager) AddListener(listener AlertListener) {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+	am.listeners = append(am.listeners, listener)
+}
+
+// RemoveListener removes an alert listener
+func (am *AlertManager) RemoveListener(listener AlertListener) {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+
+	for i, l := range am.listeners {
+		if l == listener {
+			am.listeners = append(am.listeners[:i], am.listeners[i+1:]...)
+			break
+		}
+	}
+}
+
+// findSimilarAlert finds an existing alert that's similar to the new one
+func (am *AlertManager) findSimilarAlert(newAlert *Alert) string {
+	for id, existing := range am.alerts {
+		if existing.Type == newAlert.Type &&
+			existing.Component == newAlert.Component &&
+			existing.Severity == newAlert.Severity &&
+			!existing.Resolved {
+			return id
+		}
+	}
+	return ""
+}
+
+// matchesFilter checks if an alert matches the given filter
+func (am *AlertManager) matchesFilter(alert *Alert, filter AlertFilter) bool {
+	// Check types
+	if len(filter.Types) > 0 {
+		found := false
+		for _, t := range filter.Types {
+			if alert.Type == t {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+
+	// Check severities
+	if len(filter.Severities) > 0 {
+		found := false
+		for _, s := range filter.Severities {
+			if alert.Severity == s {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+
+	// Check components
+	if len(filter.Components) > 0 {
+		found := false
+		for _, c := range filter.Components {
+			if alert.Component == c {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+
+	// Check acknowledged status
+	if filter.Acknowledged != nil && alert.Acknowledged != *filter.Acknowledged {
+		return false
+	}
+
+	// Check resolved status
+	if filter.Resolved != nil && alert.Resolved != *filter.Resolved {
+		return false
+	}
+
+	// Check time range
+	if filter.SinceTime != nil && alert.Timestamp.Before(*filter.SinceTime) {
+		return false
+	}
+
+	if filter.UntilTime != nil && alert.Timestamp.After(*filter.UntilTime) {
+		return false
+	}
+
+	return true
+}
+
+// boolPtr returns a pointer to a boolean value
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+// GetSeverityColor returns the color for alert severity display
+func GetSeverityColor(severity AlertSeverity) string {
+	switch severity {
+	case AlertSeverityCritical:
+		return "red"
+	case AlertSeverityWarning:
+		return "yellow"
+	case AlertSeverityInfo:
+		return "blue"
+	default:
+		return "white"
+	}
+}
+
+// GetSeverityIcon returns an icon for alert severity
+func GetSeverityIcon(severity AlertSeverity) string {
+	switch severity {
+	case AlertSeverityCritical:
+		return "🔴"
+	case AlertSeverityWarning:
+		return "🟡"
+	case AlertSeverityInfo:
+		return "🔵"
+	default:
+		return "⚪"
+	}
+}

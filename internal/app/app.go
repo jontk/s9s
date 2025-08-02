@@ -263,6 +263,15 @@ func (s *S9s) initViews() error {
 	}
 	s.viewMgr.AddView(usersView)
 
+	// Create Health view
+	healthView := views.NewHealthView(s.client)
+	healthView.SetApp(s.app)
+	healthView.SetPages(s.pages)
+	if err := healthView.Init(s.ctx); err != nil {
+		return fmt.Errorf("failed to initialize health view: %w", err)
+	}
+	s.viewMgr.AddView(healthView)
+
 	// Update header with view names
 	s.header.SetViews(s.viewMgr.GetViewNames())
 
@@ -358,6 +367,9 @@ func (s *S9s) setupKeyboardShortcuts() {
 				return nil
 			case '7':
 				s.switchToView("users")
+				return nil
+			case '8':
+				s.switchToView("health")
 				return nil
 			case 'q', 'Q':
 				s.app.Stop()
@@ -495,6 +507,8 @@ func (s *S9s) executeCommand(command string) {
 		s.switchToView("accounts")
 	case "users":
 		s.switchToView("users")
+	case "health":
+		s.switchToView("health")
 	case "refresh", "r":
 		if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
 			go func() {
@@ -517,7 +531,7 @@ func (s *S9s) showHelp() {
 	helpText := `[yellow]S9S - SLURM Terminal UI Help[white]
 
 [teal]Global Keys:[white]
-  [yellow]1-7[white]         Switch to Jobs/Nodes/Partitions/Reservations/QoS/Accounts/Users view
+  [yellow]1-8[white]         Switch to Jobs/Nodes/Partitions/Reservations/QoS/Accounts/Users/Health view
   [yellow]Tab/Shift+Tab[white] Switch between views
   [yellow]:[white]          Enter command mode
   [yellow]?[white]          Show this help
@@ -531,6 +545,7 @@ func (s *S9s) showHelp() {
   [yellow]:qos[white]           Switch to QoS view
   [yellow]:accounts[white]      Switch to Accounts view
   [yellow]:users[white]         Switch to Users view
+  [yellow]:health[white]        Switch to Health Monitor view
   [yellow]:refresh, :r[white]   Refresh current view
   [yellow]:quit, :q[white]      Quit application
   [yellow]:help, :h[white]      Show this help
