@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"github.com/jontk/s9s/internal/config"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/views"
 	"github.com/jontk/s9s/pkg/slurm"
+	"github.com/rivo/tview"
 )
 
 // S9s represents the main application
@@ -24,11 +24,11 @@ type S9s struct {
 	client dao.SlurmClient
 
 	// UI components
-	app        *tview.Application
-	pages      *tview.Pages
-	header     *components.Header
-	statusBar  *components.StatusBar
-	viewMgr    *views.ViewManager
+	app       *tview.Application
+	pages     *tview.Pages
+	header    *components.Header
+	statusBar *components.StatusBar
+	viewMgr   *views.ViewManager
 
 	// Main layout
 	mainLayout *tview.Flex
@@ -83,12 +83,12 @@ func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
 	app := tview.NewApplication()
 
 	s9s := &S9s{
-		ctx:     appCtx,
-		cancel:  cancel,
-		config:  cfg,
-		client:  client,
-		app:     app,
-		pages:   tview.NewPages(),
+		ctx:    appCtx,
+		cancel: cancel,
+		config: cfg,
+		client: client,
+		app:    app,
+		pages:  tview.NewPages(),
 	}
 
 	// Initialize UI components
@@ -237,6 +237,8 @@ func (s *S9s) initViews() error {
 
 	// Create reservations view
 	reservationsView := views.NewReservationsView(s.client)
+	reservationsView.SetApp(s.app)
+	reservationsView.SetPages(s.pages)
 	if err := reservationsView.Init(s.ctx); err != nil {
 		return fmt.Errorf("failed to initialize reservations view: %w", err)
 	}
@@ -244,6 +246,8 @@ func (s *S9s) initViews() error {
 
 	// Create QoS view
 	qosView := views.NewQoSView(s.client)
+	qosView.SetApp(s.app)
+	qosView.SetPages(s.pages)
 	if err := qosView.Init(s.ctx); err != nil {
 		return fmt.Errorf("failed to initialize qos view: %w", err)
 	}
@@ -251,6 +255,8 @@ func (s *S9s) initViews() error {
 
 	// Create Accounts view
 	accountsView := views.NewAccountsView(s.client)
+	accountsView.SetApp(s.app)
+	accountsView.SetPages(s.pages)
 	if err := accountsView.Init(s.ctx); err != nil {
 		return fmt.Errorf("failed to initialize accounts view: %w", err)
 	}
@@ -258,6 +264,8 @@ func (s *S9s) initViews() error {
 
 	// Create Users view
 	usersView := views.NewUsersView(s.client)
+	usersView.SetApp(s.app)
+	usersView.SetPages(s.pages)
 	if err := usersView.Init(s.ctx); err != nil {
 		return fmt.Errorf("failed to initialize users view: %w", err)
 	}

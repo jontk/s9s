@@ -8,31 +8,53 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/ui/components"
+	"github.com/jontk/s9s/internal/ui/filters"
+	"github.com/rivo/tview"
 )
 
 // AccountsView displays the accounts list
 type AccountsView struct {
 	*BaseView
-	client       dao.SlurmClient
-	table        *components.Table
-	accounts     []*dao.Account
-	mu           sync.RWMutex
-	refreshTimer *time.Timer
-	refreshRate  time.Duration
-	filter       string
-	container    *tview.Flex
-	filterInput  *tview.InputField
-	statusBar    *tview.TextView
-	app          *tview.Application
-	pages        *tview.Pages
+	client         dao.SlurmClient
+	table          *components.Table
+	accounts       []*dao.Account
+	mu             sync.RWMutex
+	refreshTimer   *time.Timer
+	refreshRate    time.Duration
+	filter         string
+	container      *tview.Flex
+	filterInput    *tview.InputField
+	statusBar      *tview.TextView
+	app            *tview.Application
+	pages          *tview.Pages
+	filterBar      *components.FilterBar
+	advancedFilter *filters.Filter
+	isAdvancedMode bool
+	globalSearch   *GlobalSearch
 }
 
 // SetPages sets the pages reference for modal handling
 func (v *AccountsView) SetPages(pages *tview.Pages) {
 	v.pages = pages
+	// Set pages for filter bar if it exists
+	if v.filterBar != nil {
+		v.filterBar.SetPages(pages)
+	}
+}
+
+// SetApp sets the application reference
+func (v *AccountsView) SetApp(app *tview.Application) {
+	v.app = app
+	// Create filter bar now that we have app reference
+	v.filterBar = components.NewFilterBar("accounts", app)
+	v.filterBar.SetPages(v.pages)
+	v.filterBar.SetOnFilterChange(v.onAdvancedFilterChange)
+	v.filterBar.SetOnClose(v.closeAdvancedFilter)
+
+	// Create global search
+	v.globalSearch = NewGlobalSearch(v.client, app)
 }
 
 // NewAccountsView creates a new accounts view
@@ -139,18 +161,43 @@ func (v *AccountsView) Stop() error {
 
 // Hints returns keyboard hints
 func (v *AccountsView) Hints() []string {
-	return []string{
+	hints := []string{
 		"[yellow]Enter[white] Details",
 		"[yellow]/[white] Filter",
+		"[yellow]F3[white] Adv Filter",
+		"[yellow]Ctrl+F[white] Search",
 		"[yellow]1-9[white] Sort",
 		"[yellow]R[white] Refresh",
 		"[yellow]h[white] Show Hierarchy",
 	}
+
+	if v.isAdvancedMode {
+		hints = append([]string{"[yellow]ESC[white] Exit Adv Filter"}, hints...)
+	}
+
+	return hints
 }
 
 // OnKey handles keyboard events
 func (v *AccountsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
+	// Check if a modal is open - if so, don't process view shortcuts
+	if v.pages != nil && v.pages.GetPageCount() > 1 {
+		return event // Let modal handle it
+	}
+
+	// Handle advanced filter mode
+	if v.isAdvancedMode && event.Key() == tcell.KeyEsc {
+		v.closeAdvancedFilter()
+		return nil
+	}
+
 	switch event.Key() {
+	case tcell.KeyF3:
+		v.showAdvancedFilter()
+		return nil
+	case tcell.KeyCtrlF:
+		v.showGlobalSearch()
+		return nil
 	case tcell.KeyRune:
 		switch event.Rune() {
 		case 'R':
@@ -198,8 +245,14 @@ func (v *AccountsView) updateTable() {
 	v.mu.RLock()
 	defer v.mu.RUnlock()
 
-	data := make([][]string, len(v.accounts))
-	for i, account := range v.accounts {
+	// Apply advanced filter if active
+	filteredAccounts := v.accounts
+	if v.advancedFilter != nil && len(v.advancedFilter.Expressions) > 0 {
+		filteredAccounts = v.applyAdvancedFilter(v.accounts)
+	}
+
+	data := make([][]string, len(filteredAccounts))
+	for i, account := range filteredAccounts {
 		// Format limits
 		maxJobs := formatLimit(account.MaxJobs)
 		maxNodes := formatLimit(account.MaxNodes)
@@ -557,4 +610,129 @@ func formatTimeLimit(minutes int) string {
 		return fmt.Sprintf("%dh %dm", hours, mins)
 	}
 	return fmt.Sprintf("%dm", mins)
+}
+
+// showAdvancedFilter shows the advanced filter bar
+func (v *AccountsView) showAdvancedFilter() {
+	if v.filterBar == nil || v.pages == nil {
+		return
+	}
+
+	v.isAdvancedMode = true
+
+	// Replace the simple filter with advanced filter bar
+	v.container.Clear()
+	v.container.
+		AddItem(v.filterBar, 5, 0, true).
+		AddItem(v.table.Table, 0, 1, false).
+		AddItem(v.statusBar, 1, 0, false)
+
+	v.filterBar.Show()
+	v.updateStatusBar("[yellow]Advanced Filter Mode - Tab for presets, F1 for help[white]")
+}
+
+// closeAdvancedFilter closes the advanced filter bar
+func (v *AccountsView) closeAdvancedFilter() {
+	v.isAdvancedMode = false
+
+	// Restore the simple filter
+	v.container.Clear()
+	v.container.
+		AddItem(v.filterInput, 1, 0, false).
+		AddItem(v.table.Table, 0, 1, true).
+		AddItem(v.statusBar, 1, 0, false)
+
+	if v.app != nil {
+		v.app.SetFocus(v.table.Table)
+	}
+
+	v.updateStatusBar("")
+}
+
+// onAdvancedFilterChange handles advanced filter changes
+func (v *AccountsView) onAdvancedFilterChange(filter *filters.Filter) {
+	v.advancedFilter = filter
+	v.updateTable()
+
+	if filter != nil && len(filter.Expressions) > 0 {
+		v.updateStatusBar(fmt.Sprintf("[green]Filter applied: %d conditions[white]", len(filter.Expressions)))
+	} else {
+		v.updateStatusBar("")
+	}
+}
+
+// applyAdvancedFilter applies the advanced filter to accounts list
+func (v *AccountsView) applyAdvancedFilter(accounts []*dao.Account) []*dao.Account {
+	if v.advancedFilter == nil || len(v.advancedFilter.Expressions) == 0 {
+		return accounts
+	}
+
+	var filtered []*dao.Account
+	for _, account := range accounts {
+		// Convert account to map for filter evaluation
+		accountData := v.accountToMap(account)
+		if v.advancedFilter.Evaluate(accountData) {
+			filtered = append(filtered, account)
+		}
+	}
+
+	return filtered
+}
+
+// accountToMap converts an account to a map for filter evaluation
+func (v *AccountsView) accountToMap(account *dao.Account) map[string]interface{} {
+	return map[string]interface{}{
+		"Name":         account.Name,
+		"Description":  account.Description,
+		"Organization": account.Organization,
+		"Parent":       account.Parent,
+		"DefaultQoS":   account.DefaultQoS,
+		"MaxJobs":      account.MaxJobs,
+		"MaxSubmit":    account.MaxSubmit,
+		"MaxNodes":     account.MaxNodes,
+		"MaxCPUs":      account.MaxCPUs,
+		"MaxWall":      account.MaxWall,
+		"Coordinators": strings.Join(account.Coordinators, ","),
+		"Children":     strings.Join(account.Children, ","),
+		"QoSList":      strings.Join(account.QoSList, ","),
+	}
+}
+
+// showGlobalSearch shows the global search interface
+func (v *AccountsView) showGlobalSearch() {
+	if v.globalSearch == nil || v.pages == nil {
+		return
+	}
+
+	v.globalSearch.Show(v.pages, func(result SearchResult) {
+		// Handle search result selection
+		switch result.Type {
+		case "account":
+			// Focus on the selected account
+			if account, ok := result.Data.(*dao.Account); ok {
+				v.focusOnAccount(account.Name)
+			}
+		default:
+			// For other types, just close the search
+			v.updateStatusBar(fmt.Sprintf("Selected %s: %s", result.Type, result.Name))
+		}
+	})
+}
+
+// focusOnAccount focuses the table on a specific account
+func (v *AccountsView) focusOnAccount(accountName string) {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
+	// Find the account in our account list
+	for i, account := range v.accounts {
+		if account.Name == accountName {
+			// Select the row in the table
+			v.table.Table.Select(i, 0)
+			v.updateStatusBar(fmt.Sprintf("Focused on account: %s", accountName))
+			return
+		}
+	}
+
+	v.updateStatusBar(fmt.Sprintf("[yellow]Account %s not found in current view[white]", accountName))
 }

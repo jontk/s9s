@@ -8,31 +8,53 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/ui/components"
+	"github.com/jontk/s9s/internal/ui/filters"
+	"github.com/rivo/tview"
 )
 
 // UsersView displays the users list
 type UsersView struct {
 	*BaseView
-	client       dao.SlurmClient
-	table        *components.Table
-	users        []*dao.User
-	mu           sync.RWMutex
-	refreshTimer *time.Timer
-	refreshRate  time.Duration
-	filter       string
-	container    *tview.Flex
-	filterInput  *tview.InputField
-	statusBar    *tview.TextView
-	app          *tview.Application
-	pages        *tview.Pages
+	client         dao.SlurmClient
+	table          *components.Table
+	users          []*dao.User
+	mu             sync.RWMutex
+	refreshTimer   *time.Timer
+	refreshRate    time.Duration
+	filter         string
+	container      *tview.Flex
+	filterInput    *tview.InputField
+	statusBar      *tview.TextView
+	app            *tview.Application
+	pages          *tview.Pages
+	filterBar      *components.FilterBar
+	advancedFilter *filters.Filter
+	isAdvancedMode bool
+	globalSearch   *GlobalSearch
 }
 
 // SetPages sets the pages reference for modal handling
 func (v *UsersView) SetPages(pages *tview.Pages) {
 	v.pages = pages
+	// Set pages for filter bar if it exists
+	if v.filterBar != nil {
+		v.filterBar.SetPages(pages)
+	}
+}
+
+// SetApp sets the application reference
+func (v *UsersView) SetApp(app *tview.Application) {
+	v.app = app
+	// Create filter bar now that we have app reference
+	v.filterBar = components.NewFilterBar("users", app)
+	v.filterBar.SetPages(v.pages)
+	v.filterBar.SetOnFilterChange(v.onAdvancedFilterChange)
+	v.filterBar.SetOnClose(v.closeAdvancedFilter)
+
+	// Create global search
+	v.globalSearch = NewGlobalSearch(v.client, app)
 }
 
 // NewUsersView creates a new users view
@@ -139,18 +161,43 @@ func (v *UsersView) Stop() error {
 
 // Hints returns keyboard hints
 func (v *UsersView) Hints() []string {
-	return []string{
+	hints := []string{
 		"[yellow]Enter[white] Details",
 		"[yellow]/[white] Filter",
+		"[yellow]F3[white] Adv Filter",
+		"[yellow]Ctrl+F[white] Search",
 		"[yellow]1-9[white] Sort",
 		"[yellow]R[white] Refresh",
 		"[yellow]a[white] Show Admins",
 	}
+
+	if v.isAdvancedMode {
+		hints = append([]string{"[yellow]ESC[white] Exit Adv Filter"}, hints...)
+	}
+
+	return hints
 }
 
 // OnKey handles keyboard events
 func (v *UsersView) OnKey(event *tcell.EventKey) *tcell.EventKey {
+	// Check if a modal is open - if so, don't process view shortcuts
+	if v.pages != nil && v.pages.GetPageCount() > 1 {
+		return event // Let modal handle it
+	}
+
+	// Handle advanced filter mode
+	if v.isAdvancedMode && event.Key() == tcell.KeyEsc {
+		v.closeAdvancedFilter()
+		return nil
+	}
+
 	switch event.Key() {
+	case tcell.KeyF3:
+		v.showAdvancedFilter()
+		return nil
+	case tcell.KeyCtrlF:
+		v.showGlobalSearch()
+		return nil
 	case tcell.KeyRune:
 		switch event.Rune() {
 		case 'R':
@@ -198,8 +245,14 @@ func (v *UsersView) updateTable() {
 	v.mu.RLock()
 	defer v.mu.RUnlock()
 
-	data := make([][]string, len(v.users))
-	for i, user := range v.users {
+	// Apply advanced filter if active
+	filteredUsers := v.users
+	if v.advancedFilter != nil && len(v.advancedFilter.Expressions) > 0 {
+		filteredUsers = v.applyAdvancedFilter(v.users)
+	}
+
+	data := make([][]string, len(filteredUsers))
+	for i, user := range filteredUsers {
 		// Format limits
 		maxJobs := formatLimit(user.MaxJobs)
 		maxNodes := formatLimit(user.MaxNodes)
@@ -447,4 +500,127 @@ func (v *UsersView) formatUserDetails(user *dao.User) string {
 	details.WriteString("[yellow]  CPU Hours Used:[white] N/A\n")
 
 	return details.String()
+}
+
+// showAdvancedFilter shows the advanced filter bar
+func (v *UsersView) showAdvancedFilter() {
+	if v.filterBar == nil || v.pages == nil {
+		return
+	}
+
+	v.isAdvancedMode = true
+
+	// Replace the simple filter with advanced filter bar
+	v.container.Clear()
+	v.container.
+		AddItem(v.filterBar, 5, 0, true).
+		AddItem(v.table.Table, 0, 1, false).
+		AddItem(v.statusBar, 1, 0, false)
+
+	v.filterBar.Show()
+	v.updateStatusBar("[yellow]Advanced Filter Mode - Tab for presets, F1 for help[white]")
+}
+
+// closeAdvancedFilter closes the advanced filter bar
+func (v *UsersView) closeAdvancedFilter() {
+	v.isAdvancedMode = false
+
+	// Restore the simple filter
+	v.container.Clear()
+	v.container.
+		AddItem(v.filterInput, 1, 0, false).
+		AddItem(v.table.Table, 0, 1, true).
+		AddItem(v.statusBar, 1, 0, false)
+
+	if v.app != nil {
+		v.app.SetFocus(v.table.Table)
+	}
+
+	v.updateStatusBar("")
+}
+
+// onAdvancedFilterChange handles advanced filter changes
+func (v *UsersView) onAdvancedFilterChange(filter *filters.Filter) {
+	v.advancedFilter = filter
+	v.updateTable()
+
+	if filter != nil && len(filter.Expressions) > 0 {
+		v.updateStatusBar(fmt.Sprintf("[green]Filter applied: %d conditions[white]", len(filter.Expressions)))
+	} else {
+		v.updateStatusBar("")
+	}
+}
+
+// applyAdvancedFilter applies the advanced filter to users list
+func (v *UsersView) applyAdvancedFilter(users []*dao.User) []*dao.User {
+	if v.advancedFilter == nil || len(v.advancedFilter.Expressions) == 0 {
+		return users
+	}
+
+	var filtered []*dao.User
+	for _, user := range users {
+		// Convert user to map for filter evaluation
+		userData := v.userToMap(user)
+		if v.advancedFilter.Evaluate(userData) {
+			filtered = append(filtered, user)
+		}
+	}
+
+	return filtered
+}
+
+// userToMap converts a user to a map for filter evaluation
+func (v *UsersView) userToMap(user *dao.User) map[string]interface{} {
+	return map[string]interface{}{
+		"Name":           user.Name,
+		"UID":            user.UID,
+		"DefaultAccount": user.DefaultAccount,
+		"AdminLevel":     user.AdminLevel,
+		"DefaultQoS":     user.DefaultQoS,
+		"MaxJobs":        user.MaxJobs,
+		"MaxSubmit":      user.MaxSubmit,
+		"MaxNodes":       user.MaxNodes,
+		"MaxCPUs":        user.MaxCPUs,
+		"Accounts":       strings.Join(user.Accounts, ","),
+		"QoSList":        strings.Join(user.QoSList, ","),
+	}
+}
+
+// showGlobalSearch shows the global search interface
+func (v *UsersView) showGlobalSearch() {
+	if v.globalSearch == nil || v.pages == nil {
+		return
+	}
+
+	v.globalSearch.Show(v.pages, func(result SearchResult) {
+		// Handle search result selection
+		switch result.Type {
+		case "user":
+			// Focus on the selected user
+			if user, ok := result.Data.(*dao.User); ok {
+				v.focusOnUser(user.Name)
+			}
+		default:
+			// For other types, just close the search
+			v.updateStatusBar(fmt.Sprintf("Selected %s: %s", result.Type, result.Name))
+		}
+	})
+}
+
+// focusOnUser focuses the table on a specific user
+func (v *UsersView) focusOnUser(userName string) {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
+	// Find the user in our user list
+	for i, user := range v.users {
+		if user.Name == userName {
+			// Select the row in the table
+			v.table.Table.Select(i, 0)
+			v.updateStatusBar(fmt.Sprintf("Focused on user: %s", userName))
+			return
+		}
+	}
+
+	v.updateStatusBar(fmt.Sprintf("[yellow]User %s not found in current view[white]", userName))
 }
