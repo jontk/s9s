@@ -221,6 +221,7 @@ func (s *S9s) initViews() error {
 
 	// Create nodes view
 	nodesView := views.NewNodesView(s.client)
+	nodesView.SetApp(s.app)
 	if err := nodesView.Init(s.ctx); err != nil {
 		return fmt.Errorf("failed to initialize nodes view: %w", err)
 	}
@@ -228,6 +229,7 @@ func (s *S9s) initViews() error {
 
 	// Create partitions view
 	partitionsView := views.NewPartitionsView(s.client)
+	partitionsView.SetApp(s.app)
 	if err := partitionsView.Init(s.ctx); err != nil {
 		return fmt.Errorf("failed to initialize partitions view: %w", err)
 	}

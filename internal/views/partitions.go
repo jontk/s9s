@@ -11,29 +11,51 @@ import (
 	"github.com/rivo/tview"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/ui/components"
+	"github.com/jontk/s9s/internal/ui/filters"
 )
 
 // PartitionsView displays the partitions list with queue depth visualization
 type PartitionsView struct {
 	*BaseView
-	client       dao.SlurmClient
-	table        *components.Table
-	partitions   []*dao.Partition
-	queueInfo    map[string]*dao.QueueInfo
-	mu           sync.RWMutex
-	refreshTimer *time.Timer
-	refreshRate  time.Duration
-	filter       string
-	container    *tview.Flex
-	filterInput  *tview.InputField
-	statusBar    *tview.TextView
-	app          *tview.Application
-	pages        *tview.Pages
+	client         dao.SlurmClient
+	table          *components.Table
+	partitions     []*dao.Partition
+	queueInfo      map[string]*dao.QueueInfo
+	mu             sync.RWMutex
+	refreshTimer   *time.Timer
+	refreshRate    time.Duration
+	filter         string
+	container      *tview.Flex
+	filterInput    *tview.InputField
+	statusBar      *tview.TextView
+	app            *tview.Application
+	pages          *tview.Pages
+	filterBar      *components.FilterBar
+	advancedFilter *filters.Filter
+	isAdvancedMode bool
+	globalSearch   *GlobalSearch
 }
 
 // SetPages sets the pages reference for modal handling
 func (v *PartitionsView) SetPages(pages *tview.Pages) {
 	v.pages = pages
+	// Set pages for filter bar if it exists
+	if v.filterBar != nil {
+		v.filterBar.SetPages(pages)
+	}
+}
+
+// SetApp sets the application reference
+func (v *PartitionsView) SetApp(app *tview.Application) {
+	v.app = app
+	// Create filter bar now that we have app reference
+	v.filterBar = components.NewFilterBar("partitions", app)
+	v.filterBar.SetPages(v.pages)
+	v.filterBar.SetOnFilterChange(v.onAdvancedFilterChange)
+	v.filterBar.SetOnClose(v.closeAdvancedFilter)
+
+	// Create global search
+	v.globalSearch = NewGlobalSearch(v.client, app)
 }
 
 // NewPartitionsView creates a new partitions view
@@ -153,21 +175,46 @@ func (v *PartitionsView) Stop() error {
 
 // Hints returns keyboard hints
 func (v *PartitionsView) Hints() []string {
-	return []string{
+	hints := []string{
 		"[yellow]Enter[white] Details",
 		"[yellow]j[white] Jobs",
 		"[yellow]n[white] Nodes",
 		"[yellow]a[white] Analytics",
 		"[yellow]w[white] Wait Times",
 		"[yellow]/[white] Filter",
+		"[yellow]F3[white] Adv Filter",
+		"[yellow]Ctrl+F[white] Search",
 		"[yellow]1-9[white] Sort",
 		"[yellow]R[white] Refresh",
 	}
+
+	if v.isAdvancedMode {
+		hints = append([]string{"[yellow]ESC[white] Exit Adv Filter"}, hints...)
+	}
+
+	return hints
 }
 
 // OnKey handles keyboard events
 func (v *PartitionsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
+	// Check if a modal is open - if so, don't process view shortcuts
+	if v.pages != nil && v.pages.GetPageCount() > 1 {
+		return event // Let modal handle it
+	}
+
+	// Handle advanced filter mode
+	if v.isAdvancedMode && event.Key() == tcell.KeyEsc {
+		v.closeAdvancedFilter()
+		return nil
+	}
+
 	switch event.Key() {
+	case tcell.KeyF3:
+		v.showAdvancedFilter()
+		return nil
+	case tcell.KeyCtrlF:
+		v.showGlobalSearch()
+		return nil
 	case tcell.KeyRune:
 		switch event.Rune() {
 		case 'j', 'J':
@@ -220,8 +267,14 @@ func (v *PartitionsView) updateTable() {
 	v.mu.RLock()
 	defer v.mu.RUnlock()
 
-	data := make([][]string, len(v.partitions))
-	for i, partition := range v.partitions {
+	// Apply advanced filter if active
+	filteredPartitions := v.partitions
+	if v.advancedFilter != nil && len(v.advancedFilter.Expressions) > 0 {
+		filteredPartitions = v.applyAdvancedFilter(v.partitions)
+	}
+
+	data := make([][]string, len(filteredPartitions))
+	for i, partition := range filteredPartitions {
 		stateColor := dao.GetPartitionStateColor(partition.State)
 		coloredState := fmt.Sprintf("[%s]%s[white]", stateColor, partition.State)
 
@@ -956,4 +1009,132 @@ func (v *PartitionsView) formatWaitTimeAnalytics() string {
 	analytics.WriteString("\n[gray]Last updated: " + time.Now().Format("15:04:05") + "[white]")
 
 	return analytics.String()
+}
+// showAdvancedFilter shows the advanced filter bar
+func (v *PartitionsView) showAdvancedFilter() {
+	if v.filterBar == nil || v.pages == nil {
+		return
+	}
+
+	v.isAdvancedMode = true
+
+	// Replace the simple filter with advanced filter bar
+	v.container.Clear()
+	v.container.
+		AddItem(v.filterBar, 5, 0, true).
+		AddItem(v.table.Table, 0, 1, false).
+		AddItem(v.statusBar, 1, 0, false)
+
+	v.filterBar.Show()
+	v.updateStatusBar("[yellow]Advanced Filter Mode - Tab for presets, F1 for help[white]")
+}
+
+// closeAdvancedFilter closes the advanced filter bar
+func (v *PartitionsView) closeAdvancedFilter() {
+	v.isAdvancedMode = false
+
+	// Restore the simple filter
+	v.container.Clear()
+	v.container.
+		AddItem(v.filterInput, 1, 0, false).
+		AddItem(v.table.Table, 0, 1, true).
+		AddItem(v.statusBar, 1, 0, false)
+
+	if v.app != nil {
+		v.app.SetFocus(v.table.Table)
+	}
+
+	v.updateStatusBar("")
+}
+
+// onAdvancedFilterChange handles advanced filter changes
+func (v *PartitionsView) onAdvancedFilterChange(filter *filters.Filter) {
+	v.advancedFilter = filter
+	v.updateTable()
+
+	if filter != nil && len(filter.Expressions) > 0 {
+		v.updateStatusBar(fmt.Sprintf("[green]Filter applied: %d conditions[white]", len(filter.Expressions)))
+	} else {
+		v.updateStatusBar("")
+	}
+}
+
+// applyAdvancedFilter applies the advanced filter to partitions
+func (v *PartitionsView) applyAdvancedFilter(partitions []*dao.Partition) []*dao.Partition {
+	if v.advancedFilter == nil || len(v.advancedFilter.Expressions) == 0 {
+		return partitions
+	}
+
+	var filtered []*dao.Partition
+	for _, partition := range partitions {
+		// Convert partition to map for filter evaluation
+		partitionData := v.partitionToMap(partition)
+		if v.advancedFilter.Evaluate(partitionData) {
+			filtered = append(filtered, partition)
+		}
+	}
+
+	return filtered
+}
+
+// partitionToMap converts a partition to a map for filter evaluation
+func (v *PartitionsView) partitionToMap(partition *dao.Partition) map[string]interface{} {
+	data := map[string]interface{}{
+		"Name":         partition.Name,
+		"State":        partition.State,
+		"TotalNodes":   partition.TotalNodes,
+		"TotalCPUs":    partition.TotalCPUs,
+		"DefaultTime":  partition.DefaultTime,
+		"MaxTime":      partition.MaxTime,
+		"QOS":          strings.Join(partition.QOS, ","),
+	}
+
+	// Add queue information if available
+	if queueInfo := v.queueInfo[partition.Name]; queueInfo != nil {
+		data["PendingJobs"] = queueInfo.PendingJobs
+		data["RunningJobs"] = queueInfo.RunningJobs
+		data["AverageWait"] = queueInfo.AverageWait
+		data["LongestWait"] = queueInfo.LongestWait
+	}
+
+	return data
+}
+
+// showGlobalSearch shows the global search interface
+func (v *PartitionsView) showGlobalSearch() {
+	if v.globalSearch == nil || v.pages == nil {
+		return
+	}
+
+	v.globalSearch.Show(v.pages, func(result SearchResult) {
+		// Handle search result selection
+		switch result.Type {
+		case "partition":
+			// Focus on the selected partition
+			if partition, ok := result.Data.(*dao.Partition); ok {
+				v.focusOnPartition(partition.Name)
+			}
+		default:
+			// For other types, just close the search
+			v.updateStatusBar(fmt.Sprintf("Selected %s: %s", result.Type, result.Name))
+		}
+	})
+}
+
+// focusOnPartition focuses the table on a specific partition
+func (v *PartitionsView) focusOnPartition(partitionName string) {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
+	// Find the partition in our partition list
+	for i, partition := range v.partitions {
+		if partition.Name == partitionName {
+			// Select the row in the table
+			v.table.Table.Select(i, 0)
+			v.updateStatusBar(fmt.Sprintf("Focused on partition: %s", partitionName))
+			return
+		}
+	}
+
+	v.updateStatusBar(fmt.Sprintf("[yellow]Partition %s not found in current view[white]", partitionName))
 }

@@ -11,32 +11,54 @@ import (
 	"github.com/rivo/tview"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/ui/components"
+	"github.com/jontk/s9s/internal/ui/filters"
 )
 
 // NodesView displays the nodes list with resource utilization
 type NodesView struct {
 	*BaseView
-	client       dao.SlurmClient
-	table        *components.Table
-	nodes        []*dao.Node
-	mu           sync.RWMutex
-	refreshTimer *time.Timer
-	refreshRate  time.Duration
-	filter       string
-	stateFilter  []string
-	partFilter   string
-	groupBy      string  // "none", "partition", "state", "features"
-	groupExpanded map[string]bool
-	container    *tview.Flex
-	filterInput  *tview.InputField
-	statusBar    *tview.TextView
-	app          *tview.Application
-	pages        *tview.Pages
+	client         dao.SlurmClient
+	table          *components.Table
+	nodes          []*dao.Node
+	mu             sync.RWMutex
+	refreshTimer   *time.Timer
+	refreshRate    time.Duration
+	filter         string
+	stateFilter    []string
+	partFilter     string
+	groupBy        string  // "none", "partition", "state", "features"
+	groupExpanded  map[string]bool
+	container      *tview.Flex
+	filterInput    *tview.InputField
+	statusBar      *tview.TextView
+	app            *tview.Application
+	pages          *tview.Pages
+	filterBar      *components.FilterBar
+	advancedFilter *filters.Filter
+	isAdvancedMode bool
+	globalSearch   *GlobalSearch
 }
 
 // SetPages sets the pages reference for modal handling
 func (v *NodesView) SetPages(pages *tview.Pages) {
 	v.pages = pages
+	// Set pages for filter bar if it exists
+	if v.filterBar != nil {
+		v.filterBar.SetPages(pages)
+	}
+}
+
+// SetApp sets the application reference
+func (v *NodesView) SetApp(app *tview.Application) {
+	v.app = app
+	// Create filter bar now that we have app reference
+	v.filterBar = components.NewFilterBar("nodes", app)
+	v.filterBar.SetPages(v.pages)
+	v.filterBar.SetOnFilterChange(v.onAdvancedFilterChange)
+	v.filterBar.SetOnClose(v.closeAdvancedFilter)
+
+	// Create global search
+	v.globalSearch = NewGlobalSearch(v.client, app)
 }
 
 // NewNodesView creates a new nodes view
@@ -152,12 +174,14 @@ func (v *NodesView) Stop() error {
 
 // Hints returns keyboard hints
 func (v *NodesView) Hints() []string {
-	return []string{
+	hints := []string{
 		"[yellow]Enter[white] Details",
 		"[yellow]d[white] Drain",
 		"[yellow]r[white] Resume",
 		"[yellow]s[white] SSH",
 		"[yellow]/[white] Filter",
+		"[yellow]F3[white] Adv Filter",
+		"[yellow]Ctrl+F[white] Search",
 		"[yellow]1-9[white] Sort",
 		"[yellow]R[white] Refresh",
 		"[yellow]p[white] Partition",
@@ -165,11 +189,34 @@ func (v *NodesView) Hints() []string {
 		"[yellow]g[white] Group By",
 		"[yellow]Space[white] Toggle Group",
 	}
+
+	if v.isAdvancedMode {
+		hints = append([]string{"[yellow]ESC[white] Exit Adv Filter"}, hints...)
+	}
+
+	return hints
 }
 
 // OnKey handles keyboard events
 func (v *NodesView) OnKey(event *tcell.EventKey) *tcell.EventKey {
+	// Check if a modal is open - if so, don't process view shortcuts
+	if v.pages != nil && v.pages.GetPageCount() > 1 {
+		return event // Let modal handle it
+	}
+
+	// Handle advanced filter mode
+	if v.isAdvancedMode && event.Key() == tcell.KeyEsc {
+		v.closeAdvancedFilter()
+		return nil
+	}
+
 	switch event.Key() {
+	case tcell.KeyF3:
+		v.showAdvancedFilter()
+		return nil
+	case tcell.KeyCtrlF:
+		v.showGlobalSearch()
+		return nil
 	case tcell.KeyRune:
 		switch event.Rune() {
 		case 'd', 'D':
@@ -246,8 +293,14 @@ func (v *NodesView) updateTable() {
 
 // updateTableFlat updates the table with flat node data
 func (v *NodesView) updateTableFlat() {
-	data := make([][]string, len(v.nodes))
-	for i, node := range v.nodes {
+	// Apply advanced filter if active
+	filteredNodes := v.nodes
+	if v.advancedFilter != nil && len(v.advancedFilter.Expressions) > 0 {
+		filteredNodes = v.applyAdvancedFilter(v.nodes)
+	}
+
+	data := make([][]string, len(filteredNodes))
+	for i, node := range filteredNodes {
 		data[i] = v.formatNodeRow(node)
 	}
 	v.table.SetData(data)
@@ -865,4 +918,125 @@ func (v *NodesView) expandAllGroups() {
 	for groupName := range groups {
 		v.groupExpanded[groupName] = true
 	}
+}
+
+// showAdvancedFilter shows the advanced filter bar
+func (v *NodesView) showAdvancedFilter() {
+	if v.filterBar == nil || v.pages == nil {
+		return
+	}
+
+	v.isAdvancedMode = true
+
+	// Replace the simple filter with advanced filter bar
+	v.container.Clear()
+	v.container.
+		AddItem(v.filterBar, 5, 0, true).
+		AddItem(v.table.Table, 0, 1, false).
+		AddItem(v.statusBar, 1, 0, false)
+
+	v.filterBar.Show()
+	v.updateStatusBar("[yellow]Advanced Filter Mode - Tab for presets, F1 for help[white]")
+}
+
+// closeAdvancedFilter closes the advanced filter bar
+func (v *NodesView) closeAdvancedFilter() {
+	v.isAdvancedMode = false
+
+	// Restore the simple filter
+	v.container.Clear()
+	v.container.
+		AddItem(v.filterInput, 1, 0, false).
+		AddItem(v.table.Table, 0, 1, true).
+		AddItem(v.statusBar, 1, 0, false)
+
+	if v.app != nil {
+		v.app.SetFocus(v.table.Table)
+	}
+
+	v.updateStatusBar("")
+}
+
+// onAdvancedFilterChange handles advanced filter changes
+func (v *NodesView) onAdvancedFilterChange(filter *filters.Filter) {
+	v.advancedFilter = filter
+	v.updateTable()
+
+	if filter != nil && len(filter.Expressions) > 0 {
+		v.updateStatusBar(fmt.Sprintf("[green]Filter applied: %d conditions[white]", len(filter.Expressions)))
+	} else {
+		v.updateStatusBar("")
+	}
+}
+
+// applyAdvancedFilter applies the advanced filter to nodes
+func (v *NodesView) applyAdvancedFilter(nodes []*dao.Node) []*dao.Node {
+	if v.advancedFilter == nil || len(v.advancedFilter.Expressions) == 0 {
+		return nodes
+	}
+
+	var filtered []*dao.Node
+	for _, node := range nodes {
+		// Convert node to map for filter evaluation
+		nodeData := v.nodeToMap(node)
+		if v.advancedFilter.Evaluate(nodeData) {
+			filtered = append(filtered, node)
+		}
+	}
+
+	return filtered
+}
+
+// nodeToMap converts a node to a map for filter evaluation
+func (v *NodesView) nodeToMap(node *dao.Node) map[string]interface{} {
+	return map[string]interface{}{
+		"Name":           node.Name,
+		"State":          node.State,
+		"CPUsAllocated":  node.CPUsAllocated,
+		"CPUsTotal":      node.CPUsTotal,
+		"MemoryAllocated": node.MemoryAllocated,
+		"MemoryTotal":    node.MemoryTotal,
+		"Features":       strings.Join(node.Features, ","),
+		"Partitions":     strings.Join(node.Partitions, ","),
+		"Reason":         node.Reason,
+	}
+}
+
+// showGlobalSearch shows the global search interface
+func (v *NodesView) showGlobalSearch() {
+	if v.globalSearch == nil || v.pages == nil {
+		return
+	}
+
+	v.globalSearch.Show(v.pages, func(result SearchResult) {
+		// Handle search result selection
+		switch result.Type {
+		case "node":
+			// Focus on the selected node
+			if node, ok := result.Data.(*dao.Node); ok {
+				v.focusOnNode(node.Name)
+			}
+		default:
+			// For other types, just close the search
+			v.updateStatusBar(fmt.Sprintf("Selected %s: %s", result.Type, result.Name))
+		}
+	})
+}
+
+// focusOnNode focuses the table on a specific node
+func (v *NodesView) focusOnNode(nodeName string) {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
+	// Find the node in our node list
+	for i, node := range v.nodes {
+		if node.Name == nodeName {
+			// Select the row in the table
+			v.table.Table.Select(i, 0)
+			v.updateStatusBar(fmt.Sprintf("Focused on node: %s", nodeName))
+			return
+		}
+	}
+
+	v.updateStatusBar(fmt.Sprintf("[yellow]Node %s not found in current view[white]", nodeName))
 }

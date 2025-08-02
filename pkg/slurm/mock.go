@@ -556,7 +556,7 @@ func (m *mockJobManager) Get(id string) (*dao.Job, error) {
 	return job, nil
 }
 
-func (m *mockJobManager) Submit(jobSub *dao.JobSubmission) (*dao.Job, error) {
+func (m *mockJobManager) Submit(jobSub *dao.JobSubmission) (string, error) {
 	m.client.simulateDelay()
 	m.client.mu.Lock()
 	defer m.client.mu.Unlock()
@@ -573,7 +573,7 @@ func (m *mockJobManager) Submit(jobSub *dao.JobSubmission) (*dao.Job, error) {
 		Partition:  jobSub.Partition,
 		State:      dao.JobStatePending,
 		Priority:   100.0, // Default priority
-		QOS:        jobSub.QOS,
+		QOS:        jobSub.QoS,
 		NodeCount:  jobSub.Nodes,
 		TimeLimit:  jobSub.TimeLimit,
 		SubmitTime: time.Now(),
@@ -606,7 +606,7 @@ func (m *mockJobManager) Submit(jobSub *dao.JobSubmission) (*dao.Job, error) {
 	// Store the job
 	m.client.jobs[jobID] = job
 
-	return job, nil
+	return job.ID, nil
 }
 
 func (m *mockJobManager) Cancel(id string) error {
