@@ -1,0 +1,444 @@
+package views
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
+	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/ui/components"
+)
+
+// UsersView displays the users list
+type UsersView struct {
+	*BaseView
+	client       dao.SlurmClient
+	table        *components.Table
+	users        []*dao.User
+	mu           sync.RWMutex
+	refreshTimer *time.Timer
+	refreshRate  time.Duration
+	filter       string
+	container    *tview.Flex
+	filterInput  *tview.InputField
+	statusBar    *tview.TextView
+	app          *tview.Application
+	pages        *tview.Pages
+}
+
+// SetPages sets the pages reference for modal handling
+func (v *UsersView) SetPages(pages *tview.Pages) {
+	v.pages = pages
+}
+
+// NewUsersView creates a new users view
+func NewUsersView(client dao.SlurmClient) *UsersView {
+	v := &UsersView{
+		BaseView:    NewBaseView("users", "Users"),
+		client:      client,
+		refreshRate: 30 * time.Second,
+		users:       []*dao.User{},
+	}
+
+	// Create table with user columns
+	columns := []components.Column{
+		components.NewColumn("Name").Width(15).Build(),
+		components.NewColumn("UID").Width(8).Align(tview.AlignRight).Sortable(true).Build(),
+		components.NewColumn("Default Account").Width(20).Build(),
+		components.NewColumn("Admin Level").Width(12).Build(),
+		components.NewColumn("Default QoS").Width(15).Build(),
+		components.NewColumn("Max Jobs").Width(10).Align(tview.AlignRight).Sortable(true).Build(),
+		components.NewColumn("Max Nodes").Width(10).Align(tview.AlignRight).Sortable(true).Build(),
+		components.NewColumn("Max CPUs").Width(10).Align(tview.AlignRight).Sortable(true).Build(),
+		components.NewColumn("Accounts").Width(40).Build(),
+	}
+
+	v.table = components.NewTableBuilder().
+		WithColumns(columns...).
+		WithSelectable(true).
+		WithHeader(true).
+		WithColors(tcell.ColorYellow, tcell.ColorTeal, tcell.ColorWhite).
+		Build()
+
+	// Set up callbacks
+	v.table.SetOnSelect(v.onUserSelect)
+	v.table.SetOnSort(v.onSort)
+
+	// Create filter input
+	v.filterInput = tview.NewInputField().
+		SetLabel("Filter: ").
+		SetFieldWidth(30).
+		SetChangedFunc(v.onFilterChange).
+		SetDoneFunc(v.onFilterDone)
+
+	// Create status bar
+	v.statusBar = tview.NewTextView().
+		SetDynamicColors(true).
+		SetTextAlign(tview.AlignLeft)
+
+	// Create container layout
+	v.container = tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(v.filterInput, 1, 0, false).
+		AddItem(v.table.Table, 0, 1, true).
+		AddItem(v.statusBar, 1, 0, false)
+
+	return v
+}
+
+// Init initializes the users view
+func (v *UsersView) Init(ctx context.Context) error {
+	v.BaseView.Init(ctx)
+	// Don't refresh on init - let it happen when view is shown
+	return nil
+}
+
+// Render returns the view's main component
+func (v *UsersView) Render() tview.Primitive {
+	return v.container
+}
+
+// Refresh updates the users data
+func (v *UsersView) Refresh() error {
+	v.SetRefreshing(true)
+	defer v.SetRefreshing(false)
+
+	// For now, return empty since Users manager isn't in the interface yet
+	// TODO: Add Users manager to dao.SlurmClient interface
+	v.mu.Lock()
+	v.users = []*dao.User{} // Empty for now
+	v.mu.Unlock()
+
+	// Update table
+	v.updateTable()
+	v.updateStatusBar("")
+
+	// Schedule next refresh
+	v.scheduleRefresh()
+
+	return nil
+}
+
+// Stop stops the view
+func (v *UsersView) Stop() error {
+	if v.refreshTimer != nil {
+		v.refreshTimer.Stop()
+	}
+	return nil
+}
+
+// Hints returns keyboard hints
+func (v *UsersView) Hints() []string {
+	return []string{
+		"[yellow]Enter[white] Details",
+		"[yellow]/[white] Filter",
+		"[yellow]1-9[white] Sort",
+		"[yellow]R[white] Refresh",
+		"[yellow]a[white] Show Admins",
+	}
+}
+
+// OnKey handles keyboard events
+func (v *UsersView) OnKey(event *tcell.EventKey) *tcell.EventKey {
+	switch event.Key() {
+	case tcell.KeyRune:
+		switch event.Rune() {
+		case 'R':
+			go v.Refresh()
+			return nil
+		case '/':
+			v.app.SetFocus(v.filterInput)
+			return nil
+		case 'a', 'A':
+			v.toggleAdminFilter()
+			return nil
+		}
+	case tcell.KeyEnter:
+		v.showUserDetails()
+		return nil
+	case tcell.KeyEsc:
+		if v.filterInput.HasFocus() {
+			v.app.SetFocus(v.table.Table)
+			return nil
+		}
+	}
+
+	return event
+}
+
+// OnFocus handles focus events
+func (v *UsersView) OnFocus() error {
+	if v.app != nil {
+		v.app.SetFocus(v.table.Table)
+	}
+	// Refresh when gaining focus if we haven't loaded data yet
+	if len(v.users) == 0 && !v.IsRefreshing() {
+		go v.Refresh()
+	}
+	return nil
+}
+
+// OnLoseFocus handles loss of focus
+func (v *UsersView) OnLoseFocus() error {
+	return nil
+}
+
+// updateTable updates the table with current user data
+func (v *UsersView) updateTable() {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
+	data := make([][]string, len(v.users))
+	for i, user := range v.users {
+		// Format limits
+		maxJobs := formatLimit(user.MaxJobs)
+		maxNodes := formatLimit(user.MaxNodes)
+		maxCPUs := formatLimit(user.MaxCPUs)
+
+		// Format UID
+		uid := fmt.Sprintf("%d", user.UID)
+
+		// Format admin level with color
+		adminLevel := user.AdminLevel
+		if adminLevel == "Administrator" {
+			adminLevel = fmt.Sprintf("[red]%s[white]", adminLevel)
+		} else if adminLevel == "Operator" {
+			adminLevel = fmt.Sprintf("[yellow]%s[white]", adminLevel)
+		}
+
+		// Format accounts list
+		accounts := strings.Join(user.Accounts, ", ")
+		if len(accounts) > 39 {
+			accounts = accounts[:36] + "..."
+		}
+
+		data[i] = []string{
+			user.Name,
+			uid,
+			user.DefaultAccount,
+			adminLevel,
+			user.DefaultQoS,
+			maxJobs,
+			maxNodes,
+			maxCPUs,
+			accounts,
+		}
+	}
+
+	v.table.SetData(data)
+}
+
+// updateStatusBar updates the status bar
+func (v *UsersView) updateStatusBar(message string) {
+	if message != "" {
+		v.statusBar.SetText(message)
+		return
+	}
+
+	v.mu.RLock()
+	total := len(v.users)
+	admins := 0
+	operators := 0
+	regular := 0
+
+	for _, user := range v.users {
+		switch user.AdminLevel {
+		case "Administrator":
+			admins++
+		case "Operator":
+			operators++
+		default:
+			regular++
+		}
+	}
+	v.mu.RUnlock()
+
+	filtered := len(v.table.GetFilteredData())
+
+	status := fmt.Sprintf("Total: %d | Admins: %d | Operators: %d | Regular: %d",
+		total, admins, operators, regular)
+
+	if filtered < total {
+		status += fmt.Sprintf(" | Filtered: %d", filtered)
+	}
+
+	if v.IsRefreshing() {
+		status += " | [yellow]Refreshing...[white]"
+	}
+
+	v.statusBar.SetText(status)
+}
+
+// scheduleRefresh schedules the next refresh
+func (v *UsersView) scheduleRefresh() {
+	// Remove automatic refresh scheduling to prevent memory leak
+	// Refresh will be handled by the main app refresh timer
+}
+
+// onUserSelect handles user selection
+func (v *UsersView) onUserSelect(row, col int) {
+	data := v.table.GetSelectedData()
+	if data == nil || len(data) == 0 {
+		return
+	}
+
+	userName := data[0]
+	v.updateStatusBar(fmt.Sprintf("Selected user: %s", userName))
+}
+
+// onSort handles column sorting
+func (v *UsersView) onSort(col int, ascending bool) {
+	v.updateStatusBar(fmt.Sprintf("Sorted by column %d", col+1))
+}
+
+// onFilterChange handles filter input changes
+func (v *UsersView) onFilterChange(text string) {
+	v.filter = text
+	v.table.SetFilter(text)
+	v.updateStatusBar("")
+}
+
+// onFilterDone handles filter input completion
+func (v *UsersView) onFilterDone(key tcell.Key) {
+	if v.app != nil {
+		v.app.SetFocus(v.table.Table)
+	}
+}
+
+// toggleAdminFilter toggles showing only admin users
+func (v *UsersView) toggleAdminFilter() {
+	// TODO: Implement admin filter
+	v.updateStatusBar("[yellow]Admin filter not yet implemented[white]")
+}
+
+// showUserDetails shows detailed information for the selected user
+func (v *UsersView) showUserDetails() {
+	data := v.table.GetSelectedData()
+	if data == nil || len(data) == 0 {
+		return
+	}
+
+	userName := data[0]
+
+	// Find the full user object
+	var user *dao.User
+	v.mu.RLock()
+	for _, u := range v.users {
+		if u.Name == userName {
+			user = u
+			break
+		}
+	}
+	v.mu.RUnlock()
+
+	if user == nil {
+		v.updateStatusBar(fmt.Sprintf("[red]User %s not found[white]", userName))
+		return
+	}
+
+	// Create details view
+	details := v.formatUserDetails(user)
+
+	textView := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText(details).
+		SetScrollable(true)
+
+	modal := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(textView, 0, 1, true).
+		AddItem(tview.NewTextView().SetText("Press ESC to close"), 1, 0, false)
+
+	modal.SetBorder(true).
+		SetTitle(fmt.Sprintf(" User %s Details ", userName)).
+		SetTitleAlign(tview.AlignCenter)
+
+	// Create centered modal layout
+	centeredModal := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(modal, 0, 8, true).
+			AddItem(nil, 0, 1, false), 0, 8, true).
+		AddItem(nil, 0, 1, false)
+
+	// Handle ESC key
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			if v.pages != nil {
+				v.pages.RemovePage("user-details")
+			}
+			return nil
+		}
+		return event
+	})
+
+	if v.pages != nil {
+		v.pages.AddPage("user-details", centeredModal, true, true)
+	}
+}
+
+// formatUserDetails formats user details for display
+func (v *UsersView) formatUserDetails(user *dao.User) string {
+	var details strings.Builder
+
+	// Basic information
+	details.WriteString(fmt.Sprintf("[yellow]User Name:[white] %s\n", user.Name))
+	details.WriteString(fmt.Sprintf("[yellow]UID:[white] %d\n", user.UID))
+
+	// Admin level with color
+	adminColor := "white"
+	if user.AdminLevel == "Administrator" {
+		adminColor = "red"
+	} else if user.AdminLevel == "Operator" {
+		adminColor = "yellow"
+	}
+	details.WriteString(fmt.Sprintf("[yellow]Admin Level:[white] [%s]%s[white]\n", adminColor, user.AdminLevel))
+
+	// Account information
+	details.WriteString("\n[teal]Account Information:[white]\n")
+	details.WriteString(fmt.Sprintf("[yellow]  Default Account:[white] %s\n", user.DefaultAccount))
+	if len(user.Accounts) > 0 {
+		details.WriteString("[yellow]  All Accounts:[white]\n")
+		for _, acc := range user.Accounts {
+			if acc == user.DefaultAccount {
+				details.WriteString(fmt.Sprintf("    - %s [green](default)[white]\n", acc))
+			} else {
+				details.WriteString(fmt.Sprintf("    - %s\n", acc))
+			}
+		}
+	}
+
+	// QoS information
+	details.WriteString("\n[teal]Quality of Service:[white]\n")
+	details.WriteString(fmt.Sprintf("[yellow]  Default QoS:[white] %s\n", user.DefaultQoS))
+	if len(user.QoSList) > 0 {
+		details.WriteString("[yellow]  Available QoS:[white]\n")
+		for _, qos := range user.QoSList {
+			if qos == user.DefaultQoS {
+				details.WriteString(fmt.Sprintf("    - %s [green](default)[white]\n", qos))
+			} else {
+				details.WriteString(fmt.Sprintf("    - %s\n", qos))
+			}
+		}
+	}
+
+	// Resource limits
+	details.WriteString("\n[teal]Resource Limits:[white]\n")
+	details.WriteString(fmt.Sprintf("[yellow]  Max Jobs:[white] %s\n", formatLimit(user.MaxJobs)))
+	details.WriteString(fmt.Sprintf("[yellow]  Max Submit:[white] %s\n", formatLimit(user.MaxSubmit)))
+	details.WriteString(fmt.Sprintf("[yellow]  Max Nodes:[white] %s\n", formatLimit(user.MaxNodes)))
+	details.WriteString(fmt.Sprintf("[yellow]  Max CPUs:[white] %s\n", formatLimit(user.MaxCPUs)))
+
+	// Current usage (placeholder - would need real data)
+	details.WriteString("\n[teal]Current Usage:[white]\n")
+	details.WriteString("[yellow]  Running Jobs:[white] N/A\n")
+	details.WriteString("[yellow]  Pending Jobs:[white] N/A\n")
+	details.WriteString("[yellow]  CPU Hours Used:[white] N/A\n")
+
+	return details.String()
+}
