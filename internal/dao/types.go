@@ -51,19 +51,32 @@ type JobSubmission struct {
 	Command        string            `json:"command,omitempty"`
 	Partition      string            `json:"partition,omitempty"`
 	Account        string            `json:"account,omitempty"`
-	QOS            string            `json:"qos,omitempty"`
+	QoS            string            `json:"qos,omitempty"`
 	Nodes          int               `json:"nodes,omitempty"`
+	CPUs           int               `json:"cpus,omitempty"`          // Simplified from CPUsPerNode
 	CPUsPerNode    int               `json:"cpus_per_node,omitempty"`
 	Memory         string            `json:"memory,omitempty"`
+	GPUs           int               `json:"gpus,omitempty"`
 	TimeLimit      string            `json:"time_limit,omitempty"`
 	WorkingDir     string            `json:"working_directory,omitempty"`
+	OutputFile     string            `json:"output_file,omitempty"`
+	ErrorFile      string            `json:"error_file,omitempty"`
 	StdOut         string            `json:"stdout,omitempty"`
 	StdErr         string            `json:"stderr,omitempty"`
+	EmailNotify    bool              `json:"email_notify,omitempty"`
+	Email          string            `json:"email,omitempty"`
 	Environment    map[string]string `json:"environment,omitempty"`
 	Dependencies   []string          `json:"dependencies,omitempty"`
 	ArraySpec      string            `json:"array,omitempty"`
 	Exclusive      bool              `json:"exclusive,omitempty"`
 	Requeue        bool              `json:"requeue,omitempty"`
+}
+
+// JobTemplate represents a predefined job template
+type JobTemplate struct {
+	Name          string
+	Description   string
+	JobSubmission JobSubmission
 }
 
 // Node represents a SLURM compute node

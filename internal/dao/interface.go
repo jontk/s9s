@@ -46,7 +46,7 @@ type JobManager interface {
 	Get(id string) (*Job, error)
 
 	// Submit submits a new job
-	Submit(job *JobSubmission) (*Job, error)
+	Submit(job *JobSubmission) (string, error)
 
 	// Cancel cancels a job
 	Cancel(id string) error

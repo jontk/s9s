@@ -155,7 +155,7 @@ func (m *JobTemplateManager) createDefaultTemplates() {
 				CPUsPerNode: 1,
 				Memory:      "1G",
 				TimeLimit:   "1:00:00",
-				QOS:         "normal",
+				QoS:         "normal",
 			},
 		},
 		{
@@ -169,7 +169,7 @@ func (m *JobTemplateManager) createDefaultTemplates() {
 				CPUsPerNode: 4,
 				Memory:      "8G",
 				TimeLimit:   "2:00:00",
-				QOS:         "gpu-normal",
+				QoS:         "gpu-normal",
 			},
 		},
 		{
@@ -183,7 +183,7 @@ func (m *JobTemplateManager) createDefaultTemplates() {
 				CPUsPerNode: 8,
 				Memory:      "16G",
 				TimeLimit:   "4:00:00",
-				QOS:         "normal",
+				QoS:         "normal",
 			},
 		},
 		{
@@ -197,7 +197,7 @@ func (m *JobTemplateManager) createDefaultTemplates() {
 				CPUsPerNode: 8,
 				Memory:      "32G",
 				TimeLimit:   "8:00:00",
-				QOS:         "normal",
+				QoS:         "normal",
 			},
 		},
 		{
@@ -211,7 +211,7 @@ func (m *JobTemplateManager) createDefaultTemplates() {
 				CPUsPerNode: 16,
 				Memory:      "64G",
 				TimeLimit:   "3-00:00:00",
-				QOS:         "normal",
+				QoS:         "normal",
 			},
 		},
 	}
@@ -221,8 +221,10 @@ func (m *JobTemplateManager) createDefaultTemplates() {
 	}
 }
 
-// showJobTemplateSelector shows template selection dialog
-func (v *JobsView) showJobTemplateSelector() {
+// Removed showJobTemplateSelector - moved to jobs.go to use new wizard
+
+// OLD_showJobTemplateSelector shows template selection dialog  - DEPRECATED
+func OLD_showJobTemplateSelector(v *JobsView) {
 	if v.templateManager == nil {
 		v.templateManager = NewJobTemplateManager()
 	}
@@ -313,11 +315,11 @@ func (v *JobsView) showJobSubmissionFormWithTemplate(template *dao.JobSubmission
 		AddInputField("Time Limit", template.TimeLimit, 15, nil, nil).
 		AddInputField("Memory", template.Memory, 10, nil, nil).
 		AddInputField("Account", template.Account, 20, nil, nil).
-		AddInputField("QoS", template.QOS, 15, nil, nil).
+		AddInputField("QoS", template.QoS, 15, nil, nil).
 		AddInputField("Working Directory", template.WorkingDir, 40, nil, nil)
 
 	form.AddButton("Submit", func() {
-		v.submitJobFromForm(form)
+		// v.submitJobFromForm - removed, use wizard instead(form)
 	}).
 	AddButton("Save as Template", func() {
 		v.saveFormAsTemplate(form)
@@ -364,7 +366,7 @@ func (v *JobsView) showJobSubmissionFormWithTemplate(template *dao.JobSubmission
 			return nil
 		case tcell.KeyCtrlS:
 			// Ctrl+S as alternative submit shortcut
-			v.submitJobFromForm(form)
+			// v.submitJobFromForm - removed, use wizard instead(form)
 			return nil
 		case tcell.KeyEnter:
 			// Check if we're on a button - if so, activate it
@@ -377,7 +379,7 @@ func (v *JobsView) showJobSubmissionFormWithTemplate(template *dao.JobSubmission
 				return event
 			} else {
 				// We're on an input field, submit the form
-				v.submitJobFromForm(form)
+				// v.submitJobFromForm - removed, use wizard instead(form)
 				return nil
 			}
 		}
@@ -440,7 +442,7 @@ func (v *JobsView) extractJobSubmissionFromForm(form *tview.Form) *dao.JobSubmis
 		Command:     command,
 		Partition:   partition,
 		Account:     account,
-		QOS:         qos,
+		QoS:         qos,
 		Nodes:       nodeCount,
 		CPUsPerNode: cpusPerNodeCount,
 		Memory:      memory,
@@ -456,7 +458,7 @@ func (v *JobsView) showSaveTemplateForm(job *dao.Job) {
 		Command:     job.Command,
 		Partition:   job.Partition,
 		Account:     job.Account,
-		QOS:         job.QOS,
+		QoS:         job.QOS,
 		Nodes:       job.NodeCount,
 		TimeLimit:   job.TimeLimit,
 		WorkingDir:  job.WorkingDir,

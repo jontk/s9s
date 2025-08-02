@@ -198,7 +198,7 @@ func (j *jobManager) Get(id string) (*Job, error) {
 	return convertJob(job), nil
 }
 
-func (j *jobManager) Submit(job *JobSubmission) (*Job, error) {
+func (j *jobManager) Submit(job *JobSubmission) (string, error) {
 	// Check if the slurm-client supports job submission
 	// If the client has a Submit method, use it
 	if submitter, ok := j.client.(interface {
@@ -209,22 +209,14 @@ func (j *jobManager) Submit(job *JobSubmission) (*Job, error) {
 
 		result, err := submitter.Submit(j.ctx, slurmJob)
 		if err != nil {
-			return nil, fmt.Errorf("submitting job via slurm-client: %w", err)
+			return "", fmt.Errorf("submitting job via slurm-client: %w", err)
 		}
 
 		// Convert the result back to our Job type
 		if slurmJobResult, ok := result.(interface {
 			GetJobID() string
-			GetName() string
-			GetState() string
 		}); ok {
-			return &Job{
-				ID:         slurmJobResult.GetJobID(),
-				Name:       slurmJobResult.GetName(),
-				State:      slurmJobResult.GetState(),
-				SubmitTime: time.Now(),
-				// Add other fields as available from the result
-			}, nil
+			return slurmJobResult.GetJobID(), nil
 		}
 	}
 
@@ -234,32 +226,10 @@ func (j *jobManager) Submit(job *JobSubmission) (*Job, error) {
 }
 
 // simulateJobSubmission creates a simulated job for testing/demo purposes
-func (j *jobManager) simulateJobSubmission(job *JobSubmission) (*Job, error) {
+func (j *jobManager) simulateJobSubmission(job *JobSubmission) (string, error) {
 	// Generate a simple job ID (in real implementation, this would come from SLURM)
 	jobID := fmt.Sprintf("sim_%d", time.Now().Unix())
-
-	return &Job{
-		ID:          jobID,
-		Name:        job.Name,
-		State:       "PENDING",
-		User:        "current_user", // In real implementation, get from auth context
-		Account:     job.Account,
-		Partition:   job.Partition,
-		QOS:         job.QOS,
-		NodeCount:   job.Nodes,
-		NodeList:    "", // Will be populated when job is allocated
-		TimeLimit:   job.TimeLimit,
-		TimeUsed:    "0:00:00",
-		SubmitTime:  time.Now(),
-		StartTime:   nil, // Will be set when job starts
-		EndTime:     nil, // Will be set when job completes
-		Priority:    1000, // Default priority
-		Command:     job.Command,
-		WorkingDir:  job.WorkingDir,
-		StdOut:      job.StdOut,
-		StdErr:      job.StdErr,
-		ExitCode:    nil, // Will be set when job completes
-	}, nil
+	return jobID, nil
 }
 
 // convertJobSubmissionToSlurm converts our JobSubmission to the format expected by slurm-client
@@ -272,14 +242,20 @@ func convertJobSubmissionToSlurm(job *JobSubmission) interface{} {
 		"command":           job.Command,
 		"partition":         job.Partition,
 		"account":           job.Account,
-		"qos":               job.QOS,
+		"qos":               job.QoS,
 		"nodes":             job.Nodes,
+		"cpus":              job.CPUs,
 		"cpus_per_node":     job.CPUsPerNode,
 		"memory":            job.Memory,
+		"gpus":              job.GPUs,
 		"time_limit":        job.TimeLimit,
 		"working_directory": job.WorkingDir,
+		"output_file":       job.OutputFile,
+		"error_file":        job.ErrorFile,
 		"stdout":            job.StdOut,
 		"stderr":            job.StdErr,
+		"email_notify":      job.EmailNotify,
+		"email":             job.Email,
 		"environment":       job.Environment,
 		"dependencies":      job.Dependencies,
 		"array":             job.ArraySpec,

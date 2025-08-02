@@ -682,167 +682,19 @@ func (v *JobsView) showJobOutput() {
 	}()
 }
 
-// showJobSubmissionForm shows job submission form
-func (v *JobsView) showJobSubmissionForm() {
-	// Create form
-	form := tview.NewForm().
-		AddInputField("Job Name", "", 30, nil, nil).
-		AddInputField("Command", "", 50, nil, nil).
-		AddInputField("Partition", "compute", 20, nil, nil).
-		AddInputField("Nodes", "1", 10, nil, nil).
-		AddInputField("CPUs per Node", "1", 10, nil, nil).
-		AddInputField("Time Limit", "1:00:00", 15, nil, nil).
-		AddInputField("Memory", "1G", 10, nil, nil).
-		AddInputField("Account", "", 20, nil, nil).
-		AddInputField("QoS", "normal", 15, nil, nil).
-		AddInputField("Working Directory", "", 40, nil, nil)
 
-	form.AddButton("Submit", func() {
-		v.submitJobFromForm(form)
-	}).
-	AddButton("Cancel", func() {
-		if v.pages != nil {
-			v.pages.RemovePage("job-submission")
-		}
-	})
-
-	form.SetBorder(true).
-		SetTitle(" Submit New Job ").
-		SetTitleAlign(tview.AlignCenter)
-
-	// Add help text
-	helpText := "Navigation: [yellow]Tab/Shift+Tab[white] move between fields | [yellow]Enter[white] submit form | [yellow]Ctrl+S[white] submit | [yellow]ESC[white] cancel | Global shortcuts disabled"
-	helpView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText(helpText).
-		SetTextAlign(tview.AlignCenter)
-
-	// Create form container with help
-	formContainer := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(form, 0, 1, true).
-		AddItem(helpView, 1, 0, false)
-
-	// Create centered modal layout
-	centeredModal := tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(nil, 0, 1, false).
-			AddItem(formContainer, 0, 6, true).
-			AddItem(nil, 0, 1, false), 0, 6, true).
-		AddItem(nil, 0, 1, false)
-
-	// Handle keys for the form
-	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEsc:
-			if v.pages != nil {
-				v.pages.RemovePage("job-submission")
-			}
-			return nil
-		case tcell.KeyCtrlS:
-			// Ctrl+S as alternative submit shortcut
-			v.submitJobFromForm(form)
-			return nil
-		case tcell.KeyEnter:
-			// Check if we're on a button - if so, activate it
-			formIndex, buttonIndex := form.GetFocusedItemIndex()
-			if buttonIndex >= 0 {
-				// We're on a button, let the form handle it
-				return event
-			} else if formIndex >= 10 {
-				// We're past the input fields (unlikely but safe)
-				return event
-			} else {
-				// We're on an input field, submit the form
-				v.submitJobFromForm(form)
-				return nil
-			}
-		}
-		// Let form handle all other keys (Tab, Shift+Tab, etc.)
-		return event
-	})
-
-	if v.pages != nil {
-		v.pages.AddPage("job-submission", centeredModal, true, true)
-	}
-}
-
-// submitJobFromForm submits a job from the form data
-func (v *JobsView) submitJobFromForm(form *tview.Form) {
-	// Extract form values
-	jobName := form.GetFormItemByLabel("Job Name").(*tview.InputField).GetText()
-	command := form.GetFormItemByLabel("Command").(*tview.InputField).GetText()
-	partition := form.GetFormItemByLabel("Partition").(*tview.InputField).GetText()
-	nodes := form.GetFormItemByLabel("Nodes").(*tview.InputField).GetText()
-	cpusPerNode := form.GetFormItemByLabel("CPUs per Node").(*tview.InputField).GetText()
-	timeLimit := form.GetFormItemByLabel("Time Limit").(*tview.InputField).GetText()
-	memory := form.GetFormItemByLabel("Memory").(*tview.InputField).GetText()
-	account := form.GetFormItemByLabel("Account").(*tview.InputField).GetText()
-	qos := form.GetFormItemByLabel("QoS").(*tview.InputField).GetText()
-	workingDir := form.GetFormItemByLabel("Working Directory").(*tview.InputField).GetText()
-
-	// Validate required fields
-	if jobName == "" {
-		v.updateStatusBar("[red]Job name is required[white]")
-		return
-	}
-	if command == "" {
-		v.updateStatusBar("[red]Command is required[white]")
-		return
-	}
-
-	// Parse numeric fields
-	nodeCount := 1
-	if nodes != "" {
-		if n, err := fmt.Sscanf(nodes, "%d", &nodeCount); err != nil || n != 1 {
-			v.updateStatusBar("[red]Invalid node count[white]")
-			return
-		}
-	}
-
-	cpusPerNodeCount := 1
-	if cpusPerNode != "" {
-		if n, err := fmt.Sscanf(cpusPerNode, "%d", &cpusPerNodeCount); err != nil || n != 1 {
-			v.updateStatusBar("[red]Invalid CPUs per node[white]")
-			return
-		}
-	}
-
-	// Create job submission
-	jobSub := &dao.JobSubmission{
-		Name:        jobName,
-		Command:     command,
-		Partition:   partition,
-		Account:     account,
-		QOS:         qos,
-		Nodes:       nodeCount,
-		CPUsPerNode: cpusPerNodeCount,
-		Memory:      memory,
-		TimeLimit:   timeLimit,
-		WorkingDir:  workingDir,
-	}
-
-	// Close the form
-	if v.pages != nil {
-		v.pages.RemovePage("job-submission")
-	}
-
-	// Submit the job
-	go v.performJobSubmission(jobSub)
-}
 
 // performJobSubmission performs the actual job submission
 func (v *JobsView) performJobSubmission(jobSub *dao.JobSubmission) {
 	v.updateStatusBar(fmt.Sprintf("Submitting job %s...", jobSub.Name))
 
-	job, err := v.client.Jobs().Submit(jobSub)
+	jobID, err := v.client.Jobs().Submit(jobSub)
 	if err != nil {
 		v.updateStatusBar(fmt.Sprintf("[red]Failed to submit job: %v[white]", err))
 		return
 	}
 
-	v.updateStatusBar(fmt.Sprintf("[green]Job %s submitted successfully (ID: %s)[white]", job.Name, job.ID))
+	v.updateStatusBar(fmt.Sprintf("[green]Job %s submitted successfully (ID: %s)[white]", jobSub.Name, jobID))
 
 	// Refresh the view to show the new job
 	time.Sleep(500 * time.Millisecond)
@@ -904,6 +756,24 @@ func (v *JobsView) performRequeueJob(jobID string) {
 	// Refresh the view to show the new job
 	time.Sleep(500 * time.Millisecond)
 	v.Refresh()
+}
+
+// showJobSubmissionForm shows job submission form using the wizard
+func (v *JobsView) showJobSubmissionForm() {
+	wizard := NewJobSubmissionWizard(v.client, v.app)
+	wizard.Show(v.pages, func(jobID string) {
+		// Success callback
+		v.updateStatusBar(fmt.Sprintf("[green]Job %s submitted successfully[white]", jobID))
+		go v.Refresh()
+	}, func() {
+		// Cancel callback
+		v.updateStatusBar("")
+	})
+}
+
+// showJobTemplateSelector shows the job template selector (alias for submission form)
+func (v *JobsView) showJobTemplateSelector() {
+	v.showJobSubmissionForm()
 }
 
 // showJobActions shows an action menu for the selected job
