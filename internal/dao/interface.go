@@ -18,6 +18,15 @@ type SlurmClient interface {
 	// Reservations returns the reservation manager
 	Reservations() ReservationManager
 	
+	// QoS returns the QoS manager
+	QoS() QoSManager
+	
+	// Accounts returns the account manager
+	Accounts() AccountManager
+	
+	// Users returns the user manager
+	Users() UserManager
+	
 	// Info returns the info manager for cluster information
 	Info() InfoManager
 	
@@ -36,6 +45,9 @@ type JobManager interface {
 	// Get returns details for a specific job
 	Get(id string) (*Job, error)
 	
+	// Submit submits a new job
+	Submit(job *JobSubmission) (*Job, error)
+	
 	// Cancel cancels a job
 	Cancel(id string) error
 	
@@ -44,6 +56,9 @@ type JobManager interface {
 	
 	// Release releases a held job
 	Release(id string) error
+	
+	// Requeue requeues a completed/failed job
+	Requeue(id string) (*Job, error)
 	
 	// GetOutput returns the output of a completed job
 	GetOutput(id string) (string, error)
@@ -83,6 +98,33 @@ type ReservationManager interface {
 	
 	// Get returns details for a specific reservation
 	Get(name string) (*Reservation, error)
+}
+
+// QoSManager provides operations for managing SLURM QoS
+type QoSManager interface {
+	// List returns a list of QoS
+	List() (*QoSList, error)
+	
+	// Get returns details for a specific QoS
+	Get(name string) (*QoS, error)
+}
+
+// AccountManager provides operations for managing SLURM accounts
+type AccountManager interface {
+	// List returns a list of accounts
+	List() (*AccountList, error)
+	
+	// Get returns details for a specific account
+	Get(name string) (*Account, error)
+}
+
+// UserManager provides operations for managing SLURM users
+type UserManager interface {
+	// List returns a list of users
+	List() (*UserList, error)
+	
+	// Get returns details for a specific user
+	Get(name string) (*User, error)
 }
 
 // InfoManager provides cluster information and statistics

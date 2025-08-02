@@ -314,6 +314,22 @@ func (vm *ViewManager) AddView(view View) error {
 		v.BaseView.SetApp(vm.app)
 		v.app = vm.app
 		v.pages = vm.pages
+	case *ReservationsView:
+		v.BaseView.SetApp(vm.app)
+		v.app = vm.app
+		v.pages = vm.pages
+	case *QoSView:
+		v.BaseView.SetApp(vm.app)
+		v.app = vm.app
+		v.pages = vm.pages
+	case *AccountsView:
+		v.BaseView.SetApp(vm.app)
+		v.app = vm.app
+		v.pages = vm.pages
+	case *UsersView:
+		v.BaseView.SetApp(vm.app)
+		v.app = vm.app
+		v.pages = vm.pages
 	}
 	
 	return nil

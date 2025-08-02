@@ -107,10 +107,16 @@ func (v *UsersView) Refresh() error {
 	v.SetRefreshing(true)
 	defer v.SetRefreshing(false)
 
-	// For now, return empty since Users manager isn't in the interface yet
-	// TODO: Add Users manager to dao.SlurmClient interface
+	// Fetch users from backend
+	usersList, err := v.client.Users().List()
+	if err != nil {
+		v.SetLastError(err)
+		v.updateStatusBar(fmt.Sprintf("[red]Error: %v[white]", err))
+		return err
+	}
+
 	v.mu.Lock()
-	v.users = []*dao.User{} // Empty for now
+	v.users = usersList.Users
 	v.mu.Unlock()
 
 	// Update table

@@ -107,10 +107,16 @@ func (v *QoSView) Refresh() error {
 	v.SetRefreshing(true)
 	defer v.SetRefreshing(false)
 
-	// For now, return empty since QoS manager isn't in the interface yet
-	// TODO: Add QoS manager to dao.SlurmClient interface
+	// Fetch QoS from backend
+	qosList, err := v.client.QoS().List()
+	if err != nil {
+		v.SetLastError(err)
+		v.updateStatusBar(fmt.Sprintf("[red]Error: %v[white]", err))
+		return err
+	}
+
 	v.mu.Lock()
-	v.qosList = []*dao.QoS{} // Empty for now
+	v.qosList = qosList.QoS
 	v.mu.Unlock()
 
 	// Update table

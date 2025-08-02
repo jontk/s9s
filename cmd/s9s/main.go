@@ -43,6 +43,16 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	// Process command line arguments
+	for _, arg := range os.Args[1:] {
+		switch arg {
+		case "--mock":
+			cfg.UseMockClient = true
+		case "--no-mock":
+			cfg.UseMockClient = false
+		}
+	}
+
 	// Create application instance
 	s9sApp, err := app.New(ctx, cfg)
 	if err != nil {

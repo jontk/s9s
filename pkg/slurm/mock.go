@@ -16,6 +16,9 @@ type MockClient struct {
 	nodes        map[string]*dao.Node
 	partitions   map[string]*dao.Partition
 	reservations map[string]*dao.Reservation
+	qos          map[string]*dao.QoS
+	accounts     map[string]*dao.Account
+	users        map[string]*dao.User
 	clusterInfo  *dao.ClusterInfo
 	delay        time.Duration
 }
@@ -27,6 +30,9 @@ func NewMockClient() *MockClient {
 		nodes:        make(map[string]*dao.Node),
 		partitions:   make(map[string]*dao.Partition),
 		reservations: make(map[string]*dao.Reservation),
+		qos:          make(map[string]*dao.QoS),
+		accounts:     make(map[string]*dao.Account),
+		users:        make(map[string]*dao.User),
 		clusterInfo: &dao.ClusterInfo{
 			Name:     "mock-cluster",
 			Endpoint: "http://localhost:6820",
@@ -78,6 +84,21 @@ func (m *MockClient) Reservations() dao.ReservationManager {
 // Info returns the mock info manager
 func (m *MockClient) Info() dao.InfoManager {
 	return &mockInfoManager{client: m}
+}
+
+// QoS returns the mock QoS manager
+func (m *MockClient) QoS() dao.QoSManager {
+	return &mockQoSManager{client: m}
+}
+
+// Accounts returns the mock accounts manager
+func (m *MockClient) Accounts() dao.AccountManager {
+	return &mockAccountManager{client: m}
+}
+
+// Users returns the mock users manager
+func (m *MockClient) Users() dao.UserManager {
+	return &mockUserManager{client: m}
 }
 
 // ClusterInfo returns mock cluster information
@@ -239,6 +260,240 @@ func (m *MockClient) populateSampleData() {
 		Users:     []string{"admin"},
 		Accounts:  []string{"maintenance"},
 	}
+
+	// Add sample QoS
+	m.qos["normal"] = &dao.QoS{
+		Name:                 "normal",
+		Priority:             100,
+		PreemptMode:          "off",
+		Flags:                []string{},
+		GraceTime:            30,
+		MaxJobsPerUser:       50,
+		MaxJobsPerAccount:    200,
+		MaxSubmitJobsPerUser: 100,
+		MaxCPUsPerUser:       1000,
+		MaxNodesPerUser:      32,
+		MaxWallTime:          10080, // 7 days in minutes
+		MaxMemoryPerUser:     0,     // unlimited
+		MinCPUs:              1,
+		MinNodes:             1,
+	}
+
+	m.qos["high"] = &dao.QoS{
+		Name:                 "high",
+		Priority:             500,
+		PreemptMode:          "suspend",
+		Flags:                []string{"DenyOnLimit"},
+		GraceTime:            15,
+		MaxJobsPerUser:       10,
+		MaxJobsPerAccount:    50,
+		MaxSubmitJobsPerUser: 20,
+		MaxCPUsPerUser:       500,
+		MaxNodesPerUser:      16,
+		MaxWallTime:          4320, // 3 days in minutes
+		MaxMemoryPerUser:     0,    // unlimited
+		MinCPUs:              1,
+		MinNodes:             1,
+	}
+
+	m.qos["low"] = &dao.QoS{
+		Name:                 "low",
+		Priority:             10,
+		PreemptMode:          "off",
+		Flags:                []string{},
+		GraceTime:            60,
+		MaxJobsPerUser:       100,
+		MaxJobsPerAccount:    500,
+		MaxSubmitJobsPerUser: 200,
+		MaxCPUsPerUser:       2000,
+		MaxNodesPerUser:      64,
+		MaxWallTime:          20160, // 14 days in minutes
+		MaxMemoryPerUser:     0,     // unlimited
+		MinCPUs:              1,
+		MinNodes:             1,
+	}
+
+	// Add sample accounts
+	m.accounts["physics"] = &dao.Account{
+		Name:         "physics",
+		Description:  "Physics Department Research",
+		Organization: "University",
+		Coordinators: []string{"physics_admin"},
+		DefaultQoS:   "normal",
+		QoSList:      []string{"normal", "high", "low"},
+		MaxJobs:      200,
+		MaxNodes:     32,
+		MaxCPUs:      1000,
+		MaxSubmit:    400,
+		MaxWall:      10080, // 7 days
+		Parent:       "",
+		Children:     []string{"physics_theory", "physics_experimental"},
+	}
+
+	m.accounts["physics_theory"] = &dao.Account{
+		Name:         "physics_theory",
+		Description:  "Theoretical Physics Group",
+		Organization: "University",
+		Coordinators: []string{"theory_admin"},
+		DefaultQoS:   "normal",
+		QoSList:      []string{"normal", "high"},
+		MaxJobs:      100,
+		MaxNodes:     16,
+		MaxCPUs:      500,
+		MaxSubmit:    200,
+		MaxWall:      7200, // 5 days
+		Parent:       "physics",
+		Children:     []string{},
+	}
+
+	m.accounts["physics_experimental"] = &dao.Account{
+		Name:         "physics_experimental",
+		Description:  "Experimental Physics Group",
+		Organization: "University",
+		Coordinators: []string{"exp_admin"},
+		DefaultQoS:   "normal",
+		QoSList:      []string{"normal", "high"},
+		MaxJobs:      100,
+		MaxNodes:     16,
+		MaxCPUs:      500,
+		MaxSubmit:    200,
+		MaxWall:      7200, // 5 days
+		Parent:       "physics",
+		Children:     []string{},
+	}
+
+	m.accounts["chemistry"] = &dao.Account{
+		Name:         "chemistry",
+		Description:  "Chemistry Department Research",
+		Organization: "University",
+		Coordinators: []string{"chem_admin"},
+		DefaultQoS:   "normal",
+		QoSList:      []string{"normal", "low"},
+		MaxJobs:      150,
+		MaxNodes:     24,
+		MaxCPUs:      800,
+		MaxSubmit:    300,
+		MaxWall:      14400, // 10 days
+		Parent:       "",
+		Children:     []string{},
+	}
+
+	m.accounts["biology"] = &dao.Account{
+		Name:         "biology",
+		Description:  "Biology Department Research",
+		Organization: "University",
+		Coordinators: []string{"bio_admin"},
+		DefaultQoS:   "low",
+		QoSList:      []string{"normal", "low"},
+		MaxJobs:      100,
+		MaxNodes:     16,
+		MaxCPUs:      600,
+		MaxSubmit:    200,
+		MaxWall:      20160, // 14 days
+		Parent:       "",
+		Children:     []string{},
+	}
+
+	m.accounts["engineering"] = &dao.Account{
+		Name:         "engineering",
+		Description:  "Engineering Department Research",
+		Organization: "University",
+		Coordinators: []string{"eng_admin"},
+		DefaultQoS:   "normal",
+		QoSList:      []string{"normal", "high"},
+		MaxJobs:      300,
+		MaxNodes:     48,
+		MaxCPUs:      1500,
+		MaxSubmit:    600,
+		MaxWall:      7200, // 5 days
+		Parent:       "",
+		Children:     []string{},
+	}
+
+	// Add sample users
+	m.users["alice"] = &dao.User{
+		Name:           "alice",
+		UID:            1001,
+		DefaultAccount: "physics",
+		Accounts:       []string{"physics", "physics_theory"},
+		AdminLevel:     "None",
+		DefaultQoS:     "normal",
+		QoSList:        []string{"normal", "high"},
+		MaxJobs:        50,
+		MaxNodes:       16,
+		MaxCPUs:        500,
+		MaxSubmit:      100,
+	}
+
+	m.users["bob"] = &dao.User{
+		Name:           "bob",
+		UID:            1002,
+		DefaultAccount: "chemistry",
+		Accounts:       []string{"chemistry"},
+		AdminLevel:     "None",
+		DefaultQoS:     "normal",
+		QoSList:        []string{"normal", "low"},
+		MaxJobs:        30,
+		MaxNodes:       8,
+		MaxCPUs:        200,
+		MaxSubmit:      60,
+	}
+
+	m.users["charlie"] = &dao.User{
+		Name:           "charlie",
+		UID:            1003,
+		DefaultAccount: "engineering",
+		Accounts:       []string{"engineering"},
+		AdminLevel:     "Operator",
+		DefaultQoS:     "high",
+		QoSList:        []string{"normal", "high"},
+		MaxJobs:        100,
+		MaxNodes:       32,
+		MaxCPUs:        1000,
+		MaxSubmit:      200,
+	}
+
+	m.users["david"] = &dao.User{
+		Name:           "david",
+		UID:            1004,
+		DefaultAccount: "biology",
+		Accounts:       []string{"biology"},
+		AdminLevel:     "None",
+		DefaultQoS:     "low",
+		QoSList:        []string{"normal", "low"},
+		MaxJobs:        25,
+		MaxNodes:       4,
+		MaxCPUs:        100,
+		MaxSubmit:      50,
+	}
+
+	m.users["eve"] = &dao.User{
+		Name:           "eve",
+		UID:            1005,
+		DefaultAccount: "physics_experimental",
+		Accounts:       []string{"physics", "physics_experimental"},
+		AdminLevel:     "None",
+		DefaultQoS:     "normal",
+		QoSList:        []string{"normal", "high"},
+		MaxJobs:        40,
+		MaxNodes:       12,
+		MaxCPUs:        400,
+		MaxSubmit:      80,
+	}
+
+	m.users["admin"] = &dao.User{
+		Name:           "admin",
+		UID:            0,
+		DefaultAccount: "root",
+		Accounts:       []string{"root", "physics", "chemistry", "biology", "engineering"},
+		AdminLevel:     "Administrator",
+		DefaultQoS:     "high",
+		QoSList:        []string{"normal", "high", "low"},
+		MaxJobs:        1000,
+		MaxNodes:       100,
+		MaxCPUs:        5000,
+		MaxSubmit:      2000,
+	}
 }
 
 // mockJobManager implements dao.JobManager
@@ -301,6 +556,59 @@ func (m *mockJobManager) Get(id string) (*dao.Job, error) {
 	return job, nil
 }
 
+func (m *mockJobManager) Submit(jobSub *dao.JobSubmission) (*dao.Job, error) {
+	m.client.simulateDelay()
+	m.client.mu.Lock()
+	defer m.client.mu.Unlock()
+
+	// Generate new job ID
+	jobID := fmt.Sprintf("%d", 2000+len(m.client.jobs))
+
+	// Create new job from submission
+	job := &dao.Job{
+		ID:         jobID,
+		Name:       jobSub.Name,
+		User:       "current-user", // In real implementation, would get from auth context
+		Account:    jobSub.Account,
+		Partition:  jobSub.Partition,
+		State:      dao.JobStatePending,
+		Priority:   100.0, // Default priority
+		QOS:        jobSub.QOS,
+		NodeCount:  jobSub.Nodes,
+		TimeLimit:  jobSub.TimeLimit,
+		SubmitTime: time.Now(),
+		WorkingDir: jobSub.WorkingDir,
+		Command:    jobSub.Command,
+		StdOut:     jobSub.StdOut,
+		StdErr:     jobSub.StdErr,
+	}
+
+	// Set defaults if not provided
+	if job.Account == "" {
+		job.Account = "default"
+	}
+	if job.Partition == "" {
+		job.Partition = "compute"
+	}
+	if job.QOS == "" {
+		job.QOS = "normal"
+	}
+	if job.NodeCount == 0 {
+		job.NodeCount = 1
+	}
+	if job.TimeLimit == "" {
+		job.TimeLimit = "1:00:00"
+	}
+	if job.WorkingDir == "" {
+		job.WorkingDir = "/tmp"
+	}
+
+	// Store the job
+	m.client.jobs[jobID] = job
+
+	return job, nil
+}
+
 func (m *mockJobManager) Cancel(id string) error {
 	m.client.simulateDelay()
 	m.client.mu.Lock()
@@ -349,6 +657,49 @@ func (m *mockJobManager) Release(id string) error {
 		job.State = dao.JobStatePending
 	}
 	return nil
+}
+
+func (m *mockJobManager) Requeue(id string) (*dao.Job, error) {
+	m.client.simulateDelay()
+	m.client.mu.Lock()
+	defer m.client.mu.Unlock()
+
+	originalJob, exists := m.client.jobs[id]
+	if !exists {
+		return nil, fmt.Errorf("job %s not found", id)
+	}
+
+	// Check if job can be requeued
+	if originalJob.State != dao.JobStateCompleted && originalJob.State != dao.JobStateFailed && originalJob.State != dao.JobStateCancelled {
+		return nil, fmt.Errorf("job %s cannot be requeued (current state: %s)", id, originalJob.State)
+	}
+
+	// Generate new job ID
+	newJobID := fmt.Sprintf("%d", 3000+len(m.client.jobs))
+
+	// Create new job based on original
+	newJob := &dao.Job{
+		ID:         newJobID,
+		Name:       originalJob.Name + "_requeued",
+		User:       originalJob.User,
+		Account:    originalJob.Account,
+		Partition:  originalJob.Partition,
+		State:      dao.JobStatePending,
+		Priority:   originalJob.Priority,
+		QOS:        originalJob.QOS,
+		NodeCount:  originalJob.NodeCount,
+		TimeLimit:  originalJob.TimeLimit,
+		SubmitTime: time.Now(),
+		WorkingDir: originalJob.WorkingDir,
+		Command:    originalJob.Command,
+		StdOut:     originalJob.StdOut,
+		StdErr:     originalJob.StdErr,
+	}
+
+	// Store the new job
+	m.client.jobs[newJobID] = newJob
+
+	return newJob, nil
 }
 
 func (m *mockJobManager) GetOutput(id string) (string, error) {
@@ -617,4 +968,103 @@ func hasCommonElement(slice1, slice2 []string) bool {
 		}
 	}
 	return false
+}
+
+// mockQoSManager implements dao.QoSManager
+type mockQoSManager struct {
+	client *MockClient
+}
+
+func (m *mockQoSManager) List() (*dao.QoSList, error) {
+	m.client.simulateDelay()
+	m.client.mu.RLock()
+	defer m.client.mu.RUnlock()
+
+	qosList := make([]*dao.QoS, 0, len(m.client.qos))
+	for _, qos := range m.client.qos {
+		qosList = append(qosList, qos)
+	}
+
+	return &dao.QoSList{
+		QoS:   qosList,
+		Total: len(qosList),
+	}, nil
+}
+
+func (m *mockQoSManager) Get(name string) (*dao.QoS, error) {
+	m.client.simulateDelay()
+	m.client.mu.RLock()
+	defer m.client.mu.RUnlock()
+
+	qos, exists := m.client.qos[name]
+	if !exists {
+		return nil, fmt.Errorf("QoS %s not found", name)
+	}
+	return qos, nil
+}
+
+// mockAccountManager implements dao.AccountManager
+type mockAccountManager struct {
+	client *MockClient
+}
+
+func (m *mockAccountManager) List() (*dao.AccountList, error) {
+	m.client.simulateDelay()
+	m.client.mu.RLock()
+	defer m.client.mu.RUnlock()
+
+	accounts := make([]*dao.Account, 0, len(m.client.accounts))
+	for _, account := range m.client.accounts {
+		accounts = append(accounts, account)
+	}
+
+	return &dao.AccountList{
+		Accounts: accounts,
+		Total:    len(accounts),
+	}, nil
+}
+
+func (m *mockAccountManager) Get(name string) (*dao.Account, error) {
+	m.client.simulateDelay()
+	m.client.mu.RLock()
+	defer m.client.mu.RUnlock()
+
+	account, exists := m.client.accounts[name]
+	if !exists {
+		return nil, fmt.Errorf("account %s not found", name)
+	}
+	return account, nil
+}
+
+// mockUserManager implements dao.UserManager
+type mockUserManager struct {
+	client *MockClient
+}
+
+func (m *mockUserManager) List() (*dao.UserList, error) {
+	m.client.simulateDelay()
+	m.client.mu.RLock()
+	defer m.client.mu.RUnlock()
+
+	users := make([]*dao.User, 0, len(m.client.users))
+	for _, user := range m.client.users {
+		users = append(users, user)
+	}
+
+	return &dao.UserList{
+		Users: users,
+		Total: len(users),
+	}, nil
+}
+
+func (m *mockUserManager) Get(name string) (*dao.User, error) {
+	m.client.simulateDelay()
+	m.client.mu.RLock()
+	defer m.client.mu.RUnlock()
+
+	user, exists := m.client.users[name]
+	if !exists {
+		return nil, fmt.Errorf("user %s not found", name)
+	}
+	return user, nil
 }

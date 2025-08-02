@@ -232,6 +232,34 @@ func (s *S9s) initViews() error {
 	}
 	s.viewMgr.AddView(partitionsView)
 	
+	// Create reservations view
+	reservationsView := views.NewReservationsView(s.client)
+	if err := reservationsView.Init(s.ctx); err != nil {
+		return fmt.Errorf("failed to initialize reservations view: %w", err)
+	}
+	s.viewMgr.AddView(reservationsView)
+
+	// Create QoS view
+	qosView := views.NewQoSView(s.client)
+	if err := qosView.Init(s.ctx); err != nil {
+		return fmt.Errorf("failed to initialize qos view: %w", err)
+	}
+	s.viewMgr.AddView(qosView)
+
+	// Create Accounts view
+	accountsView := views.NewAccountsView(s.client)
+	if err := accountsView.Init(s.ctx); err != nil {
+		return fmt.Errorf("failed to initialize accounts view: %w", err)
+	}
+	s.viewMgr.AddView(accountsView)
+
+	// Create Users view
+	usersView := views.NewUsersView(s.client)
+	if err := usersView.Init(s.ctx); err != nil {
+		return fmt.Errorf("failed to initialize users view: %w", err)
+	}
+	s.viewMgr.AddView(usersView)
+
 	// Update header with view names
 	s.header.SetViews(s.viewMgr.GetViewNames())
 	
@@ -246,6 +274,9 @@ func (s *S9s) setupKeyboardShortcuts() {
 			return event // Let command line handle it
 		}
 		
+		// Check if a modal is open by checking if there are multiple pages
+		isModalOpen := s.pages.GetPageCount() > 1
+		
 		// Global shortcuts
 		switch event.Key() {
 		case tcell.KeyCtrlC:
@@ -257,14 +288,36 @@ func (s *S9s) setupKeyboardShortcuts() {
 				return nil
 			}
 		case tcell.KeyTab:
+			if isModalOpen {
+				// Let the modal handle tab navigation
+				return event
+			}
 			s.viewMgr.NextView()
 			s.updateCurrentView()
 			return nil
 		case tcell.KeyBacktab:
+			if isModalOpen {
+				// Let the modal handle shift+tab navigation
+				return event
+			}
 			s.viewMgr.PreviousView()
 			s.updateCurrentView()
 			return nil
 		case tcell.KeyRune:
+			// If a modal is open, let it handle all character input except a few special cases
+			if isModalOpen {
+				switch event.Rune() {
+				case ':':
+					// Allow command mode even in modals for emergency commands
+					s.showCommandLine()
+					return nil
+				default:
+					// Let modal handle all other character input (including 1-7, s, c, etc.)
+					return event
+				}
+			}
+			
+			// Normal global shortcuts when no modal is open
 			switch event.Rune() {
 			case ':':
 				s.showCommandLine()
@@ -281,15 +334,29 @@ func (s *S9s) setupKeyboardShortcuts() {
 			case '3':
 				s.switchToView("partitions")
 				return nil
+			case '4':
+				s.switchToView("reservations")
+				return nil
+			case '5':
+				s.switchToView("qos")
+				return nil
+			case '6':
+				s.switchToView("accounts")
+				return nil
+			case '7':
+				s.switchToView("users")
+				return nil
 			case 'q', 'Q':
 				s.app.Stop()
 				return nil
 			}
 		}
 		
-		// Pass to current view if not handled
-		if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
-			return currentView.OnKey(event)
+		// Pass to current view if not handled and no modal is open
+		if !isModalOpen {
+			if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
+				return currentView.OnKey(event)
+			}
 		}
 		
 		return event
@@ -407,6 +474,14 @@ func (s *S9s) executeCommand(command string) {
 		s.switchToView("nodes")
 	case "partitions", "p":
 		s.switchToView("partitions")
+	case "reservations":
+		s.switchToView("reservations")
+	case "qos":
+		s.switchToView("qos")
+	case "accounts":
+		s.switchToView("accounts")
+	case "users":
+		s.switchToView("users")
 	case "refresh", "r":
 		if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
 			go func() {
@@ -429,7 +504,7 @@ func (s *S9s) showHelp() {
 	helpText := `[yellow]S9S - SLURM Terminal UI Help[white]
 
 [teal]Global Keys:[white]
-  [yellow]1, 2, 3[white]     Switch to Jobs, Nodes, Partitions view
+  [yellow]1-7[white]         Switch to Jobs/Nodes/Partitions/Reservations/QoS/Accounts/Users view
   [yellow]Tab/Shift+Tab[white] Switch between views
   [yellow]:[white]          Enter command mode
   [yellow]?[white]          Show this help
@@ -439,6 +514,10 @@ func (s *S9s) showHelp() {
   [yellow]:jobs, :j[white]      Switch to Jobs view
   [yellow]:nodes, :n[white]     Switch to Nodes view  
   [yellow]:partitions, :p[white] Switch to Partitions view
+  [yellow]:reservations[white]  Switch to Reservations view
+  [yellow]:qos[white]           Switch to QoS view
+  [yellow]:accounts[white]      Switch to Accounts view
+  [yellow]:users[white]         Switch to Users view
   [yellow]:refresh, :r[white]   Refresh current view
   [yellow]:quit, :q[white]      Quit application
   [yellow]:help, :h[white]      Show this help

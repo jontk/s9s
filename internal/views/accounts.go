@@ -107,10 +107,16 @@ func (v *AccountsView) Refresh() error {
 	v.SetRefreshing(true)
 	defer v.SetRefreshing(false)
 
-	// For now, return empty since Accounts manager isn't in the interface yet
-	// TODO: Add Accounts manager to dao.SlurmClient interface
+	// Fetch accounts from backend
+	accountsList, err := v.client.Accounts().List()
+	if err != nil {
+		v.SetLastError(err)
+		v.updateStatusBar(fmt.Sprintf("[red]Error: %v[white]", err))
+		return err
+	}
+
 	v.mu.Lock()
-	v.accounts = []*dao.Account{} // Empty for now
+	v.accounts = accountsList.Accounts
 	v.mu.Unlock()
 
 	// Update table
