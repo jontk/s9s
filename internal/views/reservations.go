@@ -102,12 +102,11 @@ func NewReservationsView(client dao.SlurmClient) *ReservationsView {
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignLeft)
 
-	// Create container layout
+	// Create container layout (removed individual status bar to prevent conflicts with main status bar)
 	v.container = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(v.filterInput, 1, 0, false).
-		AddItem(v.table.Table, 0, 1, true).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, true)
 
 	return v
 }
@@ -133,7 +132,7 @@ func (v *ReservationsView) Refresh() error {
 	resList, err := v.client.Reservations().List()
 	if err != nil {
 		v.SetLastError(err)
-		v.updateStatusBar(fmt.Sprintf("[red]Error: %v[white]", err))
+		// Note: Error handling removed since individual view status bars are no longer used
 		return err
 	}
 
@@ -143,7 +142,7 @@ func (v *ReservationsView) Refresh() error {
 
 	// Update table
 	v.updateTable()
-	v.updateStatusBar("")
+	// Note: No longer updating individual view status bar since we use main app status bar for hints
 
 	// Schedule next refresh
 	v.scheduleRefresh()
@@ -392,20 +391,20 @@ func (v *ReservationsView) onReservationSelect(row, col int) {
 		return
 	}
 
-	resName := data[0]
-	v.updateStatusBar(fmt.Sprintf("Selected reservation: %s", resName))
+	// Note: Selection handling removed since individual view status bars are no longer used
+	_ = data[0] // resName no longer used
 }
 
 // onSort handles column sorting
 func (v *ReservationsView) onSort(col int, ascending bool) {
-	v.updateStatusBar(fmt.Sprintf("Sorted by column %d", col+1))
+	// Note: Sort feedback removed since individual view status bars are no longer used
 }
 
 // onFilterChange handles filter input changes
 func (v *ReservationsView) onFilterChange(text string) {
 	v.filter = text
 	v.table.SetFilter(text)
-	v.updateStatusBar("")
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // onFilterDone handles filter input completion
@@ -418,13 +417,13 @@ func (v *ReservationsView) onFilterDone(key tcell.Key) {
 // toggleActiveFilter toggles showing only active reservations
 func (v *ReservationsView) toggleActiveFilter() {
 	// TODO: Implement active filter
-	v.updateStatusBar("[yellow]Active filter not yet implemented[white]")
+	// Note: Filter status removed since individual view status bars are no longer used
 }
 
 // toggleFutureFilter toggles showing only future reservations
 func (v *ReservationsView) toggleFutureFilter() {
 	// TODO: Implement future filter
-	v.updateStatusBar("[yellow]Future filter not yet implemented[white]")
+	// Note: Filter status removed since individual view status bars are no longer used
 }
 
 // showReservationDetails shows detailed information for the selected reservation
@@ -448,7 +447,7 @@ func (v *ReservationsView) showReservationDetails() {
 	v.mu.RUnlock()
 
 	if reservation == nil {
-		v.updateStatusBar(fmt.Sprintf("[red]Reservation %s not found[white]", resName))
+		// Note: Error message removed since individual view status bars are no longer used
 		return
 	}
 
@@ -555,11 +554,10 @@ func (v *ReservationsView) showAdvancedFilter() {
 	v.container.Clear()
 	v.container.
 		AddItem(v.filterBar, 5, 0, true).
-		AddItem(v.table.Table, 0, 1, false).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, false)
 
 	v.filterBar.Show()
-	v.updateStatusBar("[yellow]Advanced Filter Mode - Tab for presets, F1 for help[white]")
+	// Note: Advanced filter status removed since individual view status bars are no longer used
 }
 
 // closeAdvancedFilter closes the advanced filter bar
@@ -570,14 +568,13 @@ func (v *ReservationsView) closeAdvancedFilter() {
 	v.container.Clear()
 	v.container.
 		AddItem(v.filterInput, 1, 0, false).
-		AddItem(v.table.Table, 0, 1, true).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, true)
 
 	if v.app != nil {
 		v.app.SetFocus(v.table.Table)
 	}
 
-	v.updateStatusBar("")
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // onAdvancedFilterChange handles advanced filter changes
@@ -586,9 +583,9 @@ func (v *ReservationsView) onAdvancedFilterChange(filter *filters.Filter) {
 	v.updateTable()
 
 	if filter != nil && len(filter.Expressions) > 0 {
-		v.updateStatusBar(fmt.Sprintf("[green]Filter applied: %d conditions[white]", len(filter.Expressions)))
+		// Note: Filter status removed since individual view status bars are no longer used
 	} else {
-		v.updateStatusBar("")
+		// Note: Status bar update removed since individual view status bars are no longer used
 	}
 }
 
@@ -642,7 +639,7 @@ func (v *ReservationsView) showGlobalSearch() {
 			}
 		default:
 			// For other types, just close the search
-			v.updateStatusBar(fmt.Sprintf("Selected %s: %s", result.Type, result.Name))
+			// Note: Search result status removed since individual view status bars are no longer used
 		}
 	})
 }
@@ -657,10 +654,10 @@ func (v *ReservationsView) focusOnReservation(reservationName string) {
 		if reservation.Name == reservationName {
 			// Select the row in the table
 			v.table.Table.Select(i, 0)
-			v.updateStatusBar(fmt.Sprintf("Focused on reservation: %s", reservationName))
+			// Note: Focus status removed since individual view status bars are no longer used
 			return
 		}
 	}
 
-	v.updateStatusBar(fmt.Sprintf("[yellow]Reservation %s not found in current view[white]", reservationName))
+	// Note: Error message removed since individual view status bars are no longer used
 }

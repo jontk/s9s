@@ -106,12 +106,11 @@ func NewPartitionsView(client dao.SlurmClient) *PartitionsView {
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignLeft)
 
-	// Create container layout
+	// Create container layout (removed individual status bar to prevent conflicts with main status bar)
 	v.container = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(v.filterInput, 1, 0, false).
-		AddItem(v.table.Table, 0, 1, true).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, true)
 
 	return v
 }
@@ -136,7 +135,7 @@ func (v *PartitionsView) Refresh() error {
 	partitionList, err := v.client.Partitions().List()
 	if err != nil {
 		v.SetLastError(err)
-		v.updateStatusBar(fmt.Sprintf("[red]Error: %v[white]", err))
+		// Note: Error handling removed since individual view status bars are no longer used
 		return err
 	}
 
@@ -157,7 +156,7 @@ func (v *PartitionsView) Refresh() error {
 
 	// Update table
 	v.updateTable()
-	v.updateStatusBar("")
+	// Note: No longer updating individual view status bar since we use main app status bar for hints
 
 	// Schedule next refresh
 	v.scheduleRefresh()
@@ -534,20 +533,20 @@ func (v *PartitionsView) onPartitionSelect(row, col int) {
 		return
 	}
 
-	partitionName := data[0]
-	v.updateStatusBar(fmt.Sprintf("Selected partition: %s", partitionName))
+	// Note: Status bar update removed since individual view status bars are no longer used
+	_ = data[0] // partitionName no longer used
 }
 
 // onSort handles column sorting
 func (v *PartitionsView) onSort(col int, ascending bool) {
-	v.updateStatusBar(fmt.Sprintf("Sorted by column %d", col+1))
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // onFilterChange handles filter input changes
 func (v *PartitionsView) onFilterChange(text string) {
 	v.filter = text
 	v.table.SetFilter(text)
-	v.updateStatusBar("")
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // onFilterDone handles filter input completion
@@ -569,7 +568,7 @@ func (v *PartitionsView) showPartitionDetails() {
 	// Fetch full partition details
 	partition, err := v.client.Partitions().Get(partitionName)
 	if err != nil {
-		v.updateStatusBar(fmt.Sprintf("[red]Failed to get partition details: %v[white]", err))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -670,10 +669,10 @@ func (v *PartitionsView) showPartitionJobs() {
 		return
 	}
 
-	partitionName := data[0]
+	_ = data[0] // partitionName not used for TODO feature yet
 
 	// TODO: Switch to jobs view with partition filter
-	v.updateStatusBar(fmt.Sprintf("[yellow]Job view filtering not yet implemented for partition %s[white]", partitionName))
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // showPartitionNodes shows nodes for the selected partition
@@ -683,10 +682,10 @@ func (v *PartitionsView) showPartitionNodes() {
 		return
 	}
 
-	partitionName := data[0]
+	_ = data[0] // partitionName not used for TODO feature yet
 
 	// TODO: Switch to nodes view with partition filter
-	v.updateStatusBar(fmt.Sprintf("[yellow]Node view filtering not yet implemented for partition %s[white]", partitionName))
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // showPartitionAnalytics shows comprehensive analytics for the selected partition
@@ -701,7 +700,7 @@ func (v *PartitionsView) showPartitionAnalytics() {
 	// Fetch full partition details
 	partition, err := v.client.Partitions().Get(partitionName)
 	if err != nil {
-		v.updateStatusBar(fmt.Sprintf("[red]Failed to get partition details: %v[white]", err))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -1022,11 +1021,10 @@ func (v *PartitionsView) showAdvancedFilter() {
 	v.container.Clear()
 	v.container.
 		AddItem(v.filterBar, 5, 0, true).
-		AddItem(v.table.Table, 0, 1, false).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, false)
 
 	v.filterBar.Show()
-	v.updateStatusBar("[yellow]Advanced Filter Mode - Tab for presets, F1 for help[white]")
+	// Note: Advanced filter status removed since individual view status bars are no longer used
 }
 
 // closeAdvancedFilter closes the advanced filter bar
@@ -1037,14 +1035,13 @@ func (v *PartitionsView) closeAdvancedFilter() {
 	v.container.Clear()
 	v.container.
 		AddItem(v.filterInput, 1, 0, false).
-		AddItem(v.table.Table, 0, 1, true).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, true)
 
 	if v.app != nil {
 		v.app.SetFocus(v.table.Table)
 	}
 
-	v.updateStatusBar("")
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // onAdvancedFilterChange handles advanced filter changes
@@ -1053,9 +1050,9 @@ func (v *PartitionsView) onAdvancedFilterChange(filter *filters.Filter) {
 	v.updateTable()
 
 	if filter != nil && len(filter.Expressions) > 0 {
-		v.updateStatusBar(fmt.Sprintf("[green]Filter applied: %d conditions[white]", len(filter.Expressions)))
+		// Note: Status bar update removed since individual view status bars are no longer used
 	} else {
-		v.updateStatusBar("")
+		// Note: Status bar update removed since individual view status bars are no longer used
 	}
 }
 
@@ -1116,7 +1113,7 @@ func (v *PartitionsView) showGlobalSearch() {
 			}
 		default:
 			// For other types, just close the search
-			v.updateStatusBar(fmt.Sprintf("Selected %s: %s", result.Type, result.Name))
+			// Note: Status bar update removed since individual view status bars are no longer used
 		}
 	})
 }
@@ -1131,10 +1128,10 @@ func (v *PartitionsView) focusOnPartition(partitionName string) {
 		if partition.Name == partitionName {
 			// Select the row in the table
 			v.table.Table.Select(i, 0)
-			v.updateStatusBar(fmt.Sprintf("Focused on partition: %s", partitionName))
+			// Note: Status bar update removed since individual view status bars are no longer used
 			return
 		}
 	}
 
-	v.updateStatusBar(fmt.Sprintf("[yellow]Partition %s not found in current view[white]", partitionName))
+	// Note: Status bar update removed since individual view status bars are no longer used
 }

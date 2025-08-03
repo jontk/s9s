@@ -111,12 +111,11 @@ func NewJobsView(client dao.SlurmClient) *JobsView {
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignLeft)
 
-	// Create container layout
+	// Create container layout (removed individual status bar to prevent conflicts with main status bar)
 	v.container = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(v.filterInput, 1, 0, false).
-		AddItem(v.table.Table, 0, 1, true).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, true)
 
 	return v
 }
@@ -150,7 +149,7 @@ func (v *JobsView) Refresh() error {
 	jobList, err := v.client.Jobs().List(opts)
 	if err != nil {
 		v.SetLastError(err)
-		v.updateStatusBar(fmt.Sprintf("[red]Error: %v[white]", err))
+		// Note: Error handling removed since individual view status bars are no longer used
 		return err
 	}
 
@@ -160,7 +159,7 @@ func (v *JobsView) Refresh() error {
 
 	// Update table
 	v.updateTable()
-	v.updateStatusBar("")
+	// Note: No longer updating individual view status bar since we use main app status bar for hints
 
 	// Schedule next refresh
 	v.scheduleRefresh()
@@ -402,21 +401,21 @@ func (v *JobsView) onJobSelect(row, col int) {
 		return
 	}
 
-	jobID := data[0]
-	v.updateStatusBar(fmt.Sprintf("Selected job: %s", jobID))
+	// Note: Selection handling removed since individual view status bars are no longer used
+	_ = data[0] // jobID no longer used
 }
 
 // onSort handles column sorting
 func (v *JobsView) onSort(col int, ascending bool) {
 	// Sorting is handled by the table component
-	v.updateStatusBar(fmt.Sprintf("Sorted by column %d", col+1))
+	// Note: Sort feedback removed since individual view status bars are no longer used
 }
 
 // onFilterChange handles filter input changes
 func (v *JobsView) onFilterChange(text string) {
 	v.filter = text
 	v.table.SetFilter(text)
-	v.updateStatusBar("")
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // onFilterDone handles filter input completion
@@ -439,7 +438,7 @@ func (v *JobsView) cancelSelectedJob() {
 
 	// Check if job can be cancelled
 	if !strings.Contains(state, dao.JobStateRunning) && !strings.Contains(state, dao.JobStatePending) {
-		v.updateStatusBar(fmt.Sprintf("[red]Job %s cannot be cancelled (state: %s)[white]", jobID, state))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -468,15 +467,15 @@ func (v *JobsView) cancelSelectedJob() {
 
 // performCancelJob performs the job cancel operation
 func (v *JobsView) performCancelJob(jobID string) {
-	v.updateStatusBar(fmt.Sprintf("Cancelling job %s...", jobID))
+	// Note: Status bar update removed since individual view status bars are no longer used
 
 	err := v.client.Jobs().Cancel(jobID)
 	if err != nil {
-		v.updateStatusBar(fmt.Sprintf("[red]Failed to cancel job %s: %v[white]", jobID, err))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
-	v.updateStatusBar(fmt.Sprintf("[green]Job %s cancelled successfully[white]", jobID))
+	// Note: Status bar update removed since individual view status bars are no longer used
 
 	// Refresh the view
 	time.Sleep(500 * time.Millisecond)
@@ -495,20 +494,20 @@ func (v *JobsView) holdSelectedJob() {
 
 	// Check if job can be held
 	if !strings.Contains(state, dao.JobStatePending) {
-		v.updateStatusBar(fmt.Sprintf("[red]Job %s cannot be held (state: %s)[white]", jobID, state))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
 	go func() {
-		v.updateStatusBar(fmt.Sprintf("Holding job %s...", jobID))
+		// Note: Status bar update removed since individual view status bars are no longer used
 
 		err := v.client.Jobs().Hold(jobID)
 		if err != nil {
-			v.updateStatusBar(fmt.Sprintf("[red]Failed to hold job %s: %v[white]", jobID, err))
+			// Note: Status bar update removed since individual view status bars are no longer used
 			return
 		}
 
-		v.updateStatusBar(fmt.Sprintf("[green]Job %s held successfully[white]", jobID))
+		// Note: Status bar update removed since individual view status bars are no longer used
 
 		// Refresh the view
 		time.Sleep(500 * time.Millisecond)
@@ -528,20 +527,20 @@ func (v *JobsView) releaseSelectedJob() {
 
 	// Check if job can be released
 	if !strings.Contains(state, dao.JobStateSuspended) {
-		v.updateStatusBar(fmt.Sprintf("[red]Job %s is not held (state: %s)[white]", jobID, state))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
 	go func() {
-		v.updateStatusBar(fmt.Sprintf("Releasing job %s...", jobID))
+		// Note: Status bar update removed since individual view status bars are no longer used
 
 		err := v.client.Jobs().Release(jobID)
 		if err != nil {
-			v.updateStatusBar(fmt.Sprintf("[red]Failed to release job %s: %v[white]", jobID, err))
+			// Note: Status bar update removed since individual view status bars are no longer used
 			return
 		}
 
-		v.updateStatusBar(fmt.Sprintf("[green]Job %s released successfully[white]", jobID))
+		// Note: Status bar update removed since individual view status bars are no longer used
 
 		// Refresh the view
 		time.Sleep(500 * time.Millisecond)
@@ -561,7 +560,7 @@ func (v *JobsView) showJobDetails() {
 	// Fetch full job details
 	job, err := v.client.Jobs().Get(jobID)
 	if err != nil {
-		v.updateStatusBar(fmt.Sprintf("[red]Failed to get job details: %v[white]", err))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -669,12 +668,12 @@ func (v *JobsView) showJobOutput() {
 	jobID := data[0]
 	jobName := data[1]
 
-	v.updateStatusBar(fmt.Sprintf("Fetching output for job %s...", jobID))
+	// Note: Status bar update removed since individual view status bars are no longer used
 
 	go func() {
 		output, err := v.client.Jobs().GetOutput(jobID)
 		if err != nil {
-			v.updateStatusBar(fmt.Sprintf("[red]Failed to get output for job %s: %v[white]", jobID, err))
+			// Note: Status bar update removed since individual view status bars are no longer used
 			return
 		}
 
@@ -726,21 +725,21 @@ func (v *JobsView) showJobOutput() {
 			v.pages.AddPage("job-output", centeredModal, true, true)
 		}
 
-		v.updateStatusBar("")
+		// Note: Status bar update removed since individual view status bars are no longer used
 	}()
 }
 
 // performJobSubmission performs the actual job submission
 func (v *JobsView) performJobSubmission(jobSub *dao.JobSubmission) {
-	v.updateStatusBar(fmt.Sprintf("Submitting job %s...", jobSub.Name))
+	// Note: Status bar update removed since individual view status bars are no longer used
 
-	jobID, err := v.client.Jobs().Submit(jobSub)
+	_, err := v.client.Jobs().Submit(jobSub) // jobID no longer used for status updates
 	if err != nil {
-		v.updateStatusBar(fmt.Sprintf("[red]Failed to submit job: %v[white]", err))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
-	v.updateStatusBar(fmt.Sprintf("[green]Job %s submitted successfully (ID: %s)[white]", jobSub.Name, jobID))
+	// Note: Status bar update removed since individual view status bars are no longer used
 
 	// Refresh the view to show the new job
 	time.Sleep(500 * time.Millisecond)
@@ -760,7 +759,7 @@ func (v *JobsView) requeueSelectedJob() {
 
 	// Check if job can be requeued (usually completed or failed jobs)
 	if !strings.Contains(state, dao.JobStateCompleted) && !strings.Contains(state, dao.JobStateFailed) && !strings.Contains(state, dao.JobStateCancelled) {
-		v.updateStatusBar(fmt.Sprintf("[red]Job %s cannot be requeued (state: %s)[white]", jobID, state))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -789,15 +788,15 @@ func (v *JobsView) requeueSelectedJob() {
 
 // performRequeueJob performs job requeue operation
 func (v *JobsView) performRequeueJob(jobID string) {
-	v.updateStatusBar(fmt.Sprintf("Requeuing job %s...", jobID))
+	// Note: Status bar update removed since individual view status bars are no longer used
 
-	newJob, err := v.client.Jobs().Requeue(jobID)
+	_, err := v.client.Jobs().Requeue(jobID) // newJob no longer used for status updates
 	if err != nil {
-		v.updateStatusBar(fmt.Sprintf("[red]Failed to requeue job %s: %v[white]", jobID, err))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
-	v.updateStatusBar(fmt.Sprintf("[green]Job %s requeued successfully (new ID: %s)[white]", jobID, newJob.ID))
+	// Note: Status bar update removed since individual view status bars are no longer used
 
 	// Refresh the view to show the new job
 	time.Sleep(500 * time.Millisecond)
@@ -809,11 +808,11 @@ func (v *JobsView) showJobSubmissionForm() {
 	wizard := NewJobSubmissionWizard(v.client, v.app)
 	wizard.Show(v.pages, func(jobID string) {
 		// Success callback
-		v.updateStatusBar(fmt.Sprintf("[green]Job %s submitted successfully[white]", jobID))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		go v.Refresh()
 	}, func() {
 		// Cancel callback
-		v.updateStatusBar("")
+		// Note: Status bar update removed since individual view status bars are no longer used
 	})
 }
 
@@ -826,7 +825,7 @@ func (v *JobsView) showJobTemplateSelector() {
 func (v *JobsView) showJobActions() {
 	data := v.table.GetSelectedData()
 	if data == nil || len(data) == 0 {
-		v.updateStatusBar("[yellow]No job selected[white]")
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -980,10 +979,10 @@ func (v *JobsView) toggleAutoRefresh() {
 	v.autoRefresh = !v.autoRefresh
 
 	if v.autoRefresh {
-		v.updateStatusBar("[green]Auto-refresh enabled[white]")
+		// Note: Status bar update removed since individual view status bars are no longer used
 		v.scheduleRefresh()
 	} else {
-		v.updateStatusBar("[yellow]Auto-refresh disabled[white]")
+		// Note: Status bar update removed since individual view status bars are no longer used
 		if v.refreshTimer != nil {
 			v.refreshTimer.Stop()
 		}
@@ -1080,19 +1079,19 @@ func (v *JobsView) selectJobsByState(state string) {
 	}
 	v.mu.RUnlock()
 
-	v.updateStatusBar(fmt.Sprintf("[green]Selected %d jobs in state %s[white]", count, state))
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // clearJobSelection clears all selected jobs
 func (v *JobsView) clearJobSelection() {
 	v.selectedJobs = make(map[string]bool)
-	v.updateStatusBar("[yellow]Job selection cleared[white]")
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // showSelectedJobs shows list of currently selected jobs
 func (v *JobsView) showSelectedJobs() {
 	if len(v.selectedJobs) == 0 {
-		v.updateStatusBar("[yellow]No jobs selected[white]")
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -1145,7 +1144,7 @@ func (v *JobsView) showSelectedJobs() {
 // batchCancelSelected cancels all selected jobs
 func (v *JobsView) batchCancelSelected() {
 	if len(v.selectedJobs) == 0 {
-		v.updateStatusBar("[yellow]No jobs selected[white]")
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -1187,7 +1186,7 @@ func (v *JobsView) performBatchCancel() {
 		}
 	}
 
-	v.updateStatusBar(fmt.Sprintf("[green]Batch cancel completed: %d success, %d failed[white]", success, failed))
+	// Note: Status bar update removed since individual view status bars are no longer used
 	v.clearJobSelection()
 
 	// Refresh the view
@@ -1198,7 +1197,7 @@ func (v *JobsView) performBatchCancel() {
 // batchHoldSelected holds all selected jobs
 func (v *JobsView) batchHoldSelected() {
 	if len(v.selectedJobs) == 0 {
-		v.updateStatusBar("[yellow]No jobs selected[white]")
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -1215,7 +1214,7 @@ func (v *JobsView) batchHoldSelected() {
 			}
 		}
 
-		v.updateStatusBar(fmt.Sprintf("[green]Batch hold completed: %d success, %d failed[white]", success, failed))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		v.clearJobSelection()
 
 		// Refresh the view
@@ -1227,7 +1226,7 @@ func (v *JobsView) batchHoldSelected() {
 // batchReleaseSelected releases all selected jobs
 func (v *JobsView) batchReleaseSelected() {
 	if len(v.selectedJobs) == 0 {
-		v.updateStatusBar("[yellow]No jobs selected[white]")
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -1244,7 +1243,7 @@ func (v *JobsView) batchReleaseSelected() {
 			}
 		}
 
-		v.updateStatusBar(fmt.Sprintf("[green]Batch release completed: %d success, %d failed[white]", success, failed))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		v.clearJobSelection()
 
 		// Refresh the view
@@ -1265,11 +1264,10 @@ func (v *JobsView) showAdvancedFilter() {
 	v.container.Clear()
 	v.container.
 		AddItem(v.filterBar, 5, 0, true).
-		AddItem(v.table.Table, 0, 1, false).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, false)
 
 	v.filterBar.Show()
-	v.updateStatusBar("[yellow]Advanced Filter Mode - Tab for presets, F1 for help[white]")
+	// Note: Advanced filter status removed since individual view status bars are no longer used
 }
 
 // closeAdvancedFilter closes the advanced filter bar
@@ -1280,14 +1278,13 @@ func (v *JobsView) closeAdvancedFilter() {
 	v.container.Clear()
 	v.container.
 		AddItem(v.filterInput, 1, 0, false).
-		AddItem(v.table.Table, 0, 1, true).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, true)
 
 	if v.app != nil {
 		v.app.SetFocus(v.table.Table)
 	}
 
-	v.updateStatusBar("")
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // onAdvancedFilterChange handles advanced filter changes
@@ -1296,9 +1293,9 @@ func (v *JobsView) onAdvancedFilterChange(filter *filters.Filter) {
 	v.updateTable()
 
 	if filter != nil && len(filter.Expressions) > 0 {
-		v.updateStatusBar(fmt.Sprintf("[green]Filter applied: %d conditions[white]", len(filter.Expressions)))
+		// Note: Status bar update removed since individual view status bars are no longer used
 	} else {
-		v.updateStatusBar("")
+		// Note: Status bar update removed since individual view status bars are no longer used
 	}
 }
 
@@ -1359,7 +1356,7 @@ func (v *JobsView) showGlobalSearch() {
 			}
 		default:
 			// For other types, just close the search
-			v.updateStatusBar(fmt.Sprintf("Selected %s: %s", result.Type, result.Name))
+			// Note: Status bar update removed since individual view status bars are no longer used
 		}
 	})
 }
@@ -1374,10 +1371,10 @@ func (v *JobsView) focusOnJob(jobID string) {
 		if job.ID == jobID {
 			// Select the row in the table
 			v.table.Table.Select(i, 0)
-			v.updateStatusBar(fmt.Sprintf("Focused on job: %s", jobID))
+			// Note: Status bar update removed since individual view status bars are no longer used
 			return
 		}
 	}
 
-	v.updateStatusBar(fmt.Sprintf("[yellow]Job %s not found in current view[white]", jobID))
+	// Note: Status bar update removed since individual view status bars are no longer used
 }

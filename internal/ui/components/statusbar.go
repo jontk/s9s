@@ -16,6 +16,7 @@ type StatusBar struct {
 	message       string
 	messageExpiry time.Time
 	flashColor    tcell.Color
+	lastDrawn     string // Track last drawn content to prevent unnecessary redraws
 }
 
 // NewStatusBar creates a new status bar component
@@ -35,8 +36,12 @@ func NewStatusBar() *StatusBar {
 
 // SetHints sets the keyboard hints to display
 func (s *StatusBar) SetHints(hints []string) {
-	s.hints = hints
-	s.updateDisplay()
+	// Only update hints if new hints are provided
+	// This prevents accidental clearing of hints
+	if len(hints) > 0 {
+		s.hints = hints
+		s.updateDisplay()
+	}
 }
 
 // SetMessage sets a temporary message with optional expiry
@@ -114,7 +119,11 @@ func (s *StatusBar) updateDisplay() {
 		content.WriteString(s.formatHints())
 	}
 
-	s.TextView.SetText(content.String())
+	// Only update if content has actually changed to prevent flicker
+	newText := content.String()
+	if s.TextView.GetText(false) != newText {
+		s.TextView.SetText(newText)
+	}
 }
 
 // formatHints formats the keyboard hints for display

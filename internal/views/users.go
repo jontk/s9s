@@ -102,12 +102,11 @@ func NewUsersView(client dao.SlurmClient) *UsersView {
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignLeft)
 
-	// Create container layout
+	// Create container layout (removed individual status bar to prevent conflicts with main status bar)
 	v.container = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(v.filterInput, 1, 0, false).
-		AddItem(v.table.Table, 0, 1, true).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, true)
 
 	return v
 }
@@ -133,7 +132,7 @@ func (v *UsersView) Refresh() error {
 	usersList, err := v.client.Users().List()
 	if err != nil {
 		v.SetLastError(err)
-		v.updateStatusBar(fmt.Sprintf("[red]Error: %v[white]", err))
+		// Note: Error handling removed since individual view status bars are no longer used
 		return err
 	}
 
@@ -143,7 +142,7 @@ func (v *UsersView) Refresh() error {
 
 	// Update table
 	v.updateTable()
-	v.updateStatusBar("")
+	// Note: No longer updating individual view status bar since we use main app status bar for hints
 
 	// Schedule next refresh
 	v.scheduleRefresh()
@@ -345,20 +344,20 @@ func (v *UsersView) onUserSelect(row, col int) {
 		return
 	}
 
-	userName := data[0]
-	v.updateStatusBar(fmt.Sprintf("Selected user: %s", userName))
+	// Note: Selection handling removed since individual view status bars are no longer used
+	_ = data[0] // userName no longer used
 }
 
 // onSort handles column sorting
 func (v *UsersView) onSort(col int, ascending bool) {
-	v.updateStatusBar(fmt.Sprintf("Sorted by column %d", col+1))
+	// Note: Sort feedback removed since individual view status bars are no longer used
 }
 
 // onFilterChange handles filter input changes
 func (v *UsersView) onFilterChange(text string) {
 	v.filter = text
 	v.table.SetFilter(text)
-	v.updateStatusBar("")
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // onFilterDone handles filter input completion
@@ -371,7 +370,7 @@ func (v *UsersView) onFilterDone(key tcell.Key) {
 // toggleAdminFilter toggles showing only admin users
 func (v *UsersView) toggleAdminFilter() {
 	// TODO: Implement admin filter
-	v.updateStatusBar("[yellow]Admin filter not yet implemented[white]")
+	// Note: Filter status removed since individual view status bars are no longer used
 }
 
 // showUserDetails shows detailed information for the selected user
@@ -395,7 +394,7 @@ func (v *UsersView) showUserDetails() {
 	v.mu.RUnlock()
 
 	if user == nil {
-		v.updateStatusBar(fmt.Sprintf("[red]User %s not found[white]", userName))
+		// Note: Error message removed since individual view status bars are no longer used
 		return
 	}
 
@@ -514,11 +513,10 @@ func (v *UsersView) showAdvancedFilter() {
 	v.container.Clear()
 	v.container.
 		AddItem(v.filterBar, 5, 0, true).
-		AddItem(v.table.Table, 0, 1, false).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, false)
 
 	v.filterBar.Show()
-	v.updateStatusBar("[yellow]Advanced Filter Mode - Tab for presets, F1 for help[white]")
+	// Note: Advanced filter status removed since individual view status bars are no longer used
 }
 
 // closeAdvancedFilter closes the advanced filter bar
@@ -529,14 +527,13 @@ func (v *UsersView) closeAdvancedFilter() {
 	v.container.Clear()
 	v.container.
 		AddItem(v.filterInput, 1, 0, false).
-		AddItem(v.table.Table, 0, 1, true).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, true)
 
 	if v.app != nil {
 		v.app.SetFocus(v.table.Table)
 	}
 
-	v.updateStatusBar("")
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // onAdvancedFilterChange handles advanced filter changes
@@ -545,9 +542,9 @@ func (v *UsersView) onAdvancedFilterChange(filter *filters.Filter) {
 	v.updateTable()
 
 	if filter != nil && len(filter.Expressions) > 0 {
-		v.updateStatusBar(fmt.Sprintf("[green]Filter applied: %d conditions[white]", len(filter.Expressions)))
+		// Note: Filter status removed since individual view status bars are no longer used
 	} else {
-		v.updateStatusBar("")
+		// Note: Status bar update removed since individual view status bars are no longer used
 	}
 }
 
@@ -602,7 +599,7 @@ func (v *UsersView) showGlobalSearch() {
 			}
 		default:
 			// For other types, just close the search
-			v.updateStatusBar(fmt.Sprintf("Selected %s: %s", result.Type, result.Name))
+			// Note: Search result status removed since individual view status bars are no longer used
 		}
 	})
 }
@@ -617,10 +614,10 @@ func (v *UsersView) focusOnUser(userName string) {
 		if user.Name == userName {
 			// Select the row in the table
 			v.table.Table.Select(i, 0)
-			v.updateStatusBar(fmt.Sprintf("Focused on user: %s", userName))
+			// Note: Focus status removed since individual view status bars are no longer used
 			return
 		}
 	}
 
-	v.updateStatusBar(fmt.Sprintf("[yellow]User %s not found in current view[white]", userName))
+	// Note: Error message removed since individual view status bars are no longer used
 }

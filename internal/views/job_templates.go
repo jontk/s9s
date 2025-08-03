@@ -397,7 +397,7 @@ func (v *JobsView) saveJobAsTemplate(jobID string) {
 	// Fetch job details
 	job, err := v.client.Jobs().Get(jobID)
 	if err != nil {
-		v.updateStatusBar(fmt.Sprintf("[red]Failed to get job details: %v[white]", err))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -482,7 +482,7 @@ func (v *JobsView) showSaveTemplateFormFromSubmission(jobSub *dao.JobSubmission)
 		description := form.GetFormItemByLabel("Description").(*tview.InputField).GetText()
 
 		if templateName == "" {
-			v.updateStatusBar("[red]Template name is required[white]")
+			// Note: Status bar update removed since individual view status bars are no longer used
 			return
 		}
 
@@ -494,9 +494,9 @@ func (v *JobsView) showSaveTemplateFormFromSubmission(jobSub *dao.JobSubmission)
 
 		err := v.templateManager.addTemplate(template)
 		if err != nil {
-			v.updateStatusBar(fmt.Sprintf("[red]Failed to save template: %v[white]", err))
+			// Note: Status bar update removed since individual view status bars are no longer used
 		} else {
-			v.updateStatusBar(fmt.Sprintf("[green]Template '%s' saved successfully[white]", templateName))
+			// Note: Status bar update removed since individual view status bars are no longer used
 		}
 
 		if v.pages != nil {

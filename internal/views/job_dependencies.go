@@ -21,7 +21,7 @@ type JobDependency struct {
 func (v *JobsView) showJobDependencies() {
 	data := v.table.GetSelectedData()
 	if data == nil || len(data) == 0 {
-		v.updateStatusBar("[yellow]No job selected[white]")
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -31,7 +31,7 @@ func (v *JobsView) showJobDependencies() {
 	// Fetch job details to check for dependencies
 	job, err := v.client.Jobs().Get(jobID)
 	if err != nil {
-		v.updateStatusBar(fmt.Sprintf("[red]Failed to get job details: %v[white]", err))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -239,15 +239,15 @@ func (v *JobsView) showAddDependencyForm(jobID string) {
 
 	depForm.AddButton("Add", func() {
 		dependsOnJobID := depForm.GetFormItemByLabel("Depends on Job ID").(*tview.InputField).GetText()
-		_, depType := depForm.GetFormItemByLabel("Dependency Type").(*tview.DropDown).GetCurrentOption()
+		_, _ = depForm.GetFormItemByLabel("Dependency Type").(*tview.DropDown).GetCurrentOption() // depType no longer used
 
 		if dependsOnJobID == "" {
-			v.updateStatusBar("[red]Job ID is required[white]")
+			// Note: Status bar update removed since individual view status bars are no longer used
 			return
 		}
 
 		// In a real implementation, this would update the job dependencies
-		v.updateStatusBar(fmt.Sprintf("[green]Added %s dependency on job %s[white]", depType, dependsOnJobID))
+		// Note: Status bar update removed since individual view status bars are no longer used
 
 		if v.pages != nil {
 			v.pages.RemovePage("add-dependency")
@@ -284,7 +284,7 @@ func (v *JobsView) showRemoveDependencyForm(jobID string) {
 	dependencies := v.getMockDependencies(jobID)
 
 	if len(dependencies) == 0 {
-		v.updateStatusBar("[yellow]No dependencies to remove[white]")
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -295,7 +295,7 @@ func (v *JobsView) showRemoveDependencyForm(jobID string) {
 			depInfo := fmt.Sprintf("Job %s (%s)", depJobID, dep.Type)
 			list.AddItem(depInfo, "", 0, func() {
 				// In a real implementation, this would remove the dependency
-				v.updateStatusBar(fmt.Sprintf("[green]Removed dependency on job %s[white]", depJobID))
+				// Note: Status bar update removed since individual view status bars are no longer used
 
 				if v.pages != nil {
 					v.pages.RemovePage("remove-dependency")

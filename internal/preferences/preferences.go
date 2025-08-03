@@ -25,6 +25,7 @@ type UserPreferences struct {
 	JobSubmission    JobSubmissionPrefs    `json:"job_submission"`
 	Alerts           AlertPrefs            `json:"alerts"`
 	Performance      PerformancePrefs      `json:"performance"`
+	Layouts          LayoutPrefs           `json:"layouts"`
 	lastSaved        time.Time
 	onChange         []func()
 }
@@ -121,6 +122,29 @@ type PerformancePrefs struct {
 	DebugMode        bool `json:"debug_mode"`
 }
 
+// LayoutPrefs contains dashboard layout preferences
+type LayoutPrefs struct {
+	CurrentLayout    string            `json:"current_layout"`
+	AutoSave         bool              `json:"auto_save"`
+	CustomLayouts    []string          `json:"custom_layouts"`
+	LayoutHistory    []string          `json:"layout_history"`
+	ResponsiveMode   bool              `json:"responsive_mode"`
+	GridSnap         bool              `json:"grid_snap"`
+	ShowGrid         bool              `json:"show_grid"`
+	AnimateTransitions bool            `json:"animate_transitions"`
+	WidgetSettings   map[string]WidgetPrefs `json:"widget_settings"`
+}
+
+// WidgetPrefs contains widget-specific preferences
+type WidgetPrefs struct {
+	Enabled       bool   `json:"enabled"`
+	UpdateRate    string `json:"update_rate"`
+	ShowBorder    bool   `json:"show_border"`
+	ShowTitle     bool   `json:"show_title"`
+	ColorScheme   string `json:"color_scheme"`
+	CustomConfig  map[string]interface{} `json:"custom_config"`
+}
+
 // NewUserPreferences creates a new preferences manager
 func NewUserPreferences(configPath string) (*UserPreferences, error) {
 	up := &UserPreferences{
@@ -129,15 +153,15 @@ func NewUserPreferences(configPath string) (*UserPreferences, error) {
 		ViewSettings: make(map[string]ViewPrefs),
 		onChange:     make([]func(), 0),
 	}
-	
+
 	// Set defaults
 	up.setDefaults()
-	
+
 	// Try to load existing preferences
 	if err := up.Load(); err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("failed to load preferences: %w", err)
 	}
-	
+
 	return up, nil
 }
 
@@ -155,7 +179,7 @@ func (up *UserPreferences) setDefaults() {
 		SaveWindowSize: true,
 		Language:       "en",
 	}
-	
+
 	up.Display = DisplayPrefs{
 		ShowHeader:       true,
 		ShowStatusBar:    true,
@@ -168,7 +192,7 @@ func (up *UserPreferences) setDefaults() {
 		MaxColumnWidth:   50,
 		TimeZone:        "Local",
 	}
-	
+
 	up.Colors = ColorPrefs{
 		Scheme:          "default",
 		HighContrast:    false,
@@ -176,7 +200,7 @@ func (up *UserPreferences) setDefaults() {
 		CustomColors:    make(map[string]string),
 		SyntaxHighlight: true,
 	}
-	
+
 	up.Filters = FilterPrefs{
 		SaveHistory:     true,
 		HistorySize:     50,
@@ -186,7 +210,7 @@ func (up *UserPreferences) setDefaults() {
 		ShowAdvanced:    false,
 		QuickFilters:    []string{},
 	}
-	
+
 	up.JobSubmission = JobSubmissionPrefs{
 		DefaultTemplate:    "",
 		SaveHistory:       true,
@@ -196,7 +220,7 @@ func (up *UserPreferences) setDefaults() {
 		ShowAdvancedOptions: false,
 		AutoSuggest:       true,
 	}
-	
+
 	up.Alerts = AlertPrefs{
 		ShowBadge:       true,
 		BadgePosition:   "top-right",
@@ -206,7 +230,7 @@ func (up *UserPreferences) setDefaults() {
 		FlashWindow:     false,
 		ShowDesktopNotif: true,
 	}
-	
+
 	up.Performance = PerformancePrefs{
 		LazyLoading:      true,
 		CacheSize:        100,
@@ -215,7 +239,19 @@ func (up *UserPreferences) setDefaults() {
 		EnableProfiling:  false,
 		DebugMode:        false,
 	}
-	
+
+	up.Layouts = LayoutPrefs{
+		CurrentLayout:      "standard",
+		AutoSave:           true,
+		CustomLayouts:      []string{},
+		LayoutHistory:      []string{},
+		ResponsiveMode:     true,
+		GridSnap:           true,
+		ShowGrid:           false,
+		AnimateTransitions: true,
+		WidgetSettings:     make(map[string]WidgetPrefs),
+	}
+
 	// Default key bindings
 	up.KeyBindings = map[string]string{
 		"quit":           "q",
@@ -245,6 +281,8 @@ func (up *UserPreferences) setDefaults() {
 		"mark":           "m",
 		"mark_all":       "Ctrl+a",
 		"clear_marks":    "Ctrl+u",
+		"layout_switcher": "F4",
+		"layout_edit":    "Ctrl+l",
 	}
 }
 
@@ -252,19 +290,19 @@ func (up *UserPreferences) setDefaults() {
 func (up *UserPreferences) Load() error {
 	up.mu.Lock()
 	defer up.mu.Unlock()
-	
-	
+
+
 	data, err := ioutil.ReadFile(up.configPath)
 	if err != nil {
 		return err
 	}
-	
+
 	// Parse JSON
 	var prefs UserPreferences
 	if err := json.Unmarshal(data, &prefs); err != nil {
 		return fmt.Errorf("failed to parse preferences: %w", err)
 	}
-	
+
 	// Update current preferences (keeping non-zero values)
 	if prefs.General.RefreshInterval != "" {
 		up.General = prefs.General
@@ -273,7 +311,7 @@ func (up *UserPreferences) Load() error {
 		up.Display = prefs.Display
 	}
 	up.Colors = prefs.Colors
-	
+
 	// Merge maps
 	for k, v := range prefs.KeyBindings {
 		up.KeyBindings[k] = v
@@ -281,12 +319,13 @@ func (up *UserPreferences) Load() error {
 	for k, v := range prefs.ViewSettings {
 		up.ViewSettings[k] = v
 	}
-	
+
 	up.Filters = prefs.Filters
 	up.JobSubmission = prefs.JobSubmission
 	up.Alerts = prefs.Alerts
 	up.Performance = prefs.Performance
-	
+	up.Layouts = prefs.Layouts
+
 	return nil
 }
 
@@ -294,31 +333,31 @@ func (up *UserPreferences) Load() error {
 func (up *UserPreferences) Save() error {
 	up.mu.RLock()
 	defer up.mu.RUnlock()
-	
+
 	// Create directory if needed
 	dir := filepath.Dir(up.configPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
-	
+
 	// Marshal to JSON
 	data, err := json.MarshalIndent(up, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal preferences: %w", err)
 	}
-	
+
 	// Write to temp file first
 	tempFile := up.configPath + ".tmp"
 	if err := ioutil.WriteFile(tempFile, data, 0644); err != nil {
 		return fmt.Errorf("failed to write preferences: %w", err)
 	}
-	
+
 	// Rename to actual file
 	if err := os.Rename(tempFile, up.configPath); err != nil {
 		os.Remove(tempFile)
 		return fmt.Errorf("failed to save preferences: %w", err)
 	}
-	
+
 	up.lastSaved = time.Now()
 	return nil
 }
@@ -327,21 +366,21 @@ func (up *UserPreferences) Save() error {
 func (up *UserPreferences) Get() UserPreferences {
 	up.mu.RLock()
 	defer up.mu.RUnlock()
-	
+
 	// Return a copy
 	prefs := *up
-	
+
 	// Deep copy maps
 	prefs.KeyBindings = make(map[string]string)
 	for k, v := range up.KeyBindings {
 		prefs.KeyBindings[k] = v
 	}
-	
+
 	prefs.ViewSettings = make(map[string]ViewPrefs)
 	for k, v := range up.ViewSettings {
 		prefs.ViewSettings[k] = v
 	}
-	
+
 	return prefs
 }
 
@@ -349,28 +388,28 @@ func (up *UserPreferences) Get() UserPreferences {
 func (up *UserPreferences) Update(update func(*UserPreferences) error) error {
 	up.mu.Lock()
 	defer up.mu.Unlock()
-	
+
 	// Create a copy for validation
 	temp := *up
-	
+
 	// Apply updates
 	if err := update(&temp); err != nil {
 		return err
 	}
-	
+
 	// Validate
 	if err := temp.validate(); err != nil {
 		return err
 	}
-	
+
 	// Apply validated changes
 	*up = temp
-	
+
 	// Notify listeners
 	for _, fn := range up.onChange {
 		go fn()
 	}
-	
+
 	// Save without auto-locking since we already hold the lock
 	return up.saveWithoutLock()
 }
@@ -383,7 +422,7 @@ func (up *UserPreferences) validate() error {
 			return fmt.Errorf("invalid refresh interval: %w", err)
 		}
 	}
-	
+
 	// Validate theme
 	validThemes := []string{"default", "dark", "light"}
 	valid := false
@@ -396,16 +435,16 @@ func (up *UserPreferences) validate() error {
 	if !valid {
 		return fmt.Errorf("invalid theme: %s", up.General.Theme)
 	}
-	
+
 	// Validate performance settings
 	if up.Performance.CacheSize < 0 || up.Performance.CacheSize > 1000 {
 		return fmt.Errorf("cache size must be between 0 and 1000 MB")
 	}
-	
+
 	if up.Performance.MaxConcurrentReq < 1 || up.Performance.MaxConcurrentReq > 20 {
 		return fmt.Errorf("max concurrent requests must be between 1 and 20")
 	}
-	
+
 	return nil
 }
 
@@ -413,7 +452,7 @@ func (up *UserPreferences) validate() error {
 func (up *UserPreferences) OnChange(fn func()) {
 	up.mu.Lock()
 	defer up.mu.Unlock()
-	
+
 	up.onChange = append(up.onChange, fn)
 }
 
@@ -421,12 +460,12 @@ func (up *UserPreferences) OnChange(fn func()) {
 func (up *UserPreferences) GetKeyBinding(action string) tcell.Key {
 	up.mu.RLock()
 	defer up.mu.RUnlock()
-	
+
 	binding, ok := up.KeyBindings[action]
 	if !ok {
 		return tcell.KeyRune
 	}
-	
+
 	// Parse key binding string
 	// This is simplified - in production you'd want a proper parser
 	switch binding {
@@ -449,11 +488,11 @@ func (up *UserPreferences) GetKeyBinding(action string) tcell.Key {
 func (up *UserPreferences) GetViewSettings(viewName string) ViewPrefs {
 	up.mu.RLock()
 	defer up.mu.RUnlock()
-	
+
 	if settings, ok := up.ViewSettings[viewName]; ok {
 		return settings
 	}
-	
+
 	// Return defaults
 	return ViewPrefs{
 		SortColumn:    "",
@@ -475,12 +514,12 @@ func (up *UserPreferences) SetViewSettings(viewName string, settings ViewPrefs) 
 func (up *UserPreferences) Export(path string) error {
 	up.mu.RLock()
 	defer up.mu.RUnlock()
-	
+
 	data, err := json.MarshalIndent(up, "", "  ")
 	if err != nil {
 		return err
 	}
-	
+
 	return ioutil.WriteFile(path, data, 0644)
 }
 
@@ -490,24 +529,24 @@ func (up *UserPreferences) Import(path string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	var prefs UserPreferences
 	if err := json.Unmarshal(data, &prefs); err != nil {
 		return err
 	}
-	
+
 	// Validate imported preferences
 	if err := prefs.validate(); err != nil {
 		return fmt.Errorf("invalid preferences: %w", err)
 	}
-	
+
 	up.mu.Lock()
 	defer up.mu.Unlock()
-	
+
 	// Keep original path and mutex state
 	originalPath := up.configPath
 	originalOnChange := up.onChange
-	
+
 	// Copy preferences manually to avoid copying mutex state
 	up.General = prefs.General
 	up.Display = prefs.Display
@@ -518,9 +557,10 @@ func (up *UserPreferences) Import(path string) error {
 	up.JobSubmission = prefs.JobSubmission
 	up.Alerts = prefs.Alerts
 	up.Performance = prefs.Performance
+	up.Layouts = prefs.Layouts
 	up.configPath = originalPath
 	up.onChange = originalOnChange
-	
+
 	// Save to disk without auto-locking
 	return up.saveWithoutLock()
 }
@@ -529,14 +569,14 @@ func (up *UserPreferences) Import(path string) error {
 func (up *UserPreferences) Reset() error {
 	up.mu.Lock()
 	defer up.mu.Unlock()
-	
+
 	up.setDefaults()
-	
+
 	// Notify listeners
 	for _, fn := range up.onChange {
 		go fn()
 	}
-	
+
 	return up.saveWithoutLock()
 }
 
@@ -547,25 +587,25 @@ func (up *UserPreferences) saveWithoutLock() error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
-	
+
 	// Marshal to JSON
 	data, err := json.MarshalIndent(up, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal preferences: %w", err)
 	}
-	
+
 	// Write to temp file first
 	tempFile := up.configPath + ".tmp"
 	if err := ioutil.WriteFile(tempFile, data, 0644); err != nil {
 		return fmt.Errorf("failed to write preferences: %w", err)
 	}
-	
+
 	// Rename to actual file
 	if err := os.Rename(tempFile, up.configPath); err != nil {
 		os.Remove(tempFile)
 		return fmt.Errorf("failed to save preferences: %w", err)
 	}
-	
+
 	up.lastSaved = time.Now()
 	return nil
 }

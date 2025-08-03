@@ -108,12 +108,11 @@ func NewNodesView(client dao.SlurmClient) *NodesView {
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignLeft)
 
-	// Create container layout
+	// Create container layout (removed individual status bar to prevent conflicts with main status bar)
 	v.container = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(v.filterInput, 1, 0, false).
-		AddItem(v.table.Table, 0, 1, true).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, true)
 
 	return v
 }
@@ -146,7 +145,7 @@ func (v *NodesView) Refresh() error {
 	nodeList, err := v.client.Nodes().List(opts)
 	if err != nil {
 		v.SetLastError(err)
-		v.updateStatusBar(fmt.Sprintf("[red]Error: %v[white]", err))
+		// Note: Error handling removed since individual view status bars are no longer used
 		return err
 	}
 
@@ -156,7 +155,7 @@ func (v *NodesView) Refresh() error {
 
 	// Update table
 	v.updateTable()
-	v.updateStatusBar("")
+	// Note: No longer updating individual view status bar since we use main app status bar for hints
 
 	// Schedule next refresh
 	v.scheduleRefresh()
@@ -491,20 +490,20 @@ func (v *NodesView) onNodeSelect(row, col int) {
 		return
 	}
 
-	nodeName := data[0]
-	v.updateStatusBar(fmt.Sprintf("Selected node: %s", nodeName))
+	// Note: Status bar update removed since individual view status bars are no longer used
+	_ = data[0] // nodeName no longer used
 }
 
 // onSort handles column sorting
 func (v *NodesView) onSort(col int, ascending bool) {
-	v.updateStatusBar(fmt.Sprintf("Sorted by column %d", col+1))
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // onFilterChange handles filter input changes
 func (v *NodesView) onFilterChange(text string) {
 	v.filter = text
 	v.table.SetFilter(text)
-	v.updateStatusBar("")
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // onFilterDone handles filter input completion
@@ -521,12 +520,12 @@ func (v *NodesView) drainSelectedNode() {
 		return
 	}
 
-	nodeName := data[0]
+	nodeName := data[0] // Still used for drain operation
 	state := data[1]
 
 	// Check if node can be drained
 	if strings.Contains(state, dao.NodeStateDown) {
-		v.updateStatusBar(fmt.Sprintf("[red]Node %s is down, cannot drain[white]", nodeName))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -555,15 +554,15 @@ func (v *NodesView) drainSelectedNode() {
 
 // performDrainNode performs the node drain operation
 func (v *NodesView) performDrainNode(nodeName, reason string) {
-	v.updateStatusBar(fmt.Sprintf("Draining node %s...", nodeName))
+	// Note: Status bar update removed since individual view status bars are no longer used
 
 	err := v.client.Nodes().Drain(nodeName, reason)
 	if err != nil {
-		v.updateStatusBar(fmt.Sprintf("[red]Failed to drain node %s: %v[white]", nodeName, err))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
-	v.updateStatusBar(fmt.Sprintf("[green]Node %s drained successfully[white]", nodeName))
+	// Note: Status bar update removed since individual view status bars are no longer used
 
 	// Refresh the view
 	time.Sleep(500 * time.Millisecond)
@@ -577,12 +576,12 @@ func (v *NodesView) resumeSelectedNode() {
 		return
 	}
 
-	nodeName := data[0]
+	nodeName := data[0] // Still used for resume operation
 	state := data[1]
 
 	// Check if node can be resumed
 	if !strings.Contains(state, dao.NodeStateDrain) {
-		v.updateStatusBar(fmt.Sprintf("[red]Node %s is not drained, cannot resume[white]", nodeName))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -602,15 +601,15 @@ func (v *NodesView) resumeSelectedNode() {
 
 // performResumeNode performs the node resume operation
 func (v *NodesView) performResumeNode(nodeName string) {
-	v.updateStatusBar(fmt.Sprintf("Resuming node %s...", nodeName))
+	// Note: Status bar update removed since individual view status bars are no longer used
 
 	err := v.client.Nodes().Resume(nodeName)
 	if err != nil {
-		v.updateStatusBar(fmt.Sprintf("[red]Failed to resume node %s: %v[white]", nodeName, err))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
-	v.updateStatusBar(fmt.Sprintf("[green]Node %s resumed successfully[white]", nodeName))
+	// Note: Status bar update removed since individual view status bars are no longer used
 
 	// Refresh the view
 	time.Sleep(500 * time.Millisecond)
@@ -629,7 +628,7 @@ func (v *NodesView) showNodeDetails() {
 	// Fetch full node details
 	node, err := v.client.Nodes().Get(nodeName)
 	if err != nil {
-		v.updateStatusBar(fmt.Sprintf("[red]Failed to get node details: %v[white]", err))
+		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
@@ -731,10 +730,10 @@ func (v *NodesView) sshToNode() {
 		return
 	}
 
-	nodeName := data[0]
+	_ = data[0] // nodeName not used for SSH yet
 
 	// TODO: Implement SSH functionality
-	v.updateStatusBar(fmt.Sprintf("[yellow]SSH not yet implemented for node %s[white]", nodeName))
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // toggleStateFilter toggles node state filter
@@ -883,7 +882,7 @@ func (v *NodesView) setGroupBy(groupBy string) {
 		v.expandAllGroups()
 	}
 	v.updateTable()
-	v.updateStatusBar("")
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // toggleGroupExpansion toggles expansion of the selected group
@@ -931,11 +930,10 @@ func (v *NodesView) showAdvancedFilter() {
 	v.container.Clear()
 	v.container.
 		AddItem(v.filterBar, 5, 0, true).
-		AddItem(v.table.Table, 0, 1, false).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, false)
 
 	v.filterBar.Show()
-	v.updateStatusBar("[yellow]Advanced Filter Mode - Tab for presets, F1 for help[white]")
+	// Note: Advanced filter status removed since individual view status bars are no longer used
 }
 
 // closeAdvancedFilter closes the advanced filter bar
@@ -946,14 +944,13 @@ func (v *NodesView) closeAdvancedFilter() {
 	v.container.Clear()
 	v.container.
 		AddItem(v.filterInput, 1, 0, false).
-		AddItem(v.table.Table, 0, 1, true).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.table.Table, 0, 1, true)
 
 	if v.app != nil {
 		v.app.SetFocus(v.table.Table)
 	}
 
-	v.updateStatusBar("")
+	// Note: Status bar update removed since individual view status bars are no longer used
 }
 
 // onAdvancedFilterChange handles advanced filter changes
@@ -962,9 +959,9 @@ func (v *NodesView) onAdvancedFilterChange(filter *filters.Filter) {
 	v.updateTable()
 
 	if filter != nil && len(filter.Expressions) > 0 {
-		v.updateStatusBar(fmt.Sprintf("[green]Filter applied: %d conditions[white]", len(filter.Expressions)))
+		// Note: Status bar update removed since individual view status bars are no longer used
 	} else {
-		v.updateStatusBar("")
+		// Note: Status bar update removed since individual view status bars are no longer used
 	}
 }
 
@@ -1017,7 +1014,7 @@ func (v *NodesView) showGlobalSearch() {
 			}
 		default:
 			// For other types, just close the search
-			v.updateStatusBar(fmt.Sprintf("Selected %s: %s", result.Type, result.Name))
+			// Note: Status bar update removed since individual view status bars are no longer used
 		}
 	})
 }
@@ -1032,10 +1029,10 @@ func (v *NodesView) focusOnNode(nodeName string) {
 		if node.Name == nodeName {
 			// Select the row in the table
 			v.table.Table.Select(i, 0)
-			v.updateStatusBar(fmt.Sprintf("Focused on node: %s", nodeName))
+			// Note: Status bar update removed since individual view status bars are no longer used
 			return
 		}
 	}
 
-	v.updateStatusBar(fmt.Sprintf("[yellow]Node %s not found in current view[white]", nodeName))
+	// Note: Status bar update removed since individual view status bars are no longer used
 }

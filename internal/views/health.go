@@ -75,8 +75,7 @@ func NewHealthView(client dao.SlurmClient) *HealthView {
 	v.container = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(topRow, 0, 1, true).
-		AddItem(v.checksBox, 0, 1, false).
-		AddItem(v.statusBar, 1, 0, false)
+		AddItem(v.checksBox, 0, 1, false)
 
 	return v
 }
@@ -120,8 +119,7 @@ func (v *HealthView) Refresh() error {
 	// Update health checks
 	v.updateHealthChecks()
 
-	// Update status bar
-	v.updateStatusBar()
+	// Note: Status bar update removed since individual view status bars are no longer used
 
 	// Schedule next refresh
 	v.scheduleRefresh()
@@ -379,7 +377,7 @@ func (v *HealthView) acknowledgeAlert() {
 		if !alert.Acknowledged {
 			err := alertManager.AcknowledgeAlert(alert.ID, "user")
 			if err != nil {
-				v.updateStatusBar()
+				// Note: Status bar update removed since individual view status bars are no longer used
 			} else {
 				v.updateAlerts()
 			}
@@ -396,7 +394,7 @@ func (v *HealthView) resolveAlert() {
 	if len(alerts) > 0 {
 		err := alertManager.ResolveAlert(alerts[0].ID)
 		if err != nil {
-			v.updateStatusBar()
+			// Note: Status bar update removed since individual view status bars are no longer used
 		} else {
 			v.updateAlerts()
 		}

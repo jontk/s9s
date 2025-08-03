@@ -2,7 +2,7 @@ module github.com/jontk/s9s
 
 go 1.24.4
 
-replace github.com/jontk/slurm-client => ../slurm-client
+replace github.com/jontk/slurm-client => ../slurm-client-stable
 
 require (
 	github.com/gdamore/tcell/v2 v2.8.1

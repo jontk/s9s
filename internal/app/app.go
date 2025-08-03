@@ -12,6 +12,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/config"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/layouts"
 	"github.com/jontk/s9s/internal/notifications"
 	"github.com/jontk/s9s/internal/preferences"
 	"github.com/jontk/s9s/internal/ui/components"
@@ -41,9 +42,11 @@ type S9s struct {
 	notificationMgr   interface{} // Will be set to *notifications.NotificationManager
 
 	userPrefs         *preferences.UserPreferences
+	layoutManager     interface{} // Will be set to *layouts.LayoutManager
 
 	// Main layout
 	mainLayout *tview.Flex
+	contentPages *tview.Pages  // Pages widget for stable view switching
 
 	// Command line
 	cmdLine    *tview.InputField
@@ -101,6 +104,7 @@ func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
 		client: client,
 		app:    app,
 		pages:  tview.NewPages(),
+		contentPages: tview.NewPages(),
 	}
 
 	// Initialize user preferences
@@ -112,6 +116,9 @@ func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
 		userPrefs, _ = preferences.NewUserPreferences("")
 	}
 	s9s.userPrefs = userPrefs
+
+	// Initialize layout manager
+	s9s.layoutManager = layouts.NewLayoutManager(app)
 
 	// Initialize UI components
 	if err := s9s.initUI(); err != nil {
@@ -199,7 +206,7 @@ func (s *S9s) Stop() error {
 func (s *S9s) initUI() error {
 	// Create alerts manager
 	s.alertsManager = components.NewAlertsManager(100) // Keep last 100 alerts
-	
+
 	// Initialize notification system
 	configPath := "" // Will use default path
 	notificationMgr, err := notifications.NewNotificationManager(configPath)
@@ -212,13 +219,13 @@ func (s *S9s) initUI() error {
 		adapter := notifications.NewAlertNotifierAdapter(notificationMgr)
 		s.alertsManager.SetNotifier(adapter)
 	}
-	
+
 	// Create header
 	s.header = components.NewHeader()
 
 	// Create status bar
 	s.statusBar = components.NewStatusBar()
-	
+
 	// Create alerts badge for header
 	s.alertsBadge = components.NewAlertsBadge(s.alertsManager)
 	s.header.SetAlertsBadge(s.alertsBadge)
@@ -235,10 +242,10 @@ func (s *S9s) initUI() error {
 		SetDoneFunc(s.onCommandDone)
 	s.cmdLine.SetBorder(false)
 
-	// Create main layout placeholder
+	// Create main layout with stable structure using contentPages
 	s.mainLayout = tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(s.header, 2, 0, false).
-		AddItem(tview.NewTextView().SetText("Loading..."), 0, 1, true).
+		AddItem(s.contentPages, 0, 1, true).
 		AddItem(s.cmdLine, 1, 0, false).
 		AddItem(s.statusBar, 1, 0, false)
 
@@ -260,6 +267,7 @@ func (s *S9s) initViews() error {
 		return fmt.Errorf("failed to initialize jobs view: %w", err)
 	}
 	s.viewMgr.AddView(jobsView)
+	s.contentPages.AddPage("jobs", jobsView.Render(), true, false)
 
 	// Create nodes view
 	nodesView := views.NewNodesView(s.client)
@@ -268,6 +276,7 @@ func (s *S9s) initViews() error {
 		return fmt.Errorf("failed to initialize nodes view: %w", err)
 	}
 	s.viewMgr.AddView(nodesView)
+	s.contentPages.AddPage("nodes", nodesView.Render(), true, false)
 
 	// Create partitions view
 	partitionsView := views.NewPartitionsView(s.client)
@@ -276,6 +285,7 @@ func (s *S9s) initViews() error {
 		return fmt.Errorf("failed to initialize partitions view: %w", err)
 	}
 	s.viewMgr.AddView(partitionsView)
+	s.contentPages.AddPage("partitions", partitionsView.Render(), true, false)
 
 	// Create reservations view
 	reservationsView := views.NewReservationsView(s.client)
@@ -285,6 +295,7 @@ func (s *S9s) initViews() error {
 		return fmt.Errorf("failed to initialize reservations view: %w", err)
 	}
 	s.viewMgr.AddView(reservationsView)
+	s.contentPages.AddPage("reservations", reservationsView.Render(), true, false)
 
 	// Create QoS view
 	qosView := views.NewQoSView(s.client)
@@ -294,6 +305,7 @@ func (s *S9s) initViews() error {
 		return fmt.Errorf("failed to initialize qos view: %w", err)
 	}
 	s.viewMgr.AddView(qosView)
+	s.contentPages.AddPage("qos", qosView.Render(), true, false)
 
 	// Create Accounts view
 	accountsView := views.NewAccountsView(s.client)
@@ -303,6 +315,7 @@ func (s *S9s) initViews() error {
 		return fmt.Errorf("failed to initialize accounts view: %w", err)
 	}
 	s.viewMgr.AddView(accountsView)
+	s.contentPages.AddPage("accounts", accountsView.Render(), true, false)
 
 	// Create Users view
 	usersView := views.NewUsersView(s.client)
@@ -312,6 +325,7 @@ func (s *S9s) initViews() error {
 		return fmt.Errorf("failed to initialize users view: %w", err)
 	}
 	s.viewMgr.AddView(usersView)
+	s.contentPages.AddPage("users", usersView.Render(), true, false)
 
 	// Create Health view
 	healthView := views.NewHealthView(s.client)
@@ -321,6 +335,7 @@ func (s *S9s) initViews() error {
 		return fmt.Errorf("failed to initialize health view: %w", err)
 	}
 	s.viewMgr.AddView(healthView)
+	s.contentPages.AddPage("health", healthView.Render(), true, false)
 
 	// Update header with view names
 	s.header.SetViews(s.viewMgr.GetViewNames())
@@ -356,10 +371,24 @@ func (s *S9s) setupKeyboardShortcuts() {
 			// Show preferences modal
 			s.showPreferences()
 			return nil
+		case tcell.KeyF4:
+			// Show layout switcher
+			s.showLayoutSwitcher()
+			return nil
 		case tcell.KeyF5:
 			// Refresh current view
 			if err := s.viewMgr.RefreshCurrentView(); err != nil {
 				s.statusBar.Error(fmt.Sprintf("Failed to refresh: %v", err))
+			} else {
+				// Show success message briefly, then restore hints
+				s.statusBar.Success("Refreshed")
+				// Restore hints after a short delay
+				go func() {
+					time.Sleep(3500 * time.Millisecond) // Wait slightly longer than success message
+					if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
+						s.statusBar.SetHints(currentView.Hints())
+					}
+				}()
 			}
 			return nil
 		case tcell.KeyEsc:
@@ -478,7 +507,7 @@ func (s *S9s) updateClusterInfo() {
 			s.header.SetMetrics(metrics)
 		}
 	}
-	
+
 	// Generate demo alerts for mock client (remove this in production)
 	if s.config.UseMockClient {
 		// Add some demo alerts to show functionality
@@ -509,9 +538,9 @@ func (s *S9s) updateCurrentView() {
 	// Update status bar with view hints
 	s.statusBar.SetHints(currentView.Hints())
 
-	// Replace the main content with the current view
-	s.mainLayout.RemoveItem(s.mainLayout.GetItem(1))
-	s.mainLayout.AddItem(currentView.Render(), 0, 1, true)
+	// Switch to the appropriate page in contentPages
+	// This maintains the stable layout without any manipulation
+	s.contentPages.SwitchToPage(currentView.Name())
 
 	// Set focus to the view
 	s.app.SetFocus(currentView.Render())
@@ -580,6 +609,11 @@ func (s *S9s) executeCommand(command string) {
 					s.statusBar.Error(fmt.Sprintf("Refresh failed: %v", err))
 				} else {
 					s.statusBar.Success("Refreshed")
+					// Restore hints after success message expires
+					time.Sleep(3500 * time.Millisecond) // Wait slightly longer than success message
+					if cv, err := s.viewMgr.GetCurrentView(); err == nil {
+						s.statusBar.SetHints(cv.Hints())
+					}
 				}
 			}()
 		}
@@ -587,6 +621,8 @@ func (s *S9s) executeCommand(command string) {
 		s.showHelp()
 	case "prefs", "preferences":
 		s.showPreferences()
+	case "layout", "layouts":
+		s.showLayoutSwitcher()
 	default:
 		s.statusBar.Error(fmt.Sprintf("Unknown command: %s", command))
 	}
@@ -670,12 +706,12 @@ func (s *S9s) showAlertsModal() {
 	alertsView.SetPages(s.pages)
 	alertsView.SetNotificationManager(s.notificationMgr)
 	alertsView.SetKeyHandler()
-	
+
 	// Create modal layout with help text
 	helpText := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText("[yellow]Keys:[white] a=Acknowledge d=Dismiss c=Clear r=Refresh s=Settings Tab=Switch ESC=Close")
-	
+
 	modal := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(nil, 0, 1, false).
@@ -687,11 +723,11 @@ func (s *S9s) showAlertsModal() {
 				AddItem(helpText, 1, 0, false), 0, 4, true).
 			AddItem(nil, 0, 1, false), 0, 3, true).
 		AddItem(nil, 0, 1, false)
-	
+
 	modal.SetBorder(true).
 		SetTitle(" System Alerts ").
 		SetTitleAlign(tview.AlignCenter)
-	
+
 	// Handle ESC to close and 's' for settings
 	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc {
@@ -705,7 +741,7 @@ func (s *S9s) showAlertsModal() {
 		}
 		return event
 	})
-	
+
 	s.pages.AddPage("alerts", modal, true, true)
 }
 
@@ -716,15 +752,15 @@ func (s *S9s) generateDemoAlerts() {
 		sync.Mutex
 		lastGenerated time.Time
 	}{}
-	
+
 	static.Lock()
 	defer static.Unlock()
-	
+
 	if time.Since(static.lastGenerated) < time.Minute {
 		return
 	}
 	static.lastGenerated = time.Now()
-	
+
 	// Add a variety of demo alerts
 	s.alertsManager.AddAlert(&components.Alert{
 		Level:   components.AlertWarning,
@@ -734,14 +770,14 @@ func (s *S9s) generateDemoAlerts() {
 		AutoDismiss: true,
 		DismissAfter: 5 * time.Minute,
 	})
-	
+
 	s.alertsManager.AddAlert(&components.Alert{
 		Level:   components.AlertError,
 		Title:   "Node Down",
 		Message: "Node compute-042 is down - 3 jobs affected",
 		Source:  "nodes",
 	})
-	
+
 	s.alertsManager.AddAlert(&components.Alert{
 		Level:   components.AlertInfo,
 		Title:   "Maintenance Scheduled",
@@ -756,4 +792,27 @@ func (s *S9s) generateDemoAlerts() {
 // showPreferences displays the preferences modal
 func (s *S9s) showPreferences() {
 	settings.ShowPreferences(s.pages, s.app, s.userPrefs)
+}
+
+// showLayoutSwitcher displays the layout switcher modal
+func (s *S9s) showLayoutSwitcher() {
+	if layoutMgr, ok := s.layoutManager.(*layouts.LayoutManager); ok {
+		layouts.ShowLayoutSwitcher(layoutMgr, s.app, s.pages, func(layoutID string) {
+			// Update preferences with selected layout
+			s.userPrefs.Update(func(p *preferences.UserPreferences) error {
+				p.Layouts.CurrentLayout = layoutID
+				return nil
+			})
+			s.statusBar.Success(fmt.Sprintf("Switched to %s layout", layoutID))
+			// Restore hints after success message expires
+			go func() {
+				time.Sleep(3500 * time.Millisecond) // Wait slightly longer than success message
+				if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
+					s.statusBar.SetHints(currentView.Hints())
+				}
+			}()
+		})
+	} else {
+		s.statusBar.Error("Layout manager not available")
+	}
 }
