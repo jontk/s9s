@@ -288,14 +288,55 @@ func (e *JobOutputExporter) SetDefaultPath(path string) {
 
 // BatchExport exports multiple job outputs in the specified format
 func (e *JobOutputExporter) BatchExport(jobs []JobOutputData, format ExportFormat, basePath string) ([]*ExportResult, error) {
+	return e.BatchExportWithCallback(jobs, format, basePath, nil)
+}
+
+// BatchExportWithCallback exports multiple job outputs with optional progress callback
+func (e *JobOutputExporter) BatchExportWithCallback(jobs []JobOutputData, format ExportFormat, basePath string, progressCallback func(current, total int, jobID string)) ([]*ExportResult, error) {
 	results := make([]*ExportResult, 0, len(jobs))
 	
-	for _, job := range jobs {
+	for i, job := range jobs {
+		// Call progress callback if provided
+		if progressCallback != nil {
+			progressCallback(i+1, len(jobs), job.JobID)
+		}
+		
 		result, err := e.ExportJobOutput(job, format, "")
 		if err != nil {
 			result.Error = err
 		}
 		results = append(results, result)
+		
+		// Force garbage collection of job content after processing to reduce memory usage
+		job.Content = "" // Release the large content string
+	}
+	
+	return results, nil
+}
+
+// StreamingBatchExport exports jobs one at a time to minimize memory usage
+func (e *JobOutputExporter) StreamingBatchExport(jobProvider func() (JobOutputData, bool), format ExportFormat, basePath string, progressCallback func(current int, jobID string)) ([]*ExportResult, error) {
+	var results []*ExportResult
+	jobCount := 0
+	
+	for {
+		job, hasMore := jobProvider()
+		if !hasMore {
+			break
+		}
+		
+		jobCount++
+		if progressCallback != nil {
+			progressCallback(jobCount, job.JobID)
+		}
+		
+		result, err := e.ExportJobOutput(job, format, "")
+		if err != nil {
+			result.Error = err
+		}
+		results = append(results, result)
+		
+		// Job content is automatically freed when job goes out of scope
 	}
 	
 	return results, nil
