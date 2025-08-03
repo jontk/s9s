@@ -39,6 +39,7 @@ type NodesView struct {
 	isAdvancedMode bool
 	globalSearch   *GlobalSearch
 	sshClient      *ssh.SSHClient
+	sshTerminal    *SSHTerminalView
 }
 
 // SetPages sets the pages reference for modal handling
@@ -47,6 +48,10 @@ func (v *NodesView) SetPages(pages *tview.Pages) {
 	// Set pages for filter bar if it exists
 	if v.filterBar != nil {
 		v.filterBar.SetPages(pages)
+	}
+	// Set pages for SSH terminal if it exists
+	if v.sshTerminal != nil {
+		v.sshTerminal.SetPages(pages)
 	}
 }
 
@@ -64,6 +69,12 @@ func (v *NodesView) SetApp(app *tview.Application) {
 	
 	// Initialize SSH client with default configuration
 	v.sshClient = ssh.NewSSHClient(ssh.DefaultSSHConfig())
+	
+	// Initialize SSH terminal view
+	v.sshTerminal = NewSSHTerminalView(app)
+	if v.pages != nil {
+		v.sshTerminal.SetPages(v.pages)
+	}
 }
 
 // NewNodesView creates a new nodes view
@@ -791,22 +802,27 @@ func (v *NodesView) showSSHOptionsModal(nodeName string) {
 	list.SetTitleAlign(tview.AlignCenter)
 
 	// Add SSH options
-	list.AddItem("Connect to Terminal", "Open SSH in new terminal", 't', func() {
+	list.AddItem("🖥  SSH Terminal Manager", "Advanced SSH session management", 't', func() {
+		v.pages.RemovePage("ssh-options")
+		v.showSSHTerminalManager(nodeName)
+	})
+
+	list.AddItem("⚡ Quick Connect", "Direct SSH connection", 'q', func() {
 		v.pages.RemovePage("ssh-options")
 		v.sshToTerminal(nodeName)
 	})
 
-	list.AddItem("Test Connection", "Test SSH connectivity", 'c', func() {
+	list.AddItem("🔍 Test Connection", "Test SSH connectivity", 'c', func() {
 		v.pages.RemovePage("ssh-options")
 		v.testSSHConnection(nodeName)
 	})
 
-	list.AddItem("Get Node Info", "Retrieve basic node information", 'i', func() {
+	list.AddItem("ℹ  Get Node Info", "Retrieve detailed node information", 'i', func() {
 		v.pages.RemovePage("ssh-options")
 		v.getNodeInfoViaSSH(nodeName)
 	})
 
-	list.AddItem("Cancel", "Cancel SSH operation", 'x', func() {
+	list.AddItem("❌ Cancel", "Cancel SSH operation", 'x', func() {
 		v.pages.RemovePage("ssh-options")
 	})
 
@@ -1247,6 +1263,28 @@ func (v *NodesView) showGlobalSearch() {
 			// Note: Status bar update removed since individual view status bars are no longer used
 		}
 	})
+}
+
+// showSSHTerminalManager shows the SSH terminal manager interface
+func (v *NodesView) showSSHTerminalManager(nodeName string) {
+	if v.sshTerminal == nil {
+		v.showError("SSH terminal not initialized")
+		return
+	}
+
+	// Get all node names for the SSH terminal
+	v.mu.RLock()
+	nodeNames := make([]string, len(v.nodes))
+	for i, node := range v.nodes {
+		nodeNames[i] = node.Name
+	}
+	v.mu.RUnlock()
+
+	// Set the available nodes
+	v.sshTerminal.SetNodes(nodeNames)
+	
+	// Show the SSH terminal interface with the selected node
+	v.sshTerminal.ShowSSHInterface(nodeName)
 }
 
 // focusOnNode focuses the table on a specific node

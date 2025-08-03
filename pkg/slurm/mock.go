@@ -38,12 +38,19 @@ func NewMockClient() *MockClient {
 			Endpoint: "http://localhost:6820",
 			Version:  "23.02.1",
 		},
-		delay: 100 * time.Millisecond, // Simulate network delay
+		delay: 1 * time.Millisecond, // Minimal delay for realistic testing (was 100ms)
 	}
 
 	// Populate with sample data
 	client.populateSampleData()
 
+	return client
+}
+
+// NewFastMockClient creates a mock client with no delay for performance tests
+func NewFastMockClient() *MockClient {
+	client := NewMockClient()
+	client.SetDelay(0) // No delay for performance benchmarks
 	return client
 }
 

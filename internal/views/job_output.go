@@ -2,11 +2,13 @@ package views
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/pkg/slurm"
 	"github.com/rivo/tview"
 )
@@ -23,13 +25,22 @@ type JobOutputView struct {
 	outputType string // "stdout" or "stderr"
 	autoRefresh bool
 	refreshTicker *time.Ticker
+	exporter *export.JobOutputExporter
 }
 
 // NewJobOutputView creates a new job output view
 func NewJobOutputView(client dao.SlurmClient, app *tview.Application) *JobOutputView {
+	// Get default export path
+	homeDir, _ := os.UserHomeDir()
+	defaultPath := ""
+	if homeDir != "" {
+		defaultPath = homeDir + "/slurm_exports"
+	}
+	
 	return &JobOutputView{
-		client: client,
-		app:    app,
+		client:   client,
+		app:      app,
+		exporter: export.NewJobOutputExporter(defaultPath),
 	}
 }
 
@@ -265,9 +276,142 @@ func (v *JobOutputView) followOutput() {
 
 // exportOutput exports the current output to a file
 func (v *JobOutputView) exportOutput() {
-	// For now, just show a notification
-	// In a real implementation, this would save to a file
-	v.showNotification("Export functionality would save output to file")
+	v.showExportDialog()
+}
+
+// showExportDialog shows the export options dialog
+func (v *JobOutputView) showExportDialog() {
+	// Create export format selection
+	list := tview.NewList()
+	list.SetBorder(true)
+	list.SetTitle(" Select Export Format ")
+	list.SetTitleAlign(tview.AlignCenter)
+
+	formats := v.exporter.GetSupportedFormats()
+	formatDescriptions := map[export.ExportFormat]string{
+		export.FormatText:     "Plain text with header information",
+		export.FormatJSON:     "Structured JSON with metadata",
+		export.FormatCSV:      "CSV format (line-by-line for analysis)",
+		export.FormatMarkdown: "Markdown format with code blocks",
+	}
+
+	for _, format := range formats {
+		desc := formatDescriptions[format]
+		list.AddItem(
+			fmt.Sprintf("%s (.%s)", strings.ToUpper(string(format)), string(format)),
+			desc,
+			0,
+			func() {
+				v.performExport(format)
+				v.pages.RemovePage("export-dialog")
+			},
+		)
+	}
+
+	// Add cancel option
+	list.AddItem("Cancel", "Cancel export operation", 0, func() {
+		v.pages.RemovePage("export-dialog")
+	})
+
+	// Create modal container
+	modal := tview.NewFlex()
+	modal.SetDirection(tview.FlexRow)
+	modal.AddItem(nil, 0, 1, false)
+	modal.AddItem(tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(list, 0, 2, true).
+		AddItem(nil, 0, 1, false), 0, 1, true)
+	modal.AddItem(nil, 0, 1, false)
+
+	v.pages.AddPage("export-dialog", modal, true, true)
+}
+
+// performExport performs the actual export operation
+func (v *JobOutputView) performExport(format export.ExportFormat) {
+	// Get current output content
+	content := v.textView.GetText(false)
+	if content == "" {
+		v.showNotification("No content to export")
+		return
+	}
+
+	// Create export data
+	currentUser := os.Getenv("USER")
+	if currentUser == "" {
+		currentUser = "unknown"
+	}
+
+	exportData := export.JobOutputData{
+		JobID:       v.jobID,
+		JobName:     v.jobName,
+		OutputType:  v.outputType,
+		Content:     content,
+		Timestamp:   time.Now(),
+		ExportedBy:  currentUser,
+		ExportTime:  time.Now(),
+		ContentSize: len(content),
+	}
+
+	// Perform export
+	result, err := v.exporter.ExportJobOutput(exportData, format, "")
+	if err != nil {
+		v.showNotification(fmt.Sprintf("Export failed: %v", err))
+		return
+	}
+
+	// Show success notification
+	message := fmt.Sprintf("Export successful!\n\nFile: %s\nFormat: %s\nSize: %s",
+		result.FilePath,
+		strings.ToUpper(string(result.Format)),
+		v.formatBytes(result.Size))
+
+	v.showExportResult(message, result.FilePath)
+}
+
+// showExportResult shows export success with options
+func (v *JobOutputView) showExportResult(message, filePath string) {
+	modal := tview.NewModal()
+	modal.SetText(message)
+	modal.AddButtons([]string{"Open Folder", "Copy Path", "OK"})
+	modal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+		switch buttonIndex {
+		case 0: // Open Folder
+			v.openExportFolder(filePath)
+		case 1: // Copy Path
+			v.copyPathToClipboard(filePath)
+		}
+		v.pages.RemovePage("export-result")
+	})
+	
+	v.pages.AddPage("export-result", modal, true, true)
+}
+
+// openExportFolder opens the folder containing the exported file
+func (v *JobOutputView) openExportFolder(filePath string) {
+	// This is a platform-specific operation
+	// For now, just show the path
+	v.showNotification(fmt.Sprintf("Export folder:\n%s", v.exporter.GetDefaultPath()))
+}
+
+// copyPathToClipboard copies the file path to clipboard
+func (v *JobOutputView) copyPathToClipboard(filePath string) {
+	// This would require a clipboard library
+	// For now, just show the path
+	v.showNotification(fmt.Sprintf("File path:\n%s\n\n(Copy this path manually)", filePath))
+}
+
+// formatBytes formats byte size in human-readable format
+func (v *JobOutputView) formatBytes(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
 // showNotification shows a temporary notification

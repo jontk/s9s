@@ -2,11 +2,13 @@ package views
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/pkg/slurm"
 	"github.com/rivo/tview"
 )
@@ -15,12 +17,13 @@ import (
 type BatchOperation string
 
 const (
-	BatchCancel   BatchOperation = "cancel"
-	BatchHold     BatchOperation = "hold"
-	BatchRelease  BatchOperation = "release"
-	BatchRequeue  BatchOperation = "requeue"
-	BatchDelete   BatchOperation = "delete"
-	BatchPriority BatchOperation = "priority"
+	BatchCancel    BatchOperation = "cancel"
+	BatchHold      BatchOperation = "hold"
+	BatchRelease   BatchOperation = "release"
+	BatchRequeue   BatchOperation = "requeue"
+	BatchDelete    BatchOperation = "delete"
+	BatchPriority  BatchOperation = "priority"
+	BatchExport    BatchOperation = "export"
 )
 
 // BatchOperationsView handles batch operations on multiple jobs
@@ -35,15 +38,24 @@ type BatchOperationsView struct {
 	selectedJobs  []string
 	selectedJobsData []map[string]interface{}
 	onComplete    func()
+	exporter      *export.JobOutputExporter
 }
 
 // NewBatchOperationsView creates a new batch operations view
 func NewBatchOperationsView(client dao.SlurmClient, app *tview.Application) *BatchOperationsView {
+	// Get default export path
+	homeDir, _ := os.UserHomeDir()
+	defaultPath := ""
+	if homeDir != "" {
+		defaultPath = homeDir + "/slurm_exports"
+	}
+	
 	return &BatchOperationsView{
 		client:       client,
 		app:          app,
 		selectedJobs: make([]string, 0),
 		selectedJobsData: make([]map[string]interface{}, 0),
+		exporter:     export.NewJobOutputExporter(defaultPath),
 	}
 }
 
@@ -82,6 +94,7 @@ func (v *BatchOperationsView) buildUI() {
 	v.operationList.AddItem("Requeue Jobs", "Requeue all selected jobs", 'q', func() { v.executeOperation(BatchRequeue) })
 	v.operationList.AddItem("Delete Jobs", "Delete all selected jobs", 'd', func() { v.executeOperation(BatchDelete) })
 	v.operationList.AddItem("Set Priority", "Set priority for all selected jobs", 'p', func() { v.setPriority() })
+	v.operationList.AddItem("Export Output", "Export job output for all selected jobs", 'e', func() { v.executeOperation(BatchExport) })
 
 	// Create jobs list display
 	v.jobsList = tview.NewTextView()
@@ -221,10 +234,15 @@ func (v *BatchOperationsView) setupEventHandlers() {
 
 // executeOperation executes a batch operation
 func (v *BatchOperationsView) executeOperation(operation BatchOperation) {
-	// Confirm operation
-	v.confirmOperation(operation, func() {
-		v.performBatchOperation(operation, "")
-	})
+	if operation == BatchExport {
+		// For export, show format selection dialog
+		v.showExportFormatDialog()
+	} else {
+		// Confirm operation
+		v.confirmOperation(operation, func() {
+			v.performBatchOperation(operation, "")
+		})
+	}
 }
 
 // confirmOperation shows confirmation dialog
@@ -260,6 +278,8 @@ func (v *BatchOperationsView) getOperationName(operation BatchOperation) string 
 		return "delete"
 	case BatchPriority:
 		return "set priority for"
+	case BatchExport:
+		return "export output for"
 	default:
 		return string(operation)
 	}
@@ -356,6 +376,9 @@ func (v *BatchOperationsView) executeSingleOperation(operation BatchOperation, j
 		}
 		// Real implementation would set priority
 		return fmt.Errorf("priority setting not implemented for real client")
+	case BatchExport:
+		// Export is handled differently - parameter contains the format
+		return v.exportJobOutput(jobID, parameter)
 	default:
 		return fmt.Errorf("unknown operation: %s", operation)
 	}
@@ -391,4 +414,138 @@ func (v *BatchOperationsView) close() {
 	if v.onComplete != nil {
 		v.onComplete()
 	}
+}
+
+// showExportFormatDialog shows the export format selection dialog
+func (v *BatchOperationsView) showExportFormatDialog() {
+	list := tview.NewList()
+	list.SetBorder(true)
+	list.SetTitle(" Select Export Format ")
+	list.SetTitleAlign(tview.AlignCenter)
+
+	formats := v.exporter.GetSupportedFormats()
+	formatDescriptions := map[export.ExportFormat]string{
+		export.FormatText:     "Plain text with header information",
+		export.FormatJSON:     "Structured JSON with metadata",
+		export.FormatCSV:      "CSV format (line-by-line for analysis)",
+		export.FormatMarkdown: "Markdown format with code blocks",
+	}
+
+	for _, format := range formats {
+		desc := formatDescriptions[format]
+		formatCopy := format // Capture loop variable
+		list.AddItem(
+			fmt.Sprintf("%s (.%s)", strings.ToUpper(string(format)), string(format)),
+			desc,
+			0,
+			func() {
+				v.pages.RemovePage("export-format-dialog")
+				v.confirmExportOperation(formatCopy)
+			},
+		)
+	}
+
+	// Add cancel option
+	list.AddItem("Cancel", "Cancel export operation", 0, func() {
+		v.pages.RemovePage("export-format-dialog")
+	})
+
+	// Create modal container
+	modal := tview.NewFlex()
+	modal.SetDirection(tview.FlexRow)
+	modal.AddItem(nil, 0, 1, false)
+	modal.AddItem(tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(list, 0, 2, true).
+		AddItem(nil, 0, 1, false), 0, 1, true)
+	modal.AddItem(nil, 0, 1, false)
+
+	v.pages.AddPage("export-format-dialog", modal, true, true)
+}
+
+// confirmExportOperation shows confirmation for export with format
+func (v *BatchOperationsView) confirmExportOperation(format export.ExportFormat) {
+	message := fmt.Sprintf("Export job output for %d job(s) in %s format?\n\nFiles will be saved to:\n%s", 
+		len(v.selectedJobs), 
+		strings.ToUpper(string(format)), 
+		v.exporter.GetDefaultPath())
+	
+	modal := tview.NewModal()
+	modal.SetText(message)
+	modal.AddButtons([]string{"Export", "Cancel"})
+	modal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+		v.pages.RemovePage("export-confirm")
+		if buttonIndex == 0 { // Export
+			v.performBatchOperation(BatchExport, string(format))
+		}
+	})
+	v.pages.AddPage("export-confirm", modal, true, true)
+}
+
+// exportJobOutput exports output for a single job
+func (v *BatchOperationsView) exportJobOutput(jobID, formatStr string) error {
+	format := export.ExportFormat(formatStr)
+	
+	// Generate mock content for demo/testing
+	content := v.generateJobOutputContent(jobID)
+	
+	// Get job name from selected jobs data
+	jobName := jobID // Default fallback
+	for _, jobData := range v.selectedJobsData {
+		if jobData["id"] == jobID {
+			if name, ok := jobData["name"].(string); ok {
+				jobName = name
+			}
+			break
+		}
+	}
+	
+	// Create export data
+	currentUser := os.Getenv("USER")
+	if currentUser == "" {
+		currentUser = "unknown"
+	}
+
+	exportData := export.JobOutputData{
+		JobID:       jobID,
+		JobName:     jobName,
+		OutputType:  "stdout", // Default to stdout for batch export
+		Content:     content,
+		Timestamp:   time.Now(),
+		ExportedBy:  currentUser,
+		ExportTime:  time.Now(),
+		ContentSize: len(content),
+	}
+
+	// Perform export
+	_, err := v.exporter.ExportJobOutput(exportData, format, "")
+	return err
+}
+
+// generateJobOutputContent generates sample job output content
+func (v *BatchOperationsView) generateJobOutputContent(jobID string) string {
+	return fmt.Sprintf(`Job Output for Job ID: %s
+----------------------
+
+Starting job execution...
+Loading modules...
+Allocating resources...
+Beginning computation...
+
+[INFO] Processing data set 1/10
+[INFO] Processing data set 2/10
+[INFO] Processing data set 3/10
+...
+[INFO] Processing data set 10/10
+
+Computation completed successfully.
+Results written to output file.
+Cleaning up temporary files...
+
+Job completed successfully.
+Total runtime: 2h 45m 12s
+Peak memory usage: 8.2 GB
+CPU efficiency: 94.5%%
+
+Exit code: 0`, jobID)
 }

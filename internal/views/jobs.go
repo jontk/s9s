@@ -17,30 +17,31 @@ import (
 // JobsView displays the jobs list
 type JobsView struct {
 	*BaseView
-	client          dao.SlurmClient
-	table           *components.Table
-	jobs            []*dao.Job
-	mu              sync.RWMutex
-	refreshTimer    *time.Timer
-	refreshRate     time.Duration
-	filter          string
-	stateFilter     []string
-	userFilter      string
-	container       *tview.Flex
-	filterInput     *tview.InputField
-	statusBar       *tview.TextView
-	app             *tview.Application
-	pages           *tview.Pages
-	templateManager *JobTemplateManager
-	autoRefresh     bool
-	selectedJobs    map[string]bool
-	filterBar       *components.FilterBar
-	advancedFilter  *filters.Filter
-	isAdvancedMode  bool
-	globalSearch    *GlobalSearch
-	jobOutputView   *JobOutputView
-	batchOpsView    *BatchOperationsView
-	multiSelectMode bool
+	client              dao.SlurmClient
+	table               *components.MultiSelectTable
+	jobs                []*dao.Job
+	mu                  sync.RWMutex
+	refreshTimer        *time.Timer
+	refreshRate         time.Duration
+	filter              string
+	stateFilter         []string
+	userFilter          string
+	container           *tview.Flex
+	filterInput         *tview.InputField
+	statusBar           *tview.TextView
+	app                 *tview.Application
+	pages               *tview.Pages
+	templateManager     *JobTemplateManager
+	autoRefresh         bool
+	selectedJobs        map[string]bool
+	filterBar           *components.FilterBar
+	advancedFilter      *filters.Filter
+	isAdvancedMode      bool
+	globalSearch        *GlobalSearch
+	jobOutputView       *JobOutputView
+	batchOpsView        *BatchOperationsView
+	multiSelectMode     bool
+	selectionStatusText *tview.TextView
 }
 
 // SetPages sets the pages reference for modal handling
@@ -104,16 +105,22 @@ func NewJobsView(client dao.SlurmClient) *JobsView {
 		components.NewColumn("Submit Time").Width(19).Sortable(true).Build(),
 	}
 
-	v.table = components.NewTableBuilder().
-		WithColumns(columns...).
-		WithSelectable(true).
-		WithHeader(true).
-		WithColors(tcell.ColorYellow, tcell.ColorTeal, tcell.ColorWhite).
-		Build()
+	// Create multi-select table
+	config := components.DefaultTableConfig()
+	config.Columns = columns
+	config.Selectable = true
+	config.ShowHeader = true
+	config.SelectedColor = tcell.ColorYellow
+	config.HeaderColor = tcell.ColorTeal
+	config.BorderColor = tcell.ColorWhite
+	
+	v.table = components.NewMultiSelectTable(config)
 
 	// Set up callbacks
 	v.table.SetOnSelect(v.onJobSelect)
 	v.table.SetOnSort(v.onSort)
+	v.table.SetOnSelectionChange(v.onSelectionChange)
+	v.table.SetOnRowToggle(v.onRowToggle)
 
 	// Create filter input
 	v.filterInput = tview.NewInputField().
@@ -127,10 +134,22 @@ func NewJobsView(client dao.SlurmClient) *JobsView {
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignLeft)
 
+	// Create selection status text
+	v.selectionStatusText = tview.NewTextView().
+		SetDynamicColors(true).
+		SetTextAlign(tview.AlignRight).
+		SetText("[gray]Multi-select: Off[white]")
+
+	// Create info bar with filter and selection status
+	infoBar := tview.NewFlex().
+		SetDirection(tview.FlexColumn).
+		AddItem(v.filterInput, 0, 1, false).
+		AddItem(v.selectionStatusText, 30, 0, false)
+
 	// Create container layout (removed individual status bar to prevent conflicts with main status bar)
 	v.container = tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(v.filterInput, 1, 0, false).
+		AddItem(infoBar, 1, 0, false).
 		AddItem(v.table.Table, 0, 1, true)
 
 	return v
@@ -209,11 +228,18 @@ func (v *JobsView) Hints() []string {
 		"[yellow]F3[white] Adv Filter",
 		"[yellow]Ctrl+F[white] Search",
 		"[yellow]F1[white] Actions Menu",
+		"[yellow]v[white] Multi-Select",
 		"[yellow]R[white] Refresh",
 	}
 
 	if v.isAdvancedMode {
 		hints = append([]string{"[yellow]ESC[white] Exit Adv Filter"}, hints...)
+	}
+
+	// Add multi-select specific hints when in multi-select mode
+	if v.multiSelectMode {
+		multiSelectHints := v.table.GetMultiSelectHints()
+		hints = append(hints, multiSelectHints...)
 	}
 
 	return hints
@@ -286,6 +312,9 @@ func (v *JobsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		case 'u', 'U':
 			v.promptUserFilter()
 			return nil
+		case 'v', 'V':
+			v.toggleMultiSelectMode()
+			return nil
 		}
 	case tcell.KeyEnter:
 		v.showJobDetails()
@@ -309,6 +338,64 @@ func (v *JobsView) OnFocus() error {
 		v.app.SetFocus(v.table.Table)
 	}
 	return nil
+}
+
+// onSelectionChange handles multi-select selection changes
+func (v *JobsView) onSelectionChange(selectedCount int, allSelected bool) {
+	// Update selection status text
+	if v.multiSelectMode {
+		var statusText string
+		if selectedCount == 0 {
+			statusText = "[green]Multi-select: On[white] | [gray]0 selected[white]"
+		} else if allSelected {
+			statusText = fmt.Sprintf("[green]Multi-select: On[white] | [yellow]%d selected (all)[white]", selectedCount)
+		} else {
+			statusText = fmt.Sprintf("[green]Multi-select: On[white] | [yellow]%d selected[white]", selectedCount)
+		}
+		if v.selectionStatusText != nil {
+			v.selectionStatusText.SetText(statusText)
+		}
+	}
+
+	// Sync with legacy selectedJobs map for compatibility with existing batch operations
+	v.syncSelectedJobs()
+}
+
+// onRowToggle handles individual row selection toggles
+func (v *JobsView) onRowToggle(row int, selected bool, data []string) {
+	if len(data) > 0 {
+		jobID := data[0] // First column is job ID
+		if selected {
+			v.selectedJobs[jobID] = true
+		} else {
+			delete(v.selectedJobs, jobID)
+		}
+	}
+}
+
+// syncSelectedJobs synchronizes the legacy selectedJobs map with multi-select table
+func (v *JobsView) syncSelectedJobs() {
+	v.selectedJobs = make(map[string]bool)
+	selectedData := v.table.GetAllSelectedData()
+	for _, rowData := range selectedData {
+		if len(rowData) > 0 {
+			jobID := rowData[0] // First column is job ID
+			v.selectedJobs[jobID] = true
+		}
+	}
+}
+
+// toggleMultiSelectMode toggles multi-select mode on/off
+func (v *JobsView) toggleMultiSelectMode() {
+	v.multiSelectMode = !v.multiSelectMode
+	v.table.SetMultiSelectMode(v.multiSelectMode)
+	
+	if v.multiSelectMode {
+		v.selectionStatusText.SetText("[green]Multi-select: On[white] | [gray]0 selected[white]")
+	} else {
+		v.selectionStatusText.SetText("[gray]Multi-select: Off[white]")
+		v.selectedJobs = make(map[string]bool) // Clear selections when disabling
+	}
 }
 
 // OnLoseFocus handles loss of focus
