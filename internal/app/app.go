@@ -57,7 +57,7 @@ type S9s struct {
 	isRunning     bool
 }
 
-// New creates a new S9s application instance
+// New creates a new S9s application instance  
 func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is required")
@@ -367,7 +367,7 @@ func (s *S9s) setupKeyboardShortcuts() {
 		// Global shortcuts
 		switch event.Key() {
 		case tcell.KeyCtrlC:
-			s.app.Stop()
+			s.Stop()
 			return nil
 		case tcell.KeyF1:
 			// Show help modal
@@ -476,7 +476,7 @@ func (s *S9s) setupKeyboardShortcuts() {
 				s.switchToView("performance")
 				return nil
 			case 'q', 'Q':
-				s.app.Stop()
+				s.Stop()
 				return nil
 			}
 		}
@@ -602,7 +602,7 @@ func (s *S9s) onCommandDone(key tcell.Key) {
 func (s *S9s) executeCommand(command string) {
 	switch command {
 	case "q", "quit":
-		s.app.Stop()
+		s.Stop()
 	case "jobs", "j":
 		s.switchToView("jobs")
 	case "nodes", "n":
@@ -654,7 +654,7 @@ func (s *S9s) showHelp() {
 	helpText := `[yellow]S9S - SLURM Terminal UI Help[white]
 
 [teal]Global Keys:[white]
-  [yellow]1-9[white]         Switch to Jobs/Nodes/Partitions/Reservations/QoS/Accounts/Users/Health/Performance view
+  [yellow]1-8[white]         Switch to Jobs/Nodes/Partitions/Reservations/QoS/Accounts/Users/Health view
   [yellow]Tab/Shift+Tab[white] Switch between views
   [yellow]F1[white]         Show help
   [yellow]F2[white]         Show system alerts
@@ -673,7 +673,7 @@ func (s *S9s) showHelp() {
   [yellow]:accounts[white]      Switch to Accounts view
   [yellow]:users[white]         Switch to Users view
   [yellow]:health[white]        Switch to Health Monitor view
-  [yellow]:performance[white]   Switch to Performance Monitor view
+  // [yellow]:performance[white]   Switch to Performance Monitor view (disabled)
   [yellow]:refresh, :r[white]   Refresh current view
   [yellow]:quit, :q[white]      Quit application
   [yellow]:help, :h[white]      Show this help

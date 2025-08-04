@@ -197,7 +197,7 @@ func DefaultSSHConfig() *SSHConfig {
 	config := &SSHConfig{
 		Port:     22,
 		Timeout:  30 * time.Second,
-		UseAgent: IsAgentAvailable(),
+		UseAgent: false, // Don't check agent availability during startup to avoid hanging
 		Options: map[string]string{
 			"StrictHostKeyChecking": "no",
 			"UserKnownHostsFile":   "/dev/null",
@@ -207,16 +207,17 @@ func DefaultSSHConfig() *SSHConfig {
 		},
 	}
 
-	// Try to initialize key manager
-	if km, err := NewKeyManager(); err == nil {
-		config.KeyManager = km
-		
-		// Use SSH config from key manager if available
-		if sshConfig, err := km.GetSSHConfig(); err == nil {
-			config.KeyFile = sshConfig.KeyFile
-			config.UseAgent = km.IsAgentConnected()
-		}
-	}
+	// Skip key manager initialization during startup to avoid potential hanging
+	// Key manager will be initialized later when actually needed for SSH connections
+	// if km, err := NewKeyManager(); err == nil {
+	//	config.KeyManager = km
+	//	
+	//	// Use SSH config from key manager if available
+	//	if sshConfig, err := km.GetSSHConfig(); err == nil {
+	//		config.KeyFile = sshConfig.KeyFile
+	//		config.UseAgent = km.IsAgentConnected()
+	//	}
+	// }
 
 	return config
 }

@@ -37,6 +37,27 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Handle help flag
+	if len(os.Args) > 1 && (os.Args[1] == "--help" || os.Args[1] == "-h") {
+		fmt.Printf("%s\n\nUsage: %s [options]\n\n", appName, os.Args[0])
+		fmt.Println("Options:")
+		fmt.Println("  --version, -v    Show version information")
+		fmt.Println("  --help, -h       Show this help message")
+		fmt.Println("  --mock           Use mock SLURM client for testing")
+		fmt.Println("  --no-mock        Use real SLURM client")
+		fmt.Println("\nConfiguration:")
+		fmt.Println("  Configuration file: ~/.s9s/config.yaml")
+		fmt.Println("  See config.example.yaml for configuration options")
+		fmt.Println("\nKeyboard shortcuts:")
+		fmt.Println("  F1               Show help")
+		fmt.Println("  F10              Configuration settings")
+		fmt.Println("  Tab              Switch between views")
+		fmt.Println("  1-9              Switch to specific views")
+		fmt.Println("  :                Command mode")
+		fmt.Println("  q                Quit")
+		os.Exit(0)
+	}
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -64,9 +85,9 @@ func main() {
 
 	// Run application in goroutine
 	go func() {
-		if err := s9sApp.Run(); err != nil {
-			errChan <- err
-		}
+		err := s9sApp.Run()
+		// Send error to channel (nil means normal shutdown)
+		errChan <- err
 	}()
 
 	// Wait for shutdown signal or error
@@ -87,9 +108,13 @@ func main() {
 		cancel()
 
 	case err := <-errChan:
-		log.Printf("Application error: %v", err)
+		if err != nil {
+			log.Printf("Application error: %v", err)
+			cancel()
+			os.Exit(1)
+		}
+		// Normal shutdown (err == nil)
 		cancel()
-		os.Exit(1)
 	}
 
 	log.Println("S9S shutdown complete")

@@ -80,12 +80,13 @@ func (pv *PerformanceView) Init(ctx context.Context) error {
 	// Set up input handling
 	pv.container.SetInputCapture(pv.handleInput)
 	
-	// Start monitoring if enabled
-	if pv.monitoringEnabled {
-		if err := pv.dashboard.Start(); err != nil {
-			log.Printf("Warning: Failed to start performance monitoring: %v", err)
-		}
-	}
+	// Don't start monitoring automatically during initialization
+	// Monitoring will be started when the view is first displayed
+	// if pv.monitoringEnabled {
+	//	if err := pv.dashboard.Start(); err != nil {
+	//		log.Printf("Warning: Failed to start performance monitoring: %v", err)
+	//	}
+	// }
 	
 	return nil
 }
@@ -363,6 +364,24 @@ func (pv *PerformanceView) showModal(title, content string) {
 // Render returns the main container
 func (pv *PerformanceView) Render() tview.Primitive {
 	return pv.container
+}
+
+// OnFocus is called when the view gains focus
+func (pv *PerformanceView) OnFocus() error {
+	// Start monitoring when the view becomes active
+	if pv.monitoringEnabled && pv.dashboard != nil {
+		if err := pv.dashboard.Start(); err != nil {
+			log.Printf("Warning: Failed to start performance monitoring: %v", err)
+		}
+	}
+	return nil
+}
+
+// OnLoseFocus is called when the view loses focus
+func (pv *PerformanceView) OnLoseFocus() error {
+	// Optionally stop monitoring when view loses focus to save resources
+	// For now, keep it running for background monitoring
+	return nil
 }
 
 // Update refreshes the view data
