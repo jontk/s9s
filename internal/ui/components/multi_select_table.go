@@ -28,7 +28,7 @@ func NewMultiSelectTable(config *TableConfig) *MultiSelectTable {
 	}
 
 	baseTable := NewTable(config)
-	
+
 	mst := &MultiSelectTable{
 		Table:           baseTable,
 		multiSelectMode: false,
@@ -40,7 +40,7 @@ func NewMultiSelectTable(config *TableConfig) *MultiSelectTable {
 
 	// Override input handling for multi-select
 	mst.Table.Table.SetInputCapture(mst.handleMultiSelectInput)
-	
+
 	return mst
 }
 
@@ -48,7 +48,7 @@ func NewMultiSelectTable(config *TableConfig) *MultiSelectTable {
 func (mst *MultiSelectTable) SetMultiSelectMode(enabled bool) {
 	mst.mu.Lock()
 	defer mst.mu.Unlock()
-	
+
 	mst.multiSelectMode = enabled
 	if !enabled {
 		mst.clearSelectionUnsafe()
@@ -73,7 +73,7 @@ func (mst *MultiSelectTable) SetShowCheckboxes(show bool) {
 func (mst *MultiSelectTable) ToggleRow(row int) {
 	mst.mu.Lock()
 	defer mst.mu.Unlock()
-	
+
 	if !mst.multiSelectMode {
 		return
 	}
@@ -99,7 +99,7 @@ func (mst *MultiSelectTable) ToggleRow(row int) {
 	// Notify callback (call outside of lock to avoid deadlock)
 	var callRowToggle func()
 	var callSelectionChange func()
-	
+
 	if mst.onRowToggle != nil {
 		selected := mst.selectedRows[dataRow]
 		data := mst.filteredData[dataRow]
@@ -111,17 +111,17 @@ func (mst *MultiSelectTable) ToggleRow(row int) {
 		selCount := mst.selectionCount
 		callSelectionChange = func() { mst.onSelectionChange(selCount, allSelected) }
 	}
-	
+
 	// Release lock before calling callbacks
 	mst.mu.Unlock()
-	
+
 	if callRowToggle != nil {
 		callRowToggle()
 	}
 	if callSelectionChange != nil {
 		callSelectionChange()
 	}
-	
+
 	// Re-acquire lock for defer cleanup
 	mst.mu.Lock()
 }
@@ -130,7 +130,7 @@ func (mst *MultiSelectTable) ToggleRow(row int) {
 func (mst *MultiSelectTable) SelectAll() {
 	mst.mu.Lock()
 	defer mst.mu.Unlock()
-	
+
 	if !mst.multiSelectMode {
 		return
 	}
@@ -175,7 +175,7 @@ func (mst *MultiSelectTable) clearSelectionUnsafe() {
 func (mst *MultiSelectTable) GetSelectedRows() []int {
 	mst.mu.RLock()
 	defer mst.mu.RUnlock()
-	
+
 	var selected []int
 	for row := range mst.selectedRows {
 		selected = append(selected, row)
@@ -187,13 +187,13 @@ func (mst *MultiSelectTable) GetSelectedRows() []int {
 func (mst *MultiSelectTable) GetSelectedData() []string {
 	mst.mu.RLock()
 	defer mst.mu.RUnlock()
-	
+
 	// For compatibility with existing code, return current row data when not in multi-select mode
 	// or when no multi-selections are made
 	if !mst.multiSelectMode || len(mst.selectedRows) == 0 {
 		return mst.Table.GetSelectedData()
 	}
-	
+
 	// In multi-select mode, return the first selected row for compatibility
 	// (existing code expects []string, not [][]string)
 	for row := range mst.selectedRows {
@@ -201,7 +201,7 @@ func (mst *MultiSelectTable) GetSelectedData() []string {
 			return mst.filteredData[row]
 		}
 	}
-	
+
 	// Fallback to current row
 	return mst.Table.GetSelectedData()
 }
@@ -210,7 +210,7 @@ func (mst *MultiSelectTable) GetSelectedData() []string {
 func (mst *MultiSelectTable) GetAllSelectedData() [][]string {
 	mst.mu.RLock()
 	defer mst.mu.RUnlock()
-	
+
 	var selectedData [][]string
 	for row := range mst.selectedRows {
 		if row < len(mst.filteredData) {
@@ -251,7 +251,7 @@ func (mst *MultiSelectTable) handleMultiSelectInput(event *tcell.EventKey) *tcel
 	multiSelectMode := mst.multiSelectMode
 	selectAllState := mst.selectAllState
 	mst.mu.RUnlock()
-	
+
 	if multiSelectMode {
 		switch event.Key() {
 		case tcell.KeyCtrlA:
@@ -303,7 +303,7 @@ func (mst *MultiSelectTable) handleMultiSelectInput(event *tcell.EventKey) *tcel
 func (mst *MultiSelectTable) InvertSelection() {
 	mst.mu.Lock()
 	defer mst.mu.Unlock()
-	
+
 	if !mst.multiSelectMode {
 		return
 	}
@@ -452,7 +452,7 @@ func (mst *MultiSelectTable) getSelectAllIcon() string {
 func (mst *MultiSelectTable) SetData(data [][]string) {
 	mst.mu.Lock()
 	defer mst.mu.Unlock()
-	
+
 	// Store current selections by data content (for persistence across refreshes)
 	var selectedDataContent []string
 	if mst.multiSelectMode && len(mst.selectedRows) > 0 {
@@ -496,7 +496,7 @@ func (mst *MultiSelectTable) SetData(data [][]string) {
 func (mst *MultiSelectTable) GetMultiSelectHints() []string {
 	mst.mu.RLock()
 	defer mst.mu.RUnlock()
-	
+
 	if !mst.multiSelectMode {
 		return []string{}
 	}

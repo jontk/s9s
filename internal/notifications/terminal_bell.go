@@ -25,7 +25,7 @@ func NewTerminalBellChannel(config TerminalBellConfig) *TerminalBellChannel {
 	if config.RepeatCount <= 0 {
 		config.RepeatCount = 1
 	}
-	
+
 	return &TerminalBellChannel{
 		config: config,
 	}
@@ -47,13 +47,13 @@ func (t *TerminalBellChannel) Notify(alert *components.Alert) error {
 	if int(alert.Level) < t.config.MinAlertLevel {
 		return nil
 	}
-	
+
 	// Determine bell count based on severity
 	bellCount := 1
 	if alert.Level == components.AlertCritical && t.config.RepeatCount > 1 {
 		bellCount = t.config.RepeatCount
 	}
-	
+
 	// Send terminal bell(s)
 	for i := 0; i < bellCount; i++ {
 		fmt.Fprint(os.Stderr, "\a") // ASCII bell character
@@ -65,7 +65,7 @@ func (t *TerminalBellChannel) Notify(alert *components.Alert) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -74,14 +74,14 @@ func (t *TerminalBellChannel) Configure(config map[string]interface{}) error {
 	if enabled, ok := config["enabled"].(bool); ok {
 		t.config.Enabled = enabled
 	}
-	
+
 	if minLevel, ok := config["min_alert_level"].(int); ok {
 		t.config.MinAlertLevel = minLevel
 	}
-	
+
 	if repeatCount, ok := config["repeat_count"].(int); ok {
 		t.config.RepeatCount = repeatCount
 	}
-	
+
 	return nil
 }

@@ -115,7 +115,7 @@ func TestDateRangeFiltering(t *testing.T) {
 	// Check that it's actually today
 	now := time.Now()
 	expectedStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	
+
 	if !dateRange.Start.Equal(expectedStart) {
 		t.Errorf("Expected start date %v, got %v", expectedStart, *dateRange.Start)
 	}

@@ -52,7 +52,7 @@ func NewBatchOperationsView(client dao.SlurmClient, app *tview.Application) *Bat
 	if homeDir != "" {
 		defaultPath = homeDir + "/slurm_exports"
 	}
-	
+
 	return &BatchOperationsView{
 		client:       client,
 		app:          app,
@@ -65,7 +65,7 @@ func NewBatchOperationsView(client dao.SlurmClient, app *tview.Application) *Bat
 // SetPages sets the pages manager for modal display
 func (v *BatchOperationsView) SetPages(pages *tview.Pages) {
 	v.pages = pages
-	
+
 	// Initialize loading manager when pages are available
 	if pages != nil && v.app != nil {
 		v.loadingManager = components.NewLoadingManager(v.app, pages)
@@ -163,10 +163,10 @@ func (v *BatchOperationsView) buildUI() {
 // formatSelectedJobs formats the selected jobs for display
 func (v *BatchOperationsView) formatSelectedJobs() string {
 	var jobsText strings.Builder
-	
+
 	for i, jobID := range v.selectedJobs {
 		jobsText.WriteString(fmt.Sprintf("[yellow]%s[white]", jobID))
-		
+
 		// Add job details if available
 		if i < len(v.selectedJobsData) && v.selectedJobsData[i] != nil {
 			data := v.selectedJobsData[i]
@@ -181,10 +181,10 @@ func (v *BatchOperationsView) formatSelectedJobs() string {
 				jobsText.WriteString(fmt.Sprintf(" by %s", user))
 			}
 		}
-		
+
 		jobsText.WriteString("\n")
 	}
-	
+
 	return jobsText.String()
 }
 
@@ -258,7 +258,7 @@ func (v *BatchOperationsView) executeOperation(operation BatchOperation) {
 func (v *BatchOperationsView) confirmOperation(operation BatchOperation, onConfirm func()) {
 	operationName := v.getOperationName(operation)
 	message := fmt.Sprintf("Are you sure you want to %s %d job(s)?", operationName, len(v.selectedJobs))
-	
+
 	modal := tview.NewModal()
 	modal.SetText(message)
 	modal.AddButtons([]string{"Yes", "No"})
@@ -320,7 +320,7 @@ func (v *BatchOperationsView) performBatchOperation(operation BatchOperation, pa
 	if v.loadingWrapper != nil {
 		operationName := v.getOperationDisplayName(operation)
 		message := fmt.Sprintf("Executing %s operation on %d jobs...", operationName, len(v.selectedJobs))
-		
+
 		v.loadingWrapper.WithLoadingAsync(message, func() error {
 			return v.performBatchOperationInternal(operation, parameter)
 		}, func(err error) {
@@ -331,7 +331,7 @@ func (v *BatchOperationsView) performBatchOperation(operation BatchOperation, pa
 		})
 		return
 	}
-	
+
 	// Fallback to original implementation
 	v.performBatchOperationInternal(operation, parameter)
 }
@@ -339,23 +339,23 @@ func (v *BatchOperationsView) performBatchOperation(operation BatchOperation, pa
 // performBatchOperationInternal performs the actual batch operation
 func (v *BatchOperationsView) performBatchOperationInternal(operation BatchOperation, parameter string) error {
 	v.progressBar.SetText("[yellow]Executing batch operation...[white]")
-	
+
 	successful := 0
 	failed := 0
-	
+
 	for i, jobID := range v.selectedJobs {
 		// Update progress for loading wrapper if available
 		if v.loadingWrapper != nil {
 			progress := fmt.Sprintf("Processing %d/%d: Job %s", i+1, len(v.selectedJobs), jobID)
 			v.loadingWrapper.UpdateMessage(progress)
 		}
-		
+
 		// Update local progress bar
 		progress := fmt.Sprintf("[blue]Processing %d/%d: Job %s[white]", i+1, len(v.selectedJobs), jobID)
 		v.app.QueueUpdateDraw(func() {
 			v.progressBar.SetText(progress)
 		})
-		
+
 		// Execute operation
 		err := v.executeSingleOperation(operation, jobID, parameter)
 		if err != nil {
@@ -363,20 +363,20 @@ func (v *BatchOperationsView) performBatchOperationInternal(operation BatchOpera
 		} else {
 			successful++
 		}
-		
+
 		// Small delay to show progress
 		time.Sleep(50 * time.Millisecond) // Reduced delay since we have loading indicator
 	}
-	
+
 	// Show final result
 	result := fmt.Sprintf("[green]Completed: %d successful, %d failed[white]", successful, failed)
 	v.app.QueueUpdateDraw(func() {
 		v.progressBar.SetText(result)
 	})
-	
+
 	// Brief delay to show result
 	time.Sleep(1 * time.Second)
-	
+
 	return nil
 }
 
@@ -433,7 +433,7 @@ func (v *BatchOperationsView) executeSingleOperation(operation BatchOperation, j
 		// Real implementation would set priority
 		return fmt.Errorf("priority setting not implemented for real client")
 	case BatchExport:
-		// Export is handled differently - parameter contains the format  
+		// Export is handled differently - parameter contains the format
 		// For batch export, we use streaming to minimize memory usage
 		return v.exportJobOutputStreaming(jobID, parameter)
 	default:
@@ -522,11 +522,11 @@ func (v *BatchOperationsView) showExportFormatDialog() {
 
 // confirmExportOperation shows confirmation for export with format
 func (v *BatchOperationsView) confirmExportOperation(format export.ExportFormat) {
-	message := fmt.Sprintf("Export job output for %d job(s) in %s format?\n\nFiles will be saved to:\n%s", 
-		len(v.selectedJobs), 
-		strings.ToUpper(string(format)), 
+	message := fmt.Sprintf("Export job output for %d job(s) in %s format?\n\nFiles will be saved to:\n%s",
+		len(v.selectedJobs),
+		strings.ToUpper(string(format)),
 		v.exporter.GetDefaultPath())
-	
+
 	modal := tview.NewModal()
 	modal.SetText(message)
 	modal.AddButtons([]string{"Export", "Cancel"})
@@ -542,10 +542,10 @@ func (v *BatchOperationsView) confirmExportOperation(format export.ExportFormat)
 // exportJobOutput exports output for a single job (legacy method)
 func (v *BatchOperationsView) exportJobOutput(jobID, formatStr string) error {
 	format := export.ExportFormat(formatStr)
-	
+
 	// Generate mock content for demo/testing
 	content := v.generateJobOutputContent(jobID)
-	
+
 	// Get job name from selected jobs data
 	jobName := jobID // Default fallback
 	for _, jobData := range v.selectedJobsData {
@@ -556,7 +556,7 @@ func (v *BatchOperationsView) exportJobOutput(jobID, formatStr string) error {
 			break
 		}
 	}
-	
+
 	// Create export data
 	currentUser := os.Getenv("USER")
 	if currentUser == "" {
@@ -582,7 +582,7 @@ func (v *BatchOperationsView) exportJobOutput(jobID, formatStr string) error {
 // exportJobOutputStreaming exports output for a single job with memory optimization
 func (v *BatchOperationsView) exportJobOutputStreaming(jobID, formatStr string) error {
 	format := export.ExportFormat(formatStr)
-	
+
 	// Get job name from selected jobs data (before generating content)
 	jobName := jobID // Default fallback
 	for _, jobData := range v.selectedJobsData {
@@ -593,10 +593,10 @@ func (v *BatchOperationsView) exportJobOutputStreaming(jobID, formatStr string) 
 			break
 		}
 	}
-	
+
 	// Generate content on-demand to minimize memory usage
 	content := v.generateJobOutputContentOptimized(jobID)
-	
+
 	// Create export data with immediate processing
 	currentUser := os.Getenv("USER")
 	if currentUser == "" {
@@ -616,10 +616,10 @@ func (v *BatchOperationsView) exportJobOutputStreaming(jobID, formatStr string) 
 
 	// Perform export and immediately clear content to free memory
 	_, err := v.exporter.ExportJobOutput(exportData, format, "")
-	
+
 	// Clear the content from memory ASAP
 	exportData.Content = ""
-	
+
 	return err
 }
 

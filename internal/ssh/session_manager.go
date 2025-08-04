@@ -74,6 +74,8 @@ type SessionManager struct {
 	mu          sync.RWMutex
 	controlDir  string
 	cleanupDone chan struct{}
+	persistence *SessionPersistence
+	shutdownOnce sync.Once
 }
 
 // NewSessionManager creates a new SSH session manager
@@ -87,10 +89,17 @@ func NewSessionManager(config *SSHConfig) (*SessionManager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current user: %w", err)
 	}
-	
+
 	controlDir := filepath.Join(currentUser.HomeDir, ".ssh", "s9s_control")
 	if err := os.MkdirAll(controlDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create control directory: %w", err)
+	}
+
+	// Create persistence manager
+	persistence, err := NewSessionPersistence("")
+	if err != nil {
+		// Non-fatal, continue without persistence
+		persistence = nil
 	}
 
 	sm := &SessionManager{
@@ -98,10 +107,14 @@ func NewSessionManager(config *SSHConfig) (*SessionManager, error) {
 		config:      config,
 		controlDir:  controlDir,
 		cleanupDone: make(chan struct{}),
+		persistence: persistence,
 	}
 
 	// Start cleanup goroutine
 	go sm.cleanupLoop()
+
+	// Load persistent sessions
+	sm.loadPersistentSessions()
 
 	return sm, nil
 }
@@ -112,7 +125,7 @@ func (sm *SessionManager) CreateSession(hostname, username string) (*SSHSession,
 	defer sm.mu.Unlock()
 
 	sessionID := fmt.Sprintf("%s@%s_%d", username, hostname, time.Now().Unix())
-	
+
 	// Check if session already exists
 	if existing, exists := sm.sessions[sessionID]; exists {
 		return existing, nil
@@ -157,11 +170,11 @@ func (sm *SessionManager) ConnectSession(sessionID string) error {
 
 	// Build SSH args with multiplexing
 	args := sm.buildSessionArgs(session, true)
-	
+
 	// Test connection first
 	testCmd := exec.Command("ssh", args...)
 	testCmd.Args = append(testCmd.Args, "echo", "connection_test")
-	
+
 	if err := testCmd.Run(); err != nil {
 		session.State = SessionError
 		session.ErrorMessage = fmt.Sprintf("Connection failed: %v", err)
@@ -198,7 +211,7 @@ func (sm *SessionManager) StartInteractiveSession(sessionID string) error {
 
 	// Build SSH args for interactive session
 	args := sm.buildSessionArgs(session, false)
-	
+
 	// Create SSH command with proper terminal allocation
 	cmd := exec.Command("ssh", args...)
 	cmd.Stdin = os.Stdin
@@ -253,7 +266,7 @@ func (sm *SessionManager) ExecuteCommand(sessionID, command string) (string, err
 	output, err := cmd.CombinedOutput()
 
 	session.LastActivity = time.Now()
-	
+
 	if err != nil {
 		session.ErrorMessage = fmt.Sprintf("Command failed: %v", err)
 		return string(output), err
@@ -284,7 +297,7 @@ func (sm *SessionManager) CreateTunnel(sessionID string, localPort int, remoteHo
 
 	// Build tunnel args
 	args := sm.buildSessionArgs(session, false)
-	
+
 	var tunnelArg string
 	switch tunnelType {
 	case "local":
@@ -294,9 +307,9 @@ func (sm *SessionManager) CreateTunnel(sessionID string, localPort int, remoteHo
 	default:
 		return fmt.Errorf("invalid tunnel type: %s", tunnelType)
 	}
-	
+
 	args = append(args, tunnelArg, "-N") // -N means don't execute remote command
-	
+
 	// Start tunnel
 	cmd := exec.Command("ssh", args...)
 	if err := cmd.Start(); err != nil {
@@ -379,16 +392,16 @@ func (sm *SessionManager) CloseAllSessions() {
 	for sessionID := range sm.sessions {
 		session := sm.sessions[sessionID]
 		session.mu.Lock()
-		
+
 		if session.Process != nil {
 			session.Process.Kill()
 		}
-		
+
 		if session.ControlPath != "" {
 			args := []string{"-O", "exit", "-S", session.ControlPath, session.Hostname}
 			exec.Command("ssh", args...).Run()
 		}
-		
+
 		session.mu.Unlock()
 	}
 
@@ -457,7 +470,7 @@ func (sm *SessionManager) buildSessionArgs(session *SSHSession, enableMultiplexi
 	return args
 }
 
-// cleanupLoop periodically cleans up stale sessions
+// cleanupLoop periodically cleans up stale sessions and saves state
 func (sm *SessionManager) cleanupLoop() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
@@ -466,6 +479,8 @@ func (sm *SessionManager) cleanupLoop() {
 		select {
 		case <-ticker.C:
 			sm.cleanupStaleSessions()
+			// Save sessions periodically
+			sm.savePersistentSessions()
 		case <-sm.cleanupDone:
 			return
 		}
@@ -481,16 +496,16 @@ func (sm *SessionManager) cleanupStaleSessions() {
 
 	for sessionID, session := range sm.sessions {
 		session.mu.RLock()
-		if session.State == SessionDisconnected || 
+		if session.State == SessionDisconnected ||
 		   session.State == SessionError ||
 		   (session.State == SessionIdle && session.LastActivity.Before(staleThreshold)) {
 			session.mu.RUnlock()
-			
+
 			// Clean up control socket
 			if session.ControlPath != "" {
 				os.Remove(session.ControlPath)
 			}
-			
+
 			delete(sm.sessions, sessionID)
 		} else {
 			session.mu.RUnlock()
@@ -500,13 +515,19 @@ func (sm *SessionManager) cleanupStaleSessions() {
 
 // Shutdown gracefully shuts down the session manager
 func (sm *SessionManager) Shutdown() {
-	close(sm.cleanupDone)
-	sm.CloseAllSessions()
-	
-	// Clean up control directory
-	if sm.controlDir != "" {
-		os.RemoveAll(sm.controlDir)
-	}
+	sm.shutdownOnce.Do(func() {
+		close(sm.cleanupDone)
+
+		// Save sessions before shutdown
+		sm.savePersistentSessions()
+
+		sm.CloseAllSessions()
+
+		// Clean up control directory
+		if sm.controlDir != "" {
+			os.RemoveAll(sm.controlDir)
+		}
+	})
 }
 
 // TestNodeConnectivity tests SSH connectivity to multiple nodes
@@ -519,7 +540,7 @@ func (sm *SessionManager) TestNodeConnectivity(hostnames []string, timeout time.
 		wg.Add(1)
 		go func(host string) {
 			defer wg.Done()
-			
+
 			// Create temporary session for testing
 			session, err := sm.CreateSession(host, sm.config.Username)
 			if err != nil {
@@ -531,7 +552,7 @@ func (sm *SessionManager) TestNodeConnectivity(hostnames []string, timeout time.
 
 			// Test connection
 			_, err = sm.ExecuteCommand(session.ID, "echo 'test'")
-			
+
 			mu.Lock()
 			results[host] = err
 			mu.Unlock()
@@ -612,4 +633,104 @@ func (sm *SessionManager) MonitorSession(sessionID string, interval time.Duratio
 	}()
 
 	return statusChan, nil
+}
+
+// loadPersistentSessions loads previously saved sessions
+func (sm *SessionManager) loadPersistentSessions() {
+	if sm.persistence == nil {
+		return
+	}
+
+	sessions, err := sm.persistence.LoadSessions()
+	if err != nil {
+		// Log error but continue
+		return
+	}
+
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	for _, ps := range sessions {
+		// Check if control socket still exists
+		if _, err := os.Stat(ps.ControlPath); err == nil {
+			// Try to verify the connection is still alive
+			args := []string{"-O", "check", "-S", ps.ControlPath, ps.Hostname}
+			if err := exec.Command("ssh", args...).Run(); err == nil {
+				// Connection is still alive, restore session
+				session := &SSHSession{
+					ID:           ps.ID,
+					Hostname:     ps.Hostname,
+					Username:     ps.Username,
+					State:        SessionConnected,
+					StartTime:    ps.LastActivity, // Use last activity as start time
+					LastActivity: time.Now(),
+					ControlPath:  ps.ControlPath,
+					Tunnels:      ps.Tunnels,
+				}
+				sm.sessions[ps.ID] = session
+			}
+		}
+	}
+}
+
+// savePersistentSessions saves current sessions to disk
+func (sm *SessionManager) savePersistentSessions() {
+	if sm.persistence == nil {
+		return
+	}
+
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	// Save sessions
+	if err := sm.persistence.SaveSessions(sm.sessions); err != nil {
+		// Log error but continue
+		return
+	}
+
+	// Cleanup old data
+	sm.persistence.CleanupOldData()
+}
+
+// EnablePersistence enables session persistence with a custom data directory
+func (sm *SessionManager) EnablePersistence(dataDir string) error {
+	persistence, err := NewSessionPersistence(dataDir)
+	if err != nil {
+		return err
+	}
+
+	sm.mu.Lock()
+	sm.persistence = persistence
+	sm.mu.Unlock()
+
+	// Load any existing sessions
+	sm.loadPersistentSessions()
+
+	return nil
+}
+
+// SaveSessionTags saves user-defined tags for a session
+func (sm *SessionManager) SaveSessionTags(sessionID string, tags map[string]string) error {
+	if sm.persistence == nil {
+		return fmt.Errorf("persistence not enabled")
+	}
+
+	sm.mu.RLock()
+	_, exists := sm.sessions[sessionID]
+	sm.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("session %s not found", sessionID)
+	}
+
+	return sm.persistence.SaveSessionTags(sessionID, tags)
+}
+
+// GetSessionTags gets user-defined tags for a session
+func (sm *SessionManager) GetSessionTags(sessionID string) (map[string]string, error) {
+	if sm.persistence == nil {
+		return nil, fmt.Errorf("persistence not enabled")
+	}
+
+	return sm.persistence.LoadSessionTags(sessionID)
 }

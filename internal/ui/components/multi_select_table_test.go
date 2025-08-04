@@ -153,12 +153,12 @@ func TestMultiSelectTable_GetSelectedData(t *testing.T) {
 	table.SetMultiSelectMode(false)
 	// Simulate selecting row 1 (second row)
 	table.Table.Select(2, 0) // Row 2 in display (row 1 in data)
-	
+
 	selectedData := table.GetSelectedData()
 	if selectedData == nil {
 		t.Fatal("GetSelectedData returned nil")
 	}
-	
+
 	if len(selectedData) != 4 {
 		t.Errorf("Expected 4 columns, got %d", len(selectedData))
 	}
@@ -224,7 +224,7 @@ func TestMultiSelectTable_KeyboardShortcuts(t *testing.T) {
 	spaceEvent := tcell.NewEventKey(tcell.KeyRune, ' ', tcell.ModNone)
 	table.Table.Select(1, 0) // Select first data row for display
 	result := table.handleMultiSelectInput(spaceEvent)
-	
+
 	if result != nil {
 		t.Error("Expected space key to be handled (return nil)")
 	}
@@ -232,11 +232,11 @@ func TestMultiSelectTable_KeyboardShortcuts(t *testing.T) {
 	// Test Ctrl+A for select all
 	ctrlAEvent := tcell.NewEventKey(tcell.KeyCtrlA, 0, tcell.ModNone)
 	result = table.handleMultiSelectInput(ctrlAEvent)
-	
+
 	if result != nil {
 		t.Error("Expected Ctrl+A to be handled (return nil)")
 	}
-	
+
 	if table.GetSelectionCount() != 2 {
 		t.Errorf("Expected all rows selected after Ctrl+A, got %d", table.GetSelectionCount())
 	}
@@ -255,7 +255,7 @@ func TestMultiSelectTable_GetHints(t *testing.T) {
 	// Test hints when multi-select is enabled
 	table.SetMultiSelectMode(true)
 	hints = table.GetMultiSelectHints()
-	
+
 	if len(hints) == 0 {
 		t.Error("Expected hints when multi-select is enabled")
 	}

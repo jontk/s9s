@@ -47,7 +47,7 @@ func NewWebhookChannel(config WebhookConfig) *WebhookChannel {
 	if config.RetryCount <= 0 {
 		config.RetryCount = 3
 	}
-	
+
 	return &WebhookChannel{
 		config: config,
 		client: &http.Client{
@@ -72,7 +72,7 @@ func (w *WebhookChannel) Notify(alert *components.Alert) error {
 	if int(alert.Level) < w.config.MinAlertLevel {
 		return nil
 	}
-	
+
 	// Create payload
 	payload := WebhookPayload{
 		Timestamp:   alert.Timestamp,
@@ -84,13 +84,13 @@ func (w *WebhookChannel) Notify(alert *components.Alert) error {
 		AlertID:     alert.ID,
 		ClusterName: "S9S", // Could be made configurable
 	}
-	
+
 	// Marshal payload
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal webhook payload: %w", err)
 	}
-	
+
 	// Send with retries
 	var lastError error
 	for i := 0; i < w.config.RetryCount; i++ {
@@ -104,7 +104,7 @@ func (w *WebhookChannel) Notify(alert *components.Alert) error {
 			return nil // Success
 		}
 	}
-	
+
 	return fmt.Errorf("webhook notification failed after %d retries: %w", w.config.RetryCount, lastError)
 }
 
@@ -114,28 +114,28 @@ func (w *WebhookChannel) sendRequest(jsonData []byte) error {
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	// Set default headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "S9S/1.0")
-	
+
 	// Add custom headers
 	for key, value := range w.config.Headers {
 		req.Header.Set(key, value)
 	}
-	
+
 	// Send request
 	resp, err := w.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	// Check response status
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("webhook returned status %d", resp.StatusCode)
 	}
-	
+
 	return nil
 }
 
@@ -144,27 +144,27 @@ func (w *WebhookChannel) Configure(config map[string]interface{}) error {
 	if enabled, ok := config["enabled"].(bool); ok {
 		w.config.Enabled = enabled
 	}
-	
+
 	if url, ok := config["url"].(string); ok {
 		w.config.URL = url
 	}
-	
+
 	if minLevel, ok := config["min_alert_level"].(int); ok {
 		w.config.MinAlertLevel = minLevel
 	}
-	
+
 	if headers, ok := config["headers"].(map[string]string); ok {
 		w.config.Headers = headers
 	}
-	
+
 	if timeout, ok := config["timeout"].(int); ok {
 		w.config.Timeout = timeout
 		w.client.Timeout = time.Duration(timeout) * time.Second
 	}
-	
+
 	if retryCount, ok := config["retry_count"].(int); ok {
 		w.config.RetryCount = retryCount
 	}
-	
+
 	return nil
 }

@@ -9,23 +9,36 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/export"
+	"github.com/jontk/s9s/internal/streaming"
 	"github.com/jontk/s9s/pkg/slurm"
 	"github.com/rivo/tview"
 )
 
-// JobOutputView displays job output (stdout/stderr)
+// JobOutputView displays job output (stdout/stderr) with real-time streaming support
 type JobOutputView struct {
-	app      *tview.Application
-	pages    *tview.Pages
-	client   dao.SlurmClient
-	modal    *tview.Flex
-	textView *tview.TextView
-	jobID    string
-	jobName  string
-	outputType string // "stdout" or "stderr"
-	autoRefresh bool
+	app           *tview.Application
+	pages         *tview.Pages
+	client        dao.SlurmClient
+	modal         *tview.Flex
+	textView      *tview.TextView
+	statusBar     *tview.TextView
+	controlsPanel *tview.Flex
+	jobID         string
+	jobName       string
+	outputType    string // "stdout" or "stderr"
+	autoRefresh   bool
 	refreshTicker *time.Ticker
-	exporter *export.JobOutputExporter
+	exporter      *export.JobOutputExporter
+
+	// Streaming support
+	streamManager   *streaming.StreamManager
+	isStreaming     bool
+	autoScroll      bool
+	streamChannel   <-chan streaming.StreamEvent
+	streamStatus    string
+	outputBuffer    *streaming.CircularBuffer
+	streamToggle    *tview.Button
+	scrollToggle    *tview.Button
 }
 
 // NewJobOutputView creates a new job output view
@@ -36,12 +49,19 @@ func NewJobOutputView(client dao.SlurmClient, app *tview.Application) *JobOutput
 	if homeDir != "" {
 		defaultPath = homeDir + "/slurm_exports"
 	}
-	
+
 	return &JobOutputView{
-		client:   client,
-		app:      app,
-		exporter: export.NewJobOutputExporter(defaultPath),
+		client:      client,
+		app:         app,
+		exporter:    export.NewJobOutputExporter(defaultPath),
+		autoScroll:  true, // Default to auto-scroll
+		isStreaming: false,
 	}
+}
+
+// SetStreamManager sets the stream manager for real-time streaming
+func (v *JobOutputView) SetStreamManager(streamManager *streaming.StreamManager) {
+	v.streamManager = streamManager
 }
 
 // SetPages sets the pages manager for modal display
@@ -61,7 +81,7 @@ func (v *JobOutputView) ShowJobOutput(jobID, jobName, outputType string) {
 	v.show()
 }
 
-// buildUI creates the job output viewer interface
+// buildUI creates the job output viewer interface with streaming controls
 func (v *JobOutputView) buildUI() {
 	// Create text view for output
 	v.textView = tview.NewTextView()
@@ -72,11 +92,28 @@ func (v *JobOutputView) buildUI() {
 	v.textView.SetTitle(fmt.Sprintf(" Job %s - %s (%s) ", v.jobID, v.jobName, strings.ToUpper(v.outputType)))
 	v.textView.SetTitleAlign(tview.AlignCenter)
 
-	// Create help text
+	// Create streaming controls
+	v.buildStreamingControls()
+
+	// Create status bar
+	v.statusBar = tview.NewTextView()
+	v.statusBar.SetDynamicColors(true)
+	v.statusBar.SetText(v.getStatusText())
+	v.statusBar.SetTextAlign(tview.AlignCenter)
+
+	// Create help text with streaming commands
 	helpText := tview.NewTextView()
 	helpText.SetDynamicColors(true)
-	helpText.SetText("[yellow]Keys:[white] r=Refresh a=Auto-refresh s=Switch stdout/stderr f=Follow e=Export Esc=Close")
+	helpText.SetText("[yellow]Keys:[white] r=Refresh t=Toggle Stream a=Auto-scroll s=Switch stdout/stderr f=Follow e=Export Esc=Close")
 	helpText.SetTextAlign(tview.AlignCenter)
+
+	// Create main content area
+	contentArea := tview.NewFlex()
+	contentArea.SetDirection(tview.FlexRow)
+	contentArea.AddItem(v.controlsPanel, 1, 0, false)
+	contentArea.AddItem(v.textView, 0, 1, true)
+	contentArea.AddItem(v.statusBar, 1, 0, false)
+	contentArea.AddItem(helpText, 1, 0, false)
 
 	// Create modal container
 	v.modal = tview.NewFlex()
@@ -84,10 +121,7 @@ func (v *JobOutputView) buildUI() {
 	v.modal.AddItem(nil, 0, 1, false)
 	v.modal.AddItem(tview.NewFlex().
 		AddItem(nil, 0, 1, false).
-		AddItem(tview.NewFlex().
-			SetDirection(tview.FlexRow).
-			AddItem(v.textView, 0, 1, true).
-			AddItem(helpText, 1, 0, false), 0, 4, true).
+		AddItem(contentArea, 0, 4, true).
 		AddItem(nil, 0, 1, false), 0, 3, true)
 	v.modal.AddItem(nil, 0, 1, false)
 
@@ -99,7 +133,49 @@ func (v *JobOutputView) buildUI() {
 	v.setupEventHandlers()
 }
 
-// setupEventHandlers configures keyboard shortcuts
+// buildStreamingControls creates the streaming control panel
+func (v *JobOutputView) buildStreamingControls() {
+	v.controlsPanel = tview.NewFlex()
+	v.controlsPanel.SetDirection(tview.FlexColumn)
+
+	// Stream toggle button
+	streamText := "▶ Start Stream"
+	if v.isStreaming {
+		streamText = "⏸ Pause Stream"
+	}
+	v.streamToggle = tview.NewButton(streamText)
+	v.streamToggle.SetSelectedFunc(v.toggleStreaming)
+
+	// Auto-scroll toggle button
+	scrollText := "↓ Auto-scroll: ON"
+	if !v.autoScroll {
+		scrollText = "↓ Auto-scroll: OFF"
+	}
+	v.scrollToggle = tview.NewButton(scrollText)
+	v.scrollToggle.SetSelectedFunc(v.toggleAutoScroll)
+
+	// Export stream button
+	exportButton := tview.NewButton("💾 Export")
+	exportButton.SetSelectedFunc(func() {
+		v.exportOutput()
+	})
+
+	// Stream status indicator
+	statusIndicator := tview.NewTextView()
+	statusIndicator.SetDynamicColors(true)
+	statusIndicator.SetText(v.getStreamStatusIndicator())
+	statusIndicator.SetTextAlign(tview.AlignRight)
+
+	// Layout controls
+	v.controlsPanel.AddItem(v.streamToggle, 0, 1, false)
+	v.controlsPanel.AddItem(tview.NewBox(), 1, 0, false) // Spacer
+	v.controlsPanel.AddItem(v.scrollToggle, 0, 1, false)
+	v.controlsPanel.AddItem(tview.NewBox(), 1, 0, false) // Spacer
+	v.controlsPanel.AddItem(exportButton, 0, 1, false)
+	v.controlsPanel.AddItem(statusIndicator, 0, 2, false)
+}
+
+// setupEventHandlers configures keyboard shortcuts including streaming controls
 func (v *JobOutputView) setupEventHandlers() {
 	v.modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
@@ -111,8 +187,11 @@ func (v *JobOutputView) setupEventHandlers() {
 			case 'r', 'R':
 				v.loadOutput()
 				return nil
+			case 't', 'T':
+				v.toggleStreaming()
+				return nil
 			case 'a', 'A':
-				v.toggleAutoRefresh()
+				v.toggleAutoScroll()
 				return nil
 			case 's', 'S':
 				v.switchOutputType()
@@ -210,7 +289,7 @@ Execution time: 15 minutes 23 seconds
 Peak memory usage: 2.3 GB
 
 Job completed at: %s
-`, v.jobID, v.jobName, 
+`, v.jobID, v.jobName,
 	time.Now().Add(-25*time.Minute).Format("2006-01-02 15:04:05"),
 	time.Now().Add(-10*time.Minute).Format("2006-01-02 15:04:05"))
 }
@@ -382,7 +461,7 @@ func (v *JobOutputView) showExportResult(message, filePath string) {
 		}
 		v.pages.RemovePage("export-result")
 	})
-	
+
 	v.pages.AddPage("export-result", modal, true, true)
 }
 
@@ -437,7 +516,235 @@ func (v *JobOutputView) show() {
 // close closes the output viewer
 func (v *JobOutputView) close() {
 	v.stopAutoRefresh()
+	v.stopStreaming()
 	if v.pages != nil {
 		v.pages.RemovePage("job-output")
 	}
+}
+
+// Streaming Methods
+
+// toggleStreaming toggles real-time streaming on/off
+func (v *JobOutputView) toggleStreaming() {
+	if v.streamManager == nil {
+		v.showNotification("Streaming not available - Stream Manager not configured")
+		return
+	}
+
+	if v.isStreaming {
+		v.stopStreaming()
+	} else {
+		v.startStreaming()
+	}
+}
+
+// startStreaming begins real-time streaming
+func (v *JobOutputView) startStreaming() {
+	if v.streamManager == nil || v.isStreaming {
+		return
+	}
+
+	// Start the stream
+	err := v.streamManager.StartStream(v.jobID, v.outputType)
+	if err != nil {
+		v.showNotification(fmt.Sprintf("Failed to start streaming: %v", err))
+		return
+	}
+
+	// Subscribe to events
+	v.streamChannel = v.streamManager.Subscribe(v.jobID, v.outputType)
+	v.isStreaming = true
+	v.streamStatus = "ACTIVE"
+
+	// Update UI
+	v.updateStreamingUI()
+
+	// Start event processing
+	go v.processStreamEvents()
+
+	// Load existing buffer content
+	v.loadBufferedOutput()
+}
+
+// stopStreaming stops real-time streaming
+func (v *JobOutputView) stopStreaming() {
+	if !v.isStreaming || v.streamManager == nil {
+		return
+	}
+
+	// Stop the stream
+	err := v.streamManager.StopStream(v.jobID, v.outputType)
+	if err != nil {
+		// Log error but continue cleanup
+	}
+
+	// Unsubscribe from events
+	if v.streamChannel != nil {
+		v.streamManager.Unsubscribe(v.jobID, v.outputType, v.streamChannel)
+		v.streamChannel = nil
+	}
+
+	v.isStreaming = false
+	v.streamStatus = "STOPPED"
+
+	// Update UI
+	v.updateStreamingUI()
+}
+
+// processStreamEvents processes streaming events in a goroutine
+func (v *JobOutputView) processStreamEvents() {
+	for v.isStreaming && v.streamChannel != nil {
+		select {
+		case event, ok := <-v.streamChannel:
+			if !ok {
+				// Channel closed
+				v.isStreaming = false
+				v.app.QueueUpdateDraw(func() {
+					v.updateStreamingUI()
+				})
+				return
+			}
+
+			// Process the event
+			v.handleStreamEvent(event)
+
+		case <-time.After(1 * time.Second):
+			// Timeout - update status
+			v.app.QueueUpdateDraw(func() {
+				v.updateStreamingUI()
+			})
+		}
+	}
+}
+
+// handleStreamEvent processes a single stream event
+func (v *JobOutputView) handleStreamEvent(event streaming.StreamEvent) {
+	v.app.QueueUpdateDraw(func() {
+		switch event.EventType {
+		case streaming.StreamEventNewOutput:
+			// Append new content
+			currentText := v.textView.GetText(false)
+			newText := currentText + event.Content
+			v.textView.SetText(newText)
+
+			// Auto-scroll if enabled
+			if v.autoScroll {
+				v.textView.ScrollToEnd()
+			}
+
+		case streaming.StreamEventError:
+			v.streamStatus = fmt.Sprintf("ERROR: %v", event.Error)
+
+		case streaming.StreamEventJobComplete:
+			v.streamStatus = "COMPLETED"
+			v.stopStreaming()
+
+		case streaming.StreamEventStreamStop:
+			v.streamStatus = "STOPPED"
+			v.isStreaming = false
+		}
+
+		v.updateStreamingUI()
+	})
+}
+
+// loadBufferedOutput loads existing content from the stream buffer
+func (v *JobOutputView) loadBufferedOutput() {
+	if v.streamManager == nil {
+		return
+	}
+
+	go func() {
+		lines, err := v.streamManager.GetBuffer(v.jobID, v.outputType)
+		if err != nil {
+			return
+		}
+
+		if len(lines) > 0 {
+			content := strings.Join(lines, "\n")
+			v.app.QueueUpdateDraw(func() {
+				v.textView.SetText(content)
+				if v.autoScroll {
+					v.textView.ScrollToEnd()
+				}
+			})
+		}
+	}()
+}
+
+// toggleAutoScroll toggles auto-scrolling behavior
+func (v *JobOutputView) toggleAutoScroll() {
+	v.autoScroll = !v.autoScroll
+	v.updateStreamingUI()
+
+	if v.autoScroll {
+		v.textView.ScrollToEnd()
+	}
+}
+
+// updateStreamingUI updates the streaming-related UI elements
+func (v *JobOutputView) updateStreamingUI() {
+	if v.streamToggle != nil {
+		if v.isStreaming {
+			v.streamToggle.SetLabel("⏸ Pause Stream")
+		} else {
+			v.streamToggle.SetLabel("▶ Start Stream")
+		}
+	}
+
+	if v.scrollToggle != nil {
+		if v.autoScroll {
+			v.scrollToggle.SetLabel("↓ Auto-scroll: ON")
+		} else {
+			v.scrollToggle.SetLabel("↓ Auto-scroll: OFF")
+		}
+	}
+
+	if v.statusBar != nil {
+		v.statusBar.SetText(v.getStatusText())
+	}
+
+	// Update title with streaming status
+	titleSuffix := ""
+	if v.isStreaming {
+		titleSuffix = " [●LIVE]"
+	}
+	v.textView.SetTitle(fmt.Sprintf(" Job %s - %s (%s)%s ", v.jobID, v.jobName, strings.ToUpper(v.outputType), titleSuffix))
+}
+
+// getStatusText returns the current status text
+func (v *JobOutputView) getStatusText() string {
+	if v.streamManager == nil {
+		return "[gray]Streaming not available[white]"
+	}
+
+	if v.isStreaming {
+		bufferInfo := ""
+		if v.outputBuffer != nil {
+			stats := v.outputBuffer.GetStats()
+			bufferInfo = fmt.Sprintf(" | Buffer: %d/%d lines (%.1f%%)", stats.CurrentSize, stats.Capacity, stats.UsagePercent)
+		}
+
+		lastUpdate := ""
+		if v.streamStatus != "" {
+			lastUpdate = fmt.Sprintf(" | Status: %s", v.streamStatus)
+		}
+
+		return fmt.Sprintf("[green]●[white] Streaming ACTIVE%s%s", bufferInfo, lastUpdate)
+	}
+
+	return "[gray]●[white] Streaming stopped | Press 't' to start streaming"
+}
+
+// getStreamStatusIndicator returns the stream status indicator
+func (v *JobOutputView) getStreamStatusIndicator() string {
+	if v.streamManager == nil {
+		return "[gray]No Streaming[white]"
+	}
+
+	if v.isStreaming {
+		return "[green]● LIVE[white]"
+	}
+
+	return "[gray]● STOPPED[white]"
 }

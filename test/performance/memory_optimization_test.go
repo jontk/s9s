@@ -126,12 +126,12 @@ func testBatchExportMemory(t *testing.T, useOptimized bool) {
 
 	// Performance assertions
 	memoryPerJob := allocatedMemory / uint64(jobCount)
-	
+
 	if useOptimized {
 		// Optimized version should use less memory per job
 		maxMemoryPerJobOptimized := uint64(50 * 1024) // 50KB per job max
 		if memoryPerJob > maxMemoryPerJobOptimized {
-			t.Errorf("Optimized export uses too much memory per job: %s (max: %s)", 
+			t.Errorf("Optimized export uses too much memory per job: %s (max: %s)",
 				formatBytes(int64(memoryPerJob)), formatBytes(int64(maxMemoryPerJobOptimized)))
 		}
 	} else {
@@ -243,7 +243,7 @@ Loading input dataset (15.7 GB)...
   - Estimated time remaining: %dm %ds
   - Intermediate results written to batch_%d.tmp
 
-`, time.Now().Add(time.Duration(i)*time.Minute).Format("15:04:05"), 
+`, time.Now().Add(time.Duration(i)*time.Minute).Format("15:04:05"),
 		i, i, 1000+i*10, 12800, 100-i, (100-i)*2, i)
 	}
 
@@ -282,13 +282,13 @@ Exit: 0
 
 Results:
 - Input: 2.1 GB processed
-- Output: 987 MB generated  
+- Output: 987 MB generated
 - CPU: 92.1%% efficiency
 - Memory: 4.1 GB peak
 
 Files: results_%s.dat (987MB)
-Status: SUCCESS`, 
-		jobID, 
+Status: SUCCESS`,
+		jobID,
 		time.Now().Format("15:04:05"),
 		jobID)
 }

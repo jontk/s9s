@@ -66,10 +66,10 @@ func (v *NodesView) SetApp(app *tview.Application) {
 
 	// Create global search
 	v.globalSearch = NewGlobalSearch(v.client, app)
-	
+
 	// Initialize SSH client with default configuration
 	v.sshClient = ssh.NewSSHClient(ssh.DefaultSSHConfig())
-	
+
 	// Initialize SSH terminal view
 	v.sshTerminal = NewSSHTerminalView(app)
 	if v.pages != nil {
@@ -867,10 +867,10 @@ func (v *NodesView) testSSHConnection(nodeName string) {
 		defer cancel()
 
 		err := v.sshClient.TestConnection(ctx, nodeName)
-		
+
 		v.app.QueueUpdateDraw(func() {
 			v.pages.RemovePage("progress")
-			
+
 			if err != nil {
 				v.showError(fmt.Sprintf("SSH connection failed: %v", err))
 			} else {
@@ -889,10 +889,10 @@ func (v *NodesView) getNodeInfoViaSSH(nodeName string) {
 		defer cancel()
 
 		info, err := v.sshClient.GetNodeInfo(ctx, nodeName)
-		
+
 		v.app.QueueUpdateDraw(func() {
 			v.pages.RemovePage("progress")
-			
+
 			if err != nil {
 				v.showError(fmt.Sprintf("Failed to get node info: %v", err))
 			} else {
@@ -1282,7 +1282,7 @@ func (v *NodesView) showSSHTerminalManager(nodeName string) {
 
 	// Set the available nodes
 	v.sshTerminal.SetNodes(nodeNames)
-	
+
 	// Show the SSH terminal interface with the selected node
 	v.sshTerminal.ShowSSHInterface(nodeName)
 }

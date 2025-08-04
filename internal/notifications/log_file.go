@@ -44,10 +44,10 @@ func (l *LogFileChannel) Configure(config map[string]interface{}) error {
 	if enabled, ok := config["enabled"].(bool); ok {
 		l.config.Enabled = enabled
 	}
-	
+
 	if logPath, ok := config["log_path"].(string); ok {
 		l.config.LogPath = logPath
 	}
-	
+
 	return nil
 }

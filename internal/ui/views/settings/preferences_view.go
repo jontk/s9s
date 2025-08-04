@@ -31,7 +31,7 @@ func NewPreferencesView(prefs *preferences.UserPreferences, app *tview.Applicati
 		app:   app,
 		pages: pages,
 	}
-	
+
 	pv.buildUI()
 	return pv
 }
@@ -41,25 +41,25 @@ func (pv *PreferencesView) buildUI() {
 	// Create tree view for categories
 	pv.tree = tview.NewTreeView()
 	pv.tree.SetBorder(true).SetTitle(" Categories ")
-	
+
 	// Build category tree
 	pv.buildCategoryTree()
-	
+
 	// Create form for settings
 	pv.form = tview.NewForm()
 	pv.form.SetBorder(true).SetTitle(" Settings ")
-	
+
 	// Show general settings by default
 	pv.showGeneralSettings()
-	
+
 	// Create layout
 	pv.layout = tview.NewFlex().
 		AddItem(pv.tree, 30, 0, true).
 		AddItem(pv.form, 0, 1, false)
-	
+
 	// Handle tree selection
 	pv.tree.SetSelectedFunc(pv.onCategorySelected)
-	
+
 	// Handle keyboard shortcuts
 	pv.layout.SetInputCapture(pv.handleKeyboard)
 }
@@ -69,37 +69,37 @@ func (pv *PreferencesView) buildCategoryTree() {
 	root := tview.NewTreeNode("Preferences")
 	pv.rootNode = root
 	pv.tree.SetRoot(root).SetCurrentNode(root)
-	
+
 	// General category
 	general := tview.NewTreeNode("General").
 		SetReference("general").
 		SetSelectable(true)
 	root.AddChild(general)
-	
+
 	// Display category
 	display := tview.NewTreeNode("Display").
 		SetReference("display").
 		SetSelectable(true)
 	root.AddChild(display)
-	
+
 	// Colors category
 	colors := tview.NewTreeNode("Colors & Theme").
 		SetReference("colors").
 		SetSelectable(true)
 	root.AddChild(colors)
-	
+
 	// Key Bindings category
 	keybindings := tview.NewTreeNode("Key Bindings").
 		SetReference("keybindings").
 		SetSelectable(true)
 	root.AddChild(keybindings)
-	
+
 	// Views category
 	views := tview.NewTreeNode("View Settings").
 		SetReference("views").
 		SetSelectable(true)
 	root.AddChild(views)
-	
+
 	// Add view subcategories
 	viewNames := []string{"Jobs", "Nodes", "Partitions", "Reservations", "QoS", "Accounts", "Users", "Health"}
 	for _, name := range viewNames {
@@ -108,31 +108,31 @@ func (pv *PreferencesView) buildCategoryTree() {
 			SetSelectable(true)
 		views.AddChild(child)
 	}
-	
+
 	// Filters category
 	filters := tview.NewTreeNode("Filters & Search").
 		SetReference("filters").
 		SetSelectable(true)
 	root.AddChild(filters)
-	
+
 	// Job Submission category
 	jobsub := tview.NewTreeNode("Job Submission").
 		SetReference("jobsubmission").
 		SetSelectable(true)
 	root.AddChild(jobsub)
-	
+
 	// Alerts category
 	alerts := tview.NewTreeNode("Alerts").
 		SetReference("alerts").
 		SetSelectable(true)
 	root.AddChild(alerts)
-	
+
 	// Performance category
 	performance := tview.NewTreeNode("Performance").
 		SetReference("performance").
 		SetSelectable(true)
 	root.AddChild(performance)
-	
+
 	// Expand root by default
 	root.SetExpanded(true)
 }
@@ -143,12 +143,12 @@ func (pv *PreferencesView) onCategorySelected(node *tview.TreeNode) {
 	if ref == nil {
 		return
 	}
-	
+
 	category := ref.(string)
-	
+
 	// Clear form
 	pv.form.Clear(true)
-	
+
 	switch category {
 	case "general":
 		pv.showGeneralSettings()
@@ -172,7 +172,7 @@ func (pv *PreferencesView) onCategorySelected(node *tview.TreeNode) {
 			pv.showViewSettings(viewName)
 		}
 	}
-	
+
 	// Add save/cancel buttons
 	pv.form.
 		AddButton("Save", pv.save).
@@ -183,27 +183,27 @@ func (pv *PreferencesView) onCategorySelected(node *tview.TreeNode) {
 // showGeneralSettings shows general preferences
 func (pv *PreferencesView) showGeneralSettings() {
 	prefs := pv.prefs.Get()
-	
+
 	pv.form.
 		AddCheckbox("Auto Refresh", prefs.General.AutoRefresh, nil).
 		AddInputField("Refresh Interval", prefs.General.RefreshInterval, 20, nil, nil).
-		AddDropDown("Theme", []string{"default", "dark", "light"}, 
+		AddDropDown("Theme", []string{"default", "dark", "light"},
 			pv.getThemeIndex(prefs.General.Theme), nil).
 		AddInputField("Date Format", prefs.General.DateFormat, 30, nil, nil).
 		AddCheckbox("Show Relative Time", prefs.General.RelativeTime, nil).
 		AddCheckbox("Confirm on Exit", prefs.General.ConfirmOnExit, nil).
 		AddCheckbox("Show Welcome Screen", prefs.General.ShowWelcome, nil).
-		AddDropDown("Default View", []string{"jobs", "nodes", "partitions", "reservations", "qos", "accounts", "users", "health"}, 
+		AddDropDown("Default View", []string{"jobs", "nodes", "partitions", "reservations", "qos", "accounts", "users", "health"},
 			pv.getViewIndex(prefs.General.DefaultView), nil).
 		AddCheckbox("Save Window Size", prefs.General.SaveWindowSize, nil)
-		
+
 	pv.form.SetTitle(" General Settings ")
 }
 
 // showDisplaySettings shows display preferences
 func (pv *PreferencesView) showDisplaySettings() {
 	prefs := pv.prefs.Get()
-	
+
 	pv.form.
 		AddCheckbox("Show Header", prefs.Display.ShowHeader, nil).
 		AddCheckbox("Show Status Bar", prefs.Display.ShowStatusBar, nil).
@@ -214,39 +214,39 @@ func (pv *PreferencesView) showDisplaySettings() {
 		AddCheckbox("Highlight Changes", prefs.Display.HighlightChanges, nil).
 		AddCheckbox("Truncate Long Text", prefs.Display.TruncateLongText, nil).
 		AddInputField("Max Column Width", strconv.Itoa(prefs.Display.MaxColumnWidth), 10, nil, nil).
-		AddDropDown("Time Zone", []string{"Local", "UTC"}, 
+		AddDropDown("Time Zone", []string{"Local", "UTC"},
 			pv.getTimeZoneIndex(prefs.Display.TimeZone), nil)
-			
+
 	pv.form.SetTitle(" Display Settings ")
 }
 
 // showColorSettings shows color preferences
 func (pv *PreferencesView) showColorSettings() {
 	prefs := pv.prefs.Get()
-	
+
 	schemes := []string{"default", "solarized", "monokai", "dracula", "nord"}
 	colorBlindModes := []string{"None", "Protanopia", "Deuteranopia", "Tritanopia"}
-	
+
 	pv.form.
-		AddDropDown("Color Scheme", schemes, 
+		AddDropDown("Color Scheme", schemes,
 			pv.getSchemeIndex(prefs.Colors.Scheme), nil).
 		AddCheckbox("High Contrast", prefs.Colors.HighContrast, nil).
-		AddDropDown("Color Blind Mode", colorBlindModes, 
+		AddDropDown("Color Blind Mode", colorBlindModes,
 			pv.getColorBlindIndex(prefs.Colors.ColorBlindMode), nil).
 		AddCheckbox("Syntax Highlighting", prefs.Colors.SyntaxHighlight, nil)
-		
+
 	pv.form.SetTitle(" Color & Theme Settings ")
 }
 
 // showKeyBindings shows key binding preferences
 func (pv *PreferencesView) showKeyBindings() {
 	prefs := pv.prefs.Get()
-	
-	pv.form.AddTextView("Info", 
+
+	pv.form.AddTextView("Info",
 		"[yellow]Key bindings can be customized below.[white]\n"+
-		"Format: Single key (q) or modifier+key (Ctrl+s)", 
+		"Format: Single key (q) or modifier+key (Ctrl+s)",
 		0, 3, true, false)
-	
+
 	// Common actions
 	actions := []struct {
 		name   string
@@ -266,37 +266,37 @@ func (pv *PreferencesView) showKeyBindings() {
 		{"New", "new"},
 		{"Save", "save"},
 	}
-	
+
 	for _, a := range actions {
 		binding := prefs.KeyBindings[a.action]
 		pv.form.AddInputField(a.name, binding, 20, nil, nil)
 	}
-	
+
 	pv.form.SetTitle(" Key Bindings ")
 }
 
 // showFilterSettings shows filter preferences
 func (pv *PreferencesView) showFilterSettings() {
 	prefs := pv.prefs.Get()
-	
+
 	operators := []string{"contains", "equals", "starts with", "ends with", "regex"}
-	
+
 	pv.form.
 		AddCheckbox("Save Filter History", prefs.Filters.SaveHistory, nil).
 		AddInputField("History Size", strconv.Itoa(prefs.Filters.HistorySize), 10, nil, nil).
-		AddDropDown("Default Operator", operators, 
+		AddDropDown("Default Operator", operators,
 			pv.getOperatorIndex(prefs.Filters.DefaultOperator), nil).
 		AddCheckbox("Case Sensitive", prefs.Filters.CaseSensitive, nil).
 		AddCheckbox("Use Regular Expressions", prefs.Filters.UseRegex, nil).
 		AddCheckbox("Show Advanced Options", prefs.Filters.ShowAdvanced, nil)
-		
+
 	pv.form.SetTitle(" Filter & Search Settings ")
 }
 
 // showJobSubmissionSettings shows job submission preferences
 func (pv *PreferencesView) showJobSubmissionSettings() {
 	prefs := pv.prefs.Get()
-	
+
 	pv.form.
 		AddCheckbox("Save Submission History", prefs.JobSubmission.SaveHistory, nil).
 		AddInputField("History Size", strconv.Itoa(prefs.JobSubmission.HistorySize), 10, nil, nil).
@@ -304,33 +304,33 @@ func (pv *PreferencesView) showJobSubmissionSettings() {
 		AddCheckbox("Show Advanced Options", prefs.JobSubmission.ShowAdvancedOptions, nil).
 		AddCheckbox("Auto Suggest", prefs.JobSubmission.AutoSuggest, nil).
 		AddInputField("Default Template", prefs.JobSubmission.DefaultTemplate, 30, nil, nil)
-		
+
 	pv.form.SetTitle(" Job Submission Settings ")
 }
 
 // showAlertSettings shows alert preferences
 func (pv *PreferencesView) showAlertSettings() {
 	prefs := pv.prefs.Get()
-	
+
 	positions := []string{"top-right", "top-left", "bottom-right", "bottom-left"}
-	
+
 	pv.form.
 		AddCheckbox("Show Alert Badge", prefs.Alerts.ShowBadge, nil).
-		AddDropDown("Badge Position", positions, 
+		AddDropDown("Badge Position", positions,
 			pv.getBadgePositionIndex(prefs.Alerts.BadgePosition), nil).
 		AddCheckbox("Auto Dismiss Info Alerts", prefs.Alerts.AutoDismissInfo, nil).
 		AddInputField("Info Dismiss Time", prefs.Alerts.InfoDismissTime, 10, nil, nil).
 		AddCheckbox("Play Sound", prefs.Alerts.PlaySound, nil).
 		AddCheckbox("Flash Window", prefs.Alerts.FlashWindow, nil).
 		AddCheckbox("Show Desktop Notifications", prefs.Alerts.ShowDesktopNotif, nil)
-		
+
 	pv.form.SetTitle(" Alert Settings ")
 }
 
 // showPerformanceSettings shows performance preferences
 func (pv *PreferencesView) showPerformanceSettings() {
 	prefs := pv.prefs.Get()
-	
+
 	pv.form.
 		AddCheckbox("Enable Lazy Loading", prefs.Performance.LazyLoading, nil).
 		AddInputField("Cache Size (MB)", strconv.Itoa(prefs.Performance.CacheSize), 10, nil, nil).
@@ -338,23 +338,23 @@ func (pv *PreferencesView) showPerformanceSettings() {
 		AddInputField("Request Timeout", prefs.Performance.RequestTimeout, 10, nil, nil).
 		AddCheckbox("Enable Profiling", prefs.Performance.EnableProfiling, nil).
 		AddCheckbox("Debug Mode", prefs.Performance.DebugMode, nil)
-		
+
 	pv.form.SetTitle(" Performance Settings ")
 }
 
 // showViewSettings shows settings for a specific view
 func (pv *PreferencesView) showViewSettings(viewName string) {
 	settings := pv.prefs.GetViewSettings(viewName)
-	
+
 	pv.form.
 		AddInputField("Sort Column", settings.SortColumn, 20, nil, nil).
-		AddDropDown("Sort Order", []string{"asc", "desc"}, 
+		AddDropDown("Sort Order", []string{"asc", "desc"},
 			pv.getSortOrderIndex(settings.SortOrder), nil).
 		AddCheckbox("Show Details", settings.ShowDetails, nil).
 		AddCheckbox("Auto Expand Groups", settings.AutoExpandGroups, nil).
 		AddInputField("Page Size", strconv.Itoa(settings.PageSize), 10, nil, nil).
 		AddInputField("Group By", settings.GroupBy, 20, nil, nil)
-		
+
 	pv.form.SetTitle(fmt.Sprintf(" %s View Settings ", strings.Title(viewName)))
 }
 
@@ -366,17 +366,17 @@ func (pv *PreferencesView) save() {
 		// and update the preferences structure
 		return nil
 	})
-	
+
 	if err != nil {
 		pv.showError(fmt.Sprintf("Failed to save preferences: %v", err))
 		return
 	}
-	
+
 	pv.modified = false
 	if pv.onSave != nil {
 		pv.onSave()
 	}
-	
+
 	// Close preferences
 	if pv.pages != nil {
 		pv.pages.RemovePage("preferences")
@@ -559,7 +559,7 @@ func (pv *PreferencesView) SetOnCancel(fn func()) {
 // ShowPreferences displays the preferences modal
 func ShowPreferences(pages *tview.Pages, app *tview.Application, prefs *preferences.UserPreferences) {
 	prefsView := NewPreferencesView(prefs, app, pages)
-	
+
 	// Create modal layout
 	modal := tview.NewFlex().
 		SetDirection(tview.FlexRow).
@@ -569,10 +569,10 @@ func ShowPreferences(pages *tview.Pages, app *tview.Application, prefs *preferen
 			AddItem(prefsView.GetView(), 100, 0, true).
 			AddItem(nil, 0, 1, false), 0, 8, true).
 		AddItem(nil, 0, 1, false)
-	
+
 	modal.SetBorder(true).
 		SetTitle(" User Preferences ").
 		SetTitleAlign(tview.AlignCenter)
-	
+
 	pages.AddPage("preferences", modal, true, true)
 }

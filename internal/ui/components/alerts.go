@@ -56,10 +56,10 @@ func NewAlertsManager(maxAlerts int) *AlertsManager {
 		listeners:   make([]func(*Alert), 0),
 		dismissChan: make(chan string, 10),
 	}
-	
+
 	// Start auto-dismiss routine
 	go am.autoDismissRoutine()
-	
+
 	return am
 }
 
@@ -74,33 +74,33 @@ func (am *AlertsManager) SetNotifier(notifier AlertNotifier) {
 func (am *AlertsManager) AddAlert(alert *Alert) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
-	
+
 	// Generate ID if not provided
 	if alert.ID == "" {
 		alert.ID = fmt.Sprintf("%s-%d", alert.Source, time.Now().UnixNano())
 	}
-	
+
 	// Set timestamp
 	alert.Timestamp = time.Now()
-	
+
 	// Add to beginning of slice (newest first)
 	am.alerts = append([]*Alert{alert}, am.alerts...)
-	
+
 	// Trim if over max
 	if len(am.alerts) > am.maxAlerts {
 		am.alerts = am.alerts[:am.maxAlerts]
 	}
-	
+
 	// Notify listeners
 	for _, listener := range am.listeners {
 		go listener(alert)
 	}
-	
+
 	// Send notification through notifier
 	if am.notifier != nil && !alert.Acknowledged {
 		go am.notifier.Notify(alert)
 	}
-	
+
 	// Schedule auto-dismiss if enabled
 	if alert.AutoDismiss && alert.DismissAfter > 0 {
 		go func() {
@@ -114,7 +114,7 @@ func (am *AlertsManager) AddAlert(alert *Alert) {
 func (am *AlertsManager) GetAlerts() []*Alert {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
-	
+
 	// Return copy to prevent external modification
 	alerts := make([]*Alert, len(am.alerts))
 	copy(alerts, am.alerts)
@@ -125,7 +125,7 @@ func (am *AlertsManager) GetAlerts() []*Alert {
 func (am *AlertsManager) GetUnacknowledgedAlerts() []*Alert {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
-	
+
 	var unacked []*Alert
 	for _, alert := range am.alerts {
 		if !alert.Acknowledged {
@@ -139,7 +139,7 @@ func (am *AlertsManager) GetUnacknowledgedAlerts() []*Alert {
 func (am *AlertsManager) AcknowledgeAlert(id string) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
-	
+
 	for _, alert := range am.alerts {
 		if alert.ID == id {
 			alert.Acknowledged = true
@@ -152,7 +152,7 @@ func (am *AlertsManager) AcknowledgeAlert(id string) {
 func (am *AlertsManager) DismissAlert(id string) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
-	
+
 	for i, alert := range am.alerts {
 		if alert.ID == id {
 			am.alerts = append(am.alerts[:i], am.alerts[i+1:]...)
@@ -165,7 +165,7 @@ func (am *AlertsManager) DismissAlert(id string) {
 func (am *AlertsManager) ClearAllAlerts() {
 	am.mu.Lock()
 	defer am.mu.Unlock()
-	
+
 	am.alerts = make([]*Alert, 0)
 }
 
@@ -173,7 +173,7 @@ func (am *AlertsManager) ClearAllAlerts() {
 func (am *AlertsManager) OnAlert(listener func(*Alert)) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
-	
+
 	am.listeners = append(am.listeners, listener)
 }
 
@@ -205,7 +205,7 @@ func (am *AlertsManager) CheckClusterHealth(health *monitoring.ClusterHealth) {
 			DismissAfter: 10 * time.Minute,
 		})
 	}
-	
+
 	// Check individual health checks
 	for _, check := range health.Checks {
 		switch check.Status {
@@ -227,7 +227,7 @@ func (am *AlertsManager) CheckClusterHealth(health *monitoring.ClusterHealth) {
 			})
 		}
 	}
-	
+
 	// Check for issues
 	for _, issue := range health.Issues {
 		if !issue.Resolved {
@@ -238,7 +238,7 @@ func (am *AlertsManager) CheckClusterHealth(health *monitoring.ClusterHealth) {
 			case monitoring.HealthStatusWarning:
 				level = AlertWarning
 			}
-			
+
 			am.AddAlert(&Alert{
 				ID:      issue.ID,
 				Level:   level,
@@ -269,60 +269,60 @@ func NewAlertsView(manager *AlertsManager, app *tview.Application) *AlertsView {
 		detailView: tview.NewTextView(),
 		app:        app,
 	}
-	
+
 	// Configure list
 	av.list.SetBorder(true).SetTitle(" Alerts ")
 	av.list.SetSelectedFunc(av.onAlertSelected)
 	av.list.SetChangedFunc(av.onAlertChanged)
-	
+
 	// Configure detail view
 	av.detailView.SetBorder(true).SetTitle(" Alert Details ")
 	av.detailView.SetDynamicColors(true)
 	av.detailView.SetWordWrap(true)
-	
+
 	// Create layout
 	av.flex = tview.NewFlex().
 		AddItem(av.list, 0, 1, true).
 		AddItem(av.detailView, 0, 2, false)
-	
+
 	// Refresh alerts
 	av.refreshAlerts()
-	
+
 	return av
 }
 
 // refreshAlerts updates the alerts list
 func (av *AlertsView) refreshAlerts() {
 	av.list.Clear()
-	
+
 	alerts := av.manager.GetAlerts()
 	if len(alerts) == 0 {
 		av.list.AddItem("No alerts", "", 0, nil)
 		av.detailView.SetText("[gray]No alerts to display[white]")
 		return
 	}
-	
+
 	for _, alert := range alerts {
 		icon := av.getAlertIcon(alert.Level)
 		color := av.getAlertColor(alert.Level)
-		
+
 		title := fmt.Sprintf("%s %s", icon, alert.Title)
 		if alert.Acknowledged {
 			title = fmt.Sprintf("%s (ack)", title)
 		}
-		
+
 		secondary := fmt.Sprintf("%s - %s", alert.Source, alert.Timestamp.Format("15:04:05"))
-		
+
 		av.list.AddItem(title, secondary, 0, nil).
 			SetItemText(av.list.GetItemCount()-1, title, secondary).
 			ShowSecondaryText(true)
-		
+
 		// Set color based on level
-		av.list.SetItemText(av.list.GetItemCount()-1, 
-			fmt.Sprintf("[%s]%s[white]", color, title), 
+		av.list.SetItemText(av.list.GetItemCount()-1,
+			fmt.Sprintf("[%s]%s[white]", color, title),
 			fmt.Sprintf("[gray]%s[white]", secondary))
 	}
-	
+
 	// Show first alert details
 	if len(alerts) > 0 {
 		av.showAlertDetails(alerts[0])
@@ -366,7 +366,7 @@ func (av *AlertsView) onAlertSelected(index int, mainText, secondaryText string,
 	alerts := av.manager.GetAlerts()
 	if index >= 0 && index < len(alerts) {
 		alert := alerts[index]
-		
+
 		// Mark as acknowledged
 		if !alert.Acknowledged {
 			av.manager.AcknowledgeAlert(alert.ID)
@@ -387,7 +387,7 @@ func (av *AlertsView) onAlertChanged(index int, mainText, secondaryText string, 
 func (av *AlertsView) showAlertDetails(alert *Alert) {
 	color := av.getAlertColor(alert.Level)
 	levelStr := av.getLevelString(alert.Level)
-	
+
 	details := fmt.Sprintf(`[%s]%s Alert[white]
 
 [yellow]Title:[white] %s
@@ -409,7 +409,7 @@ func (av *AlertsView) showAlertDetails(alert *Alert) {
 		alert.Message,
 		alert.ID,
 	)
-	
+
 	av.detailView.SetText(details)
 }
 
@@ -518,28 +518,28 @@ func NewAlertsBadge(manager *AlertsManager) *AlertsBadge {
 		manager: manager,
 		text:    tview.NewTextView(),
 	}
-	
+
 	badge.text.SetDynamicColors(true)
 	badge.text.SetTextAlign(tview.AlignCenter)
 	badge.update()
-	
+
 	// Listen for new alerts
 	manager.OnAlert(func(alert *Alert) {
 		badge.update()
 	})
-	
+
 	return badge
 }
 
 // update refreshes the badge display
 func (ab *AlertsBadge) update() {
 	unacked := ab.manager.GetUnacknowledgedAlerts()
-	
+
 	if len(unacked) == 0 {
 		ab.text.SetText("")
 		return
 	}
-	
+
 	// Determine highest severity
 	highestLevel := AlertInfo
 	for _, alert := range unacked {
@@ -547,7 +547,7 @@ func (ab *AlertsBadge) update() {
 			highestLevel = alert.Level
 		}
 	}
-	
+
 	// Set color based on highest severity
 	var color string
 	switch highestLevel {
@@ -560,7 +560,7 @@ func (ab *AlertsBadge) update() {
 	default:
 		color = "cyan"
 	}
-	
+
 	// Display count
 	ab.text.SetText(fmt.Sprintf("[%s]🔔 %d[white]", color, len(unacked)))
 }

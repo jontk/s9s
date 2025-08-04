@@ -17,13 +17,13 @@ type SSHTerminalView struct {
 	app            *tview.Application
 	pages          *tview.Pages
 	sessionManager *ssh.SessionManager
-	
+
 	// UI components
 	modal          *tview.Flex
 	sessionList    *tview.List
 	nodeInfoView   *tview.TextView
 	statusBar      *tview.TextView
-	
+
 	// State
 	selectedNode   string
 	activeSession  *ssh.SSHSession
@@ -160,9 +160,9 @@ func (v *SSHTerminalView) updateNodeList() {
 		sessions := v.sessionManager.GetSessions()
 		for _, session := range sessions {
 			status := session.State.String()
-			secondary := fmt.Sprintf("User: %s | Status: %s | Started: %s", 
+			secondary := fmt.Sprintf("User: %s | Status: %s | Started: %s",
 				session.Username, status, session.StartTime.Format("15:04:05"))
-			
+
 			sessionCopy := session // Capture for closure
 			v.sessionList.AddItem(
 				fmt.Sprintf("🔗 %s", session.Hostname),
@@ -240,7 +240,7 @@ func (v *SSHTerminalView) setupEventHandlers() {
 		}
 		return event
 	})
-	
+
 	// Handle session list selection
 	v.sessionList.SetSelectedFunc(func(index int, primaryText, secondaryText string, shortcut rune) {
 		v.connectToSelectedNode()
@@ -429,16 +429,16 @@ func (v *SSHTerminalView) loadNodeInfo(hostname string) {
 	info := fmt.Sprintf("[yellow]Node Information[white]\n\n")
 	info += fmt.Sprintf("[cyan]Hostname:[white] %s\n", hostname)
 	info += fmt.Sprintf("[cyan]Status:[white] %s\n", v.getNodeStatus(hostname))
-	
+
 	if v.activeSession != nil && v.activeSession.Hostname == hostname {
 		info += fmt.Sprintf("[cyan]Session ID:[white] %s\n", v.activeSession.ID)
 		info += fmt.Sprintf("[cyan]Connected Since:[white] %s\n", v.activeSession.StartTime.Format("2006-01-02 15:04:05"))
 		info += fmt.Sprintf("[cyan]Last Activity:[white] %s\n", v.activeSession.LastActivity.Format("15:04:05"))
-		
+
 		if len(v.activeSession.Tunnels) > 0 {
 			info += fmt.Sprintf("\n[cyan]Active Tunnels:[white]\n")
 			for _, tunnel := range v.activeSession.Tunnels {
-				info += fmt.Sprintf("  %s:%d -> %s:%d (%s)\n", 
+				info += fmt.Sprintf("  %s:%d -> %s:%d (%s)\n",
 					"localhost", tunnel.LocalPort, tunnel.RemoteHost, tunnel.RemotePort, tunnel.Type)
 			}
 		}
@@ -536,16 +536,16 @@ func (v *SSHTerminalView) connectToNode(hostname, username string) {
 // fallbackSSHConnection uses basic SSH when session manager is not available
 func (v *SSHTerminalView) fallbackSSHConnection(hostname string) {
 	v.updateStatus(fmt.Sprintf("[yellow]Connecting to %s (basic SSH)...[white]", hostname))
-	
+
 	v.close()
-	
+
 	// Use basic SSH connection
 	go func() {
 		cmd := exec.Command("ssh", hostname)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		
+
 		if err := cmd.Run(); err != nil {
 			v.app.QueueUpdateDraw(func() {
 				v.showErrorModal(fmt.Sprintf("SSH connection failed: %v", err))

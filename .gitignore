@@ -27,3 +27,5 @@ hive-mind-prompt-*.txt
 .claude-flow/
 CLAUDE.md
 memory/
+docs/
+s9s

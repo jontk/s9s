@@ -100,7 +100,7 @@ func (h *Header) updateDisplay() {
 	// Add current time
 	now := time.Now()
 	content.WriteString(fmt.Sprintf(" | %s", now.Format("15:04:05")))
-	
+
 	// Add alerts badge if available
 	if h.alertsBadge != nil {
 		h.alertsBadge.update()

@@ -27,14 +27,14 @@ func NewDesktopNotifyChannel(config DesktopNotifyConfig) *DesktopNotifyChannel {
 	if config.Timeout <= 0 {
 		config.Timeout = 10
 	}
-	
+
 	channel := &DesktopNotifyChannel{
 		config: config,
 	}
-	
+
 	// Check if desktop notifications are available
 	channel.checkAvailability()
-	
+
 	return channel
 }
 
@@ -74,15 +74,15 @@ func (d *DesktopNotifyChannel) Notify(alert *components.Alert) error {
 	if int(alert.Level) < d.config.MinAlertLevel {
 		return nil
 	}
-	
+
 	// Check availability
 	if !d.available {
 		return fmt.Errorf("desktop notifications not available on this system")
 	}
-	
+
 	// Get icon based on alert level
 	icon := d.getIcon(alert.Level)
-	
+
 	// Send notification based on platform
 	switch runtime.GOOS {
 	case "linux":
@@ -101,16 +101,16 @@ func (d *DesktopNotifyChannel) notifyLinux(alert *components.Alert, icon string)
 		"-t", fmt.Sprintf("%d000", d.config.Timeout), // Convert to milliseconds
 		"-a", "S9S",
 	}
-	
+
 	if icon != "" {
 		args = append(args, "-i", icon)
 	}
-	
-	args = append(args, 
+
+	args = append(args,
 		fmt.Sprintf("S9S Alert: %s", alert.Title),
 		alert.Message,
 	)
-	
+
 	cmd := exec.Command("notify-send", args...)
 	return cmd.Run()
 }
@@ -119,7 +119,7 @@ func (d *DesktopNotifyChannel) notifyLinux(alert *components.Alert, icon string)
 func (d *DesktopNotifyChannel) notifyMacOS(alert *components.Alert) error {
 	script := fmt.Sprintf(`display notification "%s" with title "S9S Alert: %s" sound name "Glass"`,
 		alert.Message, alert.Title)
-	
+
 	cmd := exec.Command("osascript", "-e", script)
 	return cmd.Run()
 }
@@ -157,14 +157,14 @@ func (d *DesktopNotifyChannel) Configure(config map[string]interface{}) error {
 	if enabled, ok := config["enabled"].(bool); ok {
 		d.config.Enabled = enabled
 	}
-	
+
 	if minLevel, ok := config["min_alert_level"].(int); ok {
 		d.config.MinAlertLevel = minLevel
 	}
-	
+
 	if timeout, ok := config["timeout"].(int); ok {
 		d.config.Timeout = timeout
 	}
-	
+
 	return nil
 }

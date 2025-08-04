@@ -295,21 +295,21 @@ func compareGreater(a, b interface{}) bool {
 			return aSize > bSize
 		}
 	}
-	
+
 	// Try duration comparison for time values
 	if aDur, aErr := parseDurationValue(a); aErr == nil {
 		if bDur, bErr := parseDurationValue(b); bErr == nil {
 			return aDur > bDur
 		}
 	}
-	
+
 	// Try numeric comparison
 	if aNum, aOk := toFloat64(a); aOk {
 		if bNum, bOk := toFloat64(b); bOk {
 			return aNum > bNum
 		}
 	}
-	
+
 	// Fall back to string comparison
 	return fmt.Sprintf("%v", a) > fmt.Sprintf("%v", b)
 }
@@ -321,21 +321,21 @@ func compareLess(a, b interface{}) bool {
 			return aSize < bSize
 		}
 	}
-	
+
 	// Try duration comparison for time values
 	if aDur, aErr := parseDurationValue(a); aErr == nil {
 		if bDur, bErr := parseDurationValue(b); bErr == nil {
 			return aDur < bDur
 		}
 	}
-	
+
 	// Try numeric comparison
 	if aNum, aOk := toFloat64(a); aOk {
 		if bNum, bOk := toFloat64(b); bOk {
 			return aNum < bNum
 		}
 	}
-	
+
 	// Fall back to string comparison
 	return fmt.Sprintf("%v", a) < fmt.Sprintf("%v", b)
 }
@@ -417,16 +417,16 @@ func (p *FilterParser) smartSplit(s string) []string {
 	s = strings.ReplaceAll(s, " not in ", "__NOT_IN__")
 	// Replace " in " with a placeholder (but not the ones already replaced) - no spaces in placeholder
 	s = strings.ReplaceAll(s, " in ", "__IN__")
-	
+
 	// Now split normally
 	parts := SplitRespectingQuotes(s)
-	
+
 	// Post-process to restore operators
 	for i, part := range parts {
 		part = strings.ReplaceAll(part, "__NOT_IN__", " not in ")
 		part = strings.ReplaceAll(part, "__IN__", " in ")
 		parts[i] = part
 	}
-	
+
 	return parts
 }

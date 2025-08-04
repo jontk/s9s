@@ -65,13 +65,13 @@ func (v *JobsView) SetPages(pages *tview.Pages) {
 // SetApp sets the application reference
 func (v *JobsView) SetApp(app *tview.Application) {
 	v.app = app
-	
+
 	// Initialize loading manager
 	if v.pages != nil {
 		v.loadingManager = components.NewLoadingManager(app, v.pages)
 		v.loadingWrapper = components.NewLoadingWrapper(v.loadingManager, "jobs")
 	}
-	
+
 	// Create filter bar now that we have app reference
 	v.filterBar = components.NewFilterBar("jobs", app)
 	v.filterBar.SetPages(v.pages)
@@ -80,10 +80,10 @@ func (v *JobsView) SetApp(app *tview.Application) {
 
 	// Create global search
 	v.globalSearch = NewGlobalSearch(v.client, app)
-	
+
 	// Create job output view
 	v.jobOutputView = NewJobOutputView(v.client, app)
-	
+
 	// Create batch operations view
 	v.batchOpsView = NewBatchOperationsView(v.client, app)
 }
@@ -122,7 +122,7 @@ func NewJobsView(client dao.SlurmClient) *JobsView {
 	config.SelectedColor = tcell.ColorYellow
 	config.HeaderColor = tcell.ColorTeal
 	config.BorderColor = tcell.ColorWhite
-	
+
 	v.table = components.NewMultiSelectTable(config)
 
 	// Set up callbacks
@@ -410,7 +410,7 @@ func (v *JobsView) syncSelectedJobs() {
 func (v *JobsView) toggleMultiSelectMode() {
 	v.multiSelectMode = !v.multiSelectMode
 	v.table.SetMultiSelectMode(v.multiSelectMode)
-	
+
 	if v.multiSelectMode {
 		v.selectionStatusText.SetText("[green]Multi-select: On[white] | [gray]0 selected[white]")
 	} else {
@@ -1063,7 +1063,7 @@ func (v *JobsView) showBatchOperations() {
 	// Get currently selected jobs or allow manual selection
 	var selectedJobs []string
 	var selectedJobsData []map[string]interface{}
-	
+
 	// Check if any jobs are already selected
 	if len(v.selectedJobs) > 0 {
 		v.mu.RLock()
@@ -1092,7 +1092,7 @@ func (v *JobsView) showBatchOperations() {
 			selectedJobsData = append(selectedJobsData, jobData)
 		}
 	}
-	
+
 	// Use the new batch operations view
 	if v.batchOpsView != nil && len(selectedJobs) > 0 {
 		v.batchOpsView.ShowBatchOperations(selectedJobs, selectedJobsData, func() {

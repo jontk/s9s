@@ -14,13 +14,13 @@ import (
 // BenchmarkMultiSelectOperations benchmarks various multi-select table operations
 func BenchmarkMultiSelectOperations(b *testing.B) {
 	sizes := []int{100, 1000, 5000, 10000}
-	
+
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("TableSize_%d", size), func(b *testing.B) {
 			// Create table with test data
 			config := components.DefaultTableConfig()
 			table := components.NewMultiSelectTable(config)
-			
+
 			// Generate test data
 			testData := make([][]string, size)
 			for i := 0; i < size; i++ {
@@ -33,17 +33,17 @@ func BenchmarkMultiSelectOperations(b *testing.B) {
 					fmt.Sprintf("%dG", (i%64)+4),
 				}
 			}
-			
+
 			table.SetData(testData)
 			table.SetMultiSelectMode(true)
-			
+
 			b.Run("SelectAll", func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					table.SelectAll()
 					table.ClearSelection()
 				}
 			})
-			
+
 			b.Run("ToggleRows", func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					// Select every 10th row
@@ -53,30 +53,30 @@ func BenchmarkMultiSelectOperations(b *testing.B) {
 					table.ClearSelection()
 				}
 			})
-			
+
 			b.Run("InvertSelection", func(b *testing.B) {
 				// Pre-select some rows
 				for j := 0; j < size/2; j += 5 {
 					table.ToggleRow(j + 1)
 				}
-				
+
 				for i := 0; i < b.N; i++ {
 					table.InvertSelection()
 				}
-				
+
 				table.ClearSelection()
 			})
-			
+
 			b.Run("GetSelectedData", func(b *testing.B) {
 				// Pre-select 10% of rows
 				for j := 0; j < size; j += 10 {
 					table.ToggleRow(j + 1)
 				}
-				
+
 				for i := 0; i < b.N; i++ {
 					_ = table.GetAllSelectedData()
 				}
-				
+
 				table.ClearSelection()
 			})
 		})
@@ -87,10 +87,10 @@ func BenchmarkMultiSelectOperations(b *testing.B) {
 func BenchmarkJobExportOperations(b *testing.B) {
 	tempDir := b.TempDir()
 	exporter := export.NewJobOutputExporter(tempDir)
-	
+
 	// Generate different sized job outputs
 	jobSizes := []int{1000, 10000, 100000, 1000000} // characters
-	
+
 	for _, size := range jobSizes {
 		jobData := export.JobOutputData{
 			JobID:       fmt.Sprintf("benchmark_job_%d", size),
@@ -102,7 +102,7 @@ func BenchmarkJobExportOperations(b *testing.B) {
 			ExportTime:  time.Now(),
 			ContentSize: size,
 		}
-		
+
 		b.Run(fmt.Sprintf("Size_%d_chars", size), func(b *testing.B) {
 			formats := []export.ExportFormat{
 				export.FormatText,
@@ -110,7 +110,7 @@ func BenchmarkJobExportOperations(b *testing.B) {
 				export.FormatCSV,
 				export.FormatMarkdown,
 			}
-			
+
 			for _, format := range formats {
 				b.Run(string(format), func(b *testing.B) {
 					for i := 0; i < b.N; i++ {
@@ -129,10 +129,10 @@ func BenchmarkJobExportOperations(b *testing.B) {
 func BenchmarkBatchExportOperations(b *testing.B) {
 	tempDir := b.TempDir()
 	exporter := export.NewJobOutputExporter(tempDir)
-	
+
 	batchSizes := []int{10, 50, 100, 500}
 	jobOutputSize := 10000 // Standard job output size
-	
+
 	for _, batchSize := range batchSizes {
 		b.Run(fmt.Sprintf("BatchSize_%d", batchSize), func(b *testing.B) {
 			// Generate batch data
@@ -149,7 +149,7 @@ func BenchmarkBatchExportOperations(b *testing.B) {
 					ContentSize: jobOutputSize,
 				}
 			}
-			
+
 			for i := 0; i < b.N; i++ {
 				_, err := exporter.BatchExport(batchJobs, export.FormatJSON, "")
 				if err != nil {
@@ -163,7 +163,7 @@ func BenchmarkBatchExportOperations(b *testing.B) {
 // BenchmarkMockClientOperations benchmarks SLURM mock client operations
 func BenchmarkMockClientOperations(b *testing.B) {
 	mockClient := slurm.NewFastMockClient() // Use fast client for performance tests
-	
+
 	b.Run("ListJobs", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_, err := mockClient.Jobs().List(nil)
@@ -172,7 +172,7 @@ func BenchmarkMockClientOperations(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("ListNodes", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_, err := mockClient.Nodes().List(nil)
@@ -181,7 +181,7 @@ func BenchmarkMockClientOperations(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("GetJobOutput", func(b *testing.B) {
 		// Get first job ID from mock data
 		jobs, _ := mockClient.Jobs().List(nil)
@@ -189,7 +189,7 @@ func BenchmarkMockClientOperations(b *testing.B) {
 			b.Skip("No jobs available for testing")
 		}
 		jobID := jobs.Jobs[0].ID
-		
+
 		for i := 0; i < b.N; i++ {
 			_, err := mockClient.Jobs().GetOutput(jobID)
 			if err != nil {
@@ -197,7 +197,7 @@ func BenchmarkMockClientOperations(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("FilteredJobList", func(b *testing.B) {
 		// Test with various filters
 		filters := []struct {
@@ -213,7 +213,7 @@ func BenchmarkMockClientOperations(b *testing.B) {
 				Partitions: []string{"compute", "gpu"},
 			}},
 		}
-		
+
 		for _, filter := range filters {
 			b.Run(filter.name, func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
@@ -232,7 +232,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 	b.Run("MultiSelectTable_LargeDataset", func(b *testing.B) {
 		config := components.DefaultTableConfig()
 		table := components.NewMultiSelectTable(config)
-		
+
 		// Generate large dataset
 		const dataSize = 50000
 		testData := make([][]string, dataSize)
@@ -246,7 +246,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 				fmt.Sprintf("%dG", (i%128)+4),
 			}
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			table.SetData(testData)
@@ -256,11 +256,11 @@ func BenchmarkMemoryUsage(b *testing.B) {
 			table.ClearSelection()
 		}
 	})
-	
+
 	b.Run("JobExport_LargeContent", func(b *testing.B) {
 		tempDir := b.TempDir()
 		exporter := export.NewJobOutputExporter(tempDir)
-		
+
 		// Generate very large job output
 		const contentSize = 1000000 // 1MB
 		largeJobData := export.JobOutputData{
@@ -273,7 +273,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 			ExportTime:  time.Now(),
 			ContentSize: contentSize,
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_, err := exporter.ExportJobOutput(largeJobData, export.FormatJSON, "")
@@ -289,7 +289,7 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 	b.Run("ConcurrentTableOperations", func(b *testing.B) {
 		config := components.DefaultTableConfig()
 		table := components.NewMultiSelectTable(config)
-		
+
 		// Generate test data
 		testData := make([][]string, 1000)
 		for i := 0; i < 1000; i++ {
@@ -300,10 +300,10 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 				fmt.Sprintf("node%d", i%20),
 			}
 		}
-		
+
 		table.SetData(testData)
 		table.SetMultiSelectMode(true)
-		
+
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
 				// Simulate concurrent operations
@@ -314,10 +314,10 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 			}
 		})
 	})
-	
+
 	b.Run("ConcurrentMockClientAccess", func(b *testing.B) {
 		mockClient := slurm.NewFastMockClient() // Use fast client for performance tests
-		
+
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
 				// Simulate concurrent client operations
@@ -332,23 +332,23 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 func generateJobOutput(size int) string {
 	const chunk = "Processing data chunk... simulation running... results calculated...\n"
 	chunkSize := len(chunk)
-	
+
 	if size <= chunkSize {
 		return chunk[:size]
 	}
-	
+
 	chunks := size / chunkSize
 	remainder := size % chunkSize
-	
+
 	result := ""
 	for i := 0; i < chunks; i++ {
 		result += chunk
 	}
-	
+
 	if remainder > 0 {
 		result += chunk[:remainder]
 	}
-	
+
 	return result
 }
 
@@ -365,25 +365,25 @@ func BenchmarkStringOperations(b *testing.B) {
 			"64G",
 			"node001-016",
 		}
-		
+
 		for i := 0; i < b.N; i++ {
 			_ = fmt.Sprintf("%-12s %-10s %-12s %-10s %5s %8s %-20s",
 				jobData[0], jobData[1], jobData[2], jobData[3],
 				jobData[4], jobData[5], jobData[6])
 		}
 	})
-	
+
 	b.Run("FilterMatching", func(b *testing.B) {
 		filter := "running"
 		testStrings := []string{
 			"RUNNING",
-			"PENDING", 
+			"PENDING",
 			"COMPLETED",
 			"FAILED",
 			"running_job",
 			"test_running_simulation",
 		}
-		
+
 		for i := 0; i < b.N; i++ {
 			for _, s := range testStrings {
 				_ = contains(s, filter)
@@ -397,8 +397,8 @@ func contains(s, substr string) bool {
 	// Simple case-insensitive containment check
 	s = toLower(s)
 	substr = toLower(substr)
-	return len(s) >= len(substr) && 
-		(len(s) == len(substr) && s == substr || 
+	return len(s) >= len(substr) &&
+		(len(s) == len(substr) && s == substr ||
 		 len(s) > len(substr) && (s[:len(substr)] == substr || contains(s[1:], substr)))
 }
 

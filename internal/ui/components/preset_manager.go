@@ -200,7 +200,7 @@ func (pm *PresetManagerUI) showDuplicatePresetDialog(preset filters.FilterPreset
 	// Create a copy with modified name
 	newPreset := preset
 	newPreset.Name = preset.Name + " Copy"
-	
+
 	pm.showPresetForm(newPreset, "Duplicate Preset", func(duplicatedPreset filters.FilterPreset) {
 		err := pm.presetManager.AddPreset(duplicatedPreset)
 		if err != nil {

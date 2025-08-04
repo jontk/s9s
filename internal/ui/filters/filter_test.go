@@ -251,7 +251,7 @@ func TestFieldAliases(t *testing.T) {
 	aliases := map[string]string{
 		"name":      "Name",
 		"user":      "User",
-		"state":     "State", 
+		"state":     "State",
 		"partition": "Partition",
 		"status":    "State",
 		"node":      "NodeList",
@@ -290,7 +290,7 @@ func TestComplexFilters(t *testing.T) {
 			filter: "state=running user=john cpus>=4 mem>1024",
 			data: map[string]interface{}{
 				"State":  "running",
-				"User":   "john", 
+				"User":   "john",
 				"CPUs":   8,
 				"Memory": 2048,
 			},

@@ -32,10 +32,10 @@ func NewJobOutputExporter(defaultPath string) *JobOutputExporter {
 		homeDir, _ := os.UserHomeDir()
 		defaultPath = filepath.Join(homeDir, "slurm_exports")
 	}
-	
+
 	// Ensure export directory exists
 	os.MkdirAll(defaultPath, 0755)
-	
+
 	return &JobOutputExporter{
 		defaultPath: defaultPath,
 	}
@@ -72,7 +72,7 @@ func (e *JobOutputExporter) ExportJobOutput(data JobOutputData, format ExportFor
 
 	// Generate filename
 	filename := e.generateFilename(data.JobID, data.JobName, data.OutputType, format)
-	
+
 	// Determine output path
 	var outputPath string
 	if customPath != "" {
@@ -80,7 +80,7 @@ func (e *JobOutputExporter) ExportJobOutput(data JobOutputData, format ExportFor
 	} else {
 		outputPath = filepath.Join(e.defaultPath, filename)
 	}
-	
+
 	result.FilePath = outputPath
 
 	// Ensure directory exists
@@ -164,7 +164,7 @@ func (e *JobOutputExporter) exportJSON(data JobOutputData, outputPath string) er
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
-	
+
 	if err := encoder.Encode(data); err != nil {
 		return fmt.Errorf("failed to encode JSON: %w", err)
 	}
@@ -192,7 +192,7 @@ func (e *JobOutputExporter) exportCSV(data JobOutputData, outputPath string) err
 	// Pre-format common values to avoid repeated allocations
 	exportTime := data.ExportTime.Format("2006-01-02 15:04:05")
 	contentSizeStr := strconv.Itoa(data.ContentSize)
-	
+
 	// Reuse record slice to avoid allocations
 	record := make([]string, 7)
 	record[0] = data.JobID
@@ -200,26 +200,26 @@ func (e *JobOutputExporter) exportCSV(data JobOutputData, outputPath string) err
 	record[2] = data.OutputType
 	record[3] = exportTime
 	record[4] = contentSizeStr
-	
+
 	// Process content line by line without creating large intermediate slices
 	content := data.Content
 	lineNum := 1
 	start := 0
-	
+
 	for i := 0; i <= len(content); i++ {
 		// Found newline or end of content
 		if i == len(content) || content[i] == '\n' {
 			// Extract line without allocating new string (using slice of original)
 			line := content[start:i]
-			
+
 			// Update record for this line - use efficient integer to string conversion
 			record[5] = strconv.Itoa(lineNum)
 			record[6] = line
-			
+
 			if err := writer.Write(record); err != nil {
 				return fmt.Errorf("failed to write CSV record: %w", err)
 			}
-			
+
 			lineNum++
 			start = i + 1
 		}
@@ -263,10 +263,10 @@ func (e *JobOutputExporter) generateFilename(jobID, jobName, outputType string, 
 	cleanJobName := strings.ReplaceAll(jobName, " ", "_")
 	cleanJobName = strings.ReplaceAll(cleanJobName, "/", "_")
 	cleanJobName = strings.ReplaceAll(cleanJobName, "\\", "_")
-	
+
 	timestamp := time.Now().Format("20060102_150405")
-	
-	return fmt.Sprintf("job_%s_%s_%s_%s.%s", 
+
+	return fmt.Sprintf("job_%s_%s_%s_%s.%s",
 		jobID, cleanJobName, outputType, timestamp, string(format))
 }
 
@@ -294,23 +294,23 @@ func (e *JobOutputExporter) BatchExport(jobs []JobOutputData, format ExportForma
 // BatchExportWithCallback exports multiple job outputs with optional progress callback
 func (e *JobOutputExporter) BatchExportWithCallback(jobs []JobOutputData, format ExportFormat, basePath string, progressCallback func(current, total int, jobID string)) ([]*ExportResult, error) {
 	results := make([]*ExportResult, 0, len(jobs))
-	
+
 	for i, job := range jobs {
 		// Call progress callback if provided
 		if progressCallback != nil {
 			progressCallback(i+1, len(jobs), job.JobID)
 		}
-		
+
 		result, err := e.ExportJobOutput(job, format, "")
 		if err != nil {
 			result.Error = err
 		}
 		results = append(results, result)
-		
+
 		// Force garbage collection of job content after processing to reduce memory usage
 		job.Content = "" // Release the large content string
 	}
-	
+
 	return results, nil
 }
 
@@ -318,27 +318,27 @@ func (e *JobOutputExporter) BatchExportWithCallback(jobs []JobOutputData, format
 func (e *JobOutputExporter) StreamingBatchExport(jobProvider func() (JobOutputData, bool), format ExportFormat, basePath string, progressCallback func(current int, jobID string)) ([]*ExportResult, error) {
 	var results []*ExportResult
 	jobCount := 0
-	
+
 	for {
 		job, hasMore := jobProvider()
 		if !hasMore {
 			break
 		}
-		
+
 		jobCount++
 		if progressCallback != nil {
 			progressCallback(jobCount, job.JobID)
 		}
-		
+
 		result, err := e.ExportJobOutput(job, format, "")
 		if err != nil {
 			result.Error = err
 		}
 		results = append(results, result)
-		
+
 		// Job content is automatically freed when job goes out of scope
 	}
-	
+
 	return results, nil
 }
 
@@ -347,7 +347,7 @@ func (e *JobOutputExporter) ExportSummary(results []*ExportResult) string {
 	successful := 0
 	failed := 0
 	var totalSize int64
-	
+
 	for _, result := range results {
 		if result.Success {
 			successful++
@@ -356,7 +356,7 @@ func (e *JobOutputExporter) ExportSummary(results []*ExportResult) string {
 			failed++
 		}
 	}
-	
+
 	return fmt.Sprintf("Export Summary:\n"+
 		"- Total Files: %d\n"+
 		"- Successful: %d\n"+
