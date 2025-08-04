@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -19,6 +20,7 @@ const (
 	FormatJSON     ExportFormat = "json"
 	FormatCSV      ExportFormat = "csv"
 	FormatMarkdown ExportFormat = "md"
+	FormatHTML     ExportFormat = "html"
 )
 
 // JobOutputExporter handles exporting job output to various formats
@@ -64,7 +66,28 @@ type ExportResult struct {
 }
 
 // ExportJobOutput exports job output to a file in the specified format
-func (e *JobOutputExporter) ExportJobOutput(data JobOutputData, format ExportFormat, customPath string) (*ExportResult, error) {
+func (e *JobOutputExporter) ExportJobOutput(jobID, jobName, outputType, content string) (string, error) {
+	// Create JobOutputData for internal use
+	data := JobOutputData{
+		JobID:       jobID,
+		JobName:     jobName,
+		OutputType:  outputType,
+		Content:     content,
+		Timestamp:   time.Now(),
+		ExportedBy:  "S9s",
+		ExportTime:  time.Now(),
+		ContentSize: len(content),
+	}
+	
+	result, err := e.Export(data, FormatText, "")
+	if err != nil {
+		return "", err
+	}
+	return result.FilePath, nil
+}
+
+// Export exports job output to a file in the specified format
+func (e *JobOutputExporter) Export(data JobOutputData, format ExportFormat, customPath string) (*ExportResult, error) {
 	result := &ExportResult{
 		Format:    format,
 		Timestamp: time.Now(),
@@ -101,6 +124,8 @@ func (e *JobOutputExporter) ExportJobOutput(data JobOutputData, format ExportFor
 		err = e.exportCSV(data, outputPath)
 	case FormatMarkdown:
 		err = e.exportMarkdown(data, outputPath)
+	case FormatHTML:
+		err = e.exportHTML(data, outputPath)
 	default:
 		err = fmt.Errorf("unsupported export format: %s", format)
 	}
@@ -272,7 +297,7 @@ func (e *JobOutputExporter) generateFilename(jobID, jobName, outputType string, 
 
 // GetSupportedFormats returns all supported export formats
 func (e *JobOutputExporter) GetSupportedFormats() []ExportFormat {
-	return []ExportFormat{FormatText, FormatJSON, FormatCSV, FormatMarkdown}
+	return []ExportFormat{FormatText, FormatJSON, FormatCSV, FormatMarkdown, FormatHTML}
 }
 
 // GetDefaultPath returns the default export path
@@ -301,7 +326,7 @@ func (e *JobOutputExporter) BatchExportWithCallback(jobs []JobOutputData, format
 			progressCallback(i+1, len(jobs), job.JobID)
 		}
 
-		result, err := e.ExportJobOutput(job, format, "")
+		result, err := e.Export(job, format, "")
 		if err != nil {
 			result.Error = err
 		}
@@ -330,7 +355,7 @@ func (e *JobOutputExporter) StreamingBatchExport(jobProvider func() (JobOutputDa
 			progressCallback(jobCount, job.JobID)
 		}
 
-		result, err := e.ExportJobOutput(job, format, "")
+		result, err := e.Export(job, format, "")
 		if err != nil {
 			result.Error = err
 		}
@@ -365,6 +390,66 @@ func (e *JobOutputExporter) ExportSummary(results []*ExportResult) string {
 		"- Export Path: %s",
 		len(results), successful, failed,
 		formatBytes(totalSize), e.defaultPath)
+}
+
+// exportHTML exports job output as HTML
+func (e *JobOutputExporter) exportHTML(data JobOutputData, outputPath string) error {
+	file, err := os.Create(outputPath)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+	defer file.Close()
+
+	// HTML template
+	htmlTemplate := `<!DOCTYPE html>
+<html>
+<head>
+    <title>Job Output - {{.JobID}}</title>
+    <style>
+        body { font-family: 'Courier New', monospace; margin: 20px; background-color: #1e1e1e; color: #d4d4d4; }
+        .container { background-color: #252526; padding: 20px; border-radius: 8px; }
+        .header { background-color: #2d2d30; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+        h1 { color: #569cd6; margin: 0; font-size: 24px; }
+        .meta { color: #808080; margin-top: 10px; }
+        .meta-item { margin-right: 20px; }
+        .output-type { color: #ce9178; font-weight: bold; }
+        .output-content { background-color: #1e1e1e; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; line-height: 1.4; }
+        .timestamp { color: #608b4e; }
+        .error { color: #f48771; }
+        .warning { color: #dcdcaa; }
+        .info { color: #9cdcfe; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Job Output Export</h1>
+            <div class="meta">
+                <span class="meta-item"><strong>Job ID:</strong> {{.JobID}}</span>
+                <span class="meta-item"><strong>Job Name:</strong> {{.JobName}}</span>
+                <span class="meta-item"><strong>Output Type:</strong> <span class="output-type">{{.OutputType}}</span></span>
+            </div>
+            <div class="meta">
+                <span class="meta-item"><strong>Export Time:</strong> <span class="timestamp">{{.ExportTime.Format "2006-01-02 15:04:05"}}</span></span>
+                <span class="meta-item"><strong>Content Size:</strong> {{.ContentSize}} bytes</span>
+            </div>
+        </div>
+        <div class="output-content">{{.Content}}</div>
+    </div>
+</body>
+</html>`
+
+	// Parse and execute template
+	tmpl, err := template.New("joboutput").Parse(htmlTemplate)
+	if err != nil {
+		return fmt.Errorf("failed to parse HTML template: %w", err)
+	}
+
+	if err := tmpl.Execute(file, data); err != nil {
+		return fmt.Errorf("failed to execute HTML template: %w", err)
+	}
+
+	return nil
 }
 
 // formatBytes formats byte size in human-readable format

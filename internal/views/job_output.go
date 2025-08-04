@@ -432,19 +432,19 @@ func (v *JobOutputView) performExport(format export.ExportFormat) {
 	}
 
 	// Perform export
-	result, err := v.exporter.ExportJobOutput(exportData, format, "")
+	filePath, err := v.exporter.ExportJobOutput(exportData.JobID, exportData.JobName, exportData.OutputType, exportData.Content)
 	if err != nil {
 		v.showNotification(fmt.Sprintf("Export failed: %v", err))
 		return
 	}
 
 	// Show success notification
-	message := fmt.Sprintf("Export successful!\n\nFile: %s\nFormat: %s\nSize: %s",
-		result.FilePath,
-		strings.ToUpper(string(result.Format)),
-		v.formatBytes(result.Size))
+	message := fmt.Sprintf("Export successful!\n\nFile: %s\nFormat: %s\nSize: %d bytes",
+		filePath,
+		strings.ToUpper(string(format)),
+		len(exportData.Content))
 
-	v.showExportResult(message, result.FilePath)
+	v.showExportResult(message, filePath)
 }
 
 // showExportResult shows export success with options

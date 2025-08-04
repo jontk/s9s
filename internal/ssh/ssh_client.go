@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"time"
+
+	"golang.org/x/crypto/ssh"
 )
 
 // SSHConfig holds SSH connection configuration
@@ -16,6 +18,9 @@ type SSHConfig struct {
 	ConfigFile  string
 	Options     map[string]string
 	Timeout     time.Duration
+	UseAgent    bool                    // Use SSH agent for authentication
+	KeyManager  *KeyManager            // Key manager for advanced key handling
+	ClientConfig *ssh.ClientConfig     // Native SSH client config
 }
 
 // SSHClient handles SSH connections to cluster nodes
@@ -189,9 +194,10 @@ func IsSSHAvailable() bool {
 
 // DefaultSSHConfig returns a default SSH configuration for cluster environments
 func DefaultSSHConfig() *SSHConfig {
-	return &SSHConfig{
-		Port:    22,
-		Timeout: 30 * time.Second,
+	config := &SSHConfig{
+		Port:     22,
+		Timeout:  30 * time.Second,
+		UseAgent: IsAgentAvailable(),
 		Options: map[string]string{
 			"StrictHostKeyChecking": "no",
 			"UserKnownHostsFile":   "/dev/null",
@@ -200,4 +206,146 @@ func DefaultSSHConfig() *SSHConfig {
 			"ServerAliveCountMax":  "3",
 		},
 	}
+
+	// Try to initialize key manager
+	if km, err := NewKeyManager(); err == nil {
+		config.KeyManager = km
+		
+		// Use SSH config from key manager if available
+		if sshConfig, err := km.GetSSHConfig(); err == nil {
+			config.KeyFile = sshConfig.KeyFile
+			config.UseAgent = km.IsAgentConnected()
+		}
+	}
+
+	return config
+}
+
+// WithKeyManager sets a key manager for the SSH config
+func (c *SSHConfig) WithKeyManager(km *KeyManager) *SSHConfig {
+	c.KeyManager = km
+	c.UseAgent = km.IsAgentConnected()
+	
+	// Update key file from key manager
+	if sshConfig, err := km.GetSSHConfig(); err == nil {
+		c.KeyFile = sshConfig.KeyFile
+	}
+	
+	return c
+}
+
+// WithAgent enables or disables SSH agent usage
+func (c *SSHConfig) WithAgent(useAgent bool) *SSHConfig {
+	c.UseAgent = useAgent
+	if useAgent {
+		c.Options["UseAgent"] = "yes"
+		c.Options["IdentitiesOnly"] = "no"
+	} else {
+		c.Options["UseAgent"] = "no"
+		c.Options["IdentitiesOnly"] = "yes"
+	}
+	return c
+}
+
+// GetNativeClientConfig returns a native SSH client config
+func (c *SSHConfig) GetNativeClientConfig(hostname string) (*ssh.ClientConfig, error) {
+	if c.ClientConfig != nil {
+		return c.ClientConfig, nil
+	}
+
+	var authMethods []ssh.AuthMethod
+
+	// Try SSH agent first if enabled
+	if c.UseAgent && IsAgentAvailable() {
+		if agentAuth, err := NewAgentAuth(); err == nil {
+			authMethods = append(authMethods, agentAuth.GetAuthMethod())
+		}
+	}
+
+	// Add key file authentication if available
+	if c.KeyFile != "" {
+		if keyAuth, err := c.getKeyFileAuth(); err == nil {
+			authMethods = append(authMethods, keyAuth)
+		}
+	}
+
+	// If no auth methods, try to use key manager
+	if len(authMethods) == 0 && c.KeyManager != nil {
+		if kmAuth, err := c.getKeyManagerAuth(); err == nil {
+			authMethods = append(authMethods, kmAuth...)
+		}
+	}
+
+	if len(authMethods) == 0 {
+		return nil, fmt.Errorf("no authentication methods available")
+	}
+
+	clientConfig := &ssh.ClientConfig{
+		User:            c.Username,
+		Auth:            authMethods,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // TODO: Make configurable
+		Timeout:         c.Timeout,
+	}
+
+	return clientConfig, nil
+}
+
+// getKeyFileAuth creates authentication from key file
+func (c *SSHConfig) getKeyFileAuth() (ssh.AuthMethod, error) {
+	keyData, err := os.ReadFile(c.KeyFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read key file: %w", err)
+	}
+
+	signer, err := ssh.ParsePrivateKey(keyData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse private key: %w", err)
+	}
+
+	return ssh.PublicKeys(signer), nil
+}
+
+// getKeyManagerAuth creates authentication methods from key manager
+func (c *SSHConfig) getKeyManagerAuth() ([]ssh.AuthMethod, error) {
+	if c.KeyManager == nil {
+		return nil, fmt.Errorf("no key manager available")
+	}
+
+	var authMethods []ssh.AuthMethod
+
+	// If agent is connected, use agent auth
+	if c.KeyManager.IsAgentConnected() {
+		if agentAuth, err := NewAgentAuth(); err == nil {
+			authMethods = append(authMethods, agentAuth.GetAuthMethod())
+		}
+	}
+
+	// Add individual key file auth methods
+	keys := c.KeyManager.GetKeys()
+	for _, key := range keys {
+		if keyAuth, err := c.getKeyFileAuthFromPath(key.Path); err == nil {
+			authMethods = append(authMethods, keyAuth)
+		}
+	}
+
+	if len(authMethods) == 0 {
+		return nil, fmt.Errorf("no usable keys found in key manager")
+	}
+
+	return authMethods, nil
+}
+
+// getKeyFileAuthFromPath creates authentication from a specific key path
+func (c *SSHConfig) getKeyFileAuthFromPath(keyPath string) (ssh.AuthMethod, error) {
+	keyData, err := os.ReadFile(keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read key file: %w", err)
+	}
+
+	signer, err := ssh.ParsePrivateKey(keyData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse private key: %w", err)
+	}
+
+	return ssh.PublicKeys(signer), nil
 }

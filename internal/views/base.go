@@ -345,6 +345,14 @@ func (vm *ViewManager) AddView(view View) error {
 		v.BaseView.SetApp(vm.app)
 		v.app = vm.app
 		v.pages = vm.pages
+	case *PerformanceView:
+		v.BaseView.SetApp(vm.app)
+		if v.app == nil {
+			v.app = vm.app
+		}
+		if v.pages == nil {
+			v.pages = vm.pages
+		}
 	}
 
 	return nil

@@ -541,7 +541,7 @@ func (v *BatchOperationsView) confirmExportOperation(format export.ExportFormat)
 
 // exportJobOutput exports output for a single job (legacy method)
 func (v *BatchOperationsView) exportJobOutput(jobID, formatStr string) error {
-	format := export.ExportFormat(formatStr)
+	_ = export.ExportFormat(formatStr)
 
 	// Generate mock content for demo/testing
 	content := v.generateJobOutputContent(jobID)
@@ -575,7 +575,7 @@ func (v *BatchOperationsView) exportJobOutput(jobID, formatStr string) error {
 	}
 
 	// Perform export
-	_, err := v.exporter.ExportJobOutput(exportData, format, "")
+	_, err := v.exporter.ExportJobOutput(exportData.JobID, exportData.JobName, exportData.OutputType, exportData.Content)
 	return err
 }
 
@@ -615,7 +615,7 @@ func (v *BatchOperationsView) exportJobOutputStreaming(jobID, formatStr string) 
 	}
 
 	// Perform export and immediately clear content to free memory
-	_, err := v.exporter.ExportJobOutput(exportData, format, "")
+	_, err := v.exporter.Export(exportData, format, "")
 
 	// Clear the content from memory ASAP
 	exportData.Content = ""

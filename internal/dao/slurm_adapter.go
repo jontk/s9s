@@ -200,10 +200,12 @@ func (j *jobManager) Get(id string) (*Job, error) {
 
 func (j *jobManager) Submit(job *JobSubmission) (string, error) {
 	// Check if the slurm-client supports job submission
-	// If the client has a Submit method, use it
-	if submitter, ok := j.client.(interface {
+	// Use a more specific interface check to avoid conflicts
+	type jobSubmitter interface {
 		Submit(ctx context.Context, job interface{}) (interface{}, error)
-	}); ok {
+	}
+	
+	if submitter, ok := j.client.(jobSubmitter); ok {
 		// Convert our JobSubmission to the format expected by slurm-client
 		slurmJob := convertJobSubmissionToSlurm(job)
 

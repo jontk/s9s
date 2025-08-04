@@ -1,0 +1,327 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run integration tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  GO_VERSION: '1.21'
+
+jobs:
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        test-suite:
+          - ssh
+          - streaming
+          - performance
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Install dependencies
+      run: |
+        go mod download
+        go mod tidy
+
+    - name: Set up SSH server for testing
+      if: matrix.test-suite == 'ssh'
+      run: |
+        # Install OpenSSH server
+        sudo apt-get update
+        sudo apt-get install -y openssh-server
+        
+        # Generate SSH key for testing
+        ssh-keygen -t rsa -b 2048 -f ~/.ssh/test_key -N ""
+        
+        # Configure SSH server
+        sudo mkdir -p /etc/ssh
+        sudo tee /etc/ssh/sshd_config.d/test.conf > /dev/null <<EOF
+        Port 2222
+        PermitRootLogin no
+        PasswordAuthentication no
+        PubkeyAuthentication yes
+        AuthorizedKeysFile .ssh/authorized_keys
+        EOF
+        
+        # Set up authorized keys
+        mkdir -p ~/.ssh
+        cp ~/.ssh/test_key.pub ~/.ssh/authorized_keys
+        chmod 600 ~/.ssh/authorized_keys
+        chmod 700 ~/.ssh
+        
+        # Start SSH server
+        sudo systemctl start ssh
+        sudo systemctl enable ssh
+        
+        # Test SSH connection
+        ssh -i ~/.ssh/test_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2222 $USER@localhost echo "SSH test successful"
+
+    - name: Set up Docker for SSH tests
+      if: matrix.test-suite == 'ssh'
+      uses: docker/setup-buildx-action@v2
+
+    - name: Run SSH Integration Tests
+      if: matrix.test-suite == 'ssh'
+      env:
+        SSH_INTEGRATION_TESTS: "1"
+        SSH_TEST_HOST: "localhost:2222"
+        SSH_TEST_USER: ${{ env.USER }}
+        DOCKER_SSH_TESTS: "1"
+      run: |
+        make test-ssh
+        make test-ssh-docker
+
+    - name: Run Streaming Integration Tests
+      if: matrix.test-suite == 'streaming'
+      run: make test-streaming
+
+    - name: Run Performance Integration Tests
+      if: matrix.test-suite == 'performance'
+      run: make test-performance
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: integration-test-results-${{ matrix.test-suite }}
+        path: |
+          *.log
+          coverage.out
+          test-results.xml
+        retention-days: 30
+
+  docker-integration:
+    name: Docker Integration Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Run Docker tests
+      run: make docker-test
+
+  benchmark-tests:
+    name: Benchmark Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Install dependencies
+      run: |
+        go mod download
+        go mod tidy
+
+    - name: Run benchmarks
+      run: |
+        make bench | tee benchmark-results.txt
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results
+        path: benchmark-results.txt
+        retention-days: 30
+
+    - name: Comment benchmark results on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const benchmarkResults = fs.readFileSync('benchmark-results.txt', 'utf8');
+          
+          const body = `## 🏃‍♂️ Benchmark Results
+          
+          \`\`\`
+          ${benchmarkResults}
+          \`\`\`
+          
+          *Benchmarks run on: ${{ runner.os }} with Go ${{ env.GO_VERSION }}*`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
+
+  coverage-integration:
+    name: Integration Test Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Install dependencies
+      run: |
+        go mod download
+        go mod tidy
+
+    - name: Run tests with coverage
+      run: |
+        go test -timeout 30m -coverprofile=integration-coverage.out -covermode=atomic ./test/integration/...
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./integration-coverage.out
+        flags: integration
+        name: integration-coverage
+        fail_ci_if_error: false
+
+  memory-leak-detection:
+    name: Memory Leak Detection
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Install dependencies
+      run: |
+        go mod download
+        go mod tidy
+
+    - name: Run memory leak detection tests
+      run: |
+        go test -timeout 45m -v ./test/integration/ -run "MemoryLeak|LongRunning"
+
+    - name: Run with race detector
+      run: |
+        go test -race -timeout 30m ./test/integration/...
+
+  stress-tests:
+    name: Stress Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Install dependencies
+      run: |
+        go mod download
+        go mod tidy
+
+    - name: Run stress tests
+      run: |
+        go test -timeout 1h -v ./test/integration/ -run "Stress|Performance.*Stress"
+
+  integration-summary:
+    name: Integration Test Summary
+    runs-on: ubuntu-latest
+    needs: [integration-tests, docker-integration, benchmark-tests, coverage-integration, memory-leak-detection, stress-tests]
+    if: always()
+    
+    steps:
+    - name: Check integration test results
+      run: |
+        echo "Integration test results:"
+        echo "- Integration Tests: ${{ needs.integration-tests.result }}"
+        echo "- Docker Integration: ${{ needs.docker-integration.result }}"
+        echo "- Benchmark Tests: ${{ needs.benchmark-tests.result }}"
+        echo "- Coverage Integration: ${{ needs.coverage-integration.result }}"
+        echo "- Memory Leak Detection: ${{ needs.memory-leak-detection.result }}"
+        echo "- Stress Tests: ${{ needs.stress-tests.result }}"
+        
+        if [[ "${{ needs.integration-tests.result }}" == "failure" || 
+              "${{ needs.docker-integration.result }}" == "failure" || 
+              "${{ needs.memory-leak-detection.result }}" == "failure" || 
+              "${{ needs.stress-tests.result }}" == "failure" ]]; then
+          echo "❌ Critical integration tests failed"
+          exit 1
+        else
+          echo "✅ All critical integration tests passed"
+        fi

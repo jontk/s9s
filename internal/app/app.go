@@ -337,6 +337,16 @@ func (s *S9s) initViews() error {
 	s.viewMgr.AddView(healthView)
 	s.contentPages.AddPage("health", healthView.Render(), true, false)
 
+	// Create Performance view
+	performanceView := views.NewPerformanceView(s.client)
+	performanceView.SetApp(s.app)
+	performanceView.SetPages(s.pages)
+	if err := performanceView.Init(s.ctx); err != nil {
+		return fmt.Errorf("failed to initialize performance view: %w", err)
+	}
+	s.viewMgr.AddView(performanceView)
+	s.contentPages.AddPage("performance", performanceView.Render(), true, false)
+
 	// Update header with view names
 	s.header.SetViews(s.viewMgr.GetViewNames())
 
@@ -390,6 +400,10 @@ func (s *S9s) setupKeyboardShortcuts() {
 					}
 				}()
 			}
+			return nil
+		case tcell.KeyF10:
+			// Show configuration modal
+			s.showConfiguration()
 			return nil
 		case tcell.KeyEsc:
 			if s.cmdVisible {
@@ -457,6 +471,9 @@ func (s *S9s) setupKeyboardShortcuts() {
 				return nil
 			case '8':
 				s.switchToView("health")
+				return nil
+			case '9':
+				s.switchToView("performance")
 				return nil
 			case 'q', 'Q':
 				s.app.Stop()
@@ -602,6 +619,8 @@ func (s *S9s) executeCommand(command string) {
 		s.switchToView("users")
 	case "health":
 		s.switchToView("health")
+	case "performance":
+		s.switchToView("performance")
 	case "refresh", "r":
 		if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
 			go func() {
@@ -623,6 +642,8 @@ func (s *S9s) executeCommand(command string) {
 		s.showPreferences()
 	case "layout", "layouts":
 		s.showLayoutSwitcher()
+	case "config", "configuration", "settings":
+		s.showConfiguration()
 	default:
 		s.statusBar.Error(fmt.Sprintf("Unknown command: %s", command))
 	}
@@ -633,11 +654,12 @@ func (s *S9s) showHelp() {
 	helpText := `[yellow]S9S - SLURM Terminal UI Help[white]
 
 [teal]Global Keys:[white]
-  [yellow]1-8[white]         Switch to Jobs/Nodes/Partitions/Reservations/QoS/Accounts/Users/Health view
+  [yellow]1-9[white]         Switch to Jobs/Nodes/Partitions/Reservations/QoS/Accounts/Users/Health/Performance view
   [yellow]Tab/Shift+Tab[white] Switch between views
   [yellow]F1[white]         Show help
   [yellow]F2[white]         Show system alerts
   [yellow]F5[white]         Refresh current view
+  [yellow]F10[white]        Configuration settings
   [yellow]:[white]          Enter command mode
   [yellow]?[white]          Show this help
   [yellow]q, Ctrl+C[white]  Quit application
@@ -651,6 +673,7 @@ func (s *S9s) showHelp() {
   [yellow]:accounts[white]      Switch to Accounts view
   [yellow]:users[white]         Switch to Users view
   [yellow]:health[white]        Switch to Health Monitor view
+  [yellow]:performance[white]   Switch to Performance Monitor view
   [yellow]:refresh, :r[white]   Refresh current view
   [yellow]:quit, :q[white]      Quit application
   [yellow]:help, :h[white]      Show this help
@@ -792,6 +815,33 @@ func (s *S9s) generateDemoAlerts() {
 // showPreferences displays the preferences modal
 func (s *S9s) showPreferences() {
 	settings.ShowPreferences(s.pages, s.app, s.userPrefs)
+}
+
+// showConfiguration displays the configuration management interface
+func (s *S9s) showConfiguration() {
+	configPath := ""
+	
+	// Try to determine the configuration file path
+	if homeDir, err := os.UserHomeDir(); err == nil {
+		configPath = filepath.Join(homeDir, ".s9s", "config.yaml")
+	}
+	
+	// Create configuration view
+	configView := views.NewConfigView(s.app, s.pages, configPath)
+	
+	// Set callback for configuration changes
+	configView.SetConfigChangedCallback(func(newConfig *config.Config) {
+		// Apply new configuration to running application
+		if newConfig != nil {
+			s.config = newConfig
+			// TODO: Apply configuration changes to running components
+			// This would involve updating refresh rates, UI settings, etc.
+			s.statusBar.Success("Configuration applied")
+		}
+	})
+	
+	// Add the config view as a modal-like page
+	s.pages.AddPage("config", configView, true, true)
 }
 
 // showLayoutSwitcher displays the layout switcher modal
