@@ -271,15 +271,36 @@ func convertJobSubmissionToSlurm(job *JobSubmission) interface{} {
 }
 
 func (j *jobManager) Cancel(id string) error {
-	return j.client.Cancel(j.ctx, id)
+	debug.Logger.Printf("Cancel job %s", id)
+	err := j.client.Cancel(j.ctx, id)
+	if err != nil {
+		debug.Logger.Printf("Cancel failed for job %s: %v", id, err)
+	} else {
+		debug.Logger.Printf("Cancel successful for job %s", id)
+	}
+	return err
 }
 
 func (j *jobManager) Hold(id string) error {
-	return j.client.Hold(j.ctx, id)
+	debug.Logger.Printf("Hold job %s", id)
+	err := j.client.Hold(j.ctx, id)
+	if err != nil {
+		debug.Logger.Printf("Hold failed for job %s: %v", id, err)
+	} else {
+		debug.Logger.Printf("Hold successful for job %s", id)
+	}
+	return err
 }
 
 func (j *jobManager) Release(id string) error {
-	return j.client.Release(j.ctx, id)
+	debug.Logger.Printf("Release job %s", id)
+	err := j.client.Release(j.ctx, id)
+	if err != nil {
+		debug.Logger.Printf("Release failed for job %s: %v", id, err)
+	} else {
+		debug.Logger.Printf("Release successful for job %s", id)
+	}
+	return err
 }
 
 func (j *jobManager) Requeue(id string) (*Job, error) {

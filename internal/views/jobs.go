@@ -564,17 +564,26 @@ func (v *JobsView) onFilterDone(key tcell.Key) {
 func (v *JobsView) cancelSelectedJob() {
 	data := v.table.GetSelectedData()
 	if data == nil || len(data) == 0 {
+		debug.Logger.Printf("cancelSelectedJob() - no data selected")
 		return
 	}
 
 	jobID := data[0]
 	jobName := data[1]
 	state := data[4] // State column
+	debug.Logger.Printf("cancelSelectedJob() - job: %s, name: %s, state: %s", jobID, jobName, state)
+
+	// Clean color codes from state
+	cleanState := strings.ReplaceAll(strings.ReplaceAll(state, "[green]", ""), "[white]", "")
+	cleanState = strings.ReplaceAll(strings.ReplaceAll(cleanState, "[yellow]", ""), "[red]", "")
+	cleanState = strings.ReplaceAll(strings.ReplaceAll(cleanState, "[blue]", ""), "[orange]", "")
+	cleanState = strings.ReplaceAll(strings.ReplaceAll(cleanState, "[cyan]", ""), "[gray]", "")
+	debug.Logger.Printf("cancelSelectedJob() - clean state: %s", cleanState)
 
 	// Check if job can be cancelled
-	if !strings.Contains(state, dao.JobStateRunning) && !strings.Contains(state, dao.JobStatePending) {
+	if !strings.Contains(cleanState, dao.JobStateRunning) && !strings.Contains(cleanState, dao.JobStatePending) {
 		if v.mainStatusBar != nil {
-			v.mainStatusBar.Warning(fmt.Sprintf("Job %s is not in a cancellable state (current: %s)", jobID, state))
+			v.mainStatusBar.Warning(fmt.Sprintf("Job %s is not in a cancellable state (current: %s)", jobID, cleanState))
 		}
 		return
 	}
@@ -629,16 +638,25 @@ func (v *JobsView) performCancelJob(jobID string) {
 func (v *JobsView) holdSelectedJob() {
 	data := v.table.GetSelectedData()
 	if data == nil || len(data) == 0 {
+		debug.Logger.Printf("holdSelectedJob() - no data selected")
 		return
 	}
 
 	jobID := data[0]
 	state := data[4] // State column
+	debug.Logger.Printf("holdSelectedJob() - job: %s, state: %s", jobID, state)
+
+	// Clean color codes from state
+	cleanState := strings.ReplaceAll(strings.ReplaceAll(state, "[green]", ""), "[white]", "")
+	cleanState = strings.ReplaceAll(strings.ReplaceAll(cleanState, "[yellow]", ""), "[red]", "")
+	cleanState = strings.ReplaceAll(strings.ReplaceAll(cleanState, "[blue]", ""), "[orange]", "")
+	cleanState = strings.ReplaceAll(strings.ReplaceAll(cleanState, "[cyan]", ""), "[gray]", "")
+	debug.Logger.Printf("holdSelectedJob() - clean state: %s", cleanState)
 
 	// Check if job can be held
-	if !strings.Contains(state, dao.JobStatePending) {
+	if !strings.Contains(cleanState, dao.JobStatePending) {
 		if v.mainStatusBar != nil {
-			v.mainStatusBar.Warning(fmt.Sprintf("Job %s is not in a holdable state (current: %s)", jobID, state))
+			v.mainStatusBar.Warning(fmt.Sprintf("Job %s is not in a holdable state (current: %s)", jobID, cleanState))
 		}
 		return
 	}
@@ -670,16 +688,25 @@ func (v *JobsView) holdSelectedJob() {
 func (v *JobsView) releaseSelectedJob() {
 	data := v.table.GetSelectedData()
 	if data == nil || len(data) == 0 {
+		debug.Logger.Printf("releaseSelectedJob() - no data selected")
 		return
 	}
 
 	jobID := data[0]
 	state := data[4] // State column
+	debug.Logger.Printf("releaseSelectedJob() - job: %s, state: %s", jobID, state)
+
+	// Clean color codes from state
+	cleanState := strings.ReplaceAll(strings.ReplaceAll(state, "[green]", ""), "[white]", "")
+	cleanState = strings.ReplaceAll(strings.ReplaceAll(cleanState, "[yellow]", ""), "[red]", "")
+	cleanState = strings.ReplaceAll(strings.ReplaceAll(cleanState, "[blue]", ""), "[orange]", "")
+	cleanState = strings.ReplaceAll(strings.ReplaceAll(cleanState, "[cyan]", ""), "[gray]", "")
+	debug.Logger.Printf("releaseSelectedJob() - clean state: %s", cleanState)
 
 	// Check if job can be released
-	if !strings.Contains(state, dao.JobStateSuspended) {
+	if !strings.Contains(cleanState, dao.JobStateSuspended) {
 		if v.mainStatusBar != nil {
-			v.mainStatusBar.Warning(fmt.Sprintf("Job %s is not in a suspended state (current: %s)", jobID, state))
+			v.mainStatusBar.Warning(fmt.Sprintf("Job %s is not in a suspended state (current: %s)", jobID, cleanState))
 		}
 		return
 	}
