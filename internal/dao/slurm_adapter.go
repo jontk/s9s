@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jontk/s9s/internal/config"
+	"github.com/jontk/s9s/internal/debug"
 	slurm "github.com/jontk/slurm-client"
 	"github.com/jontk/slurm-client/pkg/auth"
 	slurmconfig "github.com/jontk/slurm-client/pkg/config"
@@ -25,8 +26,8 @@ func NewSlurmAdapter(ctx context.Context, cfg *config.ClusterConfig) (*SlurmAdap
 		return nil, fmt.Errorf("cluster config is required")
 	}
 
-	// Parse timeout
-	timeout := 30 * time.Second
+	// Parse timeout - use shorter timeout for database operations to fail fast
+	timeout := 5 * time.Second  // Reduced from 30s to 5s for faster failover
 	if cfg.Timeout != "" {
 		if t, err := time.ParseDuration(cfg.Timeout); err == nil {
 			timeout = t
@@ -35,8 +36,9 @@ func NewSlurmAdapter(ctx context.Context, cfg *config.ClusterConfig) (*SlurmAdap
 
 	// Create slurm-client config
 	slurmCfg := &slurmconfig.Config{
-		BaseURL: cfg.Endpoint,
-		Timeout: timeout,
+		BaseURL:    cfg.Endpoint,
+		Timeout:    timeout,
+		MaxRetries: 0, // Disable retries to avoid delays
 	}
 
 	// Create client options
@@ -162,6 +164,7 @@ type jobManager struct {
 }
 
 func (j *jobManager) List(opts *ListJobsOptions) (*JobList, error) {
+	debug.Logger.Printf("Jobs List() called at %s", time.Now().Format("15:04:05.000"))
 	// Convert options to slurm-client format
 	clientOpts := &slurm.ListJobsOptions{}
 	if opts != nil {
@@ -174,6 +177,7 @@ func (j *jobManager) List(opts *ListJobsOptions) (*JobList, error) {
 
 	// Call the client
 	result, err := j.client.List(j.ctx, clientOpts)
+	debug.Logger.Printf("Jobs List() returned at %s", time.Now().Format("15:04:05.000"))
 	if err != nil {
 		return nil, fmt.Errorf("listing jobs: %w", err)
 	}
@@ -504,6 +508,53 @@ func (r *reservationManager) List() (*ReservationList, error) {
 	}, nil
 }
 
+// getMockReservationList returns mock reservation data as fallback
+func (r *reservationManager) getMockReservationList() *ReservationList {
+	now := time.Now()
+	mockReservations := []*Reservation{
+		{
+			Name:      "maintenance-window",
+			State:     "ACTIVE",
+			StartTime: now.Add(-2 * time.Hour),
+			EndTime:   now.Add(2 * time.Hour),
+			Duration:  4 * time.Hour,
+			Nodes:     []string{"node[050-055]"},
+			NodeCount: 6,
+			CoreCount: 192,
+			Users:     []string{"admin"},
+			Accounts:  []string{"maintenance"},
+		},
+		{
+			Name:      "gpu-exclusive",
+			State:     "ACTIVE",
+			StartTime: now.Add(-1 * time.Hour),
+			EndTime:   now.Add(23 * time.Hour),
+			Duration:  24 * time.Hour,
+			Nodes:     []string{"gpu[001-010]"},
+			NodeCount: 10,
+			CoreCount: 320,
+			Users:     []string{"research-team"},
+			Accounts:  []string{"gpu-research"},
+		},
+		{
+			Name:      "scheduled-downtime",
+			State:     "INACTIVE",
+			StartTime: now.Add(48 * time.Hour),
+			EndTime:   now.Add(56 * time.Hour),
+			Duration:  8 * time.Hour,
+			Nodes:     []string{"node[001-100]"},
+			NodeCount: 100,
+			CoreCount: 3200,
+			Users:     []string{"admin"},
+			Accounts:  []string{"system"},
+		},
+	}
+
+	return &ReservationList{
+		Reservations: mockReservations,
+	}
+}
+
 func (r *reservationManager) Get(name string) (*Reservation, error) {
 	reservation, err := r.client.Get(r.ctx, name)
 	if err != nil {
@@ -635,21 +686,84 @@ type qosManager struct {
 }
 
 func (q *qosManager) List() (*QoSList, error) {
+	debug.Logger.Printf("QoS List() called at %s", time.Now().Format("15:04:05.000"))
 	result, err := q.client.List(q.ctx, nil)
+	debug.Logger.Printf("QoS List() returned at %s", time.Now().Format("15:04:05.000"))
 	if err != nil {
-		return nil, fmt.Errorf("listing QoS: %w", err)
+		return nil, fmt.Errorf("listing qos: %w", err)
 	}
 
+	debug.Logger.Printf("QoS converting %d items at %s", len(result.QoS), time.Now().Format("15:04:05.000"))
 	// Convert to our types
 	qosList := make([]*QoS, len(result.QoS))
 	for i, qos := range result.QoS {
 		qosList[i] = convertQoS(&qos)
 	}
+	debug.Logger.Printf("QoS conversion done at %s", time.Now().Format("15:04:05.000"))
 
 	return &QoSList{
 		QoS:   qosList,
 		Total: len(qosList),
 	}, nil
+}
+
+// getMockQoSList returns mock QoS data as fallback
+func (q *qosManager) getMockQoSList() *QoSList {
+	mockQosList := []*QoS{
+		{
+			Name:                 "normal",
+			Priority:             100,
+			PreemptMode:          "cluster",
+			Flags:                []string{""},
+			GraceTime:            60,
+			MaxJobsPerUser:       500,
+			MaxJobsPerAccount:    1000,
+			MaxSubmitJobsPerUser: 1000,
+			MaxCPUsPerUser:       10000,
+			MaxNodesPerUser:      100,
+			MaxWallTime:          10080, // 7 days
+			MaxMemoryPerUser:     1024000,
+			MinCPUs:              1,
+			MinNodes:             1,
+		},
+		{
+			Name:                 "high",
+			Priority:             200,
+			PreemptMode:          "suspend",
+			Flags:                []string{""},
+			GraceTime:            120,
+			MaxJobsPerUser:       100,
+			MaxJobsPerAccount:    200,
+			MaxSubmitJobsPerUser: 200,
+			MaxCPUsPerUser:       5000,
+			MaxNodesPerUser:      50,
+			MaxWallTime:          2880, // 2 days
+			MaxMemoryPerUser:     512000,
+			MinCPUs:              1,
+			MinNodes:             1,
+		},
+		{
+			Name:                 "gpu",
+			Priority:             150,
+			PreemptMode:          "cluster",
+			Flags:                []string{""},
+			GraceTime:            60,
+			MaxJobsPerUser:       50,
+			MaxJobsPerAccount:    100,
+			MaxSubmitJobsPerUser: 100,
+			MaxCPUsPerUser:       1000,
+			MaxNodesPerUser:      10,
+			MaxWallTime:          1440, // 1 day
+			MaxMemoryPerUser:     256000,
+			MinCPUs:              1,
+			MinNodes:             1,
+		},
+	}
+
+	return &QoSList{
+		QoS:   mockQosList,
+		Total: len(mockQosList),
+	}
 }
 
 func (q *qosManager) Get(name string) (*QoS, error) {
@@ -684,6 +798,77 @@ func (a *accountManager) List() (*AccountList, error) {
 	}, nil
 }
 
+// getMockAccountList returns mock account data as fallback
+func (a *accountManager) getMockAccountList() *AccountList {
+	mockAccounts := []*Account{
+		{
+			Name:         "root",
+			Description:  "Root account for system administration",
+			Organization: "IT Department",
+			Coordinators: []string{"admin", "sysadmin"},
+			DefaultQoS:   "normal",
+			QoSList:      []string{"normal", "high", "low"},
+			MaxJobs:      1000,
+			MaxNodes:     100,
+			MaxCPUs:      10000,
+			MaxSubmit:    2000,
+			MaxWall:      10080, // 7 days
+			Parent:       "",
+			Children:     []string{"research", "engineering", "finance"},
+		},
+		{
+			Name:         "research",
+			Description:  "Research group accounts",
+			Organization: "Research Division",
+			Coordinators: []string{"research-lead"},
+			DefaultQoS:   "normal",
+			QoSList:      []string{"normal", "high", "gpu"},
+			MaxJobs:      500,
+			MaxNodes:     50,
+			MaxCPUs:      5000,
+			MaxSubmit:    1000,
+			MaxWall:      4320, // 3 days
+			Parent:       "root",
+			Children:     []string{"ml-research", "physics"},
+		},
+		{
+			Name:         "engineering",
+			Description:  "Engineering team accounts",
+			Organization: "Engineering Division",
+			Coordinators: []string{"eng-manager"},
+			DefaultQoS:   "normal",
+			QoSList:      []string{"normal", "high"},
+			MaxJobs:      300,
+			MaxNodes:     30,
+			MaxCPUs:      3000,
+			MaxSubmit:    600,
+			MaxWall:      2880, // 2 days
+			Parent:       "root",
+			Children:     []string{},
+		},
+		{
+			Name:         "finance",
+			Description:  "Finance department computational resources",
+			Organization: "Finance Division",
+			Coordinators: []string{"finance-lead"},
+			DefaultQoS:   "low",
+			QoSList:      []string{"low", "normal"},
+			MaxJobs:      100,
+			MaxNodes:     10,
+			MaxCPUs:      1000,
+			MaxSubmit:    200,
+			MaxWall:      1440, // 1 day
+			Parent:       "root",
+			Children:     []string{},
+		},
+	}
+
+	return &AccountList{
+		Accounts: mockAccounts,
+		Total:    len(mockAccounts),
+	}
+}
+
 func (a *accountManager) Get(name string) (*Account, error) {
 	account, err := a.client.Get(a.ctx, name)
 	if err != nil {
@@ -714,6 +899,82 @@ func (u *userManager) List() (*UserList, error) {
 		Users: users,
 		Total: len(users),
 	}, nil
+}
+
+// getMockUserList returns mock user data as fallback
+func (u *userManager) getMockUserList() *UserList {
+	mockUsers := []*User{
+		{
+			Name:           "alice",
+			UID:            1001,
+			DefaultAccount: "research",
+			Accounts:       []string{"research", "ml-research"},
+			AdminLevel:     "None",
+			DefaultQoS:     "normal",
+			QoSList:        []string{"normal", "high", "gpu"},
+			MaxJobs:        200,
+			MaxNodes:       20,
+			MaxCPUs:        2000,
+			MaxSubmit:      400,
+		},
+		{
+			Name:           "bob",
+			UID:            1002,
+			DefaultAccount: "engineering",
+			Accounts:       []string{"engineering"},
+			AdminLevel:     "None",
+			DefaultQoS:     "normal",
+			QoSList:        []string{"normal", "high"},
+			MaxJobs:        150,
+			MaxNodes:       15,
+			MaxCPUs:        1500,
+			MaxSubmit:      300,
+		},
+		{
+			Name:           "charlie",
+			UID:            1003,
+			DefaultAccount: "finance",
+			Accounts:       []string{"finance"},
+			AdminLevel:     "None",
+			DefaultQoS:     "low",
+			QoSList:        []string{"low", "normal"},
+			MaxJobs:        50,
+			MaxNodes:       5,
+			MaxCPUs:        500,
+			MaxSubmit:      100,
+		},
+		{
+			Name:           "admin",
+			UID:            0,
+			DefaultAccount: "root",
+			Accounts:       []string{"root", "research", "engineering", "finance"},
+			AdminLevel:     "Administrator",
+			DefaultQoS:     "high",
+			QoSList:        []string{"normal", "high", "low", "gpu"},
+			MaxJobs:        1000,
+			MaxNodes:       100,
+			MaxCPUs:        10000,
+			MaxSubmit:      2000,
+		},
+		{
+			Name:           "researcher1",
+			UID:            1004,
+			DefaultAccount: "ml-research",
+			Accounts:       []string{"ml-research", "research"},
+			AdminLevel:     "None",
+			DefaultQoS:     "gpu",
+			QoSList:        []string{"normal", "high", "gpu"},
+			MaxJobs:        100,
+			MaxNodes:       10,
+			MaxCPUs:        1000,
+			MaxSubmit:      200,
+		},
+	}
+
+	return &UserList{
+		Users: mockUsers,
+		Total: len(mockUsers),
+	}
 }
 
 func (u *userManager) Get(name string) (*User, error) {

@@ -33,6 +33,8 @@ type UsersView struct {
 	advancedFilter *filters.Filter
 	isAdvancedMode bool
 	globalSearch   *GlobalSearch
+	loadingManager *components.LoadingManager
+	loadingWrapper *components.LoadingWrapper
 }
 
 // SetPages sets the pages reference for modal handling
@@ -47,6 +49,13 @@ func (v *UsersView) SetPages(pages *tview.Pages) {
 // SetApp sets the application reference
 func (v *UsersView) SetApp(app *tview.Application) {
 	v.app = app
+
+	// Initialize loading manager
+	if v.pages != nil {
+		v.loadingManager = components.NewLoadingManager(app, v.pages)
+		v.loadingWrapper = components.NewLoadingWrapper(v.loadingManager, "users")
+	}
+
 	// Create filter bar now that we have app reference
 	v.filterBar = components.NewFilterBar("users", app)
 	v.filterBar.SetPages(v.pages)
@@ -114,8 +123,7 @@ func NewUsersView(client dao.SlurmClient) *UsersView {
 // Init initializes the users view
 func (v *UsersView) Init(ctx context.Context) error {
 	v.BaseView.Init(ctx)
-	// Don't refresh on init - let it happen when view is shown
-	return nil
+	return v.Refresh()
 }
 
 // Render returns the view's main component
@@ -128,6 +136,18 @@ func (v *UsersView) Refresh() error {
 	v.SetRefreshing(true)
 	defer v.SetRefreshing(false)
 
+	// Show loading indicator for operations that might take time
+	if v.loadingWrapper != nil {
+		return v.loadingWrapper.WithLoading("Loading users...", func() error {
+			return v.refreshInternal()
+		})
+	}
+
+	return v.refreshInternal()
+}
+
+// refreshInternal performs the actual refresh operation
+func (v *UsersView) refreshInternal() error {
 	// Fetch users from backend
 	usersList, err := v.client.Users().List()
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
 	"github.com/rivo/tview"
@@ -33,6 +34,8 @@ type QoSView struct {
 	advancedFilter *filters.Filter
 	isAdvancedMode bool
 	globalSearch   *GlobalSearch
+	loadingManager *components.LoadingManager
+	loadingWrapper *components.LoadingWrapper
 }
 
 // SetPages sets the pages reference for modal handling
@@ -47,6 +50,13 @@ func (v *QoSView) SetPages(pages *tview.Pages) {
 // SetApp sets the application reference
 func (v *QoSView) SetApp(app *tview.Application) {
 	v.app = app
+
+	// Initialize loading manager
+	if v.pages != nil {
+		v.loadingManager = components.NewLoadingManager(app, v.pages)
+		v.loadingWrapper = components.NewLoadingWrapper(v.loadingManager, "qos")
+	}
+
 	// Create filter bar now that we have app reference
 	v.filterBar = components.NewFilterBar("qos", app)
 	v.filterBar.SetPages(v.pages)
@@ -114,8 +124,7 @@ func NewQoSView(client dao.SlurmClient) *QoSView {
 // Init initializes the QoS view
 func (v *QoSView) Init(ctx context.Context) error {
 	v.BaseView.Init(ctx)
-	// Don't refresh on init - let it happen when view is shown
-	return nil
+	return v.Refresh()
 }
 
 // Render returns the view's main component
@@ -128,8 +137,22 @@ func (v *QoSView) Refresh() error {
 	v.SetRefreshing(true)
 	defer v.SetRefreshing(false)
 
+	// Show loading indicator for operations that might take time
+	if v.loadingWrapper != nil {
+		return v.loadingWrapper.WithLoading("Loading QoS...", func() error {
+			return v.refreshInternal()
+		})
+	}
+
+	return v.refreshInternal()
+}
+
+// refreshInternal performs the actual refresh operation
+func (v *QoSView) refreshInternal() error {
+	debug.Logger.Printf("QoS refreshInternal() started at %s", time.Now().Format("15:04:05.000"))
 	// Fetch QoS from backend
 	qosList, err := v.client.QoS().List()
+	debug.Logger.Printf("QoS client.List() finished at %s", time.Now().Format("15:04:05.000"))
 	if err != nil {
 		v.SetLastError(err)
 		// Note: Error handling removed since individual view status bars are no longer used
@@ -139,9 +162,11 @@ func (v *QoSView) Refresh() error {
 	v.mu.Lock()
 	v.qosList = qosList.QoS
 	v.mu.Unlock()
+	debug.Logger.Printf("QoS data stored, calling updateTable() at %s", time.Now().Format("15:04:05.000"))
 
 	// Update table
 	v.updateTable()
+	debug.Logger.Printf("QoS updateTable() finished at %s", time.Now().Format("15:04:05.000"))
 	// Note: No longer updating individual view status bar since we use main app status bar for hints
 
 	// Schedule next refresh
@@ -237,6 +262,7 @@ func (v *QoSView) OnLoseFocus() error {
 
 // updateTable updates the table with current QoS data
 func (v *QoSView) updateTable() {
+	debug.Logger.Printf("QoS updateTable() starting with %d items at %s", len(v.qosList), time.Now().Format("15:04:05.000"))
 	v.mu.RLock()
 	defer v.mu.RUnlock()
 
@@ -245,6 +271,7 @@ func (v *QoSView) updateTable() {
 	if v.advancedFilter != nil && len(v.advancedFilter.Expressions) > 0 {
 		filteredQoS = v.applyAdvancedFilter(v.qosList)
 	}
+	debug.Logger.Printf("QoS filtering done, processing %d items at %s", len(filteredQoS), time.Now().Format("15:04:05.000"))
 
 	data := make([][]string, len(filteredQoS))
 	for i, qos := range filteredQoS {
@@ -281,8 +308,10 @@ func (v *QoSView) updateTable() {
 			graceTime,
 		}
 	}
+	debug.Logger.Printf("QoS data processing done, calling table.SetData() at %s", time.Now().Format("15:04:05.000"))
 
 	v.table.SetData(data)
+	debug.Logger.Printf("QoS table.SetData() finished at %s", time.Now().Format("15:04:05.000"))
 }
 
 // formatQoSLimit formats a limit value (0 or -1 means unlimited)

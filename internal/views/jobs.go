@@ -9,6 +9,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
 	"github.com/rivo/tview"
@@ -198,6 +199,7 @@ func (v *JobsView) Refresh() error {
 
 // refreshInternal performs the actual refresh operation
 func (v *JobsView) refreshInternal() error {
+	debug.Logger.Printf("Jobs refreshInternal() started at %s", time.Now().Format("15:04:05.000"))
 	// Fetch jobs from backend
 	opts := &dao.ListJobsOptions{
 		States: v.stateFilter,
@@ -209,6 +211,7 @@ func (v *JobsView) refreshInternal() error {
 	}
 
 	jobList, err := v.client.Jobs().List(opts)
+	debug.Logger.Printf("Jobs client.List() finished at %s", time.Now().Format("15:04:05.000"))
 	if err != nil {
 		v.SetLastError(err)
 		// Note: Error handling removed since individual view status bars are no longer used
@@ -218,9 +221,11 @@ func (v *JobsView) refreshInternal() error {
 	v.mu.Lock()
 	v.jobs = jobList.Jobs
 	v.mu.Unlock()
+	debug.Logger.Printf("Jobs data stored, calling updateTable() at %s", time.Now().Format("15:04:05.000"))
 
 	// Update table
 	v.updateTable()
+	debug.Logger.Printf("Jobs updateTable() finished at %s", time.Now().Format("15:04:05.000"))
 	// Note: No longer updating individual view status bar since we use main app status bar for hints
 
 	// Schedule next refresh
