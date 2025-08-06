@@ -1,0 +1,29 @@
+# Gotty configuration for s9s
+
+# Server settings
+port = "8080"
+address = ""
+
+# Terminal settings
+term = "xterm-256color"
+title = "s9s - SLURM TUI"
+
+# Permissions
+permit_write = true
+permit_arguments = false
+
+# Connection settings
+reconnect = true
+reconnect_time = 10
+timeout = 0
+
+# UI customization
+preferences = {
+    "background-color" = "rgb(16, 16, 16)",
+    "foreground-color" = "rgb(240, 240, 240)", 
+    "cursor-color" = "rgba(255, 255, 255, 0.5)",
+    "font-family" = "'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace",
+    "font-size" = 14,
+    "scrollback" = 1000,
+    "close-on-exit" = true
+}

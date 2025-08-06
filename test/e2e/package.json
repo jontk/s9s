@@ -1,0 +1,13 @@
+{
+  "name": "s9s-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for s9s TUI via gotty",
+  "scripts": {
+    "test": "node playwright-gotty-test.js",
+    "test:advanced": "node playwright-gotty-advanced.js",
+    "test:headless": "HEADLESS=true node playwright-gotty-advanced.js"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  }
+}

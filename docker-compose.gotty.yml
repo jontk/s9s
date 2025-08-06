@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  s9s-gotty:
+    image: alpine:latest
+    container_name: s9s-gotty
+    ports:
+      - "8080:8080"
+    environment:
+      - SLURM_CLUSTER_NAME=${SLURM_CLUSTER_NAME:-default}
+      - SLURM_API_URL=${SLURM_API_URL}
+      - SLURM_API_VERSION=${SLURM_API_VERSION:-v0.0.43}
+      - SLURM_USERNAME=${SLURM_USERNAME}
+      - SLURM_PASSWORD=${SLURM_PASSWORD}
+      - SLURM_TOKEN=${SLURM_TOKEN}
+    volumes:
+      - ./s9s:/app/s9s:ro
+      - ./config.yaml:/root/.config/s9s/config.yaml:ro
+    working_dir: /app
+    command: >
+      sh -c "
+        apk add --no-cache curl tar &&
+        curl -L https://github.com/yudai/gotty/releases/download/v1.0.1/gotty_linux_amd64.tar.gz | tar xz &&
+        mv gotty /usr/local/bin/ &&
+        gotty -p 8080 --permit-write --reconnect --title 's9s - SLURM TUI' /app/s9s
+      "
+    restart: unless-stopped

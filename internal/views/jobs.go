@@ -617,12 +617,27 @@ func (v *JobsView) performCancelJob(jobID string) {
 		v.mainStatusBar.Info(fmt.Sprintf("Cancelling job %s...", jobID))
 	}
 
+	// First attempt to cancel
 	err := v.client.Jobs().Cancel(jobID)
 	if err != nil {
 		if v.mainStatusBar != nil {
 			v.mainStatusBar.Error(fmt.Sprintf("Failed to cancel job %s: %v", jobID, err))
 		}
 		return
+	}
+
+	// Verify the job was actually cancelled by checking its state
+	time.Sleep(500 * time.Millisecond) // Give SLURM time to update
+	job, getErr := v.client.Jobs().Get(jobID)
+	if getErr == nil && job != nil {
+		debug.Logger.Printf("Post-cancel job state: %s", job.State)
+		if job.State != dao.JobStateCancelled {
+			// Job wasn't actually cancelled, might be held
+			if v.mainStatusBar != nil {
+				v.mainStatusBar.Warning(fmt.Sprintf("Job %s could not be cancelled. It may be held by admin. Try releasing it first.", jobID))
+			}
+			return
+		}
 	}
 
 	if v.mainStatusBar != nil {
@@ -704,9 +719,10 @@ func (v *JobsView) releaseSelectedJob() {
 	debug.Logger.Printf("releaseSelectedJob() - clean state: %s", cleanState)
 
 	// Check if job can be released
-	if !strings.Contains(cleanState, dao.JobStateSuspended) {
+	// Jobs can be released if they are SUSPENDED or PENDING (held)
+	if !strings.Contains(cleanState, dao.JobStateSuspended) && !strings.Contains(cleanState, dao.JobStatePending) {
 		if v.mainStatusBar != nil {
-			v.mainStatusBar.Warning(fmt.Sprintf("Job %s is not in a suspended state (current: %s)", jobID, cleanState))
+			v.mainStatusBar.Warning(fmt.Sprintf("Job %s is not in a releasable state (current: %s)", jobID, cleanState))
 		}
 		return
 	}
@@ -1118,13 +1134,18 @@ func FormatDurationDetailed(d time.Duration) string {
 
 // toggleAutoRefresh toggles automatic refresh mode
 func (v *JobsView) toggleAutoRefresh() {
+	debug.Logger.Printf("toggleAutoRefresh() called, current state: %v", v.autoRefresh)
 	v.autoRefresh = !v.autoRefresh
 
 	if v.autoRefresh {
-		// Note: Status bar update removed since individual view status bars are no longer used
+		if v.mainStatusBar != nil {
+			v.mainStatusBar.Success("Auto-refresh enabled")
+		}
 		v.scheduleRefresh()
 	} else {
-		// Note: Status bar update removed since individual view status bars are no longer used
+		if v.mainStatusBar != nil {
+			v.mainStatusBar.Info("Auto-refresh disabled")
+		}
 		if v.refreshTimer != nil {
 			v.refreshTimer.Stop()
 		}
@@ -1133,6 +1154,7 @@ func (v *JobsView) toggleAutoRefresh() {
 
 // showBatchOperations shows batch operations menu
 func (v *JobsView) showBatchOperations() {
+	debug.Logger.Printf("showBatchOperations() called, batchOpsView: %v", v.batchOpsView != nil)
 	// Get currently selected jobs or allow manual selection
 	var selectedJobs []string
 	var selectedJobsData []map[string]interface{}
@@ -1163,6 +1185,15 @@ func (v *JobsView) showBatchOperations() {
 				"user":  data[2],
 			}
 			selectedJobsData = append(selectedJobsData, jobData)
+		}
+	}
+
+	// Initialize batch operations view if not already done
+	if v.batchOpsView == nil && v.app != nil {
+		debug.Logger.Printf("Initializing batchOpsView in showBatchOperations")
+		v.batchOpsView = NewBatchOperationsView(v.client, v.app)
+		if v.pages != nil {
+			v.batchOpsView.SetPages(v.pages)
 		}
 	}
 
