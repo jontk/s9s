@@ -387,7 +387,8 @@ func (mst *MultiSelectTable) refreshDisplay() {
 			cell := tview.NewTableCell(cellText).
 				SetTextColor(mst.config.HeaderColor).
 				SetAlign(column.Alignment).
-				SetSelectable(false)
+				SetSelectable(false).
+				SetExpansion(1)
 
 			mst.Table.Table.SetCell(headerRow, col, cell)
 		}
@@ -419,7 +420,8 @@ func (mst *MultiSelectTable) refreshDisplay() {
 
 			// Apply row selection styling
 			cell := tview.NewTableCell(cellText).
-				SetAlign(column.Alignment)
+				SetAlign(column.Alignment).
+				SetExpansion(1)
 
 			if mst.selectedRows[rowIndex] {
 				cell.SetBackgroundColor(tcell.ColorDarkBlue).

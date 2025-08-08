@@ -339,6 +339,16 @@ func (s *S9s) initViews() error {
 	s.viewMgr.AddView(usersView)
 	s.contentPages.AddPage("users", usersView.Render(), true, false)
 
+	// Create Dashboard view
+	dashboardView := views.NewDashboardView(s.client)
+	dashboardView.SetApp(s.app)
+	dashboardView.SetPages(s.pages)
+	if err := dashboardView.Init(s.ctx); err != nil {
+		return fmt.Errorf("failed to initialize dashboard view: %w", err)
+	}
+	s.viewMgr.AddView(dashboardView)
+	s.contentPages.AddPage("dashboard", dashboardView.Render(), true, false)
+
 	// Create Health view
 	healthView := views.NewHealthView(s.client)
 	healthView.SetApp(s.app)
@@ -358,16 +368,6 @@ func (s *S9s) initViews() error {
 	}
 	s.viewMgr.AddView(performanceView)
 	s.contentPages.AddPage("performance", performanceView.Render(), true, false)
-
-	// Create Dashboard view
-	dashboardView := views.NewDashboardView(s.client)
-	dashboardView.SetApp(s.app)
-	dashboardView.SetPages(s.pages)
-	if err := dashboardView.Init(s.ctx); err != nil {
-		return fmt.Errorf("failed to initialize dashboard view: %w", err)
-	}
-	s.viewMgr.AddView(dashboardView)
-	s.contentPages.AddPage("dashboard", dashboardView.Render(), true, false)
 
 	// Update header with view names
 	s.header.SetViews(s.viewMgr.GetViewNames())
@@ -492,13 +492,13 @@ func (s *S9s) setupKeyboardShortcuts() {
 				s.switchToView("users")
 				return nil
 			case '8':
-				s.switchToView("health")
+				s.switchToView("dashboard")
 				return nil
 			case '9':
-				s.switchToView("performance")
+				s.switchToView("health")
 				return nil
 			case '0':
-				s.switchToView("dashboard")
+				s.switchToView("performance")
 				return nil
 			case 'q', 'Q':
 				s.Stop()
@@ -642,6 +642,8 @@ func (s *S9s) executeCommand(command string) {
 		s.switchToView("accounts")
 	case "users":
 		s.switchToView("users")
+	case "dashboard":
+		s.switchToView("dashboard")
 	case "health":
 		s.switchToView("health")
 	case "performance":
@@ -679,7 +681,7 @@ func (s *S9s) showHelp() {
 	helpText := `[yellow]S9S - SLURM Terminal UI Help[white]
 
 [teal]Global Keys:[white]
-  [yellow]1-8[white]         Switch to Jobs/Nodes/Partitions/Reservations/QoS/Accounts/Users/Health view
+  [yellow]1-0[white]         Switch to Jobs/Nodes/Partitions/Reservations/QoS/Accounts/Users/Dashboard/Health/Performance view
   [yellow]Tab/Shift+Tab[white] Switch between views
   [yellow]F1[white]         Show help
   [yellow]F2[white]         Show system alerts
@@ -697,8 +699,9 @@ func (s *S9s) showHelp() {
   [yellow]:qos[white]           Switch to QoS view
   [yellow]:accounts[white]      Switch to Accounts view
   [yellow]:users[white]         Switch to Users view
+  [yellow]:dashboard[white]     Switch to Dashboard view
   [yellow]:health[white]        Switch to Health Monitor view
-  // [yellow]:performance[white]   Switch to Performance Monitor view (disabled)
+  [yellow]:performance[white]   Switch to Performance Monitor view
   [yellow]:refresh, :r[white]   Refresh current view
   [yellow]:quit, :q[white]      Quit application
   [yellow]:help, :h[white]      Show this help

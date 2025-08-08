@@ -159,10 +159,11 @@ func NewJobsView(client dao.SlurmClient) *JobsView {
 	// Create info bar with filter and selection status
 	infoBar := tview.NewFlex().
 		SetDirection(tview.FlexColumn).
-		AddItem(v.filterInput, 0, 1, false).
-		AddItem(v.selectionStatusText, 30, 0, false)
+		AddItem(v.filterInput, 0, 2, false).
+		AddItem(v.selectionStatusText, 0, 1, false)
 
 	// Create container layout (removed individual status bar to prevent conflicts with main status bar)
+	// Use infoBar but ensure it has proper sizing
 	v.container = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(infoBar, 1, 0, false).

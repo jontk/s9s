@@ -29,3 +29,10 @@ CLAUDE.md
 memory/
 docs/
 s9s
+
+# Test artifacts
+test/e2e/test/
+test/e2e/*.png
+test/e2e/*.jpg
+test/e2e/*.jpeg
+test/e2e/*.gif
