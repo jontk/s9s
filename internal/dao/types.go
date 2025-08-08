@@ -88,9 +88,10 @@ type Node struct {
 	CPUsTotal       int
 	CPUsAllocated   int
 	CPUsIdle        int
-	MemoryTotal     int64 // in MB
-	MemoryAllocated int64 // in MB
-	MemoryFree      int64 // in MB
+	CPULoad         float64 // CPU load average
+	MemoryTotal     int64   // in MB
+	MemoryAllocated int64   // in MB
+	MemoryFree      int64   // in MB
 	Features        []string
 	Reason          string
 	ReasonTime      *time.Time

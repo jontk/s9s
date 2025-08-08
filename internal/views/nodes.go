@@ -797,6 +797,9 @@ func (v *NodesView) formatNodeDetails(node *dao.Node) string {
 		cpuPercent = float64(node.CPUsAllocated) * 100.0 / float64(node.CPUsTotal)
 	}
 	details.WriteString(fmt.Sprintf("[yellow]  CPU Usage:[white] %.1f%%\n", cpuPercent))
+	if node.CPULoad > 0 {
+		details.WriteString(fmt.Sprintf("[yellow]  CPU Load:[white] %.2f\n", node.CPULoad))
+	}
 
 	details.WriteString("\n[teal]Memory Information:[white]\n")
 	details.WriteString(fmt.Sprintf("[yellow]  Total Memory:[white] %s\n", FormatMemory(node.MemoryTotal)))

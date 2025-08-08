@@ -669,21 +669,44 @@ func convertJob(job *slurm.Job) *Job {
 }
 
 func convertNode(node *slurm.Node) *Node {
-	debug.Logger.Printf("convertNode: %s state='%s'", node.Name, node.State)
+	// Use real values from the updated slurm-client
+	allocCPUs := int(node.AllocCPUs)
+	allocMemory := node.AllocMemory
+	cpuLoad := node.CPULoad
+	
+	// Convert memory from bytes to MB (slurm-client returns bytes, we need MB)
+	memoryTotalMB := int64(node.Memory) / (1024 * 1024)
+	
+	// Calculate idle CPUs (total - allocated)
+	idleCPUs := node.CPUs - allocCPUs
+	if idleCPUs < 0 {
+		idleCPUs = 0
+	}
+	
+	// Calculate free memory (total - allocated)
+	freeMemory := memoryTotalMB - allocMemory
+	if freeMemory < 0 {
+		freeMemory = 0
+	}
+	
+	debug.Logger.Printf("convertNode: %s state='%s' CPULoad=%.2f AllocCPUs=%d AllocMem=%dMB MemTotal=%dMB node.Memory=%d", 
+		node.Name, node.State, cpuLoad, allocCPUs, allocMemory, memoryTotalMB, node.Memory)
+	
 	return &Node{
 		Name:            node.Name,
 		State:           node.State,
 		Partitions:      node.Partitions,
 		CPUsTotal:       node.CPUs,
-		CPUsAllocated:   0,         // Not available in basic Node struct
-		CPUsIdle:        node.CPUs, // Assume all idle for now
-		MemoryTotal:     int64(node.Memory),
-		MemoryAllocated: 0,                  // Not available in basic Node struct
-		MemoryFree:      int64(node.Memory), // Assume all free for now
+		CPUsAllocated:   allocCPUs,
+		CPUsIdle:        idleCPUs,
+		CPULoad:         cpuLoad,
+		MemoryTotal:     memoryTotalMB,     // Now in MB
+		MemoryAllocated: allocMemory,
+		MemoryFree:      freeMemory,
 		Features:        node.Features,
 		Reason:          node.Reason,
 		ReasonTime:      node.LastBusy,
-		AllocatedJobs:   []string{}, // Not available in basic Node struct
+		AllocatedJobs:   []string{}, // Would need to query jobs for this node
 	}
 }
 
