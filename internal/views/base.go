@@ -254,10 +254,8 @@ func FormatTimeDuration(d time.Duration) string {
 func FormatMemory(mb int64) string {
 	if mb < 1024 {
 		return fmt.Sprintf("%dMB", mb)
-	} else if mb < 1024*1024 {
-		return fmt.Sprintf("%.1fGB", float64(mb)/1024)
 	} else {
-		return fmt.Sprintf("%.1fTB", float64(mb)/(1024*1024))
+		return fmt.Sprintf("%.1fGB", float64(mb)/1024)
 	}
 }
 

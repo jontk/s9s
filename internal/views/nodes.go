@@ -94,10 +94,10 @@ func NewNodesView(client dao.SlurmClient) *NodesView {
 		components.NewColumn("Name").Width(15).Build(),
 		components.NewColumn("State").Width(12).Sortable(true).Build(),
 		components.NewColumn("Partitions").Width(15).Build(),
-		components.NewColumn("CPU Usage").Width(15).Align(tview.AlignCenter).Sortable(true).Build(),
-		components.NewColumn("Memory Usage").Width(15).Align(tview.AlignCenter).Sortable(true).Build(),
+		components.NewColumn("CPU Usage").Width(20).Align(tview.AlignCenter).Sortable(true).Build(),
+		components.NewColumn("Memory Usage").Width(20).Align(tview.AlignCenter).Sortable(true).Build(),
 		components.NewColumn("CPU Total").Width(10).Align(tview.AlignRight).Sortable(true).Build(),
-		components.NewColumn("Memory Total").Width(12).Align(tview.AlignRight).Sortable(true).Build(),
+		components.NewColumn("Memory Total").Width(15).Align(tview.AlignRight).Sortable(true).Build(),
 		components.NewColumn("Features").Width(20).Build(),
 		components.NewColumn("Reason").Width(25).Build(),
 	}
@@ -204,6 +204,7 @@ func (v *NodesView) Hints() []string {
 		"[yellow]a[white] All States",
 		"[yellow]g[white] Group By",
 		"[yellow]Space[white] Toggle Group",
+		"Bar: █=Used ▒=Alloc ▱=Free",
 	}
 
 	if v.isAdvancedMode {
@@ -363,12 +364,37 @@ func (v *NodesView) formatNodeRow(node *dao.Node) []string {
 	stateColor := dao.GetNodeStateColor(displayState)
 	coloredState := fmt.Sprintf("[%s]%s[white]", stateColor, displayState)
 
-	// CPU usage bar
-	cpuUsage := v.createUsageBar(node.CPUsAllocated, node.CPUsTotal)
-	cpuUsageText := fmt.Sprintf("%s %d/%d", cpuUsage, node.CPUsAllocated, node.CPUsTotal)
+	// CPU usage bar - dual view showing allocation vs actual load
+	// For CPU: allocated CPUs vs actual CPU load (if available)
+	cpuActualUsed := node.CPUsAllocated // Default to allocated if no load data
+	if node.CPULoad >= 0 { // CPULoad can be 0 (valid idle state)
+		// CPULoad is the 1-minute load average
+		// Load average represents the number of processes waiting for CPU time
+		// Convert load average to equivalent "CPU cores being used"
+		cpuActualUsed = int(node.CPULoad + 0.5) // Round to nearest integer
+		if cpuActualUsed > node.CPUsTotal {
+			cpuActualUsed = node.CPUsTotal
+		}
+		if cpuActualUsed < 0 {
+			cpuActualUsed = 0
+		}
+	}
+	cpuUsage := v.createDualUsageBar(node.CPUsAllocated, cpuActualUsed, node.CPUsTotal)
+	// Show both allocation and actual load
+	var cpuUsageText string
+	if node.CPULoad >= 0 {
+		cpuUsageText = fmt.Sprintf("%s %d/%d (%.1f)", cpuUsage, node.CPUsAllocated, node.CPUsTotal, node.CPULoad)
+	} else {
+		cpuUsageText = fmt.Sprintf("%s %d/%d", cpuUsage, node.CPUsAllocated, node.CPUsTotal)
+	}
 
-	// Memory usage bar
-	memUsage := v.createUsageBar(int(node.MemoryAllocated), int(node.MemoryTotal))
+	// Memory usage bar - dual view showing allocation vs actual usage
+	// Calculate actual memory used from free memory
+	memActualUsed := int(node.MemoryTotal - node.MemoryFree)
+	if memActualUsed < 0 {
+		memActualUsed = int(node.MemoryAllocated) // Fallback to allocated
+	}
+	memUsage := v.createDualUsageBar(int(node.MemoryAllocated), memActualUsed, int(node.MemoryTotal))
 	memUsageText := fmt.Sprintf("%s %s/%s", memUsage, FormatMemory(node.MemoryAllocated), FormatMemory(node.MemoryTotal))
 
 	// Partitions
@@ -405,7 +431,7 @@ func (v *NodesView) formatNodeRow(node *dao.Node) []string {
 // createUsageBar creates a visual usage bar
 func (v *NodesView) createUsageBar(used, total int) string {
 	if total == 0 {
-		return "[gray]▱▱▱▱▱▱▱▱[white]"
+		return "[gray]········[white]"
 	}
 
 	percentage := float64(used) / float64(total)
@@ -428,16 +454,60 @@ func (v *NodesView) createUsageBar(used, total int) string {
 
 	// Add filled bars
 	for i := 0; i < filled; i++ {
-		bar.WriteString("▰")
+		bar.WriteString("■")
 	}
 
 	// Add empty bars
 	bar.WriteString("[gray]")
 	for i := filled; i < barLength; i++ {
-		bar.WriteString("▱")
+		bar.WriteString("·")
 	}
 
 	bar.WriteString("[white]")
+
+	return bar.String()
+}
+
+// createDualUsageBar creates a dual-view bar showing allocation and actual usage
+// allocated: amount allocated by SLURM
+// used: actual amount in use
+// total: total available
+func (v *NodesView) createDualUsageBar(allocated, used, total int) string {
+	if total == 0 {
+		return "[gray]········[white]"
+	}
+
+	allocPercentage := float64(allocated) / float64(total)
+	usedPercentage := float64(used) / float64(total)
+	barLength := 8
+	allocFilled := int(allocPercentage * float64(barLength))
+	usedFilled := int(usedPercentage * float64(barLength))
+
+	var bar strings.Builder
+
+	// Choose color based on allocation percentage
+	var allocColor string
+	if allocPercentage < 0.5 {
+		allocColor = "green"
+	} else if allocPercentage < 0.8 {
+		allocColor = "yellow"
+	} else {
+		allocColor = "red"
+	}
+
+	// Build the bar using safe Unicode characters
+	for i := 0; i < barLength; i++ {
+		if i < usedFilled {
+			// Actual usage - solid block
+			bar.WriteString(fmt.Sprintf("[%s]■[white]", allocColor))
+		} else if i < allocFilled {
+			// Allocated but not used - outlined square
+			bar.WriteString(fmt.Sprintf("[%s]□[white]", allocColor))
+		} else {
+			// Not allocated - middle dot
+			bar.WriteString("[gray]·[white]")
+		}
+	}
 
 	return bar.String()
 }
@@ -792,24 +862,58 @@ func (v *NodesView) formatNodeDetails(node *dao.Node) string {
 	details.WriteString(fmt.Sprintf("[yellow]  Total CPUs:[white] %d\n", node.CPUsTotal))
 	details.WriteString(fmt.Sprintf("[yellow]  Allocated CPUs:[white] %d\n", node.CPUsAllocated))
 	details.WriteString(fmt.Sprintf("[yellow]  Idle CPUs:[white] %d\n", node.CPUsIdle))
-	cpuPercent := 0.0
+	
+	// Show allocation percentage
+	cpuAllocPercent := 0.0
 	if node.CPUsTotal > 0 {
-		cpuPercent = float64(node.CPUsAllocated) * 100.0 / float64(node.CPUsTotal)
+		cpuAllocPercent = float64(node.CPUsAllocated) * 100.0 / float64(node.CPUsTotal)
 	}
-	details.WriteString(fmt.Sprintf("[yellow]  CPU Usage:[white] %.1f%%\n", cpuPercent))
-	if node.CPULoad > 0 {
-		details.WriteString(fmt.Sprintf("[yellow]  CPU Load:[white] %.2f\n", node.CPULoad))
+	details.WriteString(fmt.Sprintf("[yellow]  CPU Allocation:[white] %.1f%% (SLURM allocated)\n", cpuAllocPercent))
+	
+	// Show actual CPU load if available
+	if node.CPULoad >= 0 {
+		details.WriteString(fmt.Sprintf("[yellow]  CPU Load:[white] %.2f (1-minute load average)\n", node.CPULoad))
+		// Calculate efficiency: how much of allocated CPU is actually being used
+		if node.CPUsAllocated > 0 {
+			efficiency := (node.CPULoad / float64(node.CPUsAllocated)) * 100.0
+			if efficiency > 100 {
+				efficiency = 100 // Cap at 100% for display
+			}
+			details.WriteString(fmt.Sprintf("[yellow]  CPU Efficiency:[white] %.1f%% (load/allocation)\n", efficiency))
+		}
 	}
 
 	details.WriteString("\n[teal]Memory Information:[white]\n")
 	details.WriteString(fmt.Sprintf("[yellow]  Total Memory:[white] %s\n", FormatMemory(node.MemoryTotal)))
-	details.WriteString(fmt.Sprintf("[yellow]  Allocated Memory:[white] %s\n", FormatMemory(node.MemoryAllocated)))
-	details.WriteString(fmt.Sprintf("[yellow]  Free Memory:[white] %s\n", FormatMemory(node.MemoryFree)))
-	memPercent := 0.0
+	details.WriteString(fmt.Sprintf("[yellow]  Allocated Memory:[white] %s", FormatMemory(node.MemoryAllocated)))
+	
+	// Show allocation percentage
+	memAllocPercent := 0.0
 	if node.MemoryTotal > 0 {
-		memPercent = float64(node.MemoryAllocated) * 100.0 / float64(node.MemoryTotal)
+		memAllocPercent = float64(node.MemoryAllocated) * 100.0 / float64(node.MemoryTotal)
 	}
-	details.WriteString(fmt.Sprintf("[yellow]  Memory Usage:[white] %.1f%%\n", memPercent))
+	details.WriteString(fmt.Sprintf(" (%.1f%% allocated by SLURM)\n", memAllocPercent))
+	
+	// Show actual memory usage
+	memActualUsed := node.MemoryTotal - node.MemoryFree
+	if memActualUsed < 0 {
+		memActualUsed = node.MemoryAllocated // Fallback
+	}
+	memUsagePercent := 0.0
+	if node.MemoryTotal > 0 {
+		memUsagePercent = float64(memActualUsed) * 100.0 / float64(node.MemoryTotal)
+	}
+	details.WriteString(fmt.Sprintf("[yellow]  Used Memory:[white] %s (%.1f%% actual usage)\n", FormatMemory(memActualUsed), memUsagePercent))
+	details.WriteString(fmt.Sprintf("[yellow]  Free Memory:[white] %s\n", FormatMemory(node.MemoryFree)))
+	
+	// Show efficiency (how much of allocated memory is actually used)
+	if node.MemoryAllocated > 0 {
+		efficiency := float64(memActualUsed) * 100.0 / float64(node.MemoryAllocated)
+		if efficiency > 100 {
+			efficiency = 100
+		}
+		details.WriteString(fmt.Sprintf("[yellow]  Memory Efficiency:[white] %.1f%% (used/allocated)\n", efficiency))
+	}
 
 	if len(node.Features) > 0 {
 		details.WriteString(fmt.Sprintf("\n[yellow]Features:[white] %s\n", strings.Join(node.Features, ", ")))

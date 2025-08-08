@@ -674,7 +674,7 @@ func convertNode(node *slurm.Node) *Node {
 	allocMemory := node.AllocMemory
 	cpuLoad := node.CPULoad
 	
-	// Convert memory from bytes to MB (slurm-client returns bytes, we need MB)
+	// Convert memory from bytes to MB (slurm-client converts MB to bytes)
 	memoryTotalMB := int64(node.Memory) / (1024 * 1024)
 	
 	// Calculate idle CPUs (total - allocated)
@@ -683,14 +683,22 @@ func convertNode(node *slurm.Node) *Node {
 		idleCPUs = 0
 	}
 	
-	// Calculate free memory (total - allocated)
-	freeMemory := memoryTotalMB - allocMemory
-	if freeMemory < 0 {
-		freeMemory = 0
+	// Get free memory from slurm-client if available
+	// Note: FreeMemory from SLURM is the actual free memory on the system
+	// This is different from (Total - Allocated) which is SLURM's allocation tracking
+	freeMemory := node.FreeMemory
+	
+	// If FreeMemory not available, calculate from allocation
+	// This is less accurate as it doesn't reflect actual system usage
+	if freeMemory == 0 {
+		freeMemory = memoryTotalMB - allocMemory
+		if freeMemory < 0 {
+			freeMemory = 0
+		}
 	}
 	
-	debug.Logger.Printf("convertNode: %s state='%s' CPULoad=%.2f AllocCPUs=%d AllocMem=%dMB MemTotal=%dMB node.Memory=%d", 
-		node.Name, node.State, cpuLoad, allocCPUs, allocMemory, memoryTotalMB, node.Memory)
+	debug.Logger.Printf("convertNode: %s state='%s' CPULoad=%.2f AllocCPUs=%d AllocMem=%dMB MemTotal=%dMB FreeMem=%dMB", 
+		node.Name, node.State, cpuLoad, allocCPUs, allocMemory, memoryTotalMB, freeMemory)
 	
 	return &Node{
 		Name:            node.Name,
@@ -700,9 +708,9 @@ func convertNode(node *slurm.Node) *Node {
 		CPUsAllocated:   allocCPUs,
 		CPUsIdle:        idleCPUs,
 		CPULoad:         cpuLoad,
-		MemoryTotal:     memoryTotalMB,     // Now in MB
-		MemoryAllocated: allocMemory,
-		MemoryFree:      freeMemory,
+		MemoryTotal:     memoryTotalMB,
+		MemoryAllocated: allocMemory,      // Memory allocated by SLURM to jobs
+		MemoryFree:      freeMemory,       // Actual free memory on the system
 		Features:        node.Features,
 		Reason:          node.Reason,
 		ReasonTime:      node.LastBusy,
