@@ -14,6 +14,7 @@ import (
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/layouts"
 	"github.com/jontk/s9s/internal/notifications"
+	"github.com/jontk/s9s/internal/plugins"
 	"github.com/jontk/s9s/internal/preferences"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/views/settings"
@@ -30,6 +31,9 @@ type S9s struct {
 
 	// SLURM client
 	client dao.SlurmClient
+
+	// Plugin system
+	pluginManager plugins.PluginManager
 
 	// UI components
 	app               *tview.Application
@@ -98,13 +102,14 @@ func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
 	app := tview.NewApplication()
 
 	s9s := &S9s{
-		ctx:    appCtx,
-		cancel: cancel,
-		config: cfg,
-		client: client,
-		app:    app,
-		pages:  tview.NewPages(),
-		contentPages: tview.NewPages(),
+		ctx:           appCtx,
+		cancel:        cancel,
+		config:        cfg,
+		client:        client,
+		app:           app,
+		pages:         tview.NewPages(),
+		contentPages:  tview.NewPages(),
+		pluginManager: plugins.NewManager(appCtx, client),
 	}
 
 	// Initialize user preferences
@@ -134,6 +139,12 @@ func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
 
 	// Setup keyboard shortcuts
 	s9s.setupKeyboardShortcuts()
+
+	// Load plugins
+	if err := s9s.loadPlugins(); err != nil {
+		// Don't fail startup for plugin errors, just log them
+		log.Printf("Warning: Failed to load plugins: %v", err)
+	}
 
 	return s9s, nil
 }
@@ -348,6 +359,16 @@ func (s *S9s) initViews() error {
 	s.viewMgr.AddView(performanceView)
 	s.contentPages.AddPage("performance", performanceView.Render(), true, false)
 
+	// Create Dashboard view
+	dashboardView := views.NewDashboardView(s.client)
+	dashboardView.SetApp(s.app)
+	dashboardView.SetPages(s.pages)
+	if err := dashboardView.Init(s.ctx); err != nil {
+		return fmt.Errorf("failed to initialize dashboard view: %w", err)
+	}
+	s.viewMgr.AddView(dashboardView)
+	s.contentPages.AddPage("dashboard", dashboardView.Render(), true, false)
+
 	// Update header with view names
 	s.header.SetViews(s.viewMgr.GetViewNames())
 
@@ -475,6 +496,9 @@ func (s *S9s) setupKeyboardShortcuts() {
 				return nil
 			case '9':
 				s.switchToView("performance")
+				return nil
+			case '0':
+				s.switchToView("dashboard")
 				return nil
 			case 'q', 'Q':
 				s.Stop()
@@ -866,4 +890,25 @@ func (s *S9s) showLayoutSwitcher() {
 	} else {
 		s.statusBar.Error("Layout manager not available")
 	}
+}
+
+// loadPlugins loads plugins from the configured plugin directories
+func (s *S9s) loadPlugins() error {
+	// Load plugins from the standard plugins directory
+	homeDir, err := os.UserHomeDir()
+	if err == nil {
+		s9sConfigDir := filepath.Join(homeDir, ".s9s")
+		pluginDir := filepath.Join(s9sConfigDir, "plugins")
+		s.pluginManager.LoadPluginsFromDirectory(pluginDir)
+	}
+
+	// Load plugins from system directory
+	systemPluginDir := "/usr/share/s9s/plugins"
+	s.pluginManager.LoadPluginsFromDirectory(systemPluginDir)
+
+	// Load plugins from local directory (for development)
+	localPluginDir := filepath.Join(".", "plugins")
+	s.pluginManager.LoadPluginsFromDirectory(localPluginDir)
+
+	return nil
 }

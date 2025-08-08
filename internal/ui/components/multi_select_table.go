@@ -295,6 +295,18 @@ func (mst *MultiSelectTable) handleMultiSelectInput(event *tcell.EventKey) *tcel
 		}
 	}
 
+	// Handle vim-style navigation
+	if event.Key() == tcell.KeyRune {
+		switch event.Rune() {
+		case 'j':
+			// Move down (like ArrowDown)
+			return mst.Table.handleInput(tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone))
+		case 'k':
+			// Move up (like ArrowUp)
+			return mst.Table.handleInput(tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone))
+		}
+	}
+
 	// Let the base table handle other input
 	return mst.Table.handleInput(event)
 }

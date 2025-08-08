@@ -91,11 +91,19 @@ func (v *HelpView) generateHelpContent() string {
 	// Global shortcuts
 	help.WriteString("[teal::b]Global Shortcuts:[white::-]\n")
 	help.WriteString("  [yellow]Tab[white]          Navigate between views\n")
+	help.WriteString("  [yellow]1-9,0[white]        Quick switch to views (Jobs/Nodes/Partitions/etc)\n")
 	help.WriteString("  [yellow]Ctrl+C[white]       Exit application\n")
 	help.WriteString("  [yellow]F1[white]           Show this help\n")
 	help.WriteString("  [yellow]F2[white]           Show system alerts\n")
 	help.WriteString("  [yellow]F5[white]           Refresh current view\n")
 	help.WriteString("  [yellow]Esc[white]          Close dialogs/modals\n\n")
+
+	// Vim navigation
+	help.WriteString("[teal::b]Vim Navigation:[white::-]\n")
+	help.WriteString("  [yellow]j[white]            Move down\n")
+	help.WriteString("  [yellow]k[white]            Move up\n")
+	help.WriteString("  [yellow]g[white]            Go to top\n")
+	help.WriteString("  [yellow]G[white]            Go to bottom\n\n")
 
 	// Jobs view
 	help.WriteString("[teal::b]Jobs View:[white::-]\n")

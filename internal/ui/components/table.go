@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/jontk/s9s/internal/ui/navigation"
 	"github.com/rivo/tview"
 )
 
@@ -57,6 +58,7 @@ type Table struct {
 	filter        string
 	onSelect      func(row, col int)
 	onSort        func(col int, ascending bool)
+	vimMode       *navigation.VimMode
 }
 
 // NewTable creates a new table component
@@ -72,6 +74,7 @@ func NewTable(config *TableConfig) *Table {
 		filteredData:  [][]string{},
 		sortColumn:    -1,
 		sortAscending: true,
+		vimMode:       navigation.NewVimMode(),
 	}
 
 	// Configure tview table
@@ -302,8 +305,19 @@ func (t *Table) applySort() {
 
 // handleInput handles keyboard input
 func (t *Table) handleInput(event *tcell.EventKey) *tcell.EventKey {
-	// Handle column sorting with number keys
-	if event.Key() >= tcell.KeyRune && event.Rune() >= '1' && event.Rune() <= '9' {
+	// Let vim mode handle the event first
+	vimEvent := t.vimMode.HandleKey(event)
+	if vimEvent == nil {
+		// Vim mode consumed the event
+		return nil
+	}
+	if vimEvent != event {
+		// Vim mode translated the event
+		event = vimEvent
+	}
+
+	// Handle column sorting with number keys (but skip if vim mode has repeat count)
+	if event.Key() >= tcell.KeyRune && event.Rune() >= '1' && event.Rune() <= '9' && !t.vimMode.IsWaitingForKey() {
 		col := int(event.Rune() - '1')
 		if col < len(t.config.Columns) {
 			t.Sort(col)
@@ -341,6 +355,7 @@ func (t *Table) handleInput(event *tcell.EventKey) *tcell.EventKey {
 		_, col := t.Table.GetSelection()
 		t.Table.Select(t.Table.GetRowCount()-1, col)
 		return nil
+
 	}
 
 	return event
