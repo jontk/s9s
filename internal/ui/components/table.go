@@ -1,6 +1,7 @@
 package components
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 
@@ -8,6 +9,40 @@ import (
 	"github.com/jontk/s9s/internal/ui/navigation"
 	"github.com/rivo/tview"
 )
+
+// colorCodeRegex matches tview color codes like [red], [white], [#ff0000], etc.
+var colorCodeRegex = regexp.MustCompile(`\[[^\]]*\]`)
+
+// getDisplayWidth returns the actual display width of a string without color codes
+func getDisplayWidth(text string) int {
+	return len(colorCodeRegex.ReplaceAllString(text, ""))
+}
+
+// truncateWithColorCodes truncates text while preserving color codes
+func truncateWithColorCodes(text string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return text
+	}
+	
+	displayWidth := getDisplayWidth(text)
+	if displayWidth <= maxWidth {
+		return text
+	}
+	
+	// Strip color codes for safe rune-level truncation
+	stripped := colorCodeRegex.ReplaceAllString(text, "")
+	if len([]rune(stripped)) <= maxWidth-3 {
+		return text
+	}
+	
+	// Truncate at rune level to avoid splitting UTF-8 sequences
+	runes := []rune(stripped)
+	if len(runes) > maxWidth-3 {
+		return string(runes[:maxWidth-3]) + "..."
+	}
+	
+	return stripped + "..."
+}
 
 // Column represents a table column definition
 type Column struct {
@@ -237,10 +272,10 @@ func (t *Table) refresh() {
 				continue
 			}
 
-			// Truncate text if necessary
+			// Truncate text if necessary, accounting for color codes
 			maxWidth := t.config.Columns[colIdx].Width
-			if maxWidth > 0 && len(cellData) > maxWidth {
-				cellData = cellData[:maxWidth-3] + "..."
+			if maxWidth > 0 {
+				cellData = truncateWithColorCodes(cellData, maxWidth)
 			}
 
 			cell := tview.NewTableCell(cellData).
