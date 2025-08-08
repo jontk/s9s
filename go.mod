@@ -2,7 +2,7 @@ module github.com/jontk/s9s
 
 go 1.24.4
 
-replace github.com/jontk/slurm-client => ../slurm-client-stable
+replace github.com/jontk/slurm-client => ../slurm-client
 
 require (
 	github.com/fsnotify/fsnotify v1.8.0

@@ -1,11 +1,15 @@
 {
   "name": "s9s-e2e-tests",
   "version": "1.0.0",
-  "description": "End-to-end tests for s9s TUI via gotty",
+  "description": "End-to-end tests for s9s TUI via ttyd web terminal",
   "scripts": {
-    "test": "node playwright-gotty-test.js",
-    "test:advanced": "node playwright-gotty-advanced.js",
-    "test:headless": "HEADLESS=true node playwright-gotty-advanced.js"
+    "test": "node playwright-ttyd-test.js",
+    "test:advanced": "node playwright-ttyd-advanced.js",
+    "test:headless": "HEADLESS=true node playwright-ttyd-advanced.js",
+    "test:gotty": "node playwright-gotty-test.js",
+    "test:gotty:advanced": "node playwright-gotty-advanced.js",
+    "server": "cd ../.. && ./run-with-gotty.sh",
+    "server:ttyd": "cd ../.. && ./run-with-ttyd.sh"
   },
   "dependencies": {
     "playwright": "^1.40.0"

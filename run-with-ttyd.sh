@@ -1,12 +1,10 @@
 #!/bin/bash
 
-# Run s9s with ttyd (formerly gotty)
-# Usage: ./run-with-gotty.sh [ttyd options]
-# 
-# Note: This script now uses ttyd instead of gotty for better compatibility
+# Run s9s with ttyd (web terminal)
+# Usage: ./run-with-ttyd.sh [ttyd options]
 
-# Default ttyd options (compatible with gotty usage)
-TTYD_PORT=${TTYD_PORT:-8080}
+# Default ttyd options
+TTYD_PORT=${TTYD_PORT:-7681}
 TTYD_OPTIONS=${TTYD_OPTIONS:-"-p $TTYD_PORT -W"}
 
 # Path to s9s binary
@@ -21,17 +19,15 @@ fi
 
 # Check if ttyd is installed
 if ! command -v ttyd &> /dev/null; then
-    echo "Error: ttyd is not installed (replacing gotty)"
+    echo "Error: ttyd is not installed"
     echo "Install ttyd with one of these methods:"
     echo "  - macOS: brew install ttyd"
     echo "  - Linux: apt-get install ttyd (or equivalent)"
     echo "  - Download from: https://github.com/tsl0922/ttyd/releases"
-    echo ""
-    echo "Note: ttyd is a more modern alternative to gotty with better compatibility"
     exit 1
 fi
 
-echo "Starting s9s with ttyd (gotty replacement)..."
+echo "Starting s9s with ttyd..."
 echo "Access s9s at: http://localhost:$TTYD_PORT"
 echo "Press Ctrl+C to stop"
 

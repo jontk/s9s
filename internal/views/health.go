@@ -193,11 +193,17 @@ func (v *HealthView) OnFocus() error {
 	if v.app != nil {
 		v.app.SetFocus(v.container)
 	}
+	// Restart the refresh timer when regaining focus
+	v.scheduleRefresh()
 	return nil
 }
 
 // OnLoseFocus handles loss of focus
 func (v *HealthView) OnLoseFocus() error {
+	// Stop the refresh timer to prevent background updates
+	if v.refreshTimer != nil {
+		v.refreshTimer.Stop()
+	}
 	return nil
 }
 

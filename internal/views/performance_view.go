@@ -379,8 +379,10 @@ func (pv *PerformanceView) OnFocus() error {
 
 // OnLoseFocus is called when the view loses focus
 func (pv *PerformanceView) OnLoseFocus() error {
-	// Optionally stop monitoring when view loses focus to save resources
-	// For now, keep it running for background monitoring
+	// Stop monitoring when view loses focus to prevent rendering conflicts
+	if pv.dashboard != nil {
+		pv.dashboard.Stop()
+	}
 	return nil
 }
 
