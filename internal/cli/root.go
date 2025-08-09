@@ -11,6 +11,7 @@ import (
 
 	"github.com/jontk/s9s/internal/app"
 	"github.com/jontk/s9s/internal/config"
+	"github.com/jontk/s9s/internal/mock"
 	"github.com/spf13/cobra"
 )
 
@@ -44,10 +45,10 @@ Features:
 • Plugin system for extensibility
 • Vim-like navigation`,
 	
-	Example: `  s9s                    # Launch interactive TUI
-  s9s --mock             # Use mock SLURM for testing
-  s9s setup              # Run configuration wizard
-  s9s setup --auto-discover  # Auto-discover clusters`,
+	Example: `  s9s                         # Launch interactive TUI
+  S9S_ENABLE_MOCK=dev s9s --mock  # Use mock SLURM for testing
+  s9s setup                       # Run configuration wizard
+  s9s setup --auto-discover      # Auto-discover clusters`,
 	
 	RunE: runRoot,
 }
@@ -65,7 +66,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&debugMode, "debug", false, "enable debug logging")
 	
 	// Local flags
-	rootCmd.Flags().BoolVar(&useMock, "mock", false, "use mock SLURM client for testing")
+	rootCmd.Flags().BoolVar(&useMock, "mock", false, "use mock SLURM client (requires S9S_ENABLE_MOCK)")
 	rootCmd.Flags().BoolVar(&noMock, "no-mock", false, "use real SLURM client (override config)")
 	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "show version information")
 }
@@ -113,6 +114,20 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	if debugMode {
 		// Debug mode enabled - would configure logging if we had logging config
 		fmt.Println("Debug mode enabled")
+	}
+
+	// Validate mock usage with environment variable gating
+	if err := mock.ValidateMockUsage(cfg.UseMockClient); err != nil {
+		if useMock {
+			// User explicitly requested mock but it's not enabled
+			fmt.Printf("❌ %v\n\n", err)
+			mock.SuggestMockSetup()
+			return fmt.Errorf("mock mode validation failed")
+		}
+		// Config file has mock enabled but environment doesn't allow it
+		fmt.Printf("⚠️  Mock mode disabled by environment: %v\n", err)
+		fmt.Printf("   Switching to real SLURM client mode\n\n")
+		cfg.UseMockClient = false
 	}
 
 	// Check if config is empty and suggest setup

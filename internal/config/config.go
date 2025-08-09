@@ -22,6 +22,7 @@ type Config struct {
 	Aliases        map[string]string `mapstructure:"aliases"`
 	Plugins        []PluginConfig    `mapstructure:"plugins"`
 	UseMockClient  bool              `mapstructure:"useMockClient"`
+	PluginSettings PluginSettings    `mapstructure:"pluginSettings"`
 
 	// Computed fields
 	Cluster ClusterConfig `mapstructure:"-"`
@@ -99,9 +100,20 @@ type ShortcutConfig struct {
 
 // PluginConfig represents a plugin configuration
 type PluginConfig struct {
-	Name   string                 `mapstructure:"name"`
-	Path   string                 `mapstructure:"path"`
-	Config map[string]interface{} `mapstructure:"config"`
+	Name    string                 `mapstructure:"name"`
+	Enabled bool                   `mapstructure:"enabled"`
+	Path    string                 `mapstructure:"path"`
+	Config  map[string]interface{} `mapstructure:"config"`
+}
+
+// PluginSettings contains global plugin settings
+type PluginSettings struct {
+	EnableAll    bool   `mapstructure:"enableAll"`
+	PluginDir    string `mapstructure:"pluginDir"`
+	AutoDiscover bool   `mapstructure:"autoDiscover"`
+	SafeMode     bool   `mapstructure:"safeMode"`     // Disable external plugins
+	MaxMemoryMB  int    `mapstructure:"maxMemoryMB"`  // Memory limit per plugin
+	MaxCPUPercent float64 `mapstructure:"maxCPUPercent"` // CPU limit per plugin
 }
 
 // Load reads configuration from file and environment
@@ -200,6 +212,14 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("features.pulseye", true)
 	v.SetDefault("features.xray", false)
 
+	// Plugin settings defaults
+	v.SetDefault("pluginSettings.enableAll", false)
+	v.SetDefault("pluginSettings.pluginDir", "$HOME/.s9s/plugins")
+	v.SetDefault("pluginSettings.autoDiscover", true)
+	v.SetDefault("pluginSettings.safeMode", false)
+	v.SetDefault("pluginSettings.maxMemoryMB", 100)
+	v.SetDefault("pluginSettings.maxCPUPercent", 25.0)
+
 	// Default aliases
 	v.SetDefault("aliases", map[string]string{
 		"ctx": "context",
@@ -293,4 +313,15 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// ValidateMockUsage validates if mock client usage is allowed
+func (c *Config) ValidateMockUsage() error {
+	if !c.UseMockClient {
+		return nil // No mock usage, nothing to validate
+	}
+
+	// Import mock validator dynamically to avoid circular imports
+	// This validation is done in CLI layer instead
+	return nil
 }
