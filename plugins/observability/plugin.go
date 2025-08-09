@@ -10,6 +10,7 @@ import (
 	"github.com/rivo/tview"
 
 	"github.com/jontk/s9s/internal/plugin"
+	"github.com/jontk/s9s/plugins/observability/analysis"
 	"github.com/jontk/s9s/plugins/observability/config"
 	"github.com/jontk/s9s/plugins/observability/historical"
 	"github.com/jontk/s9s/plugins/observability/overlays"
@@ -29,6 +30,7 @@ type ObservabilityPlugin struct {
 	persistence     *subscription.SubscriptionPersistence
 	historicalCollector *historical.HistoricalDataCollector
 	historicalAnalyzer  *historical.HistoricalAnalyzer
+	efficiencyAnalyzer  *analysis.ResourceEfficiencyAnalyzer
 	app           *tview.Application
 	view          *views.ObservabilityView
 	running       bool
@@ -180,6 +182,9 @@ func (p *ObservabilityPlugin) Init(ctx context.Context, config map[string]interf
 
 	// Create historical analyzer
 	p.historicalAnalyzer = historical.NewHistoricalAnalyzer(p.historicalCollector)
+
+	// Create efficiency analyzer
+	p.efficiencyAnalyzer = analysis.NewResourceEfficiencyAnalyzer(p.cachedClient, p.historicalCollector, p.historicalAnalyzer)
 
 	return nil
 }
@@ -435,6 +440,16 @@ func (p *ObservabilityPlugin) GetDataProviders() []plugin.DataProviderInfo {
 			Name:        "Seasonal Analysis",
 			Description: "Seasonal pattern analysis for metric data",
 		},
+		{
+			ID:          "resource-efficiency",
+			Name:        "Resource Efficiency Analysis",
+			Description: "Comprehensive resource utilization and efficiency analysis with optimization recommendations",
+		},
+		{
+			ID:          "cluster-efficiency",
+			Name:        "Cluster Efficiency Analysis",
+			Description: "Overall cluster efficiency analysis with cost optimization insights",
+		},
 	}
 }
 
@@ -458,6 +473,12 @@ func (p *ObservabilityPlugin) Query(ctx context.Context, providerID string, para
 	
 	case "seasonal-analysis":
 		return p.querySeasonalAnalysis(params)
+	
+	case "resource-efficiency":
+		return p.queryResourceEfficiency(params)
+	
+	case "cluster-efficiency":
+		return p.queryClusterEfficiency(params)
 	
 	default:
 		return nil, fmt.Errorf("unknown data provider: %s", providerID)
@@ -955,4 +976,56 @@ func (p *ObservabilityPlugin) parseDurationParam(params map[string]interface{}, 
 		}
 	}
 	return defaultValue, nil
+}
+
+// queryResourceEfficiency handles resource efficiency analysis queries
+func (p *ObservabilityPlugin) queryResourceEfficiency(params map[string]interface{}) (interface{}, error) {
+	if p.efficiencyAnalyzer == nil {
+		return nil, fmt.Errorf("efficiency analyzer not initialized")
+	}
+
+	resourceType, ok := params["resource_type"].(string)
+	if !ok {
+		return nil, fmt.Errorf("resource_type parameter is required")
+	}
+
+	duration, err := p.parseDurationParam(params, "analysis_period", 7*24*time.Hour) // Default to 1 week
+	if err != nil {
+		return nil, fmt.Errorf("invalid analysis_period parameter: %w", err)
+	}
+
+	// Convert string to ResourceType
+	var resType analysis.ResourceType
+	switch resourceType {
+	case "cpu":
+		resType = analysis.ResourceCPU
+	case "memory":
+		resType = analysis.ResourceMemory
+	case "storage":
+		resType = analysis.ResourceStorage
+	case "network":
+		resType = analysis.ResourceNetwork
+	case "gpu":
+		resType = analysis.ResourceGPU
+	default:
+		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
+	}
+
+	ctx := context.Background()
+	return p.efficiencyAnalyzer.AnalyzeResourceEfficiency(ctx, resType, duration)
+}
+
+// queryClusterEfficiency handles cluster-wide efficiency analysis queries
+func (p *ObservabilityPlugin) queryClusterEfficiency(params map[string]interface{}) (interface{}, error) {
+	if p.efficiencyAnalyzer == nil {
+		return nil, fmt.Errorf("efficiency analyzer not initialized")
+	}
+
+	duration, err := p.parseDurationParam(params, "analysis_period", 7*24*time.Hour) // Default to 1 week
+	if err != nil {
+		return nil, fmt.Errorf("invalid analysis_period parameter: %w", err)
+	}
+
+	ctx := context.Background()
+	return p.efficiencyAnalyzer.AnalyzeClusterEfficiency(ctx, duration)
 }
