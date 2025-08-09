@@ -3,11 +3,13 @@ package prometheus
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
@@ -26,6 +28,9 @@ type ClientConfig struct {
 	BearerToken   string
 	Timeout       time.Duration
 	TLSSkipVerify bool
+	TLSCertFile   string
+	TLSKeyFile    string
+	TLSCAFile     string
 }
 
 // NewClient creates a new Prometheus client
@@ -40,11 +45,15 @@ func NewClient(config ClientConfig) (*Client, error) {
 		return nil, fmt.Errorf("invalid endpoint URL: %w", err)
 	}
 
+	// Create TLS configuration
+	tlsConfig, err := createTLSConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create TLS config: %w", err)
+	}
+
 	// Create HTTP client with custom transport
 	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: config.TLSSkipVerify,
-		},
+		TLSClientConfig:     tlsConfig,
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 10,
 		IdleConnTimeout:     90 * time.Second,
@@ -283,4 +292,36 @@ func (c *Client) BatchQuery(ctx context.Context, queries map[string]string, time
 	}
 
 	return results, nil
+}
+
+// createTLSConfig creates a TLS configuration from ClientConfig
+func createTLSConfig(config ClientConfig) (*tls.Config, error) {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: config.TLSSkipVerify,
+	}
+
+	// Load CA certificate if specified
+	if config.TLSCAFile != "" {
+		caCert, err := os.ReadFile(config.TLSCAFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CA file: %w", err)
+		}
+
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM(caCert) {
+			return nil, fmt.Errorf("failed to parse CA certificate")
+		}
+		tlsConfig.RootCAs = caCertPool
+	}
+
+	// Load client certificate and key if specified
+	if config.TLSCertFile != "" && config.TLSKeyFile != "" {
+		clientCert, err := tls.LoadX509KeyPair(config.TLSCertFile, config.TLSKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client certificate: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{clientCert}
+	}
+
+	return tlsConfig, nil
 }
