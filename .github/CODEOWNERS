@@ -1,0 +1,47 @@
+# Global owners - these users will be requested for review on all PRs
+* @jontk
+
+# Documentation
+/docs/ @jontk
+*.md @jontk
+/.github/ @jontk
+
+# Core application code
+/cmd/ @jontk
+/internal/ @jontk
+/pkg/ @jontk
+
+# Configuration and build files
+/scripts/ @jontk
+Dockerfile @jontk
+docker-compose.yml @jontk
+go.mod @jontk
+go.sum @jontk
+Makefile @jontk
+
+# CI/CD and GitHub workflows
+/.github/workflows/ @jontk
+
+# Security-related files
+/.github/SECURITY.md @jontk
+/docs/security/ @jontk
+
+# Performance and monitoring
+/internal/performance/ @jontk
+/docs/PERFORMANCE_ANALYSIS.md @jontk
+
+# Plugin system
+/internal/plugins/ @jontk
+/examples/plugins/ @jontk
+
+# Streaming functionality
+/internal/streaming/ @jontk
+/docs/STREAMING_GUIDE.md @jontk
+
+# Enterprise features
+/docs/ENTERPRISE.md @jontk
+/internal/enterprise/ @jontk
+
+# Tests
+*_test.go @jontk
+/test/ @jontk

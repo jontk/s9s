@@ -1,0 +1,82 @@
+name: Question / Support
+description: Ask a question or get help with s9s
+title: "[Question]: "
+labels: ["question", "support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before asking a question, please:
+        1. Check the [documentation](https://github.com/jontk/s9s/tree/main/docs)
+        2. Search existing issues to see if your question has been answered
+        3. Consider if this might be a bug report instead
+
+  - type: input
+    id: version
+    attributes:
+      label: s9s Version
+      description: What version of s9s are you using?
+      placeholder: "v0.1.0 or git commit hash"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Question Category
+      description: What is your question about?
+      options:
+        - Installation and Setup
+        - Configuration
+        - Usage and Features
+        - Performance
+        - Troubleshooting
+        - Integration with SLURM
+        - Plugin Development
+        - Contributing
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: Please describe your question in detail
+      placeholder: I'm trying to understand how to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: |
+        Provide any relevant context about your environment, setup, or what you're trying to achieve.
+      placeholder: |
+        - SLURM version: 
+        - Cluster size:
+        - Operating system:
+        - What I'm trying to do:
+
+  - type: textarea
+    id: attempts
+    attributes:
+      label: What Have You Tried?
+      description: What have you already tried to solve this?
+      placeholder: |
+        I've tried:
+        1. ...
+        2. ...
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Outcome
+      description: What outcome are you expecting or hoping for?
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Any logs, configuration files, or other relevant information (remember to redact sensitive data)
