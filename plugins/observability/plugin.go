@@ -3,6 +3,9 @@ package observability
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/rivo/tview"
 
@@ -15,12 +18,13 @@ import (
 
 // ObservabilityPlugin implements the observability plugin
 type ObservabilityPlugin struct {
-	config       *config.Config
-	client       *prometheus.Client
-	cachedClient *prometheus.CachedClient
-	app          *tview.Application
-	view         *views.ObservabilityView
-	running      bool
+	config        *config.Config
+	client        *prometheus.Client
+	cachedClient  *prometheus.CachedClient
+	overlayMgr    *overlays.OverlayManager
+	app           *tview.Application
+	view          *views.ObservabilityView
+	running       bool
 }
 
 // New creates a new observability plugin instance
@@ -78,8 +82,12 @@ func (p *ObservabilityPlugin) GetInfo() plugin.Info {
 
 // Init initializes the plugin with configuration
 func (p *ObservabilityPlugin) Init(ctx context.Context, config map[string]interface{}) error {
-	// TODO: Parse configuration from map into Config struct
-	// For now, merge with defaults
+	// Parse configuration from map into Config struct
+	if err := p.parseConfig(config); err != nil {
+		return fmt.Errorf("configuration parsing failed: %w", err)
+	}
+
+	// Merge with defaults for any missing values
 	p.config.MergeWithDefaults()
 
 	// Validate configuration
@@ -87,11 +95,23 @@ func (p *ObservabilityPlugin) Init(ctx context.Context, config map[string]interf
 		return fmt.Errorf("configuration validation failed: %w", err)
 	}
 
-	// Create Prometheus client
+	// Create Prometheus client with full configuration
 	clientConfig := prometheus.ClientConfig{
-		Endpoint: p.config.Prometheus.Endpoint,
-		Timeout:  p.config.Prometheus.Timeout,
-		// TODO: Add auth configuration
+		Endpoint:      p.config.Prometheus.Endpoint,
+		Timeout:       p.config.Prometheus.Timeout,
+		TLSSkipVerify: p.config.Prometheus.TLS.InsecureSkipVerify,
+		TLSCertFile:   p.config.Prometheus.TLS.CertFile,
+		TLSKeyFile:    p.config.Prometheus.TLS.KeyFile,
+		TLSCAFile:     p.config.Prometheus.TLS.CAFile,
+	}
+
+	// Add authentication configuration
+	switch p.config.Prometheus.Auth.Type {
+	case "basic":
+		clientConfig.Username = p.config.Prometheus.Auth.Username
+		clientConfig.Password = p.config.Prometheus.Auth.Password
+	case "bearer":
+		clientConfig.BearerToken = p.config.Prometheus.Auth.Token
 	}
 
 	client, err := prometheus.NewClient(clientConfig)
@@ -107,6 +127,12 @@ func (p *ObservabilityPlugin) Init(ctx context.Context, config map[string]interf
 		p.config.Cache.MaxSize,
 	)
 
+	// Create overlay manager
+	p.overlayMgr = overlays.NewOverlayManager(
+		p.cachedClient,
+		p.config.Display.RefreshInterval,
+	)
+
 	return nil
 }
 
@@ -119,12 +145,24 @@ func (p *ObservabilityPlugin) Start(ctx context.Context) error {
 		return fmt.Errorf("Prometheus health check failed: %w", err)
 	}
 
+	// Start overlay manager
+	if err := p.overlayMgr.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start overlay manager: %w", err)
+	}
+
 	return nil
 }
 
 // Stop stops the plugin
 func (p *ObservabilityPlugin) Stop(ctx context.Context) error {
 	p.running = false
+
+	// Stop overlay manager
+	if p.overlayMgr != nil {
+		if err := p.overlayMgr.Stop(); err != nil {
+			// Log error but don't fail the stop operation
+		}
+	}
 
 	if p.view != nil {
 		if err := p.view.Stop(ctx); err != nil {
@@ -236,22 +274,49 @@ func (p *ObservabilityPlugin) GetOverlays() []plugin.OverlayInfo {
 
 // CreateOverlay creates an overlay instance
 func (p *ObservabilityPlugin) CreateOverlay(ctx context.Context, overlayID string) (plugin.Overlay, error) {
+	var overlay plugin.Overlay
+	var overlayInfo plugin.OverlayInfo
+	var err error
+
 	switch overlayID {
 	case "jobs-metrics":
-		overlay := overlays.NewJobsOverlay(p.cachedClient, p.config.Metrics.Job.CgroupPattern)
-		if err := overlay.Initialize(ctx); err != nil {
+		jobsOverlay := overlays.NewJobsOverlay(p.cachedClient, p.config.Metrics.Job.CgroupPattern)
+		if err = jobsOverlay.Initialize(ctx); err != nil {
 			return nil, fmt.Errorf("failed to initialize jobs overlay: %w", err)
 		}
-		return overlay, nil
+		overlay = jobsOverlay
+		overlayInfo = plugin.OverlayInfo{
+			ID:          "jobs-metrics",
+			Name:        "Job Metrics",
+			Description: "Adds real-time CPU and memory usage to jobs view",
+			TargetViews: []string{"jobs"},
+			Priority:    100,
+		}
 	case "nodes-metrics":
-		overlay := overlays.NewNodesOverlay(p.cachedClient, p.config.Metrics.Node.NodeLabel)
-		if err := overlay.Initialize(ctx); err != nil {
+		nodesOverlay := overlays.NewNodesOverlay(p.cachedClient, p.config.Metrics.Node.NodeLabel)
+		if err = nodesOverlay.Initialize(ctx); err != nil {
 			return nil, fmt.Errorf("failed to initialize nodes overlay: %w", err)
 		}
-		return overlay, nil
+		overlay = nodesOverlay
+		overlayInfo = plugin.OverlayInfo{
+			ID:          "nodes-metrics",
+			Name:        "Node Metrics",
+			Description: "Adds real-time resource utilization to nodes view",
+			TargetViews: []string{"nodes"},
+			Priority:    100,
+		}
 	default:
 		return nil, fmt.Errorf("unknown overlay: %s", overlayID)
 	}
+
+	// Register with overlay manager
+	if p.overlayMgr != nil {
+		if err := p.overlayMgr.RegisterOverlay(overlayInfo, overlay); err != nil {
+			return nil, fmt.Errorf("failed to register overlay with manager: %w", err)
+		}
+	}
+
+	return overlay, nil
 }
 
 // DataPlugin interface implementation
@@ -319,11 +384,302 @@ func (p *ObservabilityPlugin) GetConfigSchema() map[string]plugin.ConfigField {
 
 // GetCurrentConfig returns the current configuration
 func (p *ObservabilityPlugin) GetCurrentConfig() map[string]interface{} {
-	// TODO: Convert Config struct to map
 	return map[string]interface{}{
 		"prometheus.endpoint": p.config.Prometheus.Endpoint,
+		"prometheus.timeout": p.config.Prometheus.Timeout.String(),
+		"prometheus.auth.type": p.config.Prometheus.Auth.Type,
+		"prometheus.tls.insecureSkipVerify": p.config.Prometheus.TLS.InsecureSkipVerify,
 		"display.refreshInterval": p.config.Display.RefreshInterval.String(),
 		"display.showOverlays": p.config.Display.ShowOverlays,
+		"display.showSparklines": p.config.Display.ShowSparklines,
+		"display.colorScheme": p.config.Display.ColorScheme,
 		"alerts.enabled": p.config.Alerts.Enabled,
+		"alerts.checkInterval": p.config.Alerts.CheckInterval.String(),
+		"alerts.showNotifications": p.config.Alerts.ShowNotifications,
+		"cache.enabled": p.config.Cache.Enabled,
+		"cache.defaultTTL": p.config.Cache.DefaultTTL.String(),
+		"cache.maxSize": p.config.Cache.MaxSize,
 	}
+}
+
+// parseConfig parses configuration from map into Config struct
+func (p *ObservabilityPlugin) parseConfig(configMap map[string]interface{}) error {
+	// Initialize with default config if not already initialized
+	if p.config == nil {
+		p.config = config.DefaultConfig()
+	}
+
+	// Helper function to get nested values using dot notation
+	getValue := func(key string) (interface{}, bool) {
+		if val, exists := configMap[key]; exists {
+			return val, true
+		}
+		return nil, false
+	}
+
+	// Helper function to parse duration strings
+	parseDuration := func(val interface{}) (time.Duration, error) {
+		switch v := val.(type) {
+		case string:
+			return time.ParseDuration(v)
+		case time.Duration:
+			return v, nil
+		case int:
+			return time.Duration(v) * time.Second, nil
+		case int64:
+			return time.Duration(v) * time.Second, nil
+		case float64:
+			return time.Duration(v) * time.Second, nil
+		default:
+			return 0, fmt.Errorf("invalid duration type: %T", val)
+		}
+	}
+
+	// Helper function to parse boolean values
+	parseBool := func(val interface{}) (bool, error) {
+		switch v := val.(type) {
+		case bool:
+			return v, nil
+		case string:
+			return strconv.ParseBool(v)
+		default:
+			return false, fmt.Errorf("invalid boolean type: %T", val)
+		}
+	}
+
+	// Helper function to parse integer values
+	parseInt := func(val interface{}) (int, error) {
+		switch v := val.(type) {
+		case int:
+			return v, nil
+		case int64:
+			return int(v), nil
+		case float64:
+			return int(v), nil
+		case string:
+			return strconv.Atoi(v)
+		default:
+			return 0, fmt.Errorf("invalid integer type: %T", val)
+		}
+	}
+
+	// Parse Prometheus configuration
+	if val, ok := getValue("prometheus.endpoint"); ok {
+		if str, ok := val.(string); ok {
+			p.config.Prometheus.Endpoint = str
+		}
+	}
+
+	if val, ok := getValue("prometheus.timeout"); ok {
+		if duration, err := parseDuration(val); err == nil {
+			p.config.Prometheus.Timeout = duration
+		}
+	}
+
+	// Parse auth configuration
+	if val, ok := getValue("prometheus.auth.type"); ok {
+		if str, ok := val.(string); ok {
+			p.config.Prometheus.Auth.Type = str
+		}
+	}
+
+	if val, ok := getValue("prometheus.auth.username"); ok {
+		if str, ok := val.(string); ok {
+			p.config.Prometheus.Auth.Username = str
+		}
+	}
+
+	if val, ok := getValue("prometheus.auth.password"); ok {
+		if str, ok := val.(string); ok {
+			p.config.Prometheus.Auth.Password = str
+		}
+	}
+
+	if val, ok := getValue("prometheus.auth.token"); ok {
+		if str, ok := val.(string); ok {
+			p.config.Prometheus.Auth.Token = str
+		}
+	}
+
+	// Parse TLS configuration
+	if val, ok := getValue("prometheus.tls.enabled"); ok {
+		if b, err := parseBool(val); err == nil {
+			p.config.Prometheus.TLS.Enabled = b
+		}
+	}
+
+	if val, ok := getValue("prometheus.tls.insecureSkipVerify"); ok {
+		if b, err := parseBool(val); err == nil {
+			p.config.Prometheus.TLS.InsecureSkipVerify = b
+		}
+	}
+
+	if val, ok := getValue("prometheus.tls.caFile"); ok {
+		if str, ok := val.(string); ok {
+			p.config.Prometheus.TLS.CAFile = str
+		}
+	}
+
+	if val, ok := getValue("prometheus.tls.certFile"); ok {
+		if str, ok := val.(string); ok {
+			p.config.Prometheus.TLS.CertFile = str
+		}
+	}
+
+	if val, ok := getValue("prometheus.tls.keyFile"); ok {
+		if str, ok := val.(string); ok {
+			p.config.Prometheus.TLS.KeyFile = str
+		}
+	}
+
+	// Parse Display configuration
+	if val, ok := getValue("display.refreshInterval"); ok {
+		if duration, err := parseDuration(val); err == nil {
+			p.config.Display.RefreshInterval = duration
+		}
+	}
+
+	if val, ok := getValue("display.showOverlays"); ok {
+		if b, err := parseBool(val); err == nil {
+			p.config.Display.ShowOverlays = b
+		}
+	}
+
+	if val, ok := getValue("display.showSparklines"); ok {
+		if b, err := parseBool(val); err == nil {
+			p.config.Display.ShowSparklines = b
+		}
+	}
+
+	if val, ok := getValue("display.sparklinePoints"); ok {
+		if i, err := parseInt(val); err == nil {
+			p.config.Display.SparklinePoints = i
+		}
+	}
+
+	if val, ok := getValue("display.colorScheme"); ok {
+		if str, ok := val.(string); ok {
+			p.config.Display.ColorScheme = str
+		}
+	}
+
+	if val, ok := getValue("display.decimalPrecision"); ok {
+		if i, err := parseInt(val); err == nil {
+			p.config.Display.DecimalPrecision = i
+		}
+	}
+
+	// Parse Alerts configuration
+	if val, ok := getValue("alerts.enabled"); ok {
+		if b, err := parseBool(val); err == nil {
+			p.config.Alerts.Enabled = b
+		}
+	}
+
+	if val, ok := getValue("alerts.checkInterval"); ok {
+		if duration, err := parseDuration(val); err == nil {
+			p.config.Alerts.CheckInterval = duration
+		}
+	}
+
+	if val, ok := getValue("alerts.loadPredefinedRules"); ok {
+		if b, err := parseBool(val); err == nil {
+			p.config.Alerts.LoadPredefinedRules = b
+		}
+	}
+
+	if val, ok := getValue("alerts.showNotifications"); ok {
+		if b, err := parseBool(val); err == nil {
+			p.config.Alerts.ShowNotifications = b
+		}
+	}
+
+	// Parse Cache configuration
+	if val, ok := getValue("cache.enabled"); ok {
+		if b, err := parseBool(val); err == nil {
+			p.config.Cache.Enabled = b
+		}
+	}
+
+	if val, ok := getValue("cache.defaultTTL"); ok {
+		if duration, err := parseDuration(val); err == nil {
+			p.config.Cache.DefaultTTL = duration
+		}
+	}
+
+	if val, ok := getValue("cache.maxSize"); ok {
+		if i, err := parseInt(val); err == nil {
+			p.config.Cache.MaxSize = i
+		}
+	}
+
+	if val, ok := getValue("cache.cleanupInterval"); ok {
+		if duration, err := parseDuration(val); err == nil {
+			p.config.Cache.CleanupInterval = duration
+		}
+	}
+
+	// Parse Metrics configuration
+	if val, ok := getValue("metrics.node.nodeLabel"); ok {
+		if str, ok := val.(string); ok {
+			p.config.Metrics.Node.NodeLabel = str
+		}
+	}
+
+	if val, ok := getValue("metrics.node.rateRange"); ok {
+		if str, ok := val.(string); ok {
+			p.config.Metrics.Node.RateRange = str
+		}
+	}
+
+	if val, ok := getValue("metrics.job.enabled"); ok {
+		if b, err := parseBool(val); err == nil {
+			p.config.Metrics.Job.Enabled = b
+		}
+	}
+
+	if val, ok := getValue("metrics.job.cgroupPattern"); ok {
+		if str, ok := val.(string); ok {
+			p.config.Metrics.Job.CgroupPattern = str
+		}
+	}
+
+	// Parse array configurations
+	if val, ok := getValue("metrics.node.enabledMetrics"); ok {
+		if arr, ok := val.([]interface{}); ok {
+			metrics := make([]string, 0, len(arr))
+			for _, item := range arr {
+				if str, ok := item.(string); ok {
+					metrics = append(metrics, str)
+				}
+			}
+			p.config.Metrics.Node.EnabledMetrics = metrics
+		} else if str, ok := val.(string); ok {
+			// Support comma-separated string format
+			p.config.Metrics.Node.EnabledMetrics = strings.Split(str, ",")
+			for i, metric := range p.config.Metrics.Node.EnabledMetrics {
+				p.config.Metrics.Node.EnabledMetrics[i] = strings.TrimSpace(metric)
+			}
+		}
+	}
+
+	if val, ok := getValue("metrics.job.enabledMetrics"); ok {
+		if arr, ok := val.([]interface{}); ok {
+			metrics := make([]string, 0, len(arr))
+			for _, item := range arr {
+				if str, ok := item.(string); ok {
+					metrics = append(metrics, str)
+				}
+			}
+			p.config.Metrics.Job.EnabledMetrics = metrics
+		} else if str, ok := val.(string); ok {
+			// Support comma-separated string format
+			p.config.Metrics.Job.EnabledMetrics = strings.Split(str, ",")
+			for i, metric := range p.config.Metrics.Job.EnabledMetrics {
+				p.config.Metrics.Job.EnabledMetrics[i] = strings.TrimSpace(metric)
+			}
+		}
+	}
+
+	return nil
 }
