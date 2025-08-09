@@ -1,204 +1,408 @@
 # Observability Plugin
 
-The Observability plugin provides real-time metrics monitoring for s9s by integrating with Prometheus. It displays metrics from node-exporter and cgroup-exporter alongside SLURM job and node information.
+A comprehensive observability plugin for the s9s SLURM management interface that integrates with Prometheus to provide real-time monitoring, historical analysis, and intelligent resource optimization recommendations.
 
 ## Features
 
-- **Real-time Metrics Dashboard**: Comprehensive view showing cluster, node, and job metrics
-- **Prometheus Integration**: Connects to your existing Prometheus server
-- **Metric Overlays**: Adds CPU and memory usage to existing jobs and nodes views
-- **Alert Monitoring**: Configurable alerts for resource usage thresholds
-- **Caching**: Intelligent caching to reduce Prometheus query load
-- **Visual Widgets**: Gauges, sparklines, and tables for metric visualization
+### Core Monitoring
+- **Real-time Metrics**: Live CPU, memory, storage, and network utilization
+- **Prometheus Integration**: Native connection to existing Prometheus infrastructure
+- **Cached Queries**: Intelligent caching system to reduce Prometheus load
+- **Visual Overlays**: Seamless metric overlays on existing s9s views
+
+### Historical Analysis
+- **Time Series Collection**: Automated collection and storage of historical metrics
+- **30-Day Retention**: Configurable data retention with automatic cleanup
+- **Statistical Analysis**: Comprehensive trend analysis with linear regression
+- **Anomaly Detection**: Z-score based anomaly detection with configurable sensitivity
+- **Seasonal Patterns**: Daily, weekly, and custom seasonal pattern analysis
+
+### Resource Efficiency
+- **Comprehensive Scoring**: Multi-factor efficiency scoring (0-100 scale)
+- **Resource Analysis**: Individual analysis for CPU, memory, storage, network, and GPU
+- **Optimization Recommendations**: AI-driven recommendations with cost impact analysis
+- **Cluster-wide Insights**: Aggregate efficiency analysis across the entire cluster
+- **ROI Calculations**: Return on investment analysis for optimization suggestions
+
+### Data Subscriptions
+- **Real-time Updates**: Subscribe to metric updates with customizable intervals
+- **Persistent Subscriptions**: Subscriptions survive plugin restarts
+- **Change Detection**: Intelligent notification system for significant metric changes
+- **Callback System**: Flexible callback system for custom integrations
+
+### External API
+- **HTTP REST API**: Complete RESTful API for external integrations
+- **Authentication**: Optional bearer token authentication
+- **JSON Responses**: Structured JSON responses for all endpoints
+- **Rate Limiting**: Built-in protection against excessive requests
 
 ## Installation
 
-The observability plugin is included with s9s. To enable it, add the following to your s9s configuration:
+1. Place the observability plugin directory in your s9s plugins folder:
+   ```bash
+   cp -r plugins/observability /path/to/s9s/plugins/
+   ```
 
-```yaml
-plugins:
-  - name: observability
-    enabled: true
-    config:
-      prometheus:
-        endpoint: "http://your-prometheus:9090"
-```
+2. Configure your s9s instance to load the plugin:
+   ```yaml
+   plugins:
+     - name: observability
+       enabled: true
+       config:
+         prometheus.endpoint: "http://your-prometheus:9090"
+         prometheus.timeout: "10s"
+         display.refreshInterval: "30s"
+         display.showOverlays: true
+         alerts.enabled: true
+   ```
 
 ## Configuration
 
-See the included `config.yaml.template` for a complete configuration example. Key settings include:
+### Basic Configuration
 
-### Prometheus Connection
 ```yaml
-prometheus:
-  endpoint: "http://localhost:9090"  # Your Prometheus server
-  timeout: "10s"                      # Query timeout
-  auth:
-    type: "none"                      # Options: none, basic, bearer
+observability:
+  # Prometheus connection settings
+  prometheus:
+    endpoint: "http://localhost:9090"
+    timeout: "10s"
+    
+    # Authentication (optional)
+    auth:
+      type: "basic"  # or "bearer"
+      username: "admin"
+      password: "secret"
+      # token: "bearer-token"  # for bearer auth
+    
+    # TLS settings (optional)
+    tls:
+      enabled: true
+      insecureSkipVerify: false
+      caFile: "/path/to/ca.pem"
+      certFile: "/path/to/cert.pem"
+      keyFile: "/path/to/key.pem"
+  
+  # Display configuration
+  display:
+    refreshInterval: "30s"
+    showOverlays: true
+    showSparklines: true
+    sparklinePoints: 20
+    colorScheme: "default"
+    decimalPrecision: 2
+  
+  # Alert settings
+  alerts:
+    enabled: true
+    checkInterval: "60s"
+    loadPredefinedRules: true
+    showNotifications: true
+  
+  # Caching configuration
+  cache:
+    enabled: true
+    defaultTTL: "1m"
+    maxSize: 1000
+    cleanupInterval: "5m"
+  
+  # API configuration
+  api:
+    enabled: false
+    port: 8080
+    auth_token: "your-secret-token"
 ```
 
-### Display Settings
+### Advanced Configuration
+
 ```yaml
-display:
-  refreshInterval: "30s"              # How often to update metrics
-  showOverlays: true                  # Show metrics in jobs/nodes views
-  showSparklines: true                # Enable sparkline charts
-  colorScheme: "default"              # Options: default, colorblind, monochrome
+observability:
+  # Historical data collection
+  historical:
+    dataDir: "./data/historical"
+    retention: "720h"  # 30 days
+    collectInterval: "5m"
+    maxDataPoints: 10000
+    
+    # Custom queries for data collection
+    queries:
+      node_cpu: '100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)'
+      node_memory: '(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100'
+      node_load: 'node_load1'
+      job_count: 'slurm_job_total'
+      queue_length: 'slurm_queue_pending_jobs'
+  
+  # Metric collection settings
+  metrics:
+    node:
+      nodeLabel: "instance"
+      rateRange: "5m"
+      enabledMetrics: ["cpu", "memory", "disk", "network"]
+    
+    job:
+      enabled: true
+      cgroupPattern: "/slurm/uid_%d/job_%d"
+      enabledMetrics: ["cpu", "memory", "io"]
 ```
-
-### Alerts
-```yaml
-alerts:
-  enabled: true
-  rules:
-    - name: "High CPU Usage"
-      metric: "cpu_usage"
-      operator: ">"
-      threshold: 90.0
-      duration: "5m"
-      severity: "warning"
-```
-
-## Required Prometheus Exporters
-
-The plugin expects the following exporters to be running on your cluster nodes:
-
-1. **node-exporter**: For node-level metrics (CPU, memory, disk, network)
-   - Standard installation: https://github.com/prometheus/node_exporter
-   
-2. **cgroup-exporter**: For job-level metrics from SLURM cgroups
-   - Provides per-job CPU and memory usage
-   - Must be configured to expose SLURM job cgroups
 
 ## Usage
 
-### Accessing the Observability View
+### Web Interface
 
-Press `o` from any view to open the observability dashboard, or navigate through the view menu.
+1. **Observability View**: Access the main observability dashboard by pressing 'o' in the s9s interface
+2. **Metric Overlays**: View real-time metrics overlaid on jobs and nodes views
+3. **Historical Charts**: Access time-series charts and trend analysis
+4. **Efficiency Dashboard**: Review resource efficiency scores and recommendations
 
-### Keyboard Shortcuts
+### External API
 
-- `Tab`/`Shift+Tab`: Navigate between panels
-- `n`: Focus node metrics table
-- `j`: Focus job metrics table
-- `a`: Focus alerts panel
-- `r` or `Ctrl+R`: Refresh metrics
-- `h` or `?`: Show help
-- `Esc`: Return to previous view
+The plugin exposes a comprehensive REST API when enabled:
 
-### Understanding the Display
+#### Authentication
+All API requests require a Bearer token when authentication is enabled:
+```bash
+curl -H "Authorization: Bearer your-token" http://localhost:8080/api/v1/status
+```
 
-#### Cluster Overview
-Shows aggregate cluster statistics including:
-- Total active/down nodes
-- CPU core count and load averages
-- Running and pending job counts
+#### Metrics Endpoints
 
-#### Node Metrics Table
-Displays per-node metrics:
-- CPU usage percentage with color coding
-- Memory usage percentage
-- Load average
-- Active job count
-- Network traffic (receive/transmit)
-- Disk I/O rates
+**Query Metrics**
+```bash
+# Instant query
+curl "http://localhost:8080/api/v1/metrics/query?query=up"
 
-#### Job Metrics Table
-Shows per-job resource consumption:
-- Actual CPU usage vs allocated
-- Memory usage vs limit
-- Resource efficiency percentage
-- Job status
+# Range query
+curl "http://localhost:8080/api/v1/metrics/query_range?query=node_cpu&start=2023-01-01T00:00:00Z&end=2023-01-01T23:59:59Z&step=15m"
+```
 
-#### Alerts Panel
-Active alerts with severity indicators:
-- 🔴 Critical alerts
-- 🟡 Warning alerts
-- 🔵 Informational alerts
+**Historical Data**
+```bash
+# Get historical data
+curl "http://localhost:8080/api/v1/historical/data?metric=node_cpu&start=2023-01-01T00:00:00Z&end=2023-01-02T00:00:00Z"
 
-## Metric Sources
+# Get statistics
+curl "http://localhost:8080/api/v1/historical/statistics?metric=node_cpu&duration=24h"
+```
 
-### Node Metrics (from node-exporter)
-- `node_cpu_seconds_total`: CPU usage
-- `node_memory_MemTotal_bytes`: Total memory
-- `node_memory_MemAvailable_bytes`: Available memory
-- `node_load1`, `node_load5`, `node_load15`: Load averages
-- `node_disk_read_bytes_total`: Disk read bytes
-- `node_disk_write_bytes_total`: Disk write bytes
-- `node_network_receive_bytes_total`: Network receive
-- `node_network_transmit_bytes_total`: Network transmit
+#### Analysis Endpoints
 
-### Job Metrics (from cgroup-exporter)
-- `container_cpu_usage_seconds_total`: Job CPU usage
-- `container_memory_usage_bytes`: Job memory usage
-- `container_spec_memory_limit_bytes`: Job memory limit
-- `container_cpu_throttled_seconds_total`: CPU throttling
+**Trend Analysis**
+```bash
+curl "http://localhost:8080/api/v1/analysis/trend?metric=node_cpu&duration=7d"
+```
+
+**Anomaly Detection**
+```bash
+curl "http://localhost:8080/api/v1/analysis/anomaly?metric=node_cpu&duration=24h&sensitivity=2.0"
+```
+
+**Seasonal Analysis**
+```bash
+curl "http://localhost:8080/api/v1/analysis/seasonal?metric=node_cpu&duration=168h"
+```
+
+#### Efficiency Analysis
+
+**Resource Efficiency**
+```bash
+curl "http://localhost:8080/api/v1/efficiency/resource?type=cpu&duration=168h"
+curl "http://localhost:8080/api/v1/efficiency/resource?type=memory&duration=168h"
+```
+
+**Cluster Efficiency**
+```bash
+curl "http://localhost:8080/api/v1/efficiency/cluster?duration=168h"
+```
+
+#### Subscription Management
+
+**List Subscriptions**
+```bash
+curl "http://localhost:8080/api/v1/subscriptions"
+```
+
+**Create Subscription**
+```bash
+curl -X POST "http://localhost:8080/api/v1/subscriptions/create" \
+  -H "Content-Type: application/json" \
+  -d '{"provider_id": "prometheus-metrics", "params": {"query": "up", "update_interval": "30s"}}'
+```
+
+**Delete Subscription**
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/subscriptions/delete?id=subscription-id"
+```
+
+## Architecture
+
+### Component Overview
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  s9s Interface  │    │  External Apps  │    │   Prometheus    │
+└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+          │                      │                      │
+          │                      │                      │
+    ┌─────▼──────────────────────▼──────────────────────▼─────┐
+    │                                                        │
+    │               Observability Plugin                     │
+    │                                                        │
+    │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
+    │  │    Views    │  │ External API│  │ Prometheus  │     │
+    │  │             │  │             │  │   Client    │     │
+    │  └─────────────┘  └─────────────┘  └─────────────┘     │
+    │                                                        │
+    │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
+    │  │  Overlays   │  │Subscription │  │ Historical  │     │
+    │  │             │  │  Manager    │  │  Collector  │     │
+    │  └─────────────┘  └─────────────┘  └─────────────┘     │
+    │                                                        │
+    │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
+    │  │ Efficiency  │  │   Config    │  │    Cache    │     │
+    │  │  Analyzer   │  │   Manager   │  │   Manager   │     │
+    │  └─────────────┘  └─────────────┘  └─────────────┘     │
+    │                                                        │
+    └────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+1. **Metric Collection**: Prometheus client queries metrics based on configured intervals
+2. **Caching**: Frequently accessed metrics are cached to reduce Prometheus load
+3. **Historical Storage**: Time-series data is collected and stored locally for analysis
+4. **Analysis Pipeline**: Historical data feeds into trend, anomaly, and efficiency analyzers
+5. **Subscription System**: Real-time updates are distributed to subscribers
+6. **API Exposure**: External API provides programmatic access to all functionality
+
+### Storage Structure
+
+```
+data/
+├── observability/           # Subscription persistence
+│   ├── subscriptions.json
+│   └── notifications.json
+└── historical/              # Historical data storage
+    ├── node_cpu.json
+    ├── node_memory.json
+    ├── node_load.json
+    └── ...
+```
+
+## Metrics
+
+### Default Collected Metrics
+
+- **node_cpu**: CPU utilization percentage per node
+- **node_memory**: Memory utilization percentage per node  
+- **node_load**: System load average per node
+- **job_count**: Total number of SLURM jobs
+- **queue_length**: Number of pending jobs in queue
+
+### Custom Metrics
+
+Add custom metrics by extending the historical collector configuration:
+
+```yaml
+historical:
+  queries:
+    custom_metric: 'your_prometheus_query_here'
+    gpu_usage: 'nvidia_gpu_utilization_percent'
+    network_io: 'rate(node_network_receive_bytes_total[5m]) + rate(node_network_transmit_bytes_total[5m])'
+```
+
+## Efficiency Scoring
+
+The efficiency analyzer uses a multi-factor scoring system:
+
+### Scoring Components
+- **Utilization Score** (50%): Optimal range 70-85%
+- **Stability Score** (30%): Lower standard deviation is better
+- **Waste Score** (20%): Penalty for unused allocated resources
+
+### Resource-Specific Multipliers
+- **CPU**: 1.1x (performance critical)
+- **Memory**: 1.05x (stability critical)
+- **Storage**: 1.0x (baseline)
+- **Network**: 0.95x (less critical for most workloads)
+
+### Efficiency Levels
+- **Excellent** (90-100): Optimal resource utilization
+- **Good** (75-89): Minor optimization opportunities
+- **Fair** (60-74): Moderate inefficiencies detected
+- **Poor** (40-59): Significant waste or instability
+- **Critical** (0-39): Severe inefficiencies requiring attention
 
 ## Troubleshooting
 
-### Connection Issues
-1. Verify Prometheus is accessible:
-   ```bash
-   curl http://your-prometheus:9090/-/healthy
-   ```
+### Common Issues
 
-2. Check exporter endpoints:
-   ```bash
-   curl http://node:9100/metrics | grep node_cpu
-   ```
+**Plugin fails to start**
+- Verify Prometheus endpoint is accessible
+- Check authentication credentials
+- Ensure required directories are writable
 
-3. Enable debug logging:
-   ```yaml
-   advanced:
-     debug: true
-   ```
+**No data in historical views**
+- Confirm data collection is enabled
+- Check historical collector is running
+- Verify Prometheus queries return data
 
-### Missing Metrics
-- Ensure node-exporter is running on all nodes
-- Verify cgroup-exporter is configured for SLURM
-- Check Prometheus scrape configuration
-- Verify metric names match your exporter versions
+**API authentication failures**
+- Ensure correct bearer token format
+- Check token matches configuration
+- Verify API is enabled in configuration
 
-### Performance Issues
-- Increase cache TTL for slower refresh
-- Reduce sparkline points for less history
-- Disable overlays if not needed
+**Performance issues**
+- Increase cache TTL to reduce Prometheus load
+- Reduce collection frequency for large clusters
+- Consider increasing maxDataPoints for longer retention
 
-## Custom Queries
+### Debug Mode
 
-Add custom PromQL queries in the configuration:
-
-```yaml
-metrics:
-  customQueries:
-    gpu_usage: 'avg(nvidia_gpu_utilization{instance=~"{{.NodePattern}}"})'
-    ib_traffic: 'rate(node_infiniband_port_data_received_bytes_total[5m])'
+Enable debug logging by setting log level to debug:
+```bash
+export LOG_LEVEL=debug
 ```
+
+### Health Checks
+
+Monitor plugin health through the API:
+```bash
+curl http://localhost:8080/health
+```
+
+Or use the plugin's internal health check:
+- Plugin status shows "healthy" when Prometheus is accessible
+- Cache statistics indicate query performance
+- Subscription statistics show active data flows
 
 ## Development
 
-### Adding New Metrics
+### Building
 
-1. Define the query in `prometheus/queries.go`
-2. Add collection logic in the view's refresh method
-3. Create or update widgets to display the data
+```bash
+cd plugins/observability
+go build -o observability.so -buildmode=plugin .
+```
 
-### Creating Custom Widgets
+### Testing
 
-Extend the widget base classes in `views/widgets/`:
-- `GaugeWidget`: For percentage/threshold displays
-- `SparklineWidget`: For time series data
-- `AlertsWidget`: For alert notifications
+```bash
+# Unit tests
+go test ./...
 
-## Future Enhancements
+# Integration tests with mock Prometheus
+go test -v ./integration_test.go
 
-- GPU metrics support (nvidia-smi exporter)
-- InfiniBand metrics
-- Lustre filesystem metrics
-- Predictive analytics
-- Anomaly detection
-- Capacity planning
+# Benchmark tests
+go test -bench=. -benchmem
+```
+
+### Contributing
+
+1. Follow Go coding standards
+2. Add comprehensive tests for new features
+3. Update documentation for configuration changes
+4. Ensure backward compatibility
 
 ## License
 
-This plugin is part of s9s and is licensed under the same terms.
+This plugin is licensed under the MIT License. See LICENSE file for details.

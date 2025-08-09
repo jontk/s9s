@@ -11,6 +11,7 @@ import (
 
 	"github.com/jontk/s9s/internal/plugin"
 	"github.com/jontk/s9s/plugins/observability/analysis"
+	"github.com/jontk/s9s/plugins/observability/api"
 	"github.com/jontk/s9s/plugins/observability/config"
 	"github.com/jontk/s9s/plugins/observability/historical"
 	"github.com/jontk/s9s/plugins/observability/overlays"
@@ -31,6 +32,7 @@ type ObservabilityPlugin struct {
 	historicalCollector *historical.HistoricalDataCollector
 	historicalAnalyzer  *historical.HistoricalAnalyzer
 	efficiencyAnalyzer  *analysis.ResourceEfficiencyAnalyzer
+	externalAPI   *api.ExternalAPI
 	app           *tview.Application
 	view          *views.ObservabilityView
 	running       bool
@@ -83,6 +85,24 @@ func (p *ObservabilityPlugin) GetInfo() plugin.Info {
 				Type:        "bool",
 				Description: "Enable alert monitoring",
 				Default:     true,
+				Required:    false,
+			},
+			"api.enabled": {
+				Type:        "bool",
+				Description: "Enable external HTTP API",
+				Default:     false,
+				Required:    false,
+			},
+			"api.port": {
+				Type:        "int",
+				Description: "HTTP API server port",
+				Default:     8080,
+				Required:    false,
+			},
+			"api.auth_token": {
+				Type:        "string",
+				Description: "Authentication token for API access (optional)",
+				Default:     "",
 				Required:    false,
 			},
 		},
@@ -186,6 +206,43 @@ func (p *ObservabilityPlugin) Init(ctx context.Context, config map[string]interf
 	// Create efficiency analyzer
 	p.efficiencyAnalyzer = analysis.NewResourceEfficiencyAnalyzer(p.cachedClient, p.historicalCollector, p.historicalAnalyzer)
 
+	// Create external API
+	apiConfig := api.Config{
+		Enabled:   false, // Disabled by default, can be configured
+		Port:      8080,
+		AuthToken: "",
+	}
+	
+	// Check for API configuration
+	if val, ok := config["api.enabled"]; ok {
+		if b, ok := val.(bool); ok {
+			apiConfig.Enabled = b
+		}
+	}
+	if val, ok := config["api.port"]; ok {
+		if port, ok := val.(int); ok {
+			apiConfig.Port = port
+		} else if portStr, ok := val.(string); ok {
+			if port, err := strconv.Atoi(portStr); err == nil {
+				apiConfig.Port = port
+			}
+		}
+	}
+	if val, ok := config["api.auth_token"]; ok {
+		if token, ok := val.(string); ok {
+			apiConfig.AuthToken = token
+		}
+	}
+
+	p.externalAPI = api.NewExternalAPI(
+		p.cachedClient,
+		p.subscriptionMgr,
+		p.historicalCollector,
+		p.historicalAnalyzer,
+		p.efficiencyAnalyzer,
+		apiConfig,
+	)
+
 	return nil
 }
 
@@ -213,12 +270,24 @@ func (p *ObservabilityPlugin) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start historical data collector: %w", err)
 	}
 
+	// Start external API if enabled
+	if err := p.externalAPI.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start external API: %w", err)
+	}
+
 	return nil
 }
 
 // Stop stops the plugin
 func (p *ObservabilityPlugin) Stop(ctx context.Context) error {
 	p.running = false
+
+	// Stop external API
+	if p.externalAPI != nil {
+		if err := p.externalAPI.Stop(ctx); err != nil {
+			// Log error but don't fail the stop operation
+		}
+	}
 
 	// Stop historical data collector
 	if p.historicalCollector != nil {
