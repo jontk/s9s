@@ -530,9 +530,7 @@ func (h *HealthChecker) checkEndpointHealth(ctx context.Context, endpoint *Endpo
 
 	// Record response time for healthy endpoints
 	if healthy {
-		if loadBalancer, ok := h.balancer.(*AdvancedLoadBalancer); ok {
-			loadBalancer.RecordResponseTime(endpoint, responseTime)
-		}
+		h.balancer.RecordResponseTime(endpoint, responseTime)
 	}
 
 	debug.Logger.Printf("Health check completed for %s: status=%d, healthy=%v, response_time=%v",

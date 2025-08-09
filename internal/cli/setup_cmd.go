@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/jontk/s9s/internal/config"

@@ -50,7 +50,12 @@ func (s *SlurmAuthProvider) Authenticate(ctx context.Context, username, password
 func (s *SlurmAuthProvider) RefreshToken(ctx context.Context, token *Token) (*Token, error) {
 	// In a real implementation, this would use the refresh endpoint
 	// For now, just create a new token
-	return CreateToken(token.Username, token.ClusterURL, DefaultTokenExpiry)
+	// Extract username and cluster from token metadata
+	username := token.Metadata["username"]
+	if username == "" {
+		username = "unknown"
+	}
+	return CreateToken(username, token.ClusterID, DefaultTokenExpiry)
 }
 
 // ValidateToken validates if a token is still valid
@@ -61,7 +66,7 @@ func (s *SlurmAuthProvider) ValidateToken(ctx context.Context, token *Token) err
 
 	// In a real implementation, this would make a request to validate the token
 	// For now, just check JWT validity
-	_, err := ValidateJWT(token.Value)
+	_, err := ValidateJWT(token.AccessToken)
 	return err
 }
 

@@ -214,10 +214,13 @@ verify_installation() {
         
         echo
         echo "🚀 Quick Start:"
-        echo "  # Run with mock data (no SLURM cluster required)"
+        echo "  # Run setup wizard (recommended for first-time users)"
+        echo "  s9s setup"
+        echo
+        echo "  # Or run with mock data (no SLURM cluster required)"
         echo "  s9s --mock"
         echo
-        echo "  # Connect to your SLURM cluster"
+        echo "  # Or connect to your SLURM cluster manually"
         echo "  export SLURM_URL=https://your-slurm-cluster.com"
         echo "  export SLURM_TOKEN=your-token"
         echo "  s9s"

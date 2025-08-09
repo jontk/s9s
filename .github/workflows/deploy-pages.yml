@@ -1,0 +1,66 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Prepare installation endpoint
+      run: |
+        # Copy installation script to docs root as index
+        cp scripts/install.sh docs/index.sh
+        chmod +x docs/index.sh
+        
+        # Create proper MIME type handling
+        echo 'text/x-shellscript sh' > docs/.htaccess
+        
+        # Create redirect HTML for browsers
+        cat > docs/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>s9s Installation Script</title>
+        </head>
+        <body>
+            <h1>s9s Installation</h1>
+            <p>To install s9s, run:</p>
+            <pre><code>curl -sSL https://get.s9s.dev | bash</code></pre>
+            <p>Or download the script directly: <a href="index.sh">install.sh</a></p>
+        </body>
+        </html>
+        EOF
+        
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: docs/
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

@@ -23,8 +23,8 @@ const (
 	DefaultTokenExpiry = 24 * time.Hour
 )
 
-// Token represents an authentication token
-type Token struct {
+// SimpleToken represents a cached authentication token (for backward compatibility)
+type SimpleToken struct {
 	Value      string    `json:"value"`
 	ExpiresAt  time.Time `json:"expires_at"`
 	ClusterURL string    `json:"cluster_url"`
@@ -32,7 +32,7 @@ type Token struct {
 }
 
 // IsExpired checks if the token has expired
-func (t *Token) IsExpired() bool {
+func (t *SimpleToken) IsExpired() bool {
 	return time.Now().After(t.ExpiresAt)
 }
 
@@ -282,9 +282,12 @@ func CreateToken(username, clusterURL string, expiry time.Duration) (*Token, err
 	}
 
 	return &Token{
-		Value:      tokenString,
-		ExpiresAt:  expiresAt,
-		ClusterURL: clusterURL,
-		Username:   username,
+		AccessToken: tokenString,
+		ExpiresAt:   expiresAt,
+		TokenType:   "Bearer",
+		ClusterID:   clusterURL,
+		Metadata: map[string]string{
+			"username": username,
+		},
 	}, nil
 }

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
-	"strings"
 
 	"github.com/jontk/s9s/internal/debug"
 )
