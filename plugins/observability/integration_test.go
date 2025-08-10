@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jontk/s9s/internal/plugin"
 	"github.com/jontk/s9s/plugins/observability/analysis"
 	"github.com/jontk/s9s/plugins/observability/historical"
 )

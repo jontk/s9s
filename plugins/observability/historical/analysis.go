@@ -3,7 +3,6 @@ package historical
 import (
 	"fmt"
 	"math"
-	"sort"
 	"time"
 )
 

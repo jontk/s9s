@@ -175,7 +175,6 @@ func (p *ObservabilityPlugin) Init(ctx context.Context, config map[string]interf
 		SaveInterval: 5 * time.Minute,
 	}
 
-	var err error
 	p.persistence, err = subscription.NewSubscriptionPersistence(persistenceConfig, p.subscriptionMgr)
 	if err != nil {
 		return fmt.Errorf("failed to create subscription persistence: %w", err)
@@ -579,7 +578,7 @@ func (p *ObservabilityPlugin) Subscribe(ctx context.Context, providerID string, 
 	}
 
 	// Update the enhanced callback with the subscription ID
-	enhancedCallback.subscriptionID = string(subscriptionID)
+	enhancedCallback.SetSubscriptionID(string(subscriptionID))
 
 	return subscriptionID, nil
 }

@@ -1,7 +1,6 @@
 package subscription
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -392,6 +391,11 @@ type EnhancedSubscriptionCallback struct {
 	notificationMgr    *NotificationManager
 	subscriptionID     string
 	providerID         string
+}
+
+// SetSubscriptionID sets the subscription ID after the subscription is created
+func (esc *EnhancedSubscriptionCallback) SetSubscriptionID(id string) {
+	esc.subscriptionID = id
 }
 
 // NewEnhancedSubscriptionCallback creates an enhanced callback with change detection
