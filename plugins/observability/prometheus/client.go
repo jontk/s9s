@@ -13,6 +13,16 @@ import (
 	"time"
 )
 
+// PrometheusClientInterface defines the interface for Prometheus clients
+type PrometheusClientInterface interface {
+	TestConnection(ctx context.Context) error
+	Query(ctx context.Context, query string, time time.Time) (*QueryResult, error)
+	QueryRange(ctx context.Context, query string, start, end time.Time, step time.Duration) (*QueryResult, error)
+	BatchQuery(ctx context.Context, queries map[string]string, time time.Time) (map[string]*QueryResult, error)
+	Series(ctx context.Context, matches []string, start, end time.Time) ([]map[string]string, error)
+	Labels(ctx context.Context) ([]string, error)
+}
+
 // Client represents a Prometheus API client
 type Client struct {
 	endpoint   string
@@ -56,7 +66,10 @@ func NewClient(config ClientConfig) (*Client, error) {
 		TLSClientConfig:     tlsConfig,
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 10,
+		MaxConnsPerHost:     20, // Limit concurrent connections per host
 		IdleConnTimeout:     90 * time.Second,
+		DisableKeepAlives:   false,
+		DisableCompression:  false,
 	}
 
 	httpClient := &http.Client{

@@ -31,6 +31,10 @@ type MetricCache struct {
 	hits   int64
 	misses int64
 	evictions int64
+
+	// Lifecycle management
+	stopChan chan struct{}
+	stopped  bool
 }
 
 // NewMetricCache creates a new metric cache
@@ -43,9 +47,11 @@ func NewMetricCache(defaultTTL time.Duration, maxSize int) *MetricCache {
 	}
 
 	cache := &MetricCache{
-		entries: make(map[string]*CacheEntry),
-		ttl:     defaultTTL,
-		maxSize: maxSize,
+		entries:  make(map[string]*CacheEntry),
+		ttl:      defaultTTL,
+		maxSize:  maxSize,
+		stopChan: make(chan struct{}),
+		stopped:  false,
 	}
 
 	// Start cleanup goroutine
@@ -161,8 +167,13 @@ func (mc *MetricCache) cleanupLoop() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		mc.cleanup()
+	for {
+		select {
+		case <-mc.stopChan:
+			return
+		case <-ticker.C:
+			mc.cleanup()
+		}
 	}
 }
 
@@ -184,6 +195,17 @@ func (mc *MetricCache) cleanup() {
 	}
 }
 
+// Stop gracefully shuts down the cache cleanup goroutine
+func (mc *MetricCache) Stop() {
+	mc.mu.Lock()
+	defer mc.mu.Unlock()
+
+	if !mc.stopped {
+		mc.stopped = true
+		close(mc.stopChan)
+	}
+}
+
 // CacheStats contains cache statistics
 type CacheStats struct {
 	Entries   int
@@ -196,7 +218,7 @@ type CacheStats struct {
 
 // CachedClient wraps a Prometheus client with caching
 type CachedClient struct {
-	client *Client
+	client PrometheusClientInterface
 	cache  *MetricCache
 }
 
@@ -205,6 +227,21 @@ func NewCachedClient(client *Client, cacheTTL time.Duration, cacheSize int) *Cac
 	return &CachedClient{
 		client: client,
 		cache:  NewMetricCache(cacheTTL, cacheSize),
+	}
+}
+
+// NewCachedClientWithInterface creates a new cached client using the interface
+func NewCachedClientWithInterface(client PrometheusClientInterface, cacheTTL time.Duration, cacheSize int) *CachedClient {
+	return &CachedClient{
+		client: client,
+		cache:  NewMetricCache(cacheTTL, cacheSize),
+	}
+}
+
+// Stop gracefully shuts down the cached client
+func (cc *CachedClient) Stop() {
+	if cc.cache != nil {
+		cc.cache.Stop()
 	}
 }
 
