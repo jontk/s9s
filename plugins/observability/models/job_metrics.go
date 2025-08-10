@@ -99,6 +99,7 @@ func (jmc *JobMetricsCollector) extractResourceMetrics(metrics map[string]*TimeS
 	if memLimit, ok := metrics["job_memory_limit"]; ok && memLimit.Latest() != nil {
 		// This is the cgroup limit, which might be different from SLURM allocation
 		limit := uint64(memLimit.Latest().Value)
+		rm.Memory.Limit = limit  // Store the limit
 		if limit > 0 {
 			rm.Memory.Usage = float64(rm.Memory.Used) / float64(limit) * 100
 		}

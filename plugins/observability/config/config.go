@@ -36,6 +36,9 @@ type Config struct {
 	
 	// External API configuration
 	ExternalAPI api.Config `yaml:"externalAPI" json:"externalAPI"`
+	
+	// Logging configuration
+	Logging LoggingConfig `yaml:"logging" json:"logging"`
 }
 
 // PrometheusConfig contains Prometheus connection settings
@@ -255,6 +258,24 @@ type APISecurityConfig struct {
 	Audit security.AuditConfig `yaml:"audit" json:"audit"`
 }
 
+// LoggingConfig contains logging settings
+type LoggingConfig struct {
+	// Enable debug logging
+	Enabled bool `yaml:"enabled" json:"enabled"`
+	
+	// Log level: "DEBUG", "INFO", "WARN", "ERROR"
+	Level string `yaml:"level" json:"level"`
+	
+	// Log file path
+	LogFile string `yaml:"logFile" json:"logFile"`
+	
+	// Component name for logging
+	Component string `yaml:"component" json:"component"`
+	
+	// Log to console as well as file
+	LogToConsole bool `yaml:"logToConsole" json:"logToConsole"`
+}
+
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
@@ -352,6 +373,13 @@ func DefaultConfig() *Config {
 			},
 		},
 		ExternalAPI: api.DefaultConfig(),
+		Logging: LoggingConfig{
+			Enabled:      true,
+			Level:        "DEBUG",
+			LogFile:      "data/observability/debug.log",
+			Component:    "observability",
+			LogToConsole: true,
+		},
 	}
 }
 
@@ -587,5 +615,16 @@ func (c *Config) MergeWithDefaults() {
 	}
 	if len(c.Metrics.Job.EnabledMetrics) == 0 {
 		c.Metrics.Job.EnabledMetrics = def.Metrics.Job.EnabledMetrics
+	}
+
+	// Merge Logging config
+	if c.Logging.Level == "" {
+		c.Logging.Level = def.Logging.Level
+	}
+	if c.Logging.LogFile == "" {
+		c.Logging.LogFile = def.Logging.LogFile
+	}
+	if c.Logging.Component == "" {
+		c.Logging.Component = def.Logging.Component
 	}
 }

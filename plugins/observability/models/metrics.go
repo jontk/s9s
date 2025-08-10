@@ -147,6 +147,7 @@ type CPUMetrics struct {
 	System     float64 `json:"system"`      // System CPU percentage
 	User       float64 `json:"user"`        // User CPU percentage
 	IOWait     float64 `json:"io_wait"`     // IO wait percentage
+	Limit      float64 `json:"limit"`       // CPU limit (cores or millicores)
 }
 
 // MemoryMetrics represents memory-related metrics
@@ -159,6 +160,7 @@ type MemoryMetrics struct {
 	Usage     float64 `json:"usage"`      // Usage percentage (0-100)
 	SwapTotal uint64  `json:"swap_total"` // Total swap in bytes
 	SwapUsed  uint64  `json:"swap_used"`  // Used swap in bytes
+	Limit     uint64  `json:"limit"`      // Memory limit in bytes (for containers/jobs)
 }
 
 // DiskMetrics represents disk I/O metrics

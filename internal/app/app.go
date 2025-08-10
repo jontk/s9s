@@ -146,6 +146,12 @@ func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
 		log.Printf("Warning: Failed to load plugins: %v", err)
 	}
 
+	// Register plugin views
+	if err := s9s.registerPluginViews(); err != nil {
+		// Don't fail startup for plugin view registration errors, just log them
+		log.Printf("Warning: Failed to register plugin views: %v", err)
+	}
+
 	return s9s, nil
 }
 
@@ -913,5 +919,93 @@ func (s *S9s) loadPlugins() error {
 	localPluginDir := filepath.Join(".", "plugins")
 	s.pluginManager.LoadPluginsFromDirectory(localPluginDir)
 
+	return nil
+}
+
+// registerPluginViews registers all views from loaded plugins
+func (s *S9s) registerPluginViews() error {
+	// Get all plugin views
+	pluginViews := s.pluginManager.GetViews()
+	
+	log.Printf("Registering %d plugin views", len(pluginViews))
+	
+	for _, pluginView := range pluginViews {
+		log.Printf("Registering plugin view: %s", pluginView.GetName())
+		
+		// Create context with tview application for plugin initialization
+		ctx := context.WithValue(s.ctx, "app", s.app)
+		
+		// Initialize the plugin view
+		if err := pluginView.Init(ctx); err != nil {
+			log.Printf("Warning: Failed to initialize plugin view %s: %v", pluginView.GetName(), err)
+			continue
+		}
+		
+		// Create adapter to bridge plugin view to s9s view interface
+		viewAdapter := &PluginViewAdapter{
+			pluginView: pluginView,
+		}
+		
+		// Add to view manager
+		s.viewMgr.AddView(viewAdapter)
+		
+		// Add to content pages
+		s.contentPages.AddPage(pluginView.GetName(), pluginView.Render(), true, false)
+		
+		log.Printf("Successfully registered plugin view: %s", pluginView.GetName())
+	}
+	
+	// Update header with new view names (including plugin views)
+	s.header.SetViews(s.viewMgr.GetViewNames())
+	
+	return nil
+}
+
+// PluginViewAdapter adapts a plugin view to the s9s view interface
+type PluginViewAdapter struct {
+	pluginView plugins.View
+}
+
+func (p *PluginViewAdapter) Name() string {
+	return p.pluginView.GetName()
+}
+
+func (p *PluginViewAdapter) Title() string {
+	return p.pluginView.GetTitle()
+}
+
+func (p *PluginViewAdapter) Hints() []string {
+	// Default hints for plugin views
+	return []string{"Tab=Switch", "F5=Refresh", "?=Help", "q=Quit"}
+}
+
+func (p *PluginViewAdapter) Init(ctx context.Context) error {
+	return p.pluginView.Init(ctx)
+}
+
+func (p *PluginViewAdapter) Render() tview.Primitive {
+	return p.pluginView.Render()
+}
+
+func (p *PluginViewAdapter) Refresh() error {
+	return p.pluginView.Refresh()
+}
+
+func (p *PluginViewAdapter) OnKey(event *tcell.EventKey) *tcell.EventKey {
+	return p.pluginView.OnKey(event)
+}
+
+func (p *PluginViewAdapter) OnFocus() error {
+	// Plugin views don't have OnFocus, so this is a no-op
+	return nil
+}
+
+func (p *PluginViewAdapter) OnLoseFocus() error {
+	// Plugin views don't have OnLoseFocus, so this is a no-op
+	return nil
+}
+
+func (p *PluginViewAdapter) Stop() error {
+	// Plugin views don't have Stop, so this is a no-op
 	return nil
 }

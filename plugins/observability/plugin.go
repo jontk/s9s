@@ -12,6 +12,7 @@ import (
 	"github.com/jontk/s9s/plugins/observability/analysis"
 	"github.com/jontk/s9s/plugins/observability/config"
 	"github.com/jontk/s9s/plugins/observability/initialization"
+	"github.com/jontk/s9s/plugins/observability/logging"
 	"github.com/jontk/s9s/plugins/observability/overlays"
 	"github.com/jontk/s9s/plugins/observability/subscription"
 	"github.com/jontk/s9s/plugins/observability/views"
@@ -19,11 +20,13 @@ import (
 
 // ObservabilityPlugin implements the observability plugin
 type ObservabilityPlugin struct {
-	config     *config.Config
-	components *initialization.Components
-	app        *tview.Application
-	view       *views.ObservabilityView
-	running    bool
+	config      *config.Config
+	components  *initialization.Components
+	app         *tview.Application
+	view        *views.ObservabilityView
+	logger      *logging.Logger
+	running     bool
+	slurmClient interface{} // Store SLURM client for job queries
 }
 
 // New creates a new observability plugin instance
@@ -116,77 +119,154 @@ func (p *ObservabilityPlugin) Init(ctx context.Context, configMap map[string]int
 	
 	p.config = parsedConfig
 
+	// Initialize logger first so we can log everything else
+	if p.config.Logging.Enabled {
+		loggerConfig := logging.Config{
+			LogFile:   p.config.Logging.LogFile,
+			Level:     p.config.Logging.Level,
+			Component: p.config.Logging.Component,
+		}
+		p.logger, err = logging.NewLogger(loggerConfig)
+		if err != nil {
+			return fmt.Errorf("failed to initialize logger: %w", err)
+		}
+		// Set as global logger
+		logging.SetGlobalLogger(p.logger)
+		p.logger.Info("plugin", "Observability plugin logger initialized")
+		p.logger.Debug("plugin", "Logger config: file=%s, level=%s", loggerConfig.LogFile, loggerConfig.Level)
+	} else {
+		// Use a fallback logger that logs to stdout only
+		p.logger = logging.GetGlobalLogger()
+		p.logger.Info("plugin", "Using fallback logger (logging disabled in config)")
+	}
+
+	p.logger.Info("plugin", "Starting observability plugin initialization")
+	p.logger.Debug("plugin", "Configuration: Prometheus endpoint=%s, timeout=%v", 
+		p.config.Prometheus.Endpoint, p.config.Prometheus.Timeout)
+
 	// Initialize all plugin components
 	initManager := initialization.NewManager(p.config)
+	p.logger.Debug("plugin", "Initializing plugin components with manager")
 	components, err := initManager.InitializeComponents()
 	if err != nil {
+		p.logger.Error("plugin", "Component initialization failed: %v", err)
 		return fmt.Errorf("component initialization failed: %w", err)
 	}
 	
 	p.components = components
+	p.logger.Info("plugin", "Plugin initialization completed successfully")
 	return nil
 }
 
 // Start starts the plugin
 func (p *ObservabilityPlugin) Start(ctx context.Context) error {
+	p.logger.Info("plugin", "Starting observability plugin")
 	p.running = true
 
 	// Test Prometheus connection
+	p.logger.Debug("plugin", "Testing Prometheus connection to %s", p.config.Prometheus.Endpoint)
 	if err := p.components.Client.TestConnection(ctx); err != nil {
+		p.logger.Error("plugin", "Prometheus health check failed: %v", err)
 		return fmt.Errorf("Prometheus health check failed: %w", err)
 	}
+	p.logger.Info("plugin", "Prometheus connection test successful")
 
 	// Start metrics collector
+	p.logger.Debug("plugin", "Starting metrics collector")
 	if err := p.components.MetricsCollector.Start(); err != nil {
+		p.logger.Error("plugin", "Failed to start metrics collector: %v", err)
 		return fmt.Errorf("failed to start metrics collector: %w", err)
 	}
+	p.logger.Debug("plugin", "Metrics collector started successfully")
 	
 	// Start overlay manager
+	p.logger.Debug("plugin", "Starting overlay manager")
 	if err := p.components.OverlayMgr.Start(ctx); err != nil {
+		p.logger.Error("plugin", "Failed to start overlay manager: %v", err)
 		return fmt.Errorf("failed to start overlay manager: %w", err)
 	}
+	p.logger.Debug("plugin", "Overlay manager started successfully")
 
 	// Start subscription manager
+	p.logger.Debug("plugin", "Starting subscription manager")
 	if err := p.components.SubscriptionMgr.Start(ctx); err != nil {
+		p.logger.Error("plugin", "Failed to start subscription manager: %v", err)
 		return fmt.Errorf("failed to start subscription manager: %w", err)
 	}
+	p.logger.Debug("plugin", "Subscription manager started successfully")
 
 	// Start historical data collector
+	p.logger.Debug("plugin", "Starting historical data collector")
 	if err := p.components.HistoricalCollector.Start(ctx); err != nil {
+		p.logger.Error("plugin", "Failed to start historical data collector: %v", err)
 		return fmt.Errorf("failed to start historical data collector: %w", err)
 	}
+	p.logger.Debug("plugin", "Historical data collector started successfully")
 
 	// Start external API if enabled and initialized
 	if p.components.ExternalAPI != nil {
+		p.logger.Debug("plugin", "Starting external API")
 		if err := p.components.ExternalAPI.Start(ctx); err != nil {
+			p.logger.Error("plugin", "Failed to start external API: %v", err)
 			return fmt.Errorf("failed to start external API: %w", err)
 		}
+		p.logger.Debug("plugin", "External API started successfully")
+	} else {
+		p.logger.Debug("plugin", "External API not configured, skipping")
 	}
 
+	p.logger.Info("plugin", "Observability plugin started successfully")
 	return nil
+}
+
+// SetSlurmClient sets the SLURM client for job queries
+func (p *ObservabilityPlugin) SetSlurmClient(client interface{}) {
+	p.slurmClient = client
+	// Pass to view if it exists
+	if p.view != nil {
+		p.view.SetSlurmClient(client)
+	}
 }
 
 // Stop stops the plugin
 func (p *ObservabilityPlugin) Stop(ctx context.Context) error {
+	p.logger.Info("plugin", "Stopping observability plugin")
 	p.running = false
 
 	// Stop external API
 	if p.components.ExternalAPI != nil {
+		p.logger.Debug("plugin", "Stopping external API")
 		if err := p.components.ExternalAPI.Stop(ctx); err != nil {
-			// Log error but don't fail the stop operation
+			p.logger.Error("plugin", "Error stopping external API: %v", err)
+		} else {
+			p.logger.Debug("plugin", "External API stopped successfully")
 		}
 	}
 
 	// Stop all other components using the Components.Stop method
 	if p.components != nil {
+		p.logger.Debug("plugin", "Stopping plugin components")
 		if err := p.components.Stop(); err != nil {
-			// Log error but don't fail the stop operation
+			p.logger.Error("plugin", "Error stopping components: %v", err)
+		} else {
+			p.logger.Debug("plugin", "Components stopped successfully")
 		}
 	}
 
 	if p.view != nil {
+		p.logger.Debug("plugin", "Stopping observability view")
 		if err := p.view.Stop(ctx); err != nil {
+			p.logger.Error("plugin", "Failed to stop view: %v", err)
 			return fmt.Errorf("failed to stop view: %w", err)
+		}
+		p.logger.Debug("plugin", "View stopped successfully")
+	}
+
+	// Close logger
+	if p.logger != nil {
+		p.logger.Info("plugin", "Observability plugin stopped successfully")
+		if p.config.Logging.Enabled {
+			p.logger.Close()
 		}
 	}
 
@@ -266,19 +346,33 @@ func (p *ObservabilityPlugin) GetViews() []plugin.ViewInfo {
 
 // CreateView creates a view instance
 func (p *ObservabilityPlugin) CreateView(ctx context.Context, viewID string) (plugin.View, error) {
+	p.logger.Debug("plugin", "CreateView called with viewID: %s", viewID)
+	
 	if viewID != "observability" {
+		p.logger.Error("plugin", "Unknown view requested: %s", viewID)
 		return nil, fmt.Errorf("unknown view: %s", viewID)
 	}
 
 	// Get the tview app from context
 	app, ok := ctx.Value("app").(*tview.Application)
 	if !ok {
+		p.logger.Error("plugin", "tview application not found in context")
 		return nil, fmt.Errorf("tview application not found in context")
 	}
 	p.app = app
+	p.logger.Debug("plugin", "Retrieved tview application from context")
 
 	// Create the observability view
+	p.logger.Debug("plugin", "Creating observability view with cached client and config")
 	p.view = views.NewObservabilityView(app, p.components.CachedClient, p.config)
+	
+	// Pass SLURM client if available
+	if p.slurmClient != nil {
+		p.logger.Debug("plugin", "Setting SLURM client in view")
+		p.view.SetSlurmClient(p.slurmClient)
+	}
+	
+	p.logger.Info("plugin", "Observability view created successfully")
 
 	return p.view, nil
 }

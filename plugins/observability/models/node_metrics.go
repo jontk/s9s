@@ -34,10 +34,16 @@ func NewNodeMetricsCollector(nodeLabel string) *NodeMetricsCollector {
 
 // UpdateFromPrometheus updates node metrics from Prometheus data
 func (nmc *NodeMetricsCollector) UpdateFromPrometheus(nodeName string, metrics map[string]*TimeSeries) {
+	// Add logging to debug the issue
+	if metrics == nil || len(metrics) == 0 {
+		return
+	}
+	
 	node, exists := nmc.nodes[nodeName]
 	if !exists {
 		node = &NodeMetrics{
 			NodeName:      nodeName,
+			NodeState:     "up", // Default to up when metrics are available
 			Labels:        make(map[string]string),
 			CustomMetrics: make(map[string]float64),
 		}
