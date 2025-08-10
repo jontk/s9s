@@ -1,3 +1,7 @@
+// Package historical provides time-series data collection and analysis capabilities.
+// It implements persistent storage for historical metrics, statistical analysis,
+// trend detection, anomaly identification, and seasonal pattern recognition.
+// The package supports configurable retention policies and efficient data aggregation.
 package historical
 
 import (

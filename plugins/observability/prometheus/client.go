@@ -1,3 +1,7 @@
+// Package prometheus provides Prometheus client functionality with advanced features
+// including caching, circuit breaking, connection pooling, and batch query processing.
+// It supports authentication, TLS configuration, retry mechanisms, and comprehensive
+// error handling for reliable metric collection from Prometheus servers.
 package prometheus
 
 import (
@@ -267,44 +271,119 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body io.Rea
 	return resp, nil
 }
 
-// BatchQuery executes multiple queries in parallel
-func (c *Client) BatchQuery(ctx context.Context, queries map[string]string, time time.Time) (map[string]*QueryResult, error) {
-	results := make(map[string]*QueryResult)
-	resultsChan := make(chan struct {
-		name   string
-		result *QueryResult
-		err    error
-	}, len(queries))
+// BatchQueryConfig holds configuration for batch query execution
+type BatchQueryConfig struct {
+	MaxConcurrency int           // Maximum concurrent queries (default: 10)
+	BatchTimeout   time.Duration // Timeout for entire batch (default: 30s)
+	RetryAttempts  int           // Number of retry attempts for failed queries (default: 3)
+}
 
-	// Execute queries in parallel
+// DefaultBatchQueryConfig returns default batch query configuration
+func DefaultBatchQueryConfig() BatchQueryConfig {
+	return BatchQueryConfig{
+		MaxConcurrency: 10,
+		BatchTimeout:   30 * time.Second,
+		RetryAttempts:  3,
+	}
+}
+
+// BatchQuery executes multiple queries with configurable concurrency and retry logic
+func (c *Client) BatchQuery(ctx context.Context, queries map[string]string, queryTime time.Time) (map[string]*QueryResult, error) {
+	return c.BatchQueryWithConfig(ctx, queries, queryTime, DefaultBatchQueryConfig())
+}
+
+// BatchQueryWithConfig executes multiple queries with custom configuration
+func (c *Client) BatchQueryWithConfig(ctx context.Context, queries map[string]string, queryTime time.Time, config BatchQueryConfig) (map[string]*QueryResult, error) {
+	if len(queries) == 0 {
+		return make(map[string]*QueryResult), nil
+	}
+
+	// Create context with timeout for entire batch
+	batchCtx, cancel := context.WithTimeout(ctx, config.BatchTimeout)
+	defer cancel()
+
+	// Limit concurrency using semaphore pattern
+	semaphore := make(chan struct{}, config.MaxConcurrency)
+	results := make(map[string]*QueryResult)
+	resultsChan := make(chan batchResult, len(queries))
+	
+	// Execute queries with controlled concurrency
 	for name, query := range queries {
 		go func(n, q string) {
-			result, err := c.Query(ctx, q, time)
-			resultsChan <- struct {
-				name   string
-				result *QueryResult
-				err    error
-			}{name: n, result: result, err: err}
+			semaphore <- struct{}{} // Acquire semaphore
+			defer func() { <-semaphore }() // Release semaphore
+			
+			result, err := c.executeQueryWithRetry(batchCtx, q, queryTime, config.RetryAttempts)
+			resultsChan <- batchResult{name: n, result: result, err: err}
 		}(name, query)
 	}
 
 	// Collect results
-	var firstError error
+	var errors []error
+	successCount := 0
+	
 	for i := 0; i < len(queries); i++ {
-		r := <-resultsChan
-		if r.err != nil && firstError == nil {
-			firstError = r.err
-		}
-		if r.result != nil {
-			results[r.name] = r.result
+		select {
+		case r := <-resultsChan:
+			if r.err != nil {
+				errors = append(errors, fmt.Errorf("query '%s': %w", r.name, r.err))
+			} else {
+				results[r.name] = r.result
+				successCount++
+			}
+		case <-batchCtx.Done():
+			return results, fmt.Errorf("batch query timed out after %v, completed %d/%d queries", 
+				config.BatchTimeout, successCount, len(queries))
 		}
 	}
 
-	if firstError != nil {
-		return results, fmt.Errorf("batch query partially failed: %w", firstError)
+	// Return results with error summary if some queries failed
+	if len(errors) > 0 {
+		return results, fmt.Errorf("batch query completed with %d errors: %v", len(errors), errors[0])
 	}
 
 	return results, nil
+}
+
+// batchResult holds the result of a single query in a batch
+type batchResult struct {
+	name   string
+	result *QueryResult
+	err    error
+}
+
+// executeQueryWithRetry executes a query with exponential backoff retry logic
+func (c *Client) executeQueryWithRetry(ctx context.Context, query string, queryTime time.Time, maxRetries int) (*QueryResult, error) {
+	var lastErr error
+	
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		result, err := c.Query(ctx, query, queryTime)
+		if err == nil {
+			return result, nil
+		}
+		
+		lastErr = err
+		
+		// Don't retry on context cancellation or certain HTTP errors
+		if ctx.Err() != nil {
+			break
+		}
+		
+		// Exponential backoff: 100ms, 200ms, 400ms, 800ms...
+		if attempt < maxRetries {
+			backoffDuration := time.Duration(100<<uint(attempt)) * time.Millisecond
+			timer := time.NewTimer(backoffDuration)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return nil, ctx.Err()
+			case <-timer.C:
+				continue
+			}
+		}
+	}
+	
+	return nil, fmt.Errorf("query failed after %d retries: %w", maxRetries, lastErr)
 }
 
 // createTLSConfig creates a TLS configuration from ClientConfig

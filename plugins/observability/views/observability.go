@@ -1,3 +1,7 @@
+// Package views provides user interface components and widgets for displaying
+// observability data within the S9S application. It includes specialized widgets
+// for gauges, sparklines, heatmaps, and alerts with customizable styling and
+// interactive features for comprehensive system monitoring visualization.
 package views
 
 import (

@@ -27,6 +27,9 @@ type MetricCache struct {
 	ttl     time.Duration
 	maxSize int
 
+	// Optimized key generation
+	keyGen *CacheKeyGenerator
+
 	// Metrics
 	hits   int64
 	misses int64
@@ -50,6 +53,7 @@ func NewMetricCache(defaultTTL time.Duration, maxSize int) *MetricCache {
 		entries:  make(map[string]*CacheEntry),
 		ttl:      defaultTTL,
 		maxSize:  maxSize,
+		keyGen:   NewCacheKeyGenerator(),
 		stopChan: make(chan struct{}),
 		stopped:  false,
 	}
@@ -60,12 +64,40 @@ func NewMetricCache(defaultTTL time.Duration, maxSize int) *MetricCache {
 	return cache
 }
 
-// Get retrieves a cached query result
+// Get retrieves a cached query result using raw query string (legacy method)
 func (mc *MetricCache) Get(query string) (*QueryResult, bool) {
+	return mc.GetWithKey(query, query)
+}
+
+// GetInstantQuery retrieves a cached instant query result with optimized key
+func (mc *MetricCache) GetInstantQuery(query string, queryTime *time.Time) (*QueryResult, bool) {
+	key := mc.keyGen.GenerateInstantQueryKey(query, queryTime)
+	return mc.GetWithKey(key, query)
+}
+
+// GetRangeQuery retrieves a cached range query result with optimized key  
+func (mc *MetricCache) GetRangeQuery(query string, start, end time.Time, step time.Duration) (*QueryResult, bool) {
+	key := mc.keyGen.GenerateRangeQueryKey(query, start, end, step)
+	return mc.GetWithKey(key, query)
+}
+
+// GetSeries retrieves a cached series query result with optimized key
+func (mc *MetricCache) GetSeries(matches []string, start, end time.Time) ([]map[string]string, bool) {
+	key := mc.keyGen.GenerateSeriesQueryKey(matches, start, end)
+	if _, exists := mc.GetWithKey(key, key); exists {
+		// For series queries, we need to extract the series data from the result
+		// This is a simplified version - in practice you'd store series data directly
+		return nil, false // TODO: Implement series result extraction
+	}
+	return nil, false
+}
+
+// GetWithKey retrieves a cached query result using a specific cache key
+func (mc *MetricCache) GetWithKey(cacheKey, originalQuery string) (*QueryResult, bool) {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
-	entry, exists := mc.entries[query]
+	entry, exists := mc.entries[cacheKey]
 	if !exists {
 		mc.misses++
 		return nil, false
@@ -80,8 +112,25 @@ func (mc *MetricCache) Get(query string) (*QueryResult, bool) {
 	return entry.Result, true
 }
 
-// Set stores a query result in the cache
+// Set stores a query result in the cache using raw query string (legacy method)
 func (mc *MetricCache) Set(query string, result *QueryResult, ttl time.Duration) {
+	mc.SetWithKey(query, query, result, ttl)
+}
+
+// SetInstantQuery stores an instant query result with optimized key
+func (mc *MetricCache) SetInstantQuery(query string, queryTime *time.Time, result *QueryResult, ttl time.Duration) {
+	key := mc.keyGen.GenerateInstantQueryKey(query, queryTime)
+	mc.SetWithKey(key, query, result, ttl)
+}
+
+// SetRangeQuery stores a range query result with optimized key
+func (mc *MetricCache) SetRangeQuery(query string, start, end time.Time, step time.Duration, result *QueryResult, ttl time.Duration) {
+	key := mc.keyGen.GenerateRangeQueryKey(query, start, end, step)
+	mc.SetWithKey(key, query, result, ttl)
+}
+
+// SetWithKey stores a query result in the cache using a specific cache key
+func (mc *MetricCache) SetWithKey(cacheKey, originalQuery string, result *QueryResult, ttl time.Duration) {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
@@ -96,8 +145,8 @@ func (mc *MetricCache) Set(query string, result *QueryResult, ttl time.Duration)
 		mc.evictOldest()
 	}
 
-	mc.entries[query] = &CacheEntry{
-		Query:     query,
+	mc.entries[cacheKey] = &CacheEntry{
+		Query:     originalQuery, // Store original query for debugging
 		Result:    result,
 		Timestamp: time.Now(),
 		TTL:       ttl,
@@ -238,6 +287,11 @@ func NewCachedClientWithInterface(client PrometheusClientInterface, cacheTTL tim
 	}
 }
 
+// TestConnection tests the connection to Prometheus
+func (cc *CachedClient) TestConnection(ctx context.Context) error {
+	return cc.client.TestConnection(ctx)
+}
+
 // Stop gracefully shuts down the cached client
 func (cc *CachedClient) Stop() {
 	if cc.cache != nil {
@@ -325,6 +379,40 @@ func (cc *CachedClient) BatchQuery(ctx context.Context, queries map[string]strin
 	}
 
 	return results, nil
+}
+
+// Series executes a series query with caching
+func (cc *CachedClient) Series(ctx context.Context, matches []string, start, end time.Time) ([]map[string]string, error) {
+	// For now, delegate to underlying client without caching
+	// Series queries are typically not cached due to their variability
+	return cc.client.Series(ctx, matches, start, end)
+}
+
+// Labels executes a labels query with caching
+func (cc *CachedClient) Labels(ctx context.Context) ([]string, error) {
+	// Generate cache key for labels
+	cacheKey := "labels_query"
+	
+	// Check cache
+	if result, found := cc.cache.Get(cacheKey); found {
+		// Extract labels from cached result - this is a simplified approach
+		// In practice, you'd want to cache the actual labels slice
+		if result.Data.Result != nil {
+			// For now, delegate to client and cache result
+		}
+	}
+	
+	// Execute labels query
+	labels, err := cc.client.Labels(ctx)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Note: We're not caching labels for now as the QueryResult structure
+	// is designed for metric queries, not label queries
+	// TODO: Implement proper labels caching
+	
+	return labels, nil
 }
 
 // ClearCache clears the cache

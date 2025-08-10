@@ -1,9 +1,17 @@
+// Package config provides configuration management for the observability plugin.
+// It handles parsing, validation, and merging of configuration from various sources
+// including YAML files, environment variables, and command-line arguments.
+// The package supports comprehensive configuration for Prometheus, caching, security,
+// alerts, and display preferences.
 package config
 
 import (
 	"fmt"
 	"net/url"
 	"time"
+	
+	"github.com/jontk/s9s/plugins/observability/api"
+	"github.com/jontk/s9s/plugins/observability/security"
 )
 
 // Config represents the observability plugin configuration
@@ -22,6 +30,12 @@ type Config struct {
 
 	// Metrics configuration
 	Metrics MetricsConfig `yaml:"metrics" json:"metrics"`
+	
+	// Security configuration
+	Security SecurityConfig `yaml:"security" json:"security"`
+	
+	// External API configuration
+	ExternalAPI api.Config `yaml:"externalAPI" json:"externalAPI"`
 }
 
 // PrometheusConfig contains Prometheus connection settings
@@ -55,6 +69,10 @@ type AuthConfig struct {
 
 	// Token for bearer auth
 	Token string `yaml:"token,omitempty" json:"token,omitempty"`
+	
+	// Secret references for secure token storage
+	TokenSecretRef string `yaml:"tokenSecretRef,omitempty" json:"tokenSecretRef,omitempty"`
+	PasswordSecretRef string `yaml:"passwordSecretRef,omitempty" json:"passwordSecretRef,omitempty"`
 }
 
 // TLSConfig contains TLS settings
@@ -207,6 +225,36 @@ type JobMetricsConfig struct {
 	EnabledMetrics []string `yaml:"enabledMetrics" json:"enabledMetrics"`
 }
 
+// SecurityConfig contains security settings
+type SecurityConfig struct {
+	// Secrets management configuration
+	Secrets security.SecretConfig `yaml:"secrets" json:"secrets"`
+	
+	// API security settings  
+	API APISecurityConfig `yaml:"api" json:"api"`
+}
+
+// APISecurityConfig contains API security settings
+type APISecurityConfig struct {
+	// Enable API authentication
+	EnableAuth bool `yaml:"enableAuth" json:"enableAuth"`
+	
+	// API token (can reference a secret)
+	AuthToken string `yaml:"authToken,omitempty" json:"authToken,omitempty"`
+	
+	// Reference to secret containing auth token
+	AuthTokenSecretRef string `yaml:"authTokenSecretRef,omitempty" json:"authTokenSecretRef,omitempty"`
+	
+	// Rate limiting configuration
+	RateLimit security.RateLimitConfig `yaml:"rateLimit" json:"rateLimit"`
+	
+	// Request validation configuration
+	Validation security.ValidationConfig `yaml:"validation" json:"validation"`
+	
+	// Audit logging configuration
+	Audit security.AuditConfig `yaml:"audit" json:"audit"`
+}
+
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
@@ -285,6 +333,25 @@ func DefaultConfig() *Config {
 			},
 			CustomQueries: make(map[string]string),
 		},
+		Security: SecurityConfig{
+			Secrets: security.SecretConfig{
+				StorageDir:         "./data/secrets",
+				EncryptAtRest:      true,
+				MasterKeySource:    security.SecretSourceEnvironment,
+				MasterKeyEnv:       "OBSERVABILITY_MASTER_KEY",
+				EnableRotation:     true,
+				RotationInterval:   24 * time.Hour,
+				RequireEncryption:  true,
+				AllowInlineSecrets: false, // Don't allow inline secrets by default
+			},
+			API: APISecurityConfig{
+				EnableAuth: false,
+				RateLimit:  security.DefaultRateLimitConfig(),
+				Validation: security.DefaultValidationConfig(),
+				Audit:      security.DefaultAuditConfig(),
+			},
+		},
+		ExternalAPI: api.DefaultConfig(),
 	}
 }
 
@@ -315,12 +382,16 @@ func (c *Config) Validate() error {
 	case "none":
 		// No validation needed
 	case "basic":
-		if c.Prometheus.Auth.Username == "" || c.Prometheus.Auth.Password == "" {
-			return fmt.Errorf("basic auth requires username and password")
+		hasDirectAuth := c.Prometheus.Auth.Username != "" && c.Prometheus.Auth.Password != ""
+		hasSecretRef := c.Prometheus.Auth.PasswordSecretRef != ""
+		if !hasDirectAuth && !hasSecretRef {
+			return fmt.Errorf("basic auth requires username and either password or passwordSecretRef")
 		}
 	case "bearer":
-		if c.Prometheus.Auth.Token == "" {
-			return fmt.Errorf("bearer auth requires token")
+		hasDirectToken := c.Prometheus.Auth.Token != ""
+		hasSecretRef := c.Prometheus.Auth.TokenSecretRef != ""
+		if !hasDirectToken && !hasSecretRef {
+			return fmt.Errorf("bearer auth requires either token or tokenSecretRef")
 		}
 	default:
 		return fmt.Errorf("invalid auth type: %s", c.Prometheus.Auth.Type)

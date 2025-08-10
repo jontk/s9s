@@ -1,3 +1,7 @@
+// Package alerts provides real-time alerting and notification capabilities
+// for monitoring system metrics and resource utilization. It supports configurable
+// alert rules, multiple severity levels, notification channels, and alert history
+// tracking with automatic cleanup and retention management.
 package alerts
 
 import (

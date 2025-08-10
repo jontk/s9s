@@ -319,9 +319,27 @@ func (cb *CircuitBreakerClient) QueryRange(ctx context.Context, query string, st
 }
 
 // BatchQuery executes multiple queries with circuit breaker protection
-func (cb *CircuitBreakerClient) BatchQuery(ctx context.Context, queries map[string]string, time time.Time) (map[string]*QueryResult, error) {
+func (cb *CircuitBreakerClient) BatchQuery(ctx context.Context, queries map[string]string, queryTime time.Time) (map[string]*QueryResult, error) {
 	result, err := cb.breaker.Execute(ctx, func() (interface{}, error) {
-		return cb.client.BatchQuery(ctx, queries, time)
+		return cb.client.BatchQuery(ctx, queries, queryTime)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(map[string]*QueryResult), nil
+}
+
+// BatchQueryWithConfig executes multiple queries with custom configuration and circuit breaker protection
+func (cb *CircuitBreakerClient) BatchQueryWithConfig(ctx context.Context, queries map[string]string, queryTime time.Time, config BatchQueryConfig) (map[string]*QueryResult, error) {
+	result, err := cb.breaker.Execute(ctx, func() (interface{}, error) {
+		// Check if the underlying client supports BatchQueryWithConfig
+		if clientWithConfig, ok := cb.client.(interface {
+			BatchQueryWithConfig(context.Context, map[string]string, time.Time, BatchQueryConfig) (map[string]*QueryResult, error)
+		}); ok {
+			return clientWithConfig.BatchQueryWithConfig(ctx, queries, queryTime, config)
+		}
+		// Fallback to regular BatchQuery
+		return cb.client.BatchQuery(ctx, queries, queryTime)
 	})
 	if err != nil {
 		return nil, err
