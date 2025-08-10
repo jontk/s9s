@@ -136,6 +136,11 @@ func (p *ObservabilityPlugin) Start(ctx context.Context) error {
 		return fmt.Errorf("Prometheus health check failed: %w", err)
 	}
 
+	// Start metrics collector
+	if err := p.components.MetricsCollector.Start(); err != nil {
+		return fmt.Errorf("failed to start metrics collector: %w", err)
+	}
+	
 	// Start overlay manager
 	if err := p.components.OverlayMgr.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start overlay manager: %w", err)
@@ -212,6 +217,18 @@ func (p *ObservabilityPlugin) Health() plugin.HealthStatus {
 		}
 	}
 
+	// Get plugin internal metrics
+	var pluginMetrics map[string]interface{}
+	if p.components.MetricsCollector != nil {
+		pluginMetrics = p.components.MetricsCollector.GetMetrics().GetAllStats()
+	}
+	
+	// Get secrets manager health
+	var secretsHealth map[string]interface{}
+	if p.components.SecretsManager != nil {
+		secretsHealth = p.components.SecretsManager.Health()
+	}
+
 	return plugin.HealthStatus{
 		Healthy: true,
 		Status:  "healthy",
@@ -223,6 +240,8 @@ func (p *ObservabilityPlugin) Health() plugin.HealthStatus {
 			"subscription_stats": p.components.SubscriptionMgr.GetStats(),
 			"notification_stats": p.components.NotificationMgr.GetStats(),
 			"historical_stats":   p.components.HistoricalCollector.GetCollectorStats(),
+			"plugin_metrics":     pluginMetrics,
+			"secrets_health":     secretsHealth,
 		},
 	}
 }
@@ -380,6 +399,16 @@ func (p *ObservabilityPlugin) GetDataProviders() []plugin.DataProviderInfo {
 			Name:        "Cluster Efficiency Analysis",
 			Description: "Overall cluster efficiency analysis with cost optimization insights",
 		},
+		{
+			ID:          "plugin-metrics",
+			Name:        "Plugin Internal Metrics",
+			Description: "Internal metrics and performance data for the observability plugin itself",
+		},
+		{
+			ID:          "secrets-manager",
+			Name:        "Secrets Manager Status",
+			Description: "Status and health information for the secrets management system",
+		},
 	}
 }
 
@@ -409,6 +438,12 @@ func (p *ObservabilityPlugin) Query(ctx context.Context, providerID string, para
 	
 	case "cluster-efficiency":
 		return p.queryClusterEfficiency(params)
+	
+	case "plugin-metrics":
+		return p.queryPluginMetrics(params)
+	
+	case "secrets-manager":
+		return p.querySecretsManager(params)
 	
 	default:
 		return nil, fmt.Errorf("unknown data provider: %s", providerID)
@@ -676,4 +711,64 @@ func (p *ObservabilityPlugin) queryClusterEfficiency(params map[string]interface
 
 	ctx := context.Background()
 	return p.components.EfficiencyAnalyzer.AnalyzeClusterEfficiency(ctx, duration)
+}
+
+// queryPluginMetrics handles plugin internal metrics queries
+func (p *ObservabilityPlugin) queryPluginMetrics(params map[string]interface{}) (interface{}, error) {
+	if p.components.MetricsCollector == nil {
+		return nil, fmt.Errorf("metrics collector not initialized")
+	}
+
+	// Check if specific metric category is requested
+	category, ok := params["category"].(string)
+	if ok {
+		switch category {
+		case "connections":
+			return p.components.MetricsCollector.GetMetrics().GetConnectionStats(), nil
+		case "queries":
+			return p.components.MetricsCollector.GetMetrics().GetQueryStats(), nil
+		case "components":
+			return p.components.MetricsCollector.GetMetrics().GetComponentStats(), nil
+		case "resources":
+			return p.components.MetricsCollector.GetMetrics().GetResourceStats(), nil
+		case "performance":
+			return p.components.MetricsCollector.GetMetrics().GetPerformanceStats(), nil
+		case "health":
+			return p.components.MetricsCollector.GetMetrics().GetHealthStats(), nil
+		default:
+			return nil, fmt.Errorf("unknown metrics category: %s", category)
+		}
+	}
+
+	// Return all metrics if no category specified
+	return p.components.MetricsCollector.GetMetrics().GetAllStats(), nil
+}
+
+// querySecretsManager handles secrets manager status queries
+func (p *ObservabilityPlugin) querySecretsManager(params map[string]interface{}) (interface{}, error) {
+	if p.components.SecretsManager == nil {
+		return nil, fmt.Errorf("secrets manager not initialized")
+	}
+
+	// Check if specific operation is requested
+	operation, ok := params["operation"].(string)
+	if ok {
+		switch operation {
+		case "health":
+			return p.components.SecretsManager.Health(), nil
+		case "list":
+			return p.components.SecretsManager.ListSecrets(), nil
+		case "audit":
+			return p.components.SecretsManager.GetAuditLog(), nil
+		default:
+			return nil, fmt.Errorf("unknown secrets manager operation: %s", operation)
+		}
+	}
+
+	// Return comprehensive status if no operation specified
+	return map[string]interface{}{
+		"health":    p.components.SecretsManager.Health(),
+		"secrets":   p.components.SecretsManager.ListSecrets(),
+		"audit_log": p.components.SecretsManager.GetAuditLog(),
+	}, nil
 }

@@ -1,3 +1,7 @@
+// Package models defines data structures and types for representing metrics,
+// nodes, jobs, and other observability entities. It provides standardized
+// interfaces for metric collection, type-safe data handling, and consistent
+// serialization across the observability plugin components.
 package models
 
 import (

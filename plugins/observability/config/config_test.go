@@ -145,7 +145,7 @@ func TestValidateConfig(t *testing.T) {
 				return cfg
 			},
 			wantErr: true,
-			errMsg:  "basic auth requires username and password",
+			errMsg:  "basic auth requires username and either password or passwordSecretRef",
 		},
 		{
 			name: "basic auth missing password",
@@ -156,7 +156,7 @@ func TestValidateConfig(t *testing.T) {
 				return cfg
 			},
 			wantErr: true,
-			errMsg:  "basic auth requires username and password",
+			errMsg:  "basic auth requires username and either password or passwordSecretRef",
 		},
 		{
 			name: "bearer auth missing token",
@@ -166,7 +166,7 @@ func TestValidateConfig(t *testing.T) {
 				return cfg
 			},
 			wantErr: true,
-			errMsg:  "bearer auth requires token",
+			errMsg:  "bearer auth requires either token or tokenSecretRef",
 		},
 		{
 			name: "invalid auth type",

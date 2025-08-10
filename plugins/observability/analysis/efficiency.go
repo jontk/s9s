@@ -1,3 +1,7 @@
+// Package analysis provides advanced analytics capabilities for resource utilization
+// and efficiency analysis. It supports multi-dimensional resource analysis including
+// CPU, memory, storage, network, and GPU utilization patterns with trend analysis,
+// anomaly detection, and optimization recommendations.
 package analysis
 
 import (

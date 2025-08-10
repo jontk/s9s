@@ -75,7 +75,7 @@ func TestParseConfig(t *testing.T) {
 				"prometheus.tls.keyFile":            "/path/to/key.pem",
 				"prometheus.tls.caFile":             "/path/to/ca.pem",
 			},
-			wantErr: false,
+			wantErr: true, // Expect error because TLS files don't exist
 			validate: func(cfg *config.Config) error {
 				if !cfg.Prometheus.TLS.Enabled {
 					t.Error("Expected TLS enabled")
@@ -178,9 +178,9 @@ func TestParseConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := plugin.parseConfig(tt.config)
+			err := plugin.Init(context.Background(), tt.config)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseConfig() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Init() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
@@ -210,15 +210,19 @@ func TestInitialization(t *testing.T) {
 	}
 
 	// Verify clients are created
-	if plugin.client == nil {
+	if plugin.components == nil {
+		t.Fatal("Components should be initialized")
+	}
+	
+	if plugin.components.Client == nil {
 		t.Error("Prometheus client should be initialized")
 	}
 
-	if plugin.cachedClient == nil {
+	if plugin.components.CachedClient == nil {
 		t.Error("Cached Prometheus client should be initialized")
 	}
 
-	if plugin.overlayMgr == nil {
+	if plugin.components.OverlayMgr == nil {
 		t.Error("Overlay manager should be initialized")
 	}
 }
@@ -338,7 +342,7 @@ func TestHealthCheck(t *testing.T) {
 
 	// Test when running but without proper initialization
 	plugin.running = true
-	if plugin.client != nil {
+	if plugin.components != nil && plugin.components.Client != nil {
 		// This would require a real Prometheus server to test properly
 		// For now, we just verify the structure
 		health = plugin.Health()

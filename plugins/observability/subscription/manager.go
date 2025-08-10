@@ -1,3 +1,7 @@
+// Package subscription provides real-time data subscription and notification capabilities.
+// It supports dynamic subscription management, configurable notification channels,
+// persistent subscription storage, and efficient event distribution. The package
+// enables real-time monitoring of metrics with customizable alert thresholds.
 package subscription
 
 import (

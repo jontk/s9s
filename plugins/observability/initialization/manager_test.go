@@ -5,10 +5,15 @@ import (
 	"time"
 
 	"github.com/jontk/s9s/plugins/observability/config"
+	"github.com/jontk/s9s/plugins/observability/security"
 )
 
 func TestManagerBasicInitialization(t *testing.T) {
 	cfg := config.DefaultConfig()
+	// Override security config for testing
+	cfg.Security.Secrets.StorageDir = t.TempDir()
+	cfg.Security.Secrets.EncryptAtRest = false
+	cfg.Security.Secrets.RequireEncryption = false
 	manager := NewManager(cfg)
 
 	components, err := manager.InitializeComponents()
@@ -273,6 +278,17 @@ func TestManagerWithCustomConfig(t *testing.T) {
 		},
 		Display: config.DisplayConfig{
 			RefreshInterval: 45 * time.Second,
+		},
+		Security: config.SecurityConfig{
+			Secrets: security.SecretConfig{
+				StorageDir:         t.TempDir(),
+				EncryptAtRest:      false, // Disable encryption for test
+				MasterKeySource:    security.SecretSourceEnvironment,
+				MasterKeyEnv:       "TEST_MASTER_KEY",
+				EnableRotation:     false,
+				RequireEncryption:  false,
+				AllowInlineSecrets: true,
+			},
 		},
 	}
 

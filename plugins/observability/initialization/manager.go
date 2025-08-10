@@ -1,6 +1,11 @@
+// Package initialization provides centralized component initialization and lifecycle management
+// for the observability plugin. It handles dependency injection, proper startup order,
+// and graceful shutdown of all plugin components including Prometheus clients, security
+// layers, caching systems, and external APIs.
 package initialization
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -8,8 +13,10 @@ import (
 	"github.com/jontk/s9s/plugins/observability/api"
 	"github.com/jontk/s9s/plugins/observability/config"
 	"github.com/jontk/s9s/plugins/observability/historical"
+	"github.com/jontk/s9s/plugins/observability/metrics"
 	"github.com/jontk/s9s/plugins/observability/overlays"
 	"github.com/jontk/s9s/plugins/observability/prometheus"
+	"github.com/jontk/s9s/plugins/observability/security"
 	"github.com/jontk/s9s/plugins/observability/subscription"
 )
 
@@ -17,6 +24,8 @@ import (
 type Components struct {
 	Client              *prometheus.Client
 	CachedClient        *prometheus.CachedClient
+	MetricsCollector    *metrics.Collector
+	SecretsManager      *security.SecretsManager
 	OverlayMgr          *overlays.OverlayManager
 	SubscriptionMgr     *subscription.SubscriptionManager
 	NotificationMgr     *subscription.NotificationManager
@@ -30,12 +39,22 @@ type Components struct {
 // Manager handles plugin component initialization
 type Manager struct {
 	config *config.Config
+	ctx    context.Context
 }
 
 // NewManager creates a new initialization manager
 func NewManager(config *config.Config) *Manager {
 	return &Manager{
 		config: config,
+		ctx:    context.Background(),
+	}
+}
+
+// NewManagerWithContext creates a new initialization manager with context
+func NewManagerWithContext(ctx context.Context, config *config.Config) *Manager {
+	return &Manager{
+		config: config,
+		ctx:    ctx,
 	}
 }
 
@@ -47,6 +66,11 @@ func (m *Manager) InitializeComponents() (*Components, error) {
 	
 	components := &Components{}
 	
+	// Initialize secrets manager first (needed for auth)
+	if err := m.initSecretsManager(components); err != nil {
+		return nil, fmt.Errorf("failed to initialize secrets manager: %w", err)
+	}
+	
 	// Initialize Prometheus client
 	if err := m.initPrometheusClient(components); err != nil {
 		return nil, fmt.Errorf("failed to initialize Prometheus client: %w", err)
@@ -55,6 +79,11 @@ func (m *Manager) InitializeComponents() (*Components, error) {
 	// Initialize caching layer
 	if err := m.initCaching(components); err != nil {
 		return nil, fmt.Errorf("failed to initialize caching: %w", err)
+	}
+	
+	// Initialize metrics collection
+	if err := m.initMetrics(components); err != nil {
+		return nil, fmt.Errorf("failed to initialize metrics: %w", err)
 	}
 	
 	// Initialize overlay management
@@ -85,6 +114,27 @@ func (m *Manager) InitializeComponents() (*Components, error) {
 	return components, nil
 }
 
+// initSecretsManager initializes the secrets manager
+func (m *Manager) initSecretsManager(components *Components) error {
+	secretsManager, err := security.NewSecretsManager(m.ctx, m.config.Security.Secrets)
+	if err != nil {
+		return fmt.Errorf("failed to create secrets manager: %w", err)
+	}
+	
+	components.SecretsManager = secretsManager
+	return nil
+}
+
+// resolveSecret resolves a secret value from either direct config or secret reference
+func (m *Manager) resolveSecret(directValue, secretRef string, components *Components) (string, error) {
+	if secretRef != "" && components.SecretsManager != nil {
+		// Use secret reference
+		return components.SecretsManager.GetSecretValue(secretRef)
+	}
+	// Use direct value
+	return directValue, nil
+}
+
 // initPrometheusClient initializes the Prometheus client
 func (m *Manager) initPrometheusClient(components *Components) error {
 	clientConfig := prometheus.ClientConfig{
@@ -96,13 +146,25 @@ func (m *Manager) initPrometheusClient(components *Components) error {
 		TLSCAFile:     m.config.Prometheus.TLS.CAFile,
 	}
 
-	// Add authentication configuration
+	// Add authentication configuration with secret resolution
 	switch m.config.Prometheus.Auth.Type {
 	case "basic":
 		clientConfig.Username = m.config.Prometheus.Auth.Username
-		clientConfig.Password = m.config.Prometheus.Auth.Password
+		
+		// Resolve password from secret or direct config
+		password, err := m.resolveSecret(m.config.Prometheus.Auth.Password, m.config.Prometheus.Auth.PasswordSecretRef, components)
+		if err != nil {
+			return fmt.Errorf("failed to resolve password secret: %w", err)
+		}
+		clientConfig.Password = password
+		
 	case "bearer":
-		clientConfig.BearerToken = m.config.Prometheus.Auth.Token
+		// Resolve token from secret or direct config
+		token, err := m.resolveSecret(m.config.Prometheus.Auth.Token, m.config.Prometheus.Auth.TokenSecretRef, components)
+		if err != nil {
+			return fmt.Errorf("failed to resolve bearer token secret: %w", err)
+		}
+		clientConfig.BearerToken = token
 	}
 
 	client, err := prometheus.NewClient(clientConfig)
@@ -139,6 +201,36 @@ func (m *Manager) initCaching(components *Components) error {
 		m.config.Cache.DefaultTTL,
 		m.config.Cache.MaxSize,
 	)
+	
+	return nil
+}
+
+// initMetrics initializes the metrics collection system
+func (m *Manager) initMetrics(components *Components) error {
+	if components.CachedClient == nil {
+		return fmt.Errorf("cached client not initialized")
+	}
+	
+	// Create metrics collector
+	collector := metrics.NewCollector(m.ctx, components.CachedClient)
+	
+	// Wrap the cached client with instrumentation
+	instrumentedClient := collector.WrapClient(components.CachedClient)
+	
+	// Update the cached client to use the instrumented version
+	if cachedClient, ok := instrumentedClient.(*prometheus.CachedClient); ok {
+		components.CachedClient = cachedClient
+	} else {
+		// If wrapping doesn't return a CachedClient, we need to handle this
+		// For now, we'll create a new cached client with the instrumented client
+		components.CachedClient = prometheus.NewCachedClientWithInterface(
+			instrumentedClient,
+			m.config.Cache.DefaultTTL,
+			m.config.Cache.MaxSize,
+		)
+	}
+	
+	components.MetricsCollector = collector
 	
 	return nil
 }
@@ -235,17 +327,27 @@ func (m *Manager) initAnalysis(components *Components) error {
 
 // initExternalAPI initializes the external API if enabled
 func (m *Manager) initExternalAPI(components *Components) error {
-	// Check if API is enabled (we'll need to add this config option)
-	// For now, we'll initialize it but not start it
+	// Check if external API is enabled
+	if !m.config.ExternalAPI.Enabled {
+		return nil
+	}
 	
 	if components.CachedClient == nil {
 		return fmt.Errorf("cached client not initialized")
 	}
 	
-	apiConfig := api.Config{
-		Port:      8080, // Default port
-		AuthToken: "",   // No auth by default
+	// Resolve auth token from secret if needed
+	authToken, err := m.resolveSecret(m.config.Security.API.AuthToken, m.config.Security.API.AuthTokenSecretRef, components)
+	if err != nil {
+		return fmt.Errorf("failed to resolve API auth token: %w", err)
 	}
+
+	apiConfig := m.config.ExternalAPI
+	// Override with security settings from main config
+	apiConfig.AuthToken = authToken
+	apiConfig.RateLimit = m.config.Security.API.RateLimit
+	apiConfig.Validation = m.config.Security.API.Validation
+	apiConfig.Audit = m.config.Security.API.Audit
 
 	externalAPI := api.NewExternalAPI(
 		components.CachedClient,
@@ -295,9 +397,23 @@ func (c *Components) Stop() error {
 		}
 	}
 	
+	// Stop metrics collector
+	if c.MetricsCollector != nil {
+		if err := c.MetricsCollector.Stop(); err != nil {
+			errors = append(errors, fmt.Errorf("failed to stop metrics collector: %w", err))
+		}
+	}
+	
 	// Stop cached client
 	if c.CachedClient != nil {
 		c.CachedClient.Stop()
+	}
+	
+	// Stop secrets manager
+	if c.SecretsManager != nil {
+		if err := c.SecretsManager.Stop(); err != nil {
+			errors = append(errors, fmt.Errorf("failed to stop secrets manager: %w", err))
+		}
 	}
 	
 	if len(errors) > 0 {

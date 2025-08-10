@@ -1,3 +1,7 @@
+// Package overlays provides dynamic metric overlay functionality for enhancing
+// existing S9S views with real-time observability data. It supports non-intrusive
+// integration with jobs and nodes views, configurable refresh intervals,
+// and automatic overlay management with lifecycle controls.
 package overlays
 
 import (

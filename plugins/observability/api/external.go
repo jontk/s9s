@@ -1,3 +1,7 @@
+// Package api provides external HTTP API endpoints for accessing observability data.
+// The API supports Prometheus queries, historical data analysis, resource efficiency metrics,
+// and subscription management. All endpoints are protected by configurable security layers
+// including authentication, rate limiting, request validation, and audit logging.
 package api
 
 import (
@@ -13,6 +17,7 @@ import (
 	"github.com/jontk/s9s/plugins/observability/analysis"
 	"github.com/jontk/s9s/plugins/observability/historical"
 	"github.com/jontk/s9s/plugins/observability/prometheus"
+	"github.com/jontk/s9s/plugins/observability/security"
 	"github.com/jontk/s9s/plugins/observability/subscription"
 )
 
@@ -23,6 +28,12 @@ type ExternalAPI struct {
 	historicalCollector *historical.HistoricalDataCollector
 	historicalAnalyzer  *historical.HistoricalAnalyzer
 	efficiencyAnalyzer  *analysis.ResourceEfficiencyAnalyzer
+	rateLimiter         *security.RateLimiter
+	rateLimitConfig     security.RateLimitConfig
+	validator           *security.RequestValidator
+	validationConfig    security.ValidationConfig
+	auditLogger         *security.AuditLogger
+	auditConfig         security.AuditConfig
 	server              *http.Server
 	enabled             bool
 	port                int
@@ -31,17 +42,23 @@ type ExternalAPI struct {
 
 // Config for external API
 type Config struct {
-	Enabled   bool   `json:"enabled"`
-	Port      int    `json:"port"`
-	AuthToken string `json:"auth_token"`
+	Enabled     bool                       `json:"enabled" yaml:"enabled"`
+	Port        int                        `json:"port" yaml:"port"`
+	AuthToken   string                     `json:"auth_token" yaml:"authToken"`
+	RateLimit   security.RateLimitConfig   `json:"rate_limit" yaml:"rateLimit"`
+	Validation  security.ValidationConfig  `json:"validation" yaml:"validation"`
+	Audit       security.AuditConfig       `json:"audit" yaml:"audit"`
 }
 
 // DefaultConfig returns default API configuration
 func DefaultConfig() Config {
 	return Config{
-		Enabled:   false,
-		Port:      8080,
-		AuthToken: "",
+		Enabled:    false,
+		Port:       8080,
+		AuthToken:  "",
+		RateLimit:  security.DefaultRateLimitConfig(),
+		Validation: security.DefaultValidationConfig(),
+		Audit:      security.DefaultAuditConfig(),
 	}
 }
 
@@ -54,12 +71,43 @@ func NewExternalAPI(
 	efficiencyAnalyzer *analysis.ResourceEfficiencyAnalyzer,
 	config Config,
 ) *ExternalAPI {
+	var rateLimiter *security.RateLimiter
+	if config.Enabled && (config.RateLimit.RequestsPerMinute > 0 || config.RateLimit.EnableGlobalLimit) {
+		rateLimiter = security.NewRateLimiter(config.RateLimit)
+	}
+
+	var validator *security.RequestValidator
+	if config.Enabled && config.Validation.Enabled {
+		var err error
+		validator, err = security.NewRequestValidator(config.Validation)
+		if err != nil {
+			// Log error but don't fail initialization
+			validator = nil
+		}
+	}
+
+	var auditLogger *security.AuditLogger
+	if config.Enabled && config.Audit.Enabled {
+		var err error
+		auditLogger, err = security.NewAuditLogger(config.Audit)
+		if err != nil {
+			// Log error but don't fail initialization
+			auditLogger = nil
+		}
+	}
+
 	return &ExternalAPI{
 		client:              client,
 		subscriptionMgr:     subscriptionMgr,
 		historicalCollector: historicalCollector,
 		historicalAnalyzer:  historicalAnalyzer,
 		efficiencyAnalyzer:  efficiencyAnalyzer,
+		rateLimiter:         rateLimiter,
+		rateLimitConfig:     config.RateLimit,
+		validator:           validator,
+		validationConfig:    config.Validation,
+		auditLogger:         auditLogger,
+		auditConfig:         config.Audit,
 		enabled:             config.Enabled,
 		port:                config.Port,
 		authToken:           config.AuthToken,
@@ -74,21 +122,24 @@ func (api *ExternalAPI) Start(ctx context.Context) error {
 
 	mux := http.NewServeMux()
 
-	// Register API routes
-	mux.HandleFunc("/api/v1/metrics/query", api.authenticateMiddleware(api.handleMetricsQuery))
-	mux.HandleFunc("/api/v1/metrics/query_range", api.authenticateMiddleware(api.handleMetricsQueryRange))
-	mux.HandleFunc("/api/v1/historical/data", api.authenticateMiddleware(api.handleHistoricalData))
-	mux.HandleFunc("/api/v1/historical/statistics", api.authenticateMiddleware(api.handleHistoricalStatistics))
-	mux.HandleFunc("/api/v1/analysis/trend", api.authenticateMiddleware(api.handleTrendAnalysis))
-	mux.HandleFunc("/api/v1/analysis/anomaly", api.authenticateMiddleware(api.handleAnomalyDetection))
-	mux.HandleFunc("/api/v1/analysis/seasonal", api.authenticateMiddleware(api.handleSeasonalAnalysis))
-	mux.HandleFunc("/api/v1/efficiency/resource", api.authenticateMiddleware(api.handleResourceEfficiency))
-	mux.HandleFunc("/api/v1/efficiency/cluster", api.authenticateMiddleware(api.handleClusterEfficiency))
-	mux.HandleFunc("/api/v1/subscriptions", api.authenticateMiddleware(api.handleSubscriptions))
-	mux.HandleFunc("/api/v1/subscriptions/create", api.authenticateMiddleware(api.handleCreateSubscription))
-	mux.HandleFunc("/api/v1/subscriptions/delete", api.authenticateMiddleware(api.handleDeleteSubscription))
-	mux.HandleFunc("/api/v1/status", api.authenticateMiddleware(api.handleStatus))
-	mux.HandleFunc("/health", api.handleHealth)
+	// Create middleware chain (rate limiting + authentication)
+	middleware := api.createMiddleware()
+
+	// Register API routes with middleware
+	mux.HandleFunc("/api/v1/metrics/query", middleware(api.handleMetricsQuery))
+	mux.HandleFunc("/api/v1/metrics/query_range", middleware(api.handleMetricsQueryRange))
+	mux.HandleFunc("/api/v1/historical/data", middleware(api.handleHistoricalData))
+	mux.HandleFunc("/api/v1/historical/statistics", middleware(api.handleHistoricalStatistics))
+	mux.HandleFunc("/api/v1/analysis/trend", middleware(api.handleTrendAnalysis))
+	mux.HandleFunc("/api/v1/analysis/anomaly", middleware(api.handleAnomalyDetection))
+	mux.HandleFunc("/api/v1/analysis/seasonal", middleware(api.handleSeasonalAnalysis))
+	mux.HandleFunc("/api/v1/efficiency/resource", middleware(api.handleResourceEfficiency))
+	mux.HandleFunc("/api/v1/efficiency/cluster", middleware(api.handleClusterEfficiency))
+	mux.HandleFunc("/api/v1/subscriptions", middleware(api.handleSubscriptions))
+	mux.HandleFunc("/api/v1/subscriptions/create", middleware(api.handleCreateSubscription))
+	mux.HandleFunc("/api/v1/subscriptions/delete", middleware(api.handleDeleteSubscription))
+	mux.HandleFunc("/api/v1/status", middleware(api.handleStatus))
+	mux.HandleFunc("/health", api.handleHealth) // Health endpoint doesn't require rate limiting
 
 	api.server = &http.Server{
 		Addr:    fmt.Sprintf(":%d", api.port),
@@ -106,6 +157,14 @@ func (api *ExternalAPI) Start(ctx context.Context) error {
 
 // Stop stops the external API server
 func (api *ExternalAPI) Stop(ctx context.Context) error {
+	if api.rateLimiter != nil {
+		api.rateLimiter.Stop()
+	}
+
+	if api.auditLogger != nil {
+		api.auditLogger.Close()
+	}
+
 	if api.server == nil {
 		return nil
 	}
@@ -114,6 +173,30 @@ func (api *ExternalAPI) Stop(ctx context.Context) error {
 	defer cancel()
 
 	return api.server.Shutdown(ctx)
+}
+
+// createMiddleware creates the middleware chain (audit + validation + rate limiting + authentication)
+func (api *ExternalAPI) createMiddleware() func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		// Apply audit logging middleware first (outermost)
+		handler := next
+		if api.auditLogger != nil {
+			handler = security.AuditMiddleware(api.auditLogger)(handler)
+		}
+		
+		// Apply validation middleware
+		if api.validator != nil {
+			handler = security.ValidationMiddleware(api.validator)(handler)
+		}
+		
+		// Apply rate limiting middleware
+		if api.rateLimiter != nil {
+			handler = security.RateLimitMiddleware(api.rateLimiter, api.rateLimitConfig)(handler)
+		}
+		
+		// Apply authentication middleware last (innermost)
+		return api.authenticateMiddleware(handler)
+	}
 }
 
 // authenticateMiddleware provides authentication for API endpoints
@@ -600,6 +683,21 @@ func (api *ExternalAPI) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"historical":      api.historicalCollector.GetCollectorStats(),
 		"cache":           api.client.CacheStats(),
 		"available_metrics": api.historicalCollector.GetAvailableMetrics(),
+	}
+
+	// Add rate limiting stats if available
+	if api.rateLimiter != nil {
+		status["rate_limiting"] = api.rateLimiter.GetStats()
+	}
+
+	// Add validation stats if available
+	if api.validator != nil {
+		status["validation"] = api.validator.GetStats()
+	}
+
+	// Add audit stats if available
+	if api.auditLogger != nil {
+		status["audit"] = api.auditLogger.GetStats()
 	}
 
 	api.writeJSON(w, map[string]interface{}{
