@@ -114,7 +114,7 @@ func BenchmarkJobExportOperations(b *testing.B) {
 			for _, format := range formats {
 				b.Run(string(format), func(b *testing.B) {
 					for i := 0; i < b.N; i++ {
-						_, err := exporter.ExportJobOutput(jobData, format, "")
+						_, err := exporter.Export(jobData, format, "")
 						if err != nil {
 							b.Errorf("Export failed: %v", err)
 						}
@@ -276,7 +276,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := exporter.ExportJobOutput(largeJobData, export.FormatJSON, "")
+			_, err := exporter.Export(largeJobData, export.FormatJSON, "")
 			if err != nil {
 				b.Errorf("Large export failed: %v", err)
 			}

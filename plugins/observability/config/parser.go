@@ -471,3 +471,39 @@ func (p *Parser) parseDuration(val interface{}) (time.Duration, error) {
 		return 0, fmt.Errorf("cannot parse %T as duration", val)
 	}
 }
+
+// parseStringArray parses various string array representations
+func (p *Parser) parseStringArray(val interface{}) ([]string, error) {
+	if val == nil {
+		return nil, fmt.Errorf("cannot parse nil as string array")
+	}
+
+	switch v := val.(type) {
+	case []string:
+		// Trim spaces from each string
+		result := make([]string, len(v))
+		for i, s := range v {
+			result[i] = strings.TrimSpace(s)
+		}
+		return result, nil
+	case []interface{}:
+		// Extract strings from interface slice
+		var result []string
+		for _, item := range v {
+			if str, ok := item.(string); ok {
+				result = append(result, strings.TrimSpace(str))
+			}
+		}
+		return result, nil
+	case string:
+		// Handle comma-separated string
+		parts := strings.Split(v, ",")
+		result := make([]string, len(parts))
+		for i, part := range parts {
+			result[i] = strings.TrimSpace(part)
+		}
+		return result, nil
+	default:
+		return nil, fmt.Errorf("cannot parse %T as string array", val)
+	}
+}

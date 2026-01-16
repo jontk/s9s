@@ -45,6 +45,7 @@ func TestLoadDefaults(t *testing.T) {
 func TestEnvironmentOverrides(t *testing.T) {
 	// Skip this test for now since it depends on environment state
 	t.Skip("Skipping environment-dependent test")
+}
 
 func TestLoadWithYAMLFile(t *testing.T) {
 	// Create a temporary config file
