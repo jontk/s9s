@@ -1,0 +1,100 @@
+prometheus:
+  endpoint: "http://rocky9.ar.jontk.com:9090"
+  timeout: 30s
+  auth:
+    type: "none"
+  tls:
+    enabled: false
+  retry:
+    maxRetries: 3
+    initialDelay: 1s
+    maxDelay: 10s
+    multiplier: 2.0
+
+display:
+  refreshInterval: 30s
+  showOverlays: true
+  showSparklines: true
+  sparklinePoints: 20
+  colorScheme: "default"
+  decimalPrecision: 1
+
+alerts:
+  enabled: true
+  checkInterval: 1m
+  loadPredefinedRules: true
+  showNotifications: true
+  historyRetention: 24h
+
+cache:
+  enabled: true
+  defaultTTL: 30s
+  maxSize: 1000
+  cleanupInterval: 5m
+
+externalAPI:
+  enabled: true
+  port: 8091
+
+metrics:
+  node:
+    nodeLabel: "instance"
+    enabledMetrics:
+      - "cpu"
+      - "memory"
+      - "load"
+      - "disk"
+      - "network"
+      - "filesystem"
+    rateRange: "5m"
+  job:
+    enabled: true
+    cgroupPattern: "/slurm/uid_.*/job_%s"
+    enabledMetrics:
+      - "cpu"
+      - "memory"
+      - "throttle"
+
+security:
+  secrets:
+    storageDir: "./data/secrets"
+    encryptAtRest: true
+    masterKeySource: "environment"
+    masterKeyEnv: "OBSERVABILITY_MASTER_KEY"
+    enableRotation: true
+    rotationInterval: 24h
+    requireEncryption: true
+    allowInlineSecrets: false
+  api:
+    enableAuth: false  # Disabled for testing
+    rateLimit:
+      enabled: true
+      requestsPerMinute: 1000
+      burstCapacity: 20
+      globalRequestsPerMinute: 5000
+      enableGlobalLimit: true
+      cleanupInterval: 5m
+    validation:
+      enabled: true
+      maxQueryLength: 2048
+      maxTimeRange: 168h
+      allowedMetricPatterns:
+        - ".*"  # Allow all metrics for testing
+      blockedMetricPatterns:
+        - ".*secret.*"
+        - ".*password.*"
+      maxTimeSeries: 10000
+      enableComplexityValidation: true
+      maxComplexityScore: 100
+    audit:
+      enabled: true
+      logFile: "./audit.log"
+      logLevel: "info"
+      maxFileSizeMB: 100
+      maxFiles: 5
+      includeBodies: false
+      sensitiveOnly: false  # Log all requests for testing
+      logHeaders:
+        - "User-Agent"
+        - "X-Forwarded-For"
+        - "X-Real-IP"

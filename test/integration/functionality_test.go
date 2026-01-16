@@ -38,7 +38,7 @@ func TestJobExportFunctionality(t *testing.T) {
 
 		for _, format := range formats {
 			t.Run(string(format), func(t *testing.T) {
-				result, err := exporter.ExportJobOutput(testJobData, format, "")
+				result, err := exporter.Export(testJobData, format, "")
 				if err != nil {
 					t.Fatalf("Export failed for format %s: %v", format, err)
 				}

@@ -1,0 +1,202 @@
+# Observability Plugin Configuration Template
+# 
+# This plugin provides Prometheus integration for real-time metrics monitoring
+# in s9s. It displays metrics from node-exporter and cgroup-exporter alongside
+# SLURM job and node information.
+
+# Prometheus connection settings
+prometheus:
+  # Prometheus server endpoint
+  endpoint: "http://localhost:9090"
+  
+  # Query timeout
+  timeout: "10s"
+  
+  # Authentication configuration
+  auth:
+    # Authentication type: "none", "basic", "bearer"
+    type: "none"
+    
+    # For basic auth
+    #username: "admin"
+    #password: "password"
+    
+    # For bearer token auth
+    #token: "your-bearer-token"
+  
+  # TLS configuration
+  tls:
+    # Enable TLS
+    enabled: false
+    
+    # Skip certificate verification (insecure)
+    insecureSkipVerify: false
+    
+    # Certificate files (optional)
+    #caFile: "/path/to/ca.crt"
+    #certFile: "/path/to/client.crt"
+    #keyFile: "/path/to/client.key"
+  
+  # Retry configuration
+  retry:
+    # Maximum number of retries
+    maxRetries: 3
+    
+    # Initial retry delay
+    initialDelay: "1s"
+    
+    # Maximum retry delay
+    maxDelay: "10s"
+    
+    # Backoff multiplier
+    multiplier: 2.0
+
+# Display preferences
+display:
+  # Refresh interval for metrics
+  refreshInterval: "30s"
+  
+  # Show metric overlays on existing views (jobs, nodes)
+  showOverlays: true
+  
+  # Enable sparklines in tables
+  showSparklines: true
+  
+  # Number of historical points for sparklines
+  sparklinePoints: 20
+  
+  # Color scheme: "default", "colorblind", "monochrome"
+  colorScheme: "default"
+  
+  # Decimal precision for values
+  decimalPrecision: 1
+
+# Alert configuration
+alerts:
+  # Enable alerting
+  enabled: true
+  
+  # Check interval for alerts
+  checkInterval: "1m"
+  
+  # Alert history retention
+  historyRetention: "24h"
+  
+  # Default alert rules
+  rules:
+    - name: "High CPU Usage"
+      metric: "cpu_usage"
+      operator: ">"
+      threshold: 90.0
+      duration: "5m"
+      severity: "warning"
+      enabled: true
+    
+    - name: "High Memory Usage"
+      metric: "memory_usage"
+      operator: ">"
+      threshold: 95.0
+      duration: "5m"
+      severity: "critical"
+      enabled: true
+    
+    - name: "High Load Average"
+      metric: "load_1m"
+      operator: ">"
+      threshold: 8.0  # Adjust based on CPU count
+      duration: "10m"
+      severity: "warning"
+      enabled: true
+    
+    - name: "Disk Space Low"
+      metric: "filesystem_usage"
+      operator: ">"
+      threshold: 90.0
+      duration: "15m"
+      severity: "warning"
+      enabled: true
+    
+    - name: "Job Memory Limit"
+      metric: "job_memory_usage_percent"
+      operator: ">"
+      threshold: 95.0
+      duration: "5m"
+      severity: "critical"
+      enabled: true
+
+# Cache configuration
+cache:
+  # Enable caching
+  enabled: true
+  
+  # Default TTL for cached metrics
+  defaultTTL: "30s"
+  
+  # Maximum cache size in entries
+  maxSize: 1000
+  
+  # Cleanup interval
+  cleanupInterval: "5m"
+
+# Metrics configuration
+metrics:
+  # Node metrics configuration
+  node:
+    # Label used to identify nodes in Prometheus
+    # Common values: "instance", "hostname", "node"
+    nodeLabel: "instance"
+    
+    # Metrics to collect
+    enabledMetrics:
+      - "cpu"
+      - "memory"
+      - "load"
+      - "disk"
+      - "network"
+      - "filesystem"
+    
+    # Query range for rate calculations
+    rateRange: "5m"
+  
+  # Job metrics configuration
+  job:
+    # Enable job metrics collection
+    enabled: true
+    
+    # cgroup path pattern (%s will be replaced with job ID)
+    cgroupPattern: "/slurm/uid_.*/job_%s"
+    
+    # Metrics to collect
+    enabledMetrics:
+      - "cpu"
+      - "memory"
+      - "throttle"
+  
+  # Custom PromQL queries
+  # Add your own queries here
+  customQueries:
+    # Example custom query
+    #gpu_usage: 'avg(nvidia_gpu_utilization{instance=~"{{.NodePattern}}"})'
+    #infiniband_traffic: 'rate(node_infiniband_port_data_received_bytes_total[5m])'
+
+# Advanced settings (usually don't need to change)
+advanced:
+  # Enable debug logging for the plugin
+  debug: false
+  
+  # Metric collection parallelism
+  parallelQueries: 10
+  
+  # Maximum time series points to store
+  maxTimeSeriesPoints: 1000
+  
+  # Enable experimental features
+  experimental:
+    # Enable predictive analytics
+    predictiveAnalytics: false
+    
+    # Enable anomaly detection
+    anomalyDetection: false
+    
+    # Enable capacity planning
+    capacityPlanning: false
