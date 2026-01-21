@@ -155,8 +155,8 @@ func (hdc *HistoricalDataCollector) Stop() error {
 	hdc.running = false
 	close(hdc.stopChan)
 
-	// Save current data
-	hdc.saveHistoricalData()
+	// Save current data (already holding lock)
+	hdc.saveHistoricalDataLocked()
 
 	return nil
 }
@@ -445,7 +445,11 @@ func (hdc *HistoricalDataCollector) cleanupOldData() {
 func (hdc *HistoricalDataCollector) saveHistoricalData() {
 	hdc.mu.RLock()
 	defer hdc.mu.RUnlock()
+	hdc.saveHistoricalDataLocked()
+}
 
+// saveHistoricalDataLocked saves historical data to disk (assumes lock is already held)
+func (hdc *HistoricalDataCollector) saveHistoricalDataLocked() {
 	for name, series := range hdc.series {
 		filename := filepath.Join(hdc.dataDir, fmt.Sprintf("%s.json", name))
 		data, err := json.MarshalIndent(series, "", "  ")
@@ -460,7 +464,7 @@ func (hdc *HistoricalDataCollector) saveHistoricalData() {
 		}
 
 		// Atomic rename
-		os.Rename(tempFile, filename)
+		_ = os.Rename(tempFile, filename)
 	}
 }
 

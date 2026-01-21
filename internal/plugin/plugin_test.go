@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 )
@@ -14,6 +15,7 @@ type mockPlugin struct {
 	stopped  bool
 	requires []string
 	healthy  bool
+	mu       sync.RWMutex
 }
 
 func (m *mockPlugin) GetInfo() Info {
@@ -43,6 +45,9 @@ func (m *mockPlugin) Stop(ctx context.Context) error {
 }
 
 func (m *mockPlugin) Health() HealthStatus {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	if m.healthy {
 		return HealthStatus{
 			Healthy: true,
@@ -181,8 +186,8 @@ func TestPluginDependencies(t *testing.T) {
 	}
 
 	// Register plugins
-	manager.RegisterPlugin(pluginA)
-	manager.RegisterPlugin(pluginB)
+	_ = manager.RegisterPlugin(pluginA)
+	_ = manager.RegisterPlugin(pluginB)
 
 	// Try to enable pluginB without pluginA - should fail
 	err := manager.EnablePlugin("pluginB", nil)
@@ -231,8 +236,8 @@ func TestHealthChecks(t *testing.T) {
 		healthy: true,
 	}
 
-	manager.RegisterPlugin(plugin)
-	manager.EnablePlugin("health-test", nil)
+	_ = manager.RegisterPlugin(plugin)
+	_ = manager.EnablePlugin("health-test", nil)
 
 	// Start health checks
 	manager.StartHealthChecks()
@@ -240,8 +245,10 @@ func TestHealthChecks(t *testing.T) {
 	// Wait for initial health check
 	time.Sleep(150 * time.Millisecond)
 
-	// Make plugin unhealthy
+	// Make plugin unhealthy (with proper locking)
+	plugin.mu.Lock()
 	plugin.healthy = false
+	plugin.mu.Unlock()
 
 	// Wait for health check to detect unhealthy state
 	time.Sleep(200 * time.Millisecond)
@@ -251,5 +258,5 @@ func TestHealthChecks(t *testing.T) {
 		t.Error("Health check should have detected unhealthy state")
 	}
 
-	manager.Stop()
+	_ = manager.Stop()
 }

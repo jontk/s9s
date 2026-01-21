@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -99,16 +100,16 @@ func (mc *MetricCache) GetWithKey(cacheKey, originalQuery string) (*QueryResult,
 
 	entry, exists := mc.entries[cacheKey]
 	if !exists {
-		mc.misses++
+		atomic.AddInt64(&mc.misses, 1)
 		return nil, false
 	}
 
 	if entry.IsExpired() {
-		mc.misses++
+		atomic.AddInt64(&mc.misses, 1)
 		return nil, false
 	}
 
-	mc.hits++
+	atomic.AddInt64(&mc.hits, 1)
 	return entry.Result, true
 }
 
@@ -167,9 +168,9 @@ func (mc *MetricCache) Clear() {
 	defer mc.mu.Unlock()
 
 	mc.entries = make(map[string]*CacheEntry)
-	mc.hits = 0
-	mc.misses = 0
-	mc.evictions = 0
+	atomic.StoreInt64(&mc.hits, 0)
+	atomic.StoreInt64(&mc.misses, 0)
+	atomic.StoreInt64(&mc.evictions, 0)
 }
 
 // Stats returns cache statistics
@@ -177,17 +178,21 @@ func (mc *MetricCache) Stats() CacheStats {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
+	hits := atomic.LoadInt64(&mc.hits)
+	misses := atomic.LoadInt64(&mc.misses)
+	evictions := atomic.LoadInt64(&mc.evictions)
+
 	var hitRate float64
-	total := mc.hits + mc.misses
+	total := hits + misses
 	if total > 0 {
-		hitRate = float64(mc.hits) / float64(total) * 100
+		hitRate = float64(hits) / float64(total) * 100
 	}
 
 	return CacheStats{
 		Entries:   len(mc.entries),
-		Hits:      mc.hits,
-		Misses:    mc.misses,
-		Evictions: mc.evictions,
+		Hits:      hits,
+		Misses:    misses,
+		Evictions: evictions,
 		HitRate:   hitRate,
 		MaxSize:   mc.maxSize,
 	}
@@ -207,7 +212,7 @@ func (mc *MetricCache) evictOldest() {
 
 	if oldestKey != "" {
 		delete(mc.entries, oldestKey)
-		mc.evictions++
+		atomic.AddInt64(&mc.evictions, 1)
 	}
 }
 

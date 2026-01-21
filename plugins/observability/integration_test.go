@@ -20,11 +20,11 @@ func MockPrometheusServer() *httptest.Server {
 	// Mock query endpoint
 	mux.HandleFunc("/api/v1/query", func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query().Get("query")
-		
+
 		var response map[string]interface{}
-		
-		switch {
-		case query == "up":
+
+		switch query {
+		case "up":
 			response = map[string]interface{}{
 				"status": "success",
 				"data": map[string]interface{}{
@@ -32,7 +32,7 @@ func MockPrometheusServer() *httptest.Server {
 					"result": []map[string]interface{}{
 						{
 							"metric": map[string]interface{}{
-								"__name__":  "up",
+								"__name__": "up",
 								"instance": "localhost:9090",
 								"job":      "prometheus",
 							},
@@ -44,7 +44,7 @@ func MockPrometheusServer() *httptest.Server {
 					},
 				},
 			}
-		case query == "node_cpu":
+		case "node_cpu":
 			response = map[string]interface{}{
 				"status": "success",
 				"data": map[string]interface{}{
@@ -62,7 +62,7 @@ func MockPrometheusServer() *httptest.Server {
 					},
 				},
 			}
-		case query == "node_memory":
+		case "node_memory":
 			response = map[string]interface{}{
 				"status": "success",
 				"data": map[string]interface{}{
@@ -91,7 +91,7 @@ func MockPrometheusServer() *httptest.Server {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	})
 
 	// Mock query_range endpoint
@@ -129,7 +129,7 @@ func MockPrometheusServer() *httptest.Server {
 					{
 						"metric": map[string]interface{}{
 							"instance": "node1",
-							"__name__":  query,
+							"__name__": query,
 						},
 						"values": values,
 					},
@@ -138,13 +138,23 @@ func MockPrometheusServer() *httptest.Server {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
+	})
+
+	// Mock label values endpoint (used for connection testing)
+	mux.HandleFunc("/api/v1/label/__name__/values", func(w http.ResponseWriter, r *http.Request) {
+		response := map[string]interface{}{
+			"status": "success",
+			"data":   []string{"up", "node_cpu", "node_memory"},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
 	})
 
 	// Mock health endpoint
 	mux.HandleFunc("/-/healthy", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Prometheus is Healthy.\n"))
+		_, _ = w.Write([]byte("Prometheus is Healthy.\n"))
 	})
 
 	return httptest.NewServer(mux)
@@ -162,10 +172,10 @@ func TestObservabilityPluginIntegration(t *testing.T) {
 		"prometheus.timeout":      "5s",
 		"display.refreshInterval": "10s",
 		"display.showOverlays":    true,
-		"alerts.enabled":         true,
-		"cache.enabled":          true,
-		"cache.defaultTTL":       "1m",
-		"cache.maxSize":          100,
+		"alerts.enabled":          true,
+		"cache.enabled":           true,
+		"cache.defaultTTL":        "1m",
+		"cache.maxSize":           100,
 	}
 
 	ctx := context.Background()
@@ -221,7 +231,7 @@ func TestDataProviderIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plugin start failed: %v", err)
 	}
-	defer plugin.Stop(ctx)
+	defer func() { _ = plugin.Stop(ctx) }()
 
 	// Test data providers
 	providers := plugin.GetDataProviders()
@@ -234,6 +244,8 @@ func TestDataProviderIntegration(t *testing.T) {
 		"seasonal-analysis",
 		"resource-efficiency",
 		"cluster-efficiency",
+		"plugin-metrics",
+		"secrets-manager",
 	}
 
 	if len(providers) != len(expectedProviders) {
@@ -273,7 +285,7 @@ func TestHistoricalDataIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plugin start failed: %v", err)
 	}
-	defer plugin.Stop(ctx)
+	defer func() { _ = plugin.Stop(ctx) }()
 
 	// Wait a moment for data collection
 	time.Sleep(100 * time.Millisecond)
@@ -313,23 +325,23 @@ func TestEfficiencyAnalysisIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plugin start failed: %v", err)
 	}
-	defer plugin.Stop(ctx)
+	defer func() { _ = plugin.Stop(ctx) }()
 
 	// Wait for some data collection
 	time.Sleep(500 * time.Millisecond)
 
 	// Test resource efficiency analysis
 	params := map[string]interface{}{
-		"resource_type":    "cpu",
+		"resource_type":   "cpu",
 		"analysis_period": "1h",
 	}
-	
+
 	data, err := plugin.Query(ctx, "resource-efficiency", params)
 	// This might fail if there's not enough historical data, which is expected
 	if err == nil && data != nil {
 		analysis, ok := data.(*analysis.ResourceEfficiency)
 		if ok {
-			t.Logf("Efficiency analysis successful: %.2f score, %s level", 
+			t.Logf("Efficiency analysis successful: %.2f score, %s level",
 				analysis.OverallScore, analysis.EfficiencyLevel)
 		}
 	} else {
@@ -357,7 +369,7 @@ func TestSubscriptionIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plugin start failed: %v", err)
 	}
-	defer plugin.Stop(ctx)
+	defer func() { _ = plugin.Stop(ctx) }()
 
 	// Test subscription
 	callbackCalled := false
@@ -436,7 +448,7 @@ func TestOverlayIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plugin start failed: %v", err)
 	}
-	defer plugin.Stop(ctx)
+	defer func() { _ = plugin.Stop(ctx) }()
 
 	// Test overlay information
 	overlays := plugin.GetOverlays()
@@ -503,7 +515,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	err = plugin.Start(ctx)
 	if err == nil {
 		t.Error("Expected start to fail with invalid endpoint")
-		plugin.Stop(ctx)
+		_ = plugin.Stop(ctx)
 	}
 
 	// Health check should report unhealthy
@@ -533,7 +545,7 @@ func TestConcurrentOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plugin start failed: %v", err)
 	}
-	defer plugin.Stop(ctx)
+	defer func() { _ = plugin.Stop(ctx) }()
 
 	// Run concurrent queries
 	numWorkers := 10
@@ -587,7 +599,7 @@ func BenchmarkQuery(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Plugin start failed: %v", err)
 	}
-	defer plugin.Stop(ctx)
+	defer func() { _ = plugin.Stop(ctx) }()
 
 	params := map[string]interface{}{
 		"query": "up",

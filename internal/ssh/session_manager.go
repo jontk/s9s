@@ -233,7 +233,7 @@ func (sm *SessionManager) StartInteractiveSession(sessionID string) error {
 
 	// Wait for command completion in background
 	go func() {
-		cmd.Wait()
+		_ = cmd.Wait()
 		session.mu.Lock()
 		session.State = SessionDisconnected
 		session.Command = nil
@@ -337,6 +337,8 @@ func (sm *SessionManager) GetSessions() map[string]*SSHSession {
 	// Create a copy to avoid race conditions
 	sessions := make(map[string]*SSHSession)
 	for k, v := range sm.sessions {
+		// Lock individual session to safely read its fields
+		v.mu.RLock()
 		sessions[k] = &SSHSession{
 			ID:           v.ID,
 			Hostname:     v.Hostname,
@@ -349,6 +351,7 @@ func (sm *SessionManager) GetSessions() map[string]*SSHSession {
 			Tunnels:      make([]SSHTunnel, len(v.Tunnels)),
 		}
 		copy(sessions[k].Tunnels, v.Tunnels)
+		v.mu.RUnlock()
 	}
 	return sessions
 }
@@ -368,14 +371,14 @@ func (sm *SessionManager) CloseSession(sessionID string) error {
 
 	// Terminate active process if any
 	if session.Process != nil {
-		session.Process.Kill()
+		_ = session.Process.Kill()
 		session.Process = nil
 	}
 
 	// Close SSH control connection
 	if session.ControlPath != "" {
 		args := []string{"-O", "exit", "-S", session.ControlPath, session.Hostname}
-		exec.Command("ssh", args...).Run() // Ignore errors
+		_ = exec.Command("ssh", args...).Run() // Ignore errors
 	}
 
 	session.State = SessionDisconnected
@@ -394,12 +397,12 @@ func (sm *SessionManager) CloseAllSessions() {
 		session.mu.Lock()
 
 		if session.Process != nil {
-			session.Process.Kill()
+			_ = session.Process.Kill()
 		}
 
 		if session.ControlPath != "" {
 			args := []string{"-O", "exit", "-S", session.ControlPath, session.Hostname}
-			exec.Command("ssh", args...).Run()
+			_ = exec.Command("ssh", args...).Run()
 		}
 
 		session.mu.Unlock()
@@ -503,7 +506,7 @@ func (sm *SessionManager) cleanupStaleSessions() {
 
 			// Clean up control socket
 			if session.ControlPath != "" {
-				os.Remove(session.ControlPath)
+				_ = os.Remove(session.ControlPath)
 			}
 
 			delete(sm.sessions, sessionID)
@@ -525,7 +528,7 @@ func (sm *SessionManager) Shutdown() {
 
 		// Clean up control directory
 		if sm.controlDir != "" {
-			os.RemoveAll(sm.controlDir)
+			_ = os.RemoveAll(sm.controlDir)
 		}
 	})
 }
@@ -558,7 +561,7 @@ func (sm *SessionManager) TestNodeConnectivity(hostnames []string, timeout time.
 			mu.Unlock()
 
 			// Clean up test session
-			sm.CloseSession(session.ID)
+			_ = sm.CloseSession(session.ID)
 		}(hostname)
 	}
 
@@ -689,7 +692,7 @@ func (sm *SessionManager) savePersistentSessions() {
 	}
 
 	// Cleanup old data
-	sm.persistence.CleanupOldData()
+	_ = sm.persistence.CleanupOldData()
 }
 
 // EnablePersistence enables session persistence with a custom data directory

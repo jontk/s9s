@@ -20,14 +20,14 @@ func TestKeyManager(t *testing.T) {
 
 	// Set up mock environment
 	originalHome := os.Getenv("HOME")
-	os.Setenv("HOME", tempDir)
-	defer os.Setenv("HOME", originalHome)
+	_ = os.Setenv("HOME", tempDir)
+	defer func() { _ = os.Setenv("HOME", originalHome) }()
 
 	t.Run("NewKeyManager", func(t *testing.T) {
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
 		require.NotNil(t, km)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
 		keys := km.GetKeys()
 		assert.Empty(t, keys) // No keys initially
@@ -36,7 +36,7 @@ func TestKeyManager(t *testing.T) {
 	t.Run("GenerateRSAKey", func(t *testing.T) {
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
 		err = km.GenerateKey("test_rsa", "test@example.com", "rsa", 2048)
 		require.NoError(t, err)
@@ -44,7 +44,7 @@ func TestKeyManager(t *testing.T) {
 		// Check key files exist
 		keyPath := filepath.Join(sshDir, "test_rsa")
 		pubPath := keyPath + ".pub"
-		
+
 		assert.FileExists(t, keyPath)
 		assert.FileExists(t, pubPath)
 
@@ -59,6 +59,10 @@ func TestKeyManager(t *testing.T) {
 		assert.Equal(t, pubPath, key.PublicPath)
 		assert.Equal(t, "ssh-rsa", key.Type)
 		assert.NotEmpty(t, key.Fingerprint)
+
+		// Clean up
+		err = km.DeleteKey("test_rsa")
+		require.NoError(t, err)
 	})
 
 	t.Run("GenerateEd25519Key", func(t *testing.T) {
@@ -69,7 +73,7 @@ func TestKeyManager(t *testing.T) {
 
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
 		err = km.GenerateKey("test_ed25519", "test@example.com", "ed25519", 0)
 		require.NoError(t, err)
@@ -77,7 +81,7 @@ func TestKeyManager(t *testing.T) {
 		// Check key files exist
 		keyPath := filepath.Join(sshDir, "test_ed25519")
 		pubPath := keyPath + ".pub"
-		
+
 		assert.FileExists(t, keyPath)
 		assert.FileExists(t, pubPath)
 
@@ -88,12 +92,16 @@ func TestKeyManager(t *testing.T) {
 		key := keys["test_ed25519"]
 		assert.Equal(t, "test_ed25519", key.Name)
 		assert.Equal(t, "ssh-ed25519", key.Type)
+
+		// Clean up
+		err = km.DeleteKey("test_ed25519")
+		require.NoError(t, err)
 	})
 
 	t.Run("GetKey", func(t *testing.T) {
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
 		// Generate a key first
 		err = km.GenerateKey("test_get", "test@example.com", "rsa", 2048)
@@ -107,12 +115,16 @@ func TestKeyManager(t *testing.T) {
 		// Test getting non-existent key
 		_, err = km.GetKey("nonexistent")
 		assert.Error(t, err)
+
+		// Clean up
+		err = km.DeleteKey("test_get")
+		require.NoError(t, err)
 	})
 
 	t.Run("DeleteKey", func(t *testing.T) {
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
 		// Generate a key first
 		err = km.GenerateKey("test_delete", "test@example.com", "rsa", 2048)
@@ -139,39 +151,42 @@ func TestKeyManager(t *testing.T) {
 	})
 
 	t.Run("DiscoverExistingKeys", func(t *testing.T) {
-		// Create some key files manually
-		keyContent := `-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA1234567...
------END RSA PRIVATE KEY-----`
+		// Skip if ssh-keygen not available
+		if !ssh.IsSSHAvailable() {
+			t.Skip("ssh-keygen not available")
+		}
 
-		pubContent := `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDXNjQ4... test@example.com`
-
-		keyPath := filepath.Join(sshDir, "manual_key")
-		pubPath := keyPath + ".pub"
-
-		err := os.WriteFile(keyPath, []byte(keyContent), 0600)
-		require.NoError(t, err)
-		err = os.WriteFile(pubPath, []byte(pubContent), 0644)
-		require.NoError(t, err)
-
-		// Create key manager and discover keys
+		// Create a key manager and generate a real key
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
+		// Generate a real RSA key
+		keyName := "manual_key"
+		err = km.GenerateKey(keyName, "test@example.com", "rsa", 2048)
+		require.NoError(t, err)
+
+		// Get all keys to verify discovery
 		keys := km.GetKeys()
-		assert.Contains(t, keys, "manual_key")
+		assert.Contains(t, keys, keyName)
 
-		key := keys["manual_key"]
-		assert.Equal(t, "manual_key", key.Name)
-		assert.Equal(t, keyPath, key.Path)
-		assert.Equal(t, pubPath, key.PublicPath)
+		// Verify key properties
+		discoveredKey := keys[keyName]
+		assert.Equal(t, keyName, discoveredKey.Name)
+		keyPath := filepath.Join(sshDir, keyName)
+		pubPath := keyPath + ".pub"
+		assert.Equal(t, keyPath, discoveredKey.Path)
+		assert.Equal(t, pubPath, discoveredKey.PublicPath)
+
+		// Clean up the key to avoid interfering with other tests
+		err = km.DeleteKey(keyName)
+		require.NoError(t, err)
 	})
 
 	t.Run("GetKeyPath", func(t *testing.T) {
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
 		// Generate a key first
 		err = km.GenerateKey("test_path", "test@example.com", "rsa", 2048)
@@ -186,12 +201,16 @@ MIIEpAIBAAKCAQEA1234567...
 		// Test getting path for non-existent key
 		_, err = km.GetKeyPath("nonexistent")
 		assert.Error(t, err)
+
+		// Clean up
+		err = km.DeleteKey("test_path")
+		require.NoError(t, err)
 	})
 
 	t.Run("SetAutoLoad", func(t *testing.T) {
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
 		// Test setting auto load
 		km.SetAutoLoad(false)
@@ -203,7 +222,7 @@ MIIEpAIBAAKCAQEA1234567...
 	t.Run("IsAgentConnected", func(t *testing.T) {
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
 		// Initially should not be connected (no SSH_AUTH_SOCK)
 		assert.False(t, km.IsAgentConnected())
@@ -212,7 +231,7 @@ MIIEpAIBAAKCAQEA1234567...
 	t.Run("GetSSHConfig", func(t *testing.T) {
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
 		// Generate a key first
 		err = km.GenerateKey("test_config", "test@example.com", "rsa", 2048)
@@ -226,6 +245,10 @@ MIIEpAIBAAKCAQEA1234567...
 		// Should have the key file set
 		expectedKeyPath := filepath.Join(sshDir, "test_config")
 		assert.Equal(t, expectedKeyPath, config.KeyFile)
+
+		// Clean up
+		err = km.DeleteKey("test_config")
+		require.NoError(t, err)
 	})
 }
 
@@ -243,13 +266,13 @@ func TestKeyManagerWithAgent(t *testing.T) {
 
 	// Set up mock environment
 	originalHome := os.Getenv("HOME")
-	os.Setenv("HOME", tempDir)
-	defer os.Setenv("HOME", originalHome)
+	_ = os.Setenv("HOME", tempDir)
+	defer func() { _ = os.Setenv("HOME", originalHome) }()
 
 	t.Run("ConnectToAgent", func(t *testing.T) {
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
 		// Should be connected to agent
 		assert.True(t, km.IsAgentConnected())
@@ -264,7 +287,7 @@ func TestKeyManagerWithAgent(t *testing.T) {
 	t.Run("LoadKeyToAgent", func(t *testing.T) {
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
 		if !km.IsAgentConnected() {
 			t.Skip("SSH agent not connected")
@@ -291,7 +314,7 @@ func TestKeyManagerWithAgent(t *testing.T) {
 	t.Run("RefreshKeyStatus", func(t *testing.T) {
 		km, err := ssh.NewKeyManager()
 		require.NoError(t, err)
-		defer km.Cleanup()
+		defer func() { _ = km.Cleanup() }()
 
 		if !km.IsAgentConnected() {
 			t.Skip("SSH agent not connected")
@@ -325,7 +348,7 @@ func TestAgentOperations(t *testing.T) {
 		auth, err := ssh.NewAgentAuth()
 		require.NoError(t, err)
 		require.NotNil(t, auth)
-		defer auth.Close()
+		defer func() { _ = auth.Close() }()
 
 		// Test getting signers
 		signers := auth.GetSigners()
@@ -354,8 +377,8 @@ func BenchmarkKeyDiscovery(b *testing.B) {
 
 	// Set up mock environment
 	originalHome := os.Getenv("HOME")
-	os.Setenv("HOME", tempDir)
-	defer os.Setenv("HOME", originalHome)
+	_ = os.Setenv("HOME", tempDir)
+	defer func() { _ = os.Setenv("HOME", originalHome) }()
 
 	// Create some dummy key files
 	for i := 0; i < 5; i++ {
@@ -374,6 +397,6 @@ MIIEpAIBAAKCAQEA1234567...
 	for i := 0; i < b.N; i++ {
 		km, err := ssh.NewKeyManager()
 		require.NoError(b, err)
-		km.Cleanup()
+		_ = km.Cleanup()
 	}
 }

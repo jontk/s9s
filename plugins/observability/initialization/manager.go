@@ -181,10 +181,8 @@ func (m *Manager) initCaching(components *Components) error {
 	if components.Client == nil {
 		return fmt.Errorf("Prometheus client not initialized")
 	}
-	
+
 	// Optionally wrap with circuit breaker
-	var clientForCache prometheus.PrometheusClientInterface = components.Client
-	
 	// Check if circuit breaker should be enabled (add this to config later)
 	// For now, we'll enable it by default with sensible defaults
 	circuitConfig := prometheus.DefaultCircuitBreakerConfig()
@@ -192,9 +190,9 @@ func (m *Manager) initCaching(components *Components) error {
 		// Log state changes (in real implementation, use proper logging)
 		// fmt.Printf("Circuit breaker %s changed from %s to %s\n", name, from, to)
 	}
-	
+
 	circuitClient := prometheus.NewCircuitBreakerClient(components.Client, circuitConfig)
-	clientForCache = circuitClient
+	clientForCache := circuitClient
 	
 	components.CachedClient = prometheus.NewCachedClientWithInterface(
 		clientForCache,
@@ -325,17 +323,12 @@ func (m *Manager) initAnalysis(components *Components) error {
 	return nil
 }
 
-// initExternalAPI initializes the external API if enabled
+// initExternalAPI initializes the external API
 func (m *Manager) initExternalAPI(components *Components) error {
-	// Check if external API is enabled
-	if !m.config.ExternalAPI.Enabled {
-		return nil
-	}
-	
 	if components.CachedClient == nil {
 		return fmt.Errorf("cached client not initialized")
 	}
-	
+
 	// Resolve auth token from secret if needed
 	authToken, err := m.resolveSecret(m.config.Security.API.AuthToken, m.config.Security.API.AuthTokenSecretRef, components)
 	if err != nil {
@@ -349,6 +342,8 @@ func (m *Manager) initExternalAPI(components *Components) error {
 	apiConfig.Validation = m.config.Security.API.Validation
 	apiConfig.Audit = m.config.Security.API.Audit
 
+	// Always initialize ExternalAPI, whether enabled or not
+	// If disabled, it just won't be started
 	externalAPI := api.NewExternalAPI(
 		components.CachedClient,
 		components.SubscriptionMgr,
@@ -358,7 +353,7 @@ func (m *Manager) initExternalAPI(components *Components) error {
 		apiConfig,
 	)
 	components.ExternalAPI = externalAPI
-	
+
 	return nil
 }
 

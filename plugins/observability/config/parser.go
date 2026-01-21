@@ -114,6 +114,24 @@ func (p *Parser) parsePrometheusConfig(config *PrometheusConfig) error {
 		}
 	}
 
+	if val, ok := p.getValue("prometheus.tls.caFile"); ok {
+		if str, ok := val.(string); ok {
+			config.TLS.CAFile = str
+		}
+	}
+
+	if val, ok := p.getValue("prometheus.tls.certFile"); ok {
+		if str, ok := val.(string); ok {
+			config.TLS.CertFile = str
+		}
+	}
+
+	if val, ok := p.getValue("prometheus.tls.keyFile"); ok {
+		if str, ok := val.(string); ok {
+			config.TLS.KeyFile = str
+		}
+	}
+
 	// Parse retry configuration
 	if val, ok := p.getValue("prometheus.retry.maxRetries"); ok {
 		if i, err := p.parseInt(val); err == nil {
@@ -255,6 +273,12 @@ func (p *Parser) parseMetricsConfig(config *MetricsConfig) error {
 		}
 	}
 
+	if val, ok := p.getValue("metrics.node.enabledMetrics"); ok {
+		if arr, err := p.parseStringArray(val); err == nil {
+			config.Node.EnabledMetrics = arr
+		}
+	}
+
 	if val, ok := p.getValue("metrics.job.enabled"); ok {
 		if b, err := p.parseBool(val); err == nil {
 			config.Job.Enabled = b
@@ -264,6 +288,12 @@ func (p *Parser) parseMetricsConfig(config *MetricsConfig) error {
 	if val, ok := p.getValue("metrics.job.cgroupPattern"); ok {
 		if str, ok := val.(string); ok {
 			config.Job.CgroupPattern = str
+		}
+	}
+
+	if val, ok := p.getValue("metrics.job.enabledMetrics"); ok {
+		if arr, err := p.parseStringArray(val); err == nil {
+			config.Job.EnabledMetrics = arr
 		}
 	}
 
@@ -373,15 +403,21 @@ func (p *Parser) parseExternalAPIConfig(config *api.Config) error {
 
 // getValue retrieves a value from the configuration map using dot notation
 func (p *Parser) getValue(key string) (interface{}, bool) {
+	// First, try to get the value directly with the full dotted key (flat map style)
+	if val, ok := p.data[key]; ok {
+		return val, true
+	}
+
+	// If not found, try nested map traversal
 	parts := strings.Split(key, ".")
 	current := p.data
-	
+
 	for i, part := range parts {
 		if i == len(parts)-1 {
 			val, ok := current[part]
 			return val, ok
 		}
-		
+
 		next, ok := current[part].(map[string]interface{})
 		if !ok {
 			// Try map[interface{}]interface{} (common with YAML)
@@ -398,7 +434,7 @@ func (p *Parser) getValue(key string) (interface{}, bool) {
 		}
 		current = next
 	}
-	
+
 	return nil, false
 }
 
@@ -409,12 +445,6 @@ func (p *Parser) parseBool(val interface{}) (bool, error) {
 		return v, nil
 	case string:
 		return strconv.ParseBool(v)
-	case int:
-		return v != 0, nil
-	case int64:
-		return v != 0, nil
-	case float64:
-		return v != 0, nil
 	default:
 		return false, fmt.Errorf("cannot parse %T as bool", val)
 	}

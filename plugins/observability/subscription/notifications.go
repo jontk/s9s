@@ -161,7 +161,7 @@ func (nm *NotificationManager) AcknowledgeNotification(notificationID string) er
 // GetStats returns notification statistics
 func (nm *NotificationManager) GetStats() map[string]interface{} {
 	nm.mu.RLock()
-	defer nm.mu.Unlock()
+	defer nm.mu.RUnlock()
 
 	levelCounts := make(map[string]int)
 	acknowledgedCount := 0
@@ -356,7 +356,7 @@ func convertToFloat(value interface{}) (float64, bool) {
 		// Try to parse string as number
 		if f, err := fmt.Sscanf(v, "%f", new(float64)); err == nil && f == 1 {
 			var result float64
-			fmt.Sscanf(v, "%f", &result)
+			_, _ = fmt.Sscanf(v, "%f", &result)
 			return result, true
 		}
 	}

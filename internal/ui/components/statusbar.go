@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -16,7 +17,10 @@ type StatusBar struct {
 	message       string
 	messageExpiry time.Time
 	flashColor    tcell.Color
-	lastDrawn     string // Track last drawn content to prevent unnecessary redraws
+	mu            sync.RWMutex
+	displayMu     sync.Mutex // Serializes access to tview methods
+	// TODO(lint): Review unused code - field lastDrawn is unused
+	// lastDrawn     string // Track last drawn content to prevent unnecessary redraws
 }
 
 // NewStatusBar creates a new status bar component
@@ -39,45 +43,62 @@ func (s *StatusBar) SetHints(hints []string) {
 	// Only update hints if new hints are provided
 	// This prevents accidental clearing of hints
 	if len(hints) > 0 {
+		s.mu.Lock()
 		s.hints = hints
+		s.mu.Unlock()
 		s.updateDisplay()
 	}
 }
 
 // SetMessage sets a temporary message with optional expiry
 func (s *StatusBar) SetMessage(message string, duration time.Duration) {
+	s.mu.Lock()
 	s.message = message
 	if duration > 0 {
 		s.messageExpiry = time.Now().Add(duration)
+	} else {
+		s.messageExpiry = time.Time{}
+	}
+	s.mu.Unlock()
+
+	if duration > 0 {
 		// Clear message after duration
 		go func() {
 			time.Sleep(duration)
-			if time.Now().After(s.messageExpiry) {
+			s.mu.RLock()
+			shouldClear := time.Now().After(s.messageExpiry)
+			s.mu.RUnlock()
+			if shouldClear {
 				s.ClearMessage()
 			}
 		}()
-	} else {
-		s.messageExpiry = time.Time{}
 	}
 	s.updateDisplay()
 }
 
 // ClearMessage clears the current message
 func (s *StatusBar) ClearMessage() {
+	s.mu.Lock()
 	s.message = ""
 	s.messageExpiry = time.Time{}
+	s.mu.Unlock()
 	s.updateDisplay()
 }
 
 // Flash displays a temporary flash message with color
 func (s *StatusBar) Flash(message string, color tcell.Color, duration time.Duration) {
+	s.mu.Lock()
 	s.flashColor = color
+	s.mu.Unlock()
+
 	s.SetMessage(message, duration)
 
 	// Reset flash color after duration
 	go func() {
 		time.Sleep(duration)
+		s.mu.Lock()
 		s.flashColor = tcell.ColorDefault
+		s.mu.Unlock()
 		s.updateDisplay()
 	}()
 }
@@ -104,36 +125,48 @@ func (s *StatusBar) Info(message string) {
 
 // updateDisplay updates the status bar display
 func (s *StatusBar) updateDisplay() {
+	s.mu.RLock()
+	message := s.message
+	messageExpiry := s.messageExpiry
+	flashColor := s.flashColor
+	hints := make([]string, len(s.hints))
+	copy(hints, s.hints)
+	s.mu.RUnlock()
+
 	var content strings.Builder
 
 	// Show message if present and not expired
-	if s.message != "" && (s.messageExpiry.IsZero() || time.Now().Before(s.messageExpiry)) {
-		if s.flashColor != tcell.ColorDefault {
-			colorName := getColorName(s.flashColor)
-			content.WriteString(fmt.Sprintf("[%s]%s[white]", colorName, s.message))
+	if message != "" && (messageExpiry.IsZero() || time.Now().Before(messageExpiry)) {
+		if flashColor != tcell.ColorDefault {
+			colorName := getColorName(flashColor)
+			content.WriteString(fmt.Sprintf("[%s]%s[white]", colorName, message))
 		} else {
-			content.WriteString(s.message)
+			content.WriteString(message)
 		}
-	} else if len(s.hints) > 0 {
+	} else if len(hints) > 0 {
 		// Show hints if no message
-		content.WriteString(s.formatHints())
+		content.WriteString(s.formatHints(hints))
 	}
+
+	// Serialize access to tview methods to prevent races
+	s.displayMu.Lock()
+	defer s.displayMu.Unlock()
 
 	// Only update if content has actually changed to prevent flicker
 	newText := content.String()
-	if s.TextView.GetText(false) != newText {
-		s.TextView.SetText(newText)
+	if s.GetText(false) != newText {
+		s.SetText(newText)
 	}
 }
 
 // formatHints formats the keyboard hints for display
-func (s *StatusBar) formatHints() string {
-	if len(s.hints) == 0 {
+func (s *StatusBar) formatHints(hints []string) string {
+	if len(hints) == 0 {
 		return ""
 	}
 
 	// Join hints with separators
-	return strings.Join(s.hints, "  ")
+	return strings.Join(hints, "  ")
 }
 
 // getColorName returns the color name for tview markup
