@@ -25,13 +25,16 @@ jobs:
       
     - name: Prepare installation endpoint
       run: |
+        # Ensure docs directory exists
+        mkdir -p docs
+
         # Copy installation script to docs root as index
         cp scripts/install.sh docs/index.sh
         chmod +x docs/index.sh
-        
+
         # Create proper MIME type handling
         echo 'text/x-shellscript sh' > docs/.htaccess
-        
+
         # Create redirect HTML for browsers
         cat > docs/index.html << 'EOF'
         <!DOCTYPE html>
