@@ -52,6 +52,7 @@ jobs:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: goreleaser
+    if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
