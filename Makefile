@@ -54,7 +54,7 @@ test: test-unit test-integration
 # Run unit tests only
 test-unit:
 	@echo "Running unit tests..."
-	$(GOTEST) -timeout $(TEST_TIMEOUT) -v ./internal/... ./test/unit/...
+	$(GOTEST) -timeout $(TEST_TIMEOUT) -v ./internal/...
 
 # Run integration tests
 test-integration:
@@ -203,7 +203,7 @@ docker-run: docker-build
 # Test with Docker
 docker-test:
 	@echo "Running tests in Docker..."
-	docker run --rm -v $(PWD):/app -w /app golang:1.21 make test
+	docker run --rm -v $(PWD):/app -w /app golang:1.24 make test
 
 # Release targets
 .PHONY: release release-snapshot
