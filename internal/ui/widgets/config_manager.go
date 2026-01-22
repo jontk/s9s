@@ -15,15 +15,15 @@ import (
 // ConfigManager provides a comprehensive configuration management interface
 type ConfigManager struct {
 	*tview.Flex
-	app              *tview.Application
-	pages            *tview.Pages
-	
+	app   *tview.Application
+	pages *tview.Pages
+
 	// UI Components
-	sidebar          *tview.List
-	content          *tview.Flex
-	form             *tview.Form
-	statusBar        *tview.TextView
-	
+	sidebar   *tview.List
+	content   *tview.Flex
+	form      *tview.Form
+	statusBar *tview.TextView
+
 	// Data
 	schema           *config.ConfigSchema
 	currentConfig    *config.Config
@@ -32,11 +32,11 @@ type ConfigManager struct {
 	configPath       string
 	hasChanges       bool
 	validationErrors map[string]config.ValidationResult
-	
+
 	// Callbacks
-	onSave           func(*config.Config) error
-	onCancel         func()
-	onApply          func(*config.Config) error
+	onSave   func(*config.Config) error
+	onCancel func()
+	onApply  func(*config.Config) error
 }
 
 // NewConfigManager creates a new configuration manager
@@ -48,10 +48,10 @@ func NewConfigManager(app *tview.Application, configPath string) *ConfigManager 
 		configPath:       configPath,
 		validationErrors: make(map[string]config.ValidationResult),
 	}
-	
+
 	cm.initializeUI()
 	cm.loadConfiguration()
-	
+
 	return cm
 }
 
@@ -63,26 +63,26 @@ func (cm *ConfigManager) initializeUI() {
 	cm.sidebar.SetTitle(" Configuration Groups ")
 	cm.sidebar.SetTitleAlign(tview.AlignCenter)
 	cm.sidebar.ShowSecondaryText(false)
-	
+
 	// Populate sidebar with groups
 	for _, group := range cm.schema.Groups {
 		title := fmt.Sprintf("%s %s", group.Icon, group.Name)
 		cm.sidebar.AddItem(title, group.Description, 0, nil)
 	}
-	
+
 	// Set sidebar selection handler
 	cm.sidebar.SetSelectedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
 		if index < len(cm.schema.Groups) {
 			cm.selectGroup(cm.schema.Groups[index].ID)
 		}
 	})
-	
+
 	// Create content area
 	cm.content = tview.NewFlex().SetDirection(tview.FlexRow)
 	cm.content.SetBorder(true)
 	cm.content.SetTitle(" Settings ")
 	cm.content.SetTitleAlign(tview.AlignCenter)
-	
+
 	// Create form for configuration fields
 	cm.form = tview.NewForm()
 	cm.form.SetFieldBackgroundColor(tcell.ColorDefault)
@@ -90,27 +90,27 @@ func (cm *ConfigManager) initializeUI() {
 	cm.form.SetLabelColor(tcell.ColorYellow)
 	cm.form.SetButtonBackgroundColor(tcell.ColorNavy)
 	cm.form.SetButtonTextColor(tcell.ColorWhite)
-	
+
 	// Create status bar
 	cm.statusBar = tview.NewTextView()
 	cm.statusBar.SetDynamicColors(true)
 	cm.statusBar.SetTextAlign(tview.AlignCenter)
 	cm.statusBar.SetText("[gray]Select a configuration group to begin[white]")
-	
+
 	// Add action buttons
 	cm.addActionButtons()
-	
+
 	// Layout
 	cm.content.AddItem(cm.form, 0, 1, true)
 	cm.content.AddItem(cm.statusBar, 2, 0, false)
-	
+
 	cm.SetDirection(tview.FlexColumn)
 	cm.AddItem(cm.sidebar, 30, 0, false)
 	cm.AddItem(cm.content, 0, 1, true)
-	
+
 	// Set input handling
 	cm.SetInputCapture(cm.handleInput)
-	
+
 	// Select first group by default
 	if len(cm.schema.Groups) > 0 {
 		cm.selectGroup(cm.schema.Groups[0].ID)
@@ -123,15 +123,15 @@ func (cm *ConfigManager) addActionButtons() {
 	cm.form.AddButton("Save", func() {
 		cm.saveConfiguration()
 	})
-	
+
 	cm.form.AddButton("Apply", func() {
 		cm.applyConfiguration()
 	})
-	
+
 	cm.form.AddButton("Reset", func() {
 		cm.resetToDefaults()
 	})
-	
+
 	cm.form.AddButton("Cancel", func() {
 		cm.cancelChanges()
 	})
@@ -145,13 +145,13 @@ func (cm *ConfigManager) loadConfiguration() {
 	} else {
 		cm.currentConfig, err = config.Load()
 	}
-	
+
 	if err != nil {
 		cm.updateStatusBar(fmt.Sprintf("[red]Error loading configuration: %v[white]", err))
 		// Create a default configuration
 		cm.currentConfig = &config.Config{}
 	}
-	
+
 	// Make a copy of the original configuration
 	cm.originalConfig = cm.copyConfig(cm.currentConfig)
 	cm.hasChanges = false
@@ -161,7 +161,7 @@ func (cm *ConfigManager) loadConfiguration() {
 func (cm *ConfigManager) selectGroup(groupID string) {
 	cm.selectedGroup = groupID
 	cm.buildForm()
-	
+
 	// Update content title
 	for _, group := range cm.schema.Groups {
 		if group.ID == groupID {
@@ -174,16 +174,16 @@ func (cm *ConfigManager) selectGroup(groupID string) {
 // buildForm creates the form for the selected group
 func (cm *ConfigManager) buildForm() {
 	cm.form.Clear(true)
-	
+
 	// Get fields for the selected group
 	fields := cm.schema.GetFieldsByGroup(cm.selectedGroup)
-	
+
 	if len(fields) == 0 {
 		cm.form.AddTextView("No Settings", "No configurable settings in this group.", 0, 1, false, false)
 		cm.addActionButtons()
 		return
 	}
-	
+
 	// Sort fields by order
 	for i := 0; i < len(fields); i++ {
 		for j := i + 1; j < len(fields); j++ {
@@ -192,12 +192,12 @@ func (cm *ConfigManager) buildForm() {
 			}
 		}
 	}
-	
+
 	// Add form fields
 	for _, field := range fields {
 		cm.addFormField(field)
 	}
-	
+
 	cm.addActionButtons()
 	cm.validateAllFields()
 }
@@ -205,20 +205,20 @@ func (cm *ConfigManager) buildForm() {
 // addFormField adds a single field to the form
 func (cm *ConfigManager) addFormField(field config.ConfigField) {
 	currentValue := cm.getConfigValue(field.Key)
-	
+
 	// Create field label with description
 	label := field.Label
 	if field.Required {
 		label += "*"
 	}
-	
+
 	switch field.Type {
 	case config.FieldTypeString:
 		initialValue := ""
 		if currentValue != nil {
 			initialValue = fmt.Sprintf("%v", currentValue)
 		}
-		
+
 		if field.Sensitive {
 			cm.form.AddPasswordField(label, initialValue, 0, '*', func(text string) {
 				cm.setConfigValue(field.Key, text)
@@ -230,18 +230,18 @@ func (cm *ConfigManager) addFormField(field config.ConfigField) {
 				cm.validateField(field, text)
 			})
 		}
-		
+
 		// Add field description as a tooltip-like behavior
 		if field.Description != "" {
 			cm.addFieldDescription(field.Description)
 		}
-		
+
 	case config.FieldTypeInt:
 		initialValue := ""
 		if currentValue != nil {
 			initialValue = fmt.Sprintf("%v", currentValue)
 		}
-		
+
 		cm.form.AddInputField(label, initialValue, 0, func(textToCheck string, lastChar rune) bool {
 			// Only allow digits and minus sign
 			return lastChar >= '0' && lastChar <= '9' || lastChar == '-'
@@ -253,11 +253,11 @@ func (cm *ConfigManager) addFormField(field config.ConfigField) {
 				}
 			}
 		})
-		
+
 		if field.Description != "" {
 			cm.addFieldDescription(field.Description)
 		}
-		
+
 	case config.FieldTypeBool:
 		initialValue := false
 		if currentValue != nil {
@@ -265,16 +265,16 @@ func (cm *ConfigManager) addFormField(field config.ConfigField) {
 				initialValue = val
 			}
 		}
-		
+
 		cm.form.AddCheckbox(label, initialValue, func(checked bool) {
 			cm.setConfigValue(field.Key, checked)
 			cm.validateField(field, checked)
 		})
-		
+
 		if field.Description != "" {
 			cm.addFieldDescription(field.Description)
 		}
-		
+
 	case config.FieldTypeSelect:
 		currentIndex := 0
 		currentStr := ""
@@ -287,16 +287,16 @@ func (cm *ConfigManager) addFormField(field config.ConfigField) {
 				}
 			}
 		}
-		
+
 		cm.form.AddDropDown(label, field.Options, currentIndex, func(text string, index int) {
 			cm.setConfigValue(field.Key, text)
 			cm.validateField(field, text)
 		})
-		
+
 		if field.Description != "" {
 			cm.addFieldDescription(field.Description)
 		}
-		
+
 	case config.FieldTypeArray:
 		initialValue := ""
 		if currentValue != nil {
@@ -310,7 +310,7 @@ func (cm *ConfigManager) addFormField(field config.ConfigField) {
 				initialValue = strings.Join(arr, ", ")
 			}
 		}
-		
+
 		cm.form.AddInputField(label, initialValue, 0, nil, func(text string) {
 			if text == "" {
 				cm.setConfigValue(field.Key, []string{})
@@ -324,39 +324,39 @@ func (cm *ConfigManager) addFormField(field config.ConfigField) {
 				cm.validateField(field, trimmed)
 			}
 		})
-		
+
 		description := field.Description
 		if len(field.Options) > 0 {
 			description += fmt.Sprintf(" (Options: %s)", strings.Join(field.Options, ", "))
 		}
 		cm.addFieldDescription(description + " - Separate multiple values with commas")
-		
+
 	case config.FieldTypeDuration:
 		initialValue := ""
 		if currentValue != nil {
 			initialValue = fmt.Sprintf("%v", currentValue)
 		}
-		
+
 		cm.form.AddInputField(label, initialValue, 0, nil, func(text string) {
 			cm.setConfigValue(field.Key, text)
 			cm.validateField(field, text)
 		})
-		
+
 		description := field.Description + " (e.g., 1s, 5m, 1h30m)"
 		if len(field.Examples) > 0 {
 			description += fmt.Sprintf(" Examples: %s", strings.Join(field.Examples, ", "))
 		}
 		cm.addFieldDescription(description)
-		
+
 	case config.FieldTypeContext:
 		cm.addContextField(field)
-		
+
 	case config.FieldTypeShortcut:
 		cm.addShortcutField(field)
-		
+
 	case config.FieldTypeAlias:
 		cm.addAliasField(field)
-		
+
 	case config.FieldTypePlugin:
 		cm.addPluginField(field)
 	}
@@ -386,12 +386,12 @@ func (cm *ConfigManager) getNestedValue(obj interface{}, path []string) interfac
 	if len(path) == 0 {
 		return obj
 	}
-	
+
 	cfg, ok := obj.(*config.Config)
 	if !ok {
 		return nil
 	}
-	
+
 	switch path[0] {
 	case "refreshRate":
 		return cfg.RefreshRate
@@ -417,7 +417,7 @@ func (cm *ConfigManager) getNestedValue(obj interface{}, path []string) interfac
 		}
 		return cm.getFeaturesValue(&cfg.Features, path[1:])
 	}
-	
+
 	return nil
 }
 
@@ -426,12 +426,12 @@ func (cm *ConfigManager) setNestedValue(obj interface{}, path []string, value in
 	if len(path) == 0 {
 		return
 	}
-	
+
 	cfg, ok := obj.(*config.Config)
 	if !ok {
 		return
 	}
-	
+
 	switch path[0] {
 	case "refreshRate":
 		if v, ok := value.(string); ok {
@@ -463,7 +463,7 @@ func (cm *ConfigManager) getUIValue(ui *config.UIConfig, path []string) interfac
 	if len(path) == 0 {
 		return ui
 	}
-	
+
 	switch path[0] {
 	case "skin":
 		return ui.Skin
@@ -483,7 +483,7 @@ func (cm *ConfigManager) setUIValue(ui *config.UIConfig, path []string, value in
 	if len(path) == 0 {
 		return
 	}
-	
+
 	switch path[0] {
 	case "skin":
 		if v, ok := value.(string); ok {
@@ -512,7 +512,7 @@ func (cm *ConfigManager) getViewsValue(views *config.ViewsConfig, path []string)
 	if len(path) < 2 {
 		return nil
 	}
-	
+
 	switch path[0] {
 	case "jobs":
 		return cm.getJobsViewValue(&views.Jobs, path[1:])
@@ -526,7 +526,7 @@ func (cm *ConfigManager) setViewsValue(views *config.ViewsConfig, path []string,
 	if len(path) < 2 {
 		return
 	}
-	
+
 	switch path[0] {
 	case "jobs":
 		cm.setJobsViewValue(&views.Jobs, path[1:], value)
@@ -539,7 +539,7 @@ func (cm *ConfigManager) getJobsViewValue(jobs *config.JobsViewConfig, path []st
 	if len(path) == 0 {
 		return jobs
 	}
-	
+
 	switch path[0] {
 	case "columns":
 		return jobs.Columns
@@ -557,7 +557,7 @@ func (cm *ConfigManager) setJobsViewValue(jobs *config.JobsViewConfig, path []st
 	if len(path) == 0 {
 		return
 	}
-	
+
 	switch path[0] {
 	case "columns":
 		if v, ok := value.([]string); ok {
@@ -582,7 +582,7 @@ func (cm *ConfigManager) getNodesViewValue(nodes *config.NodesViewConfig, path [
 	if len(path) == 0 {
 		return nodes
 	}
-	
+
 	switch path[0] {
 	case "groupBy":
 		return nodes.GroupBy
@@ -596,7 +596,7 @@ func (cm *ConfigManager) setNodesViewValue(nodes *config.NodesViewConfig, path [
 	if len(path) == 0 {
 		return
 	}
-	
+
 	switch path[0] {
 	case "groupBy":
 		if v, ok := value.(string); ok {
@@ -613,7 +613,7 @@ func (cm *ConfigManager) getFeaturesValue(features *config.FeaturesConfig, path 
 	if len(path) == 0 {
 		return features
 	}
-	
+
 	switch path[0] {
 	case "streaming":
 		return features.Streaming
@@ -629,7 +629,7 @@ func (cm *ConfigManager) setFeaturesValue(features *config.FeaturesConfig, path 
 	if len(path) == 0 {
 		return
 	}
-	
+
 	switch path[0] {
 	case "streaming":
 		if v, ok := value.(bool); ok {
@@ -650,7 +650,7 @@ func (cm *ConfigManager) setFeaturesValue(features *config.FeaturesConfig, path 
 func (cm *ConfigManager) validateField(field config.ConfigField, value interface{}) {
 	result := field.ValidateField(value)
 	cm.validationErrors[field.Key] = result
-	
+
 	if !result.Valid {
 		cm.updateStatusBar(fmt.Sprintf("[red]%s: %s[white]", field.Label, strings.Join(result.Errors, ", ")))
 	} else if cm.hasChanges {
@@ -662,17 +662,17 @@ func (cm *ConfigManager) validateField(field config.ConfigField, value interface
 func (cm *ConfigManager) validateAllFields() {
 	fields := cm.schema.GetFieldsByGroup(cm.selectedGroup)
 	hasErrors := false
-	
+
 	for _, field := range fields {
 		value := cm.getConfigValue(field.Key)
 		result := field.ValidateField(value)
 		cm.validationErrors[field.Key] = result
-		
+
 		if !result.Valid {
 			hasErrors = true
 		}
 	}
-	
+
 	if hasErrors {
 		cm.updateStatusBar("[red]Some fields have validation errors[white]")
 	}
@@ -683,38 +683,38 @@ func (cm *ConfigManager) saveConfiguration() {
 	// Validate all configuration
 	allResults := cm.schema.ValidateConfig(cm.currentConfig)
 	hasErrors := false
-	
+
 	for _, result := range allResults {
 		if !result.Valid {
 			hasErrors = true
 			break
 		}
 	}
-	
+
 	if hasErrors {
 		cm.updateStatusBar("[red]Cannot save: configuration has validation errors[white]")
 		return
 	}
-	
+
 	// Determine save path
 	savePath := cm.configPath
 	if savePath == "" {
 		homeDir, _ := os.UserHomeDir()
 		savePath = filepath.Join(homeDir, ".s9s", "config.yaml")
 	}
-	
+
 	// Save configuration
 	if err := cm.currentConfig.SaveToFile(savePath); err != nil {
 		cm.updateStatusBar(fmt.Sprintf("[red]Error saving configuration: %v[white]", err))
 		return
 	}
-	
+
 	// Update original config and reset change tracking
 	cm.originalConfig = cm.copyConfig(cm.currentConfig)
 	cm.hasChanges = false
-	
+
 	cm.updateStatusBar(fmt.Sprintf("[green]Configuration saved to %s[white]", savePath))
-	
+
 	// Call save callback if set
 	if cm.onSave != nil {
 		_ = cm.onSave(cm.currentConfig)
@@ -726,21 +726,21 @@ func (cm *ConfigManager) applyConfiguration() {
 	// Validate configuration
 	allResults := cm.schema.ValidateConfig(cm.currentConfig)
 	hasErrors := false
-	
+
 	for _, result := range allResults {
 		if !result.Valid {
 			hasErrors = true
 			break
 		}
 	}
-	
+
 	if hasErrors {
 		cm.updateStatusBar("[red]Cannot apply: configuration has validation errors[white]")
 		return
 	}
-	
+
 	cm.updateStatusBar("[green]Configuration applied[white]")
-	
+
 	// Call apply callback if set
 	if cm.onApply != nil {
 		_ = cm.onApply(cm.currentConfig)
@@ -750,13 +750,13 @@ func (cm *ConfigManager) applyConfiguration() {
 // resetToDefaults resets the current group to default values
 func (cm *ConfigManager) resetToDefaults() {
 	fields := cm.schema.GetFieldsByGroup(cm.selectedGroup)
-	
+
 	for _, field := range fields {
 		if field.Default != nil {
 			cm.setConfigValue(field.Key, field.Default)
 		}
 	}
-	
+
 	cm.buildForm()
 	cm.updateStatusBar("[yellow]Reset to defaults - remember to save changes[white]")
 }
@@ -769,7 +769,7 @@ func (cm *ConfigManager) cancelChanges() {
 		cm.buildForm()
 		cm.updateStatusBar("[gray]Changes cancelled[white]")
 	}
-	
+
 	if cm.onCancel != nil {
 		cm.onCancel()
 	}
@@ -780,7 +780,7 @@ func (cm *ConfigManager) copyConfig(original *config.Config) *config.Config {
 	if original == nil {
 		return &config.Config{}
 	}
-	
+
 	// Create a new config and copy values
 	copy := &config.Config{
 		RefreshRate:    original.RefreshRate,
@@ -792,19 +792,19 @@ func (cm *ConfigManager) copyConfig(original *config.Config) *config.Config {
 		UseMockClient:  original.UseMockClient,
 		Cluster:        original.Cluster,
 	}
-	
+
 	// Copy contexts slice
 	copy.Contexts = make([]config.ContextConfig, len(original.Contexts))
 	for i, ctx := range original.Contexts {
 		copy.Contexts[i] = ctx
 	}
-	
+
 	// Copy shortcuts slice
 	copy.Shortcuts = make([]config.ShortcutConfig, len(original.Shortcuts))
 	for i, shortcut := range original.Shortcuts {
 		copy.Shortcuts[i] = shortcut
 	}
-	
+
 	// Copy aliases map
 	if original.Aliases != nil {
 		copy.Aliases = make(map[string]string)
@@ -812,13 +812,13 @@ func (cm *ConfigManager) copyConfig(original *config.Config) *config.Config {
 			copy.Aliases[k] = v
 		}
 	}
-	
+
 	// Copy plugins slice
 	copy.Plugins = make([]config.PluginConfig, len(original.Plugins))
 	for i, plugin := range original.Plugins {
 		copy.Plugins[i] = plugin
 	}
-	
+
 	return copy
 }
 
@@ -848,7 +848,7 @@ func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
 		}
 		return nil
 	}
-	
+
 	switch event.Rune() {
 	case 's':
 		if event.Modifiers()&tcell.ModCtrl != 0 {
@@ -859,7 +859,7 @@ func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
 		cm.cancelChanges()
 		return nil
 	}
-	
+
 	return event
 }
 
@@ -892,7 +892,7 @@ func (cm *ConfigManager) addContextField(field config.ConfigField) {
 	if cm.currentConfig.CurrentContext != "" {
 		summary += fmt.Sprintf(" (Current: %s)", cm.currentConfig.CurrentContext)
 	}
-	
+
 	cm.form.AddButton("Manage Contexts", func() {
 		cm.showContextManager()
 	})
@@ -903,7 +903,7 @@ func (cm *ConfigManager) addContextField(field config.ConfigField) {
 func (cm *ConfigManager) addShortcutField(field config.ConfigField) {
 	shortcutCount := len(cm.currentConfig.Shortcuts)
 	summary := fmt.Sprintf("Shortcuts: %d configured", shortcutCount)
-	
+
 	cm.form.AddButton("Manage Shortcuts", func() {
 		cm.showShortcutManager()
 	})
@@ -914,7 +914,7 @@ func (cm *ConfigManager) addShortcutField(field config.ConfigField) {
 func (cm *ConfigManager) addAliasField(field config.ConfigField) {
 	aliasCount := len(cm.currentConfig.Aliases)
 	summary := fmt.Sprintf("Aliases: %d configured", aliasCount)
-	
+
 	cm.form.AddButton("Manage Aliases", func() {
 		cm.showAliasManager()
 	})
@@ -925,7 +925,7 @@ func (cm *ConfigManager) addAliasField(field config.ConfigField) {
 func (cm *ConfigManager) addPluginField(field config.ConfigField) {
 	pluginCount := len(cm.currentConfig.Plugins)
 	summary := fmt.Sprintf("Plugins: %d configured", pluginCount)
-	
+
 	cm.form.AddButton("Manage Plugins", func() {
 		cm.showPluginManager()
 	})
@@ -938,7 +938,7 @@ func (cm *ConfigManager) showContextManager() {
 		cm.updateStatusBar("[red]Context manager not available - no pages manager set[white]")
 		return
 	}
-	
+
 	modal := tview.NewModal()
 	modal.SetText("Context Manager\n(Implementation pending)")
 	modal.AddButtons([]string{"Close"})
@@ -946,7 +946,7 @@ func (cm *ConfigManager) showContextManager() {
 		cm.pages.RemovePage("context-modal")
 		cm.app.SetFocus(cm)
 	})
-	
+
 	_ = cm.pages.AddPage("context-modal", modal, false, true)
 }
 
@@ -956,7 +956,7 @@ func (cm *ConfigManager) showShortcutManager() {
 		cm.updateStatusBar("[red]Shortcut manager not available - no pages manager set[white]")
 		return
 	}
-	
+
 	modal := tview.NewModal()
 	modal.SetText("Shortcut Manager\n(Implementation pending)")
 	modal.AddButtons([]string{"Close"})
@@ -964,7 +964,7 @@ func (cm *ConfigManager) showShortcutManager() {
 		cm.pages.RemovePage("shortcut-modal")
 		cm.app.SetFocus(cm)
 	})
-	
+
 	_ = cm.pages.AddPage("shortcut-modal", modal, false, true)
 }
 
@@ -974,7 +974,7 @@ func (cm *ConfigManager) showAliasManager() {
 		cm.updateStatusBar("[red]Alias manager not available - no pages manager set[white]")
 		return
 	}
-	
+
 	modal := tview.NewModal()
 	modal.SetText("Alias Manager\n(Implementation pending)")
 	modal.AddButtons([]string{"Close"})
@@ -982,7 +982,7 @@ func (cm *ConfigManager) showAliasManager() {
 		cm.pages.RemovePage("alias-modal")
 		cm.app.SetFocus(cm)
 	})
-	
+
 	_ = cm.pages.AddPage("alias-modal", modal, false, true)
 }
 
@@ -992,7 +992,7 @@ func (cm *ConfigManager) showPluginManager() {
 		cm.updateStatusBar("[red]Plugin manager not available - no pages manager set[white]")
 		return
 	}
-	
+
 	modal := tview.NewModal()
 	modal.SetText("Plugin Manager\n(Implementation pending)")
 	modal.AddButtons([]string{"Close"})
@@ -1000,6 +1000,6 @@ func (cm *ConfigManager) showPluginManager() {
 		cm.pages.RemovePage("plugin-modal")
 		cm.app.SetFocus(cm)
 	})
-	
+
 	_ = cm.pages.AddPage("plugin-modal", modal, false, true)
 }

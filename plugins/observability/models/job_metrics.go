@@ -8,28 +8,28 @@ import (
 
 // JobMetrics represents metrics for a SLURM job
 type JobMetrics struct {
-	JobID          string            `json:"job_id"`
-	JobName        string            `json:"job_name"`
-	User           string            `json:"user"`
-	State          string            `json:"state"`
-	NodeList       []string          `json:"node_list"`
-	StartTime      time.Time         `json:"start_time"`
-	AllocatedCPUs  int               `json:"allocated_cpus"`
-	AllocatedMem   uint64            `json:"allocated_mem"`   // in bytes
-	Resources      ResourceMetrics   `json:"resources"`
-	Efficiency     EfficiencyMetrics `json:"efficiency"`
-	CgroupPath     string            `json:"cgroup_path"`
-	Labels         map[string]string `json:"labels"` // Prometheus labels
-	LastUpdate     time.Time         `json:"last_update"`
+	JobID         string            `json:"job_id"`
+	JobName       string            `json:"job_name"`
+	User          string            `json:"user"`
+	State         string            `json:"state"`
+	NodeList      []string          `json:"node_list"`
+	StartTime     time.Time         `json:"start_time"`
+	AllocatedCPUs int               `json:"allocated_cpus"`
+	AllocatedMem  uint64            `json:"allocated_mem"` // in bytes
+	Resources     ResourceMetrics   `json:"resources"`
+	Efficiency    EfficiencyMetrics `json:"efficiency"`
+	CgroupPath    string            `json:"cgroup_path"`
+	Labels        map[string]string `json:"labels"` // Prometheus labels
+	LastUpdate    time.Time         `json:"last_update"`
 }
 
 // EfficiencyMetrics tracks resource efficiency
 type EfficiencyMetrics struct {
-	CPUEfficiency    float64 `json:"cpu_efficiency"`    // Actual vs Allocated CPU %
-	MemEfficiency    float64 `json:"mem_efficiency"`    // Actual vs Allocated Memory %
+	CPUEfficiency     float64 `json:"cpu_efficiency"`     // Actual vs Allocated CPU %
+	MemEfficiency     float64 `json:"mem_efficiency"`     // Actual vs Allocated Memory %
 	OverallEfficiency float64 `json:"overall_efficiency"` // Combined efficiency score
-	CPUWasted        float64 `json:"cpu_wasted"`        // Wasted CPU cores
-	MemWasted        uint64  `json:"mem_wasted"`        // Wasted memory bytes
+	CPUWasted         float64 `json:"cpu_wasted"`         // Wasted CPU cores
+	MemWasted         uint64  `json:"mem_wasted"`         // Wasted memory bytes
 }
 
 // JobMetricsCollector collects and manages job metrics
@@ -99,7 +99,7 @@ func (jmc *JobMetricsCollector) extractResourceMetrics(metrics map[string]*TimeS
 	if memLimit, ok := metrics["job_memory_limit"]; ok && memLimit.Latest() != nil {
 		// This is the cgroup limit, which might be different from SLURM allocation
 		limit := uint64(memLimit.Latest().Value)
-		rm.Memory.Limit = limit  // Store the limit
+		rm.Memory.Limit = limit // Store the limit
 		if limit > 0 {
 			rm.Memory.Usage = float64(rm.Memory.Used) / float64(limit) * 100
 		}

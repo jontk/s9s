@@ -42,12 +42,12 @@ type ExternalAPI struct {
 
 // Config for external API
 type Config struct {
-	Enabled     bool                       `json:"enabled" yaml:"enabled"`
-	Port        int                        `json:"port" yaml:"port"`
-	AuthToken   string                     `json:"auth_token" yaml:"authToken"`
-	RateLimit   security.RateLimitConfig   `json:"rate_limit" yaml:"rateLimit"`
-	Validation  security.ValidationConfig  `json:"validation" yaml:"validation"`
-	Audit       security.AuditConfig       `json:"audit" yaml:"audit"`
+	Enabled    bool                      `json:"enabled" yaml:"enabled"`
+	Port       int                       `json:"port" yaml:"port"`
+	AuthToken  string                    `json:"auth_token" yaml:"authToken"`
+	RateLimit  security.RateLimitConfig  `json:"rate_limit" yaml:"rateLimit"`
+	Validation security.ValidationConfig `json:"validation" yaml:"validation"`
+	Audit      security.AuditConfig      `json:"audit" yaml:"audit"`
 }
 
 // DefaultConfig returns default API configuration
@@ -183,17 +183,17 @@ func (api *ExternalAPI) createMiddleware() func(http.HandlerFunc) http.HandlerFu
 		if api.auditLogger != nil {
 			handler = security.AuditMiddleware(api.auditLogger)(handler)
 		}
-		
+
 		// Apply validation middleware
 		if api.validator != nil {
 			handler = security.ValidationMiddleware(api.validator)(handler)
 		}
-		
+
 		// Apply rate limiting middleware
 		if api.rateLimiter != nil {
 			handler = security.RateLimitMiddleware(api.rateLimiter, api.rateLimitConfig)(handler)
 		}
-		
+
 		// Apply authentication middleware last (innermost)
 		return api.authenticateMiddleware(handler)
 	}
@@ -602,7 +602,7 @@ func (api *ExternalAPI) handleSubscriptions(w http.ResponseWriter, r *http.Reque
 	}
 
 	subscriptions := api.subscriptionMgr.ListSubscriptions()
-	
+
 	api.writeJSON(w, map[string]interface{}{
 		"status": "success",
 		"data":   subscriptions,
@@ -677,11 +677,11 @@ func (api *ExternalAPI) handleStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	status := map[string]interface{}{
-		"api_enabled":     api.enabled,
-		"api_port":        api.port,
-		"subscriptions":   api.subscriptionMgr.GetStats(),
-		"historical":      api.historicalCollector.GetCollectorStats(),
-		"cache":           api.client.CacheStats(),
+		"api_enabled":       api.enabled,
+		"api_port":          api.port,
+		"subscriptions":     api.subscriptionMgr.GetStats(),
+		"historical":        api.historicalCollector.GetCollectorStats(),
+		"cache":             api.client.CacheStats(),
 		"available_metrics": api.historicalCollector.GetAvailableMetrics(),
 	}
 

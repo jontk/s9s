@@ -174,18 +174,18 @@ const (
 
 // Target represents a Prometheus target
 type Target struct {
-	Labels          map[string]string `json:"labels"`
-	ScrapeURL       string            `json:"scrapeUrl"`
-	LastError       string            `json:"lastError"`
-	LastScrape      time.Time         `json:"lastScrape"`
-	Health          string            `json:"health"`
-	GlobalURL       string            `json:"globalUrl"`
-	LastScrapeDuration float64        `json:"lastScrapeDuration"`
+	Labels             map[string]string `json:"labels"`
+	ScrapeURL          string            `json:"scrapeUrl"`
+	LastError          string            `json:"lastError"`
+	LastScrape         time.Time         `json:"lastScrape"`
+	Health             string            `json:"health"`
+	GlobalURL          string            `json:"globalUrl"`
+	LastScrapeDuration float64           `json:"lastScrapeDuration"`
 }
 
 // Metadata represents metric metadata
 type Metadata struct {
-	Type string   `json:"type"`
-	Help string   `json:"help"`
-	Unit string   `json:"unit"`
+	Type string `json:"type"`
+	Help string `json:"help"`
+	Unit string `json:"unit"`
 }

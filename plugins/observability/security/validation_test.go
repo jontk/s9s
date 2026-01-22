@@ -137,9 +137,9 @@ func TestValidateTimeRange(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "valid duration",
+			name:     "valid duration",
 			duration: "12h",
-			wantErr: false,
+			wantErr:  false,
 		},
 		{
 			name:    "time range too large",
@@ -497,9 +497,9 @@ func TestValidateGenericRequest(t *testing.T) {
 	validator, _ := NewRequestValidator(DefaultValidationConfig())
 
 	tests := []struct {
-		name   string
-		method string
-		body   string
+		name    string
+		method  string
+		body    string
 		wantErr bool
 	}{
 		{
@@ -556,7 +556,6 @@ func TestValidateGenericRequest(t *testing.T) {
 		})
 	}
 }
-
 
 func TestValidationGetStats(t *testing.T) {
 	config := DefaultValidationConfig()

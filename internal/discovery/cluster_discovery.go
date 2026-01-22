@@ -26,15 +26,15 @@ type ClusterDiscovery struct {
 
 // DiscoveredCluster represents a discovered SLURM cluster
 type DiscoveredCluster struct {
-	Name           string
-	Host           string
-	Port           int
-	RestEndpoints  []string
-	ConfigPath     string
-	Version        string
-	Confidence     float64
+	Name             string
+	Host             string
+	Port             int
+	RestEndpoints    []string
+	ConfigPath       string
+	Version          string
+	Confidence       float64
 	DetectionMethods []string
-	Metadata       map[string]string
+	Metadata         map[string]string
 }
 
 // DiscoveryMethod represents a cluster discovery method
@@ -76,7 +76,7 @@ func (cd *ClusterDiscovery) DiscoverClusters(ctx context.Context) ([]*Discovered
 		wg.Add(1)
 		go func(m DiscoveryMethod) {
 			defer wg.Done()
-			
+
 			debug.Logger.Printf("Running discovery method: %s", m.Name())
 			clusters, err := m.Discover(ctx)
 			if err != nil {
@@ -84,7 +84,7 @@ func (cd *ClusterDiscovery) DiscoverClusters(ctx context.Context) ([]*Discovered
 				resultsChan <- []*DiscoveredCluster{}
 				return
 			}
-			
+
 			debug.Logger.Printf("Discovery method %s found %d clusters", m.Name(), len(clusters))
 			resultsChan <- clusters
 		}(method)
@@ -104,7 +104,7 @@ func (cd *ClusterDiscovery) DiscoverClusters(ctx context.Context) ([]*Discovered
 
 	// Merge and deduplicate clusters
 	mergedClusters := cd.mergeClusters(allClusters)
-	
+
 	// Sort by confidence
 	cd.sortByConfidence(mergedClusters)
 
@@ -143,8 +143,8 @@ func (ed *EnvironmentDiscovery) Discover(ctx context.Context) ([]*DiscoveredClus
 			RestEndpoints:    []string{fmt.Sprintf("https://%s:6820", slurmCtldHost)},
 			Confidence:       0.8,
 			DetectionMethods: []string{"SLURM_CONTROLLER_HOST"},
-			Metadata:         map[string]string{
-				"source": "environment",
+			Metadata: map[string]string{
+				"source":   "environment",
 				"host_env": slurmCtldHost,
 			},
 		}
@@ -180,8 +180,8 @@ func (ed *EnvironmentDiscovery) parseConfigFile(path string) *DiscoveredCluster 
 		ConfigPath:       path,
 		Confidence:       0.9,
 		DetectionMethods: []string{"config-file"},
-		Metadata:         map[string]string{
-			"source": "config-file",
+		Metadata: map[string]string{
+			"source":      "config-file",
 			"config_path": path,
 		},
 	}
@@ -189,7 +189,7 @@ func (ed *EnvironmentDiscovery) parseConfigFile(path string) *DiscoveredCluster 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		
+
 		if strings.HasPrefix(line, "ClusterName=") {
 			cluster.Name = strings.TrimPrefix(line, "ClusterName=")
 		} else if strings.HasPrefix(line, "ControlMachine=") {
@@ -307,8 +307,8 @@ func (nd *NetworkDiscovery) Discover(ctx context.Context) ([]*DiscoveredCluster,
 				RestEndpoints:    []string{endpoint},
 				Confidence:       0.7,
 				DetectionMethods: []string{"network-scan"},
-				Metadata:         map[string]string{
-					"source": "network",
+				Metadata: map[string]string{
+					"source":   "network",
 					"endpoint": endpoint,
 				},
 			}
@@ -325,7 +325,7 @@ func (nd *NetworkDiscovery) Discover(ctx context.Context) ([]*DiscoveredCluster,
 func (nd *NetworkDiscovery) testEndpoint(ctx context.Context, endpoint string) bool {
 	// Test if SLURM REST API is available at endpoint
 	testURL := endpoint + "/slurm/v0.0.40/ping"
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", testURL, nil)
 	if err != nil {
 		return false
@@ -374,7 +374,7 @@ func (nd *NetworkDiscovery) scanLocalNetwork(ctx context.Context) []*DiscoveredC
 
 func (nd *NetworkDiscovery) scanSubnet(ctx context.Context, ipNet *net.IPNet, maxHosts int) []*DiscoveredCluster {
 	var clusters []*DiscoveredCluster
-	
+
 	// Simple scan of a few IPs (in production, would be more sophisticated)
 	baseIP := ipNet.IP.To4()
 	if baseIP == nil {
@@ -385,7 +385,7 @@ func (nd *NetworkDiscovery) scanSubnet(ctx context.Context, ipNet *net.IPNet, ma
 	for i := 1; i < 255 && scanned < maxHosts; i++ {
 		ip := net.IPv4(baseIP[0], baseIP[1], baseIP[2], byte(i))
 		endpoint := fmt.Sprintf("https://%s:6820", ip.String())
-		
+
 		if nd.testEndpoint(ctx, endpoint) {
 			cluster := &DiscoveredCluster{
 				Name:             fmt.Sprintf("network-cluster-%s", ip.String()),
@@ -394,8 +394,8 @@ func (nd *NetworkDiscovery) scanSubnet(ctx context.Context, ipNet *net.IPNet, ma
 				RestEndpoints:    []string{endpoint},
 				Confidence:       0.5,
 				DetectionMethods: []string{"network-scan"},
-				Metadata:         map[string]string{
-					"source": "network-scan",
+				Metadata: map[string]string{
+					"source":     "network-scan",
 					"scanned_ip": ip.String(),
 				},
 			}
@@ -428,7 +428,7 @@ func (dd *DNSDiscovery) Discover(ctx context.Context) ([]*DiscoveredCluster, err
 	// Try common SLURM SRV records
 	srvNames := []string{
 		"_slurmrestd._tcp",
-		"_slurm._tcp", 
+		"_slurm._tcp",
 		"_slurmctld._tcp",
 	}
 
@@ -452,7 +452,7 @@ func (dd *DNSDiscovery) Discover(ctx context.Context) ([]*DiscoveredCluster, err
 
 	for _, srvName := range srvNames {
 		fullSrvName := srvName + "." + domain
-		
+
 		_, srvRecords, err := net.LookupSRV("", "", fullSrvName)
 		if err != nil {
 			continue
@@ -466,11 +466,11 @@ func (dd *DNSDiscovery) Discover(ctx context.Context) ([]*DiscoveredCluster, err
 				RestEndpoints:    []string{fmt.Sprintf("https://%s:%d", strings.TrimSuffix(srv.Target, "."), srv.Port)},
 				Confidence:       0.8,
 				DetectionMethods: []string{"dns-srv"},
-				Metadata:         map[string]string{
-					"source": "dns",
+				Metadata: map[string]string{
+					"source":     "dns",
 					"srv_record": fullSrvName,
-					"priority": strconv.Itoa(int(srv.Priority)),
-					"weight": strconv.Itoa(int(srv.Weight)),
+					"priority":   strconv.Itoa(int(srv.Priority)),
+					"weight":     strconv.Itoa(int(srv.Weight)),
 				},
 			}
 			clusters = append(clusters, cluster)
@@ -507,8 +507,8 @@ func (pd *ProcessDiscovery) Discover(ctx context.Context) ([]*DiscoveredCluster,
 			RestEndpoints:    []string{"https://localhost:6820"},
 			Confidence:       0.6,
 			DetectionMethods: []string{"process-scan"},
-			Metadata:         map[string]string{
-				"source": "process",
+			Metadata: map[string]string{
+				"source":  "process",
 				"process": "slurmctld",
 			},
 		}
@@ -518,13 +518,13 @@ func (pd *ProcessDiscovery) Discover(ctx context.Context) ([]*DiscoveredCluster,
 	if pd.isProcessRunning("slurmrestd") {
 		cluster := &DiscoveredCluster{
 			Name:             "local-slurmrestd",
-			Host:             "localhost", 
+			Host:             "localhost",
 			Port:             6820,
 			RestEndpoints:    []string{"https://localhost:6820"},
 			Confidence:       0.9,
 			DetectionMethods: []string{"process-scan"},
-			Metadata:         map[string]string{
-				"source": "process",
+			Metadata: map[string]string{
+				"source":  "process",
 				"process": "slurmrestd",
 			},
 		}
@@ -537,7 +537,7 @@ func (pd *ProcessDiscovery) Discover(ctx context.Context) ([]*DiscoveredCluster,
 func (pd *ProcessDiscovery) isProcessRunning(processName string) bool {
 	// Simple process check using pgrep (Linux/Unix)
 	// cmd := fmt.Sprintf("pgrep %s", processName) // Not used in this implementation
-	
+
 	// This is a simplified check - in production would use proper process scanning
 	_, err := os.Stat("/proc")
 	if err != nil {
@@ -581,17 +581,17 @@ func (cd *ClusterDiscovery) mergeClusters(clusters []*DiscoveredCluster) []*Disc
 
 	for _, cluster := range clusters {
 		key := cd.getClusterKey(cluster)
-		
+
 		if existing, exists := clusterMap[key]; exists {
 			// Merge clusters with same key
 			existing.Confidence = (existing.Confidence + cluster.Confidence) / 2
 			existing.DetectionMethods = append(existing.DetectionMethods, cluster.DetectionMethods...)
-			
+
 			// Merge metadata
 			for k, v := range cluster.Metadata {
 				existing.Metadata[k] = v
 			}
-			
+
 			// Merge REST endpoints
 			for _, endpoint := range cluster.RestEndpoints {
 				found := false

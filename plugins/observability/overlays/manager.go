@@ -17,7 +17,7 @@ import (
 // OverlayManager manages all overlays for different views
 type OverlayManager struct {
 	// Configuration
-	client       *prometheus.CachedClient
+	client         *prometheus.CachedClient
 	updateInterval time.Duration
 
 	// Registered overlays by view ID
@@ -241,7 +241,7 @@ func (om *OverlayManager) processViewUpdate(ctx context.Context, viewID string) 
 		// Update the overlay's data
 		// This is where we would trigger data refresh for the overlay
 		// Each overlay implementation should handle its own data updates
-		
+
 		// Since we don't have a standard Update method in the Overlay interface,
 		// we could add one or handle updates differently
 		// For now, overlays are responsible for their own data management
@@ -359,9 +359,9 @@ func (om *OverlayManager) GetStats() OverlayManagerStats {
 	defer om.mu.RUnlock()
 
 	stats := OverlayManagerStats{
-		TotalOverlays: len(om.overlayInfos),
-		ViewCount:     len(om.overlaysByView),
-		IsRunning:     om.running,
+		TotalOverlays:  len(om.overlayInfos),
+		ViewCount:      len(om.overlaysByView),
+		IsRunning:      om.running,
 		UpdateInterval: om.updateInterval,
 	}
 

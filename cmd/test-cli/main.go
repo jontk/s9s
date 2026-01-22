@@ -11,7 +11,7 @@ import (
 
 var (
 	Version   = "0.1.0-dev"
-	CommitSHA = "unknown" 
+	CommitSHA = "unknown"
 	BuildTime = "unknown"
 	GoVersion = runtime.Version()
 )
@@ -32,14 +32,14 @@ Features:
 • Export capabilities (CSV, JSON, Markdown)
 • Plugin system for extensibility
 • Vim-like navigation`,
-	
+
 	Example: `  s9s                         # Launch interactive TUI
   s9s --mock                   # Use mock SLURM for testing
   s9s setup                    # Run configuration wizard
   s9s setup --auto-discover   # Auto-discover clusters
   s9s config edit             # Edit configuration file
   s9s version                  # Show version information`,
-	
+
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("🚀 s9s - Terminal UI for SLURM")
 		fmt.Println("")
@@ -47,7 +47,7 @@ Features:
 		fmt.Println("")
 		fmt.Println("Available commands:")
 		fmt.Println("  setup    - Interactive configuration wizard")
-		fmt.Println("  config   - Configuration management") 
+		fmt.Println("  config   - Configuration management")
 		fmt.Println("  version  - Version information")
 		fmt.Println("")
 		fmt.Println("Use 's9s --help' to see all options.")
@@ -76,7 +76,7 @@ Run this command when you first install s9s or want to reconfigure your setup.`,
 		fmt.Println("")
 		fmt.Println("The setup wizard would guide you through:")
 		fmt.Println("  1. 🏢 Cluster connection settings")
-		fmt.Println("  2. 🔐 Authentication configuration")  
+		fmt.Println("  2. 🔐 Authentication configuration")
 		fmt.Println("  3. 🔒 Secure credential storage")
 		fmt.Println("  4. ⚡ Performance optimization")
 		fmt.Println("")
@@ -116,11 +116,11 @@ If no configuration file exists, a new one will be created with default settings
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Show version information", 
-	Long: `Display version information for s9s including build details.`,
+	Short: "Show version information",
+	Long:  `Display version information for s9s including build details.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Printf("s9s version %s\n", Version)
-		fmt.Printf("Git commit: %s\n", CommitSHA)  
+		fmt.Printf("Git commit: %s\n", CommitSHA)
 		fmt.Printf("Built: %s\n", BuildTime)
 		fmt.Printf("Go version: %s\n", GoVersion)
 		fmt.Printf("Platform: %s/%s\n", runtime.GOOS, runtime.GOARCH)
@@ -133,13 +133,13 @@ func init() {
 	setupCmd.Flags().Bool("auto-discover", false, "Auto-discover SLURM clusters before setup")
 	setupCmd.Flags().Bool("validate-only", false, "Only validate existing configuration")
 	setupCmd.Flags().Bool("force", false, "Force setup even if configuration exists")
-	
+
 	// Add subcommands
 	configCmd.AddCommand(configEditCmd)
 	rootCmd.AddCommand(setupCmd)
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(versionCmd)
-	
+
 	// Global flags
 	rootCmd.PersistentFlags().Bool("debug", false, "enable debug logging")
 	rootCmd.Flags().Bool("mock", false, "use mock SLURM client for testing")

@@ -35,9 +35,9 @@ type oauth2Result struct {
 type oidcDiscovery struct {
 	AuthorizationEndpoint string `json:"authorization_endpoint"`
 	TokenEndpoint         string `json:"token_endpoint"`
-	JwksURI              string `json:"jwks_uri"`
-	Issuer               string `json:"issuer"`
-	RevocationEndpoint   string `json:"revocation_endpoint,omitempty"`
+	JwksURI               string `json:"jwks_uri"`
+	Issuer                string `json:"issuer"`
+	RevocationEndpoint    string `json:"revocation_endpoint,omitempty"`
 }
 
 // NewOAuth2Authenticator creates a new OAuth2 authenticator
@@ -196,7 +196,7 @@ func (o *OAuth2Authenticator) Authenticate(ctx context.Context, config AuthConfi
 	// Open browser
 	fmt.Printf("Opening browser for OAuth2 authentication...\n")
 	fmt.Printf("If the browser doesn't open automatically, visit: %s\n", authURL)
-	
+
 	if err := o.openBrowser(authURL); err != nil {
 		debug.Logger.Printf("Failed to open browser automatically: %v", err)
 	}
@@ -207,11 +207,11 @@ func (o *OAuth2Authenticator) Authenticate(ctx context.Context, config AuthConfi
 		if result.err != nil {
 			return nil, result.err
 		}
-		
+
 		// Exchange authorization code for token
 		authCode := result.token.AccessToken // Temporarily stored in AccessToken
 		return o.exchangeCodeForToken(tokenEndpoint, authCode, codeVerifier, redirectURI, config)
-		
+
 	case <-ctx.Done():
 		return nil, fmt.Errorf("authentication timeout or cancelled")
 	}
@@ -221,7 +221,7 @@ func (o *OAuth2Authenticator) Authenticate(ctx context.Context, config AuthConfi
 func (o *OAuth2Authenticator) getOAuth2Endpoints(config AuthConfig) (string, string, error) {
 	// Check if discovery URL is provided
 	discoveryURL := config.GetString("discovery_url")
-	
+
 	// Auto-detect discovery URL for known providers
 	if discoveryURL == "" {
 		provider := config.GetString("provider")
@@ -338,7 +338,7 @@ func (o *OAuth2Authenticator) handleCallback(w http.ResponseWriter, r *http.Requ
 	if errMsg := r.URL.Query().Get("error"); errMsg != "" {
 		errorDesc := r.URL.Query().Get("error_description")
 		o.resultChan <- &oauth2Result{err: fmt.Errorf("OAuth2 error: %s - %s", errMsg, errorDesc)}
-		
+
 		http.Error(w, fmt.Sprintf("Authentication failed: %s", errMsg), http.StatusBadRequest)
 		return
 	}
@@ -347,7 +347,7 @@ func (o *OAuth2Authenticator) handleCallback(w http.ResponseWriter, r *http.Requ
 	state := r.URL.Query().Get("state")
 	if state != expectedState {
 		o.resultChan <- &oauth2Result{err: fmt.Errorf("invalid state parameter")}
-		
+
 		http.Error(w, "Invalid state parameter", http.StatusBadRequest)
 		return
 	}
@@ -356,7 +356,7 @@ func (o *OAuth2Authenticator) handleCallback(w http.ResponseWriter, r *http.Requ
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		o.resultChan <- &oauth2Result{err: fmt.Errorf("missing authorization code")}
-		
+
 		http.Error(w, "Missing authorization code", http.StatusBadRequest)
 		return
 	}

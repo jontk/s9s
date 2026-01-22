@@ -14,7 +14,7 @@ import (
 type RateLimiter struct {
 	mu           sync.RWMutex
 	clients      map[string]*ClientLimiter
-	globalLimit  int           // Global requests per minute
+	globalLimit  int // Global requests per minute
 	cleanupTimer *time.Ticker
 	// TODO(lint): Review unused code - field ctx is unused
 	// ctx          *interface{} // For future cancellation support
@@ -33,22 +33,22 @@ type ClientLimiter struct {
 type RateLimitConfig struct {
 	// Requests per minute allowed per client
 	RequestsPerMinute int
-	
+
 	// Enable global rate limiting (across all clients)
 	EnableGlobalLimit bool
-	
+
 	// Global requests per minute limit
 	GlobalRequestsPerMinute int
-	
+
 	// Burst size (how many requests can be made immediately)
 	BurstSize int
-	
+
 	// Cleanup interval for removing inactive clients
 	CleanupInterval time.Duration
-	
+
 	// Client identification method: "ip", "token", "user-agent"
 	ClientIDMethod string
-	
+
 	// Custom headers to use for client identification
 	ClientIDHeader string
 }
@@ -77,16 +77,16 @@ func NewRateLimiter(config RateLimitConfig) *RateLimiter {
 	if config.CleanupInterval <= 0 {
 		config.CleanupInterval = 10 * time.Minute
 	}
-	
+
 	rl := &RateLimiter{
 		clients:      make(map[string]*ClientLimiter),
 		globalLimit:  config.GlobalRequestsPerMinute,
 		cleanupTimer: time.NewTicker(config.CleanupInterval),
 	}
-	
+
 	// Start cleanup routine
 	go rl.cleanupRoutine(config)
-	
+
 	return rl
 }
 
@@ -94,9 +94,9 @@ func NewRateLimiter(config RateLimitConfig) *RateLimiter {
 func (rl *RateLimiter) Allow(clientID string, config RateLimitConfig) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
-	
+
 	now := time.Now()
-	
+
 	// Get or create client limiter
 	client, exists := rl.clients[clientID]
 	if !exists {
@@ -109,15 +109,15 @@ func (rl *RateLimiter) Allow(clientID string, config RateLimitConfig) bool {
 		}
 		rl.clients[clientID] = client
 	}
-	
+
 	// Refill tokens based on elapsed time
 	client.refillTokens(now)
-	
+
 	// Check if client has tokens available
 	if client.tokens <= 0 {
 		return false
 	}
-	
+
 	// Check global limit if enabled
 	if config.EnableGlobalLimit {
 		totalRequests := rl.countRecentRequests(now)
@@ -125,7 +125,7 @@ func (rl *RateLimiter) Allow(clientID string, config RateLimitConfig) bool {
 			return false
 		}
 	}
-	
+
 	// Consume a token
 	client.tokens--
 	return true
@@ -137,7 +137,7 @@ func (cl *ClientLimiter) refillTokens(now time.Time) {
 	if elapsed < time.Second {
 		return // Don't refill more than once per second
 	}
-	
+
 	// Calculate tokens to add based on elapsed time
 	tokensToAdd := int(elapsed.Minutes() * float64(cl.refillRate))
 	if tokensToAdd > 0 {
@@ -152,7 +152,7 @@ func (cl *ClientLimiter) refillTokens(now time.Time) {
 // countRecentRequests counts requests from all clients in the last minute (for global limiting)
 func (rl *RateLimiter) countRecentRequests(now time.Time) int {
 	count := 0
-	
+
 	for _, client := range rl.clients {
 		// Simplified approach: count tokens consumed from initial burst
 		// In production, you'd maintain a sliding window of actual requests
@@ -163,7 +163,7 @@ func (rl *RateLimiter) countRecentRequests(now time.Time) int {
 			}
 		}
 	}
-	
+
 	return count
 }
 
@@ -178,10 +178,10 @@ func (rl *RateLimiter) cleanupRoutine(config RateLimitConfig) {
 func (rl *RateLimiter) cleanup(inactiveDuration time.Duration) {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
-	
+
 	now := time.Now()
 	cutoff := now.Add(-inactiveDuration)
-	
+
 	for clientID, client := range rl.clients {
 		if client.lastRefill.Before(cutoff) {
 			delete(rl.clients, clientID)
@@ -200,21 +200,21 @@ func (rl *RateLimiter) Stop() {
 func (rl *RateLimiter) GetStats() map[string]interface{} {
 	rl.mu.RLock()
 	defer rl.mu.RUnlock()
-	
+
 	totalClients := len(rl.clients)
 	activeClients := 0
 	totalTokens := 0
-	
+
 	now := time.Now()
 	cutoff := now.Add(-5 * time.Minute) // Consider clients active if accessed in last 5 minutes
-	
+
 	for _, client := range rl.clients {
 		if client.lastRefill.After(cutoff) {
 			activeClients++
 		}
 		totalTokens += client.tokens
 	}
-	
+
 	return map[string]interface{}{
 		"total_clients":  totalClients,
 		"active_clients": activeClients,
@@ -229,16 +229,16 @@ func RateLimitMiddleware(rateLimiter *RateLimiter, config RateLimitConfig) func(
 		return func(w http.ResponseWriter, r *http.Request) {
 			// Extract client identifier
 			clientID := extractClientID(r, config)
-			
+
 			// Check rate limit
 			if !rateLimiter.Allow(clientID, config) {
 				writeRateLimitError(w)
 				return
 			}
-			
+
 			// Add rate limit headers
 			addRateLimitHeaders(w, config)
-			
+
 			// Continue to next handler
 			next(w, r)
 		}
@@ -261,7 +261,7 @@ func extractClientID(r *http.Request, config RateLimitConfig) string {
 			return host
 		}
 		return r.RemoteAddr
-		
+
 	case "token":
 		// Extract from Authorization header
 		auth := r.Header.Get("Authorization")
@@ -269,14 +269,14 @@ func extractClientID(r *http.Request, config RateLimitConfig) string {
 			return strings.TrimPrefix(auth, "Bearer ")
 		}
 		return "anonymous"
-		
+
 	case "user-agent":
 		userAgent := r.Header.Get("User-Agent")
 		if userAgent == "" {
 			return "unknown-agent"
 		}
 		return userAgent
-		
+
 	case "header":
 		if config.ClientIDHeader != "" {
 			headerValue := r.Header.Get(config.ClientIDHeader)
@@ -285,7 +285,7 @@ func extractClientID(r *http.Request, config RateLimitConfig) string {
 			}
 		}
 		return "unknown-header"
-		
+
 	default:
 		// Default to IP-based identification
 		return extractClientID(r, RateLimitConfig{ClientIDMethod: "ip"})
@@ -296,13 +296,13 @@ func extractClientID(r *http.Request, config RateLimitConfig) string {
 func writeRateLimitError(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusTooManyRequests)
-	
+
 	response := map[string]interface{}{
 		"status": "error",
 		"error":  "Rate limit exceeded",
 		"code":   "RATE_LIMIT_EXCEEDED",
 	}
-	
+
 	_ = json.NewEncoder(w).Encode(response)
 }
 

@@ -124,7 +124,7 @@ contexts:
 		Variables: map[string]string{
 			"DEFAULT_CLUSTER": "production",
 			"PROD_HOST":       "slurm-prod.company.com",
-			"DEV_HOST":        "slurm-dev.company.com", 
+			"DEV_HOST":        "slurm-dev.company.com",
 			"TEST_HOST":       "slurm-test.company.com",
 		},
 	}
@@ -151,12 +151,12 @@ contexts:
 useMockClient: false
 `,
 		Variables: map[string]string{
-			"CLUSTER_NAME":     "hpc-cluster",
-			"CONTROLLER_HOST":  "slurmctl.hpc.edu",
-			"SLURM_CONF_PATH":  "/etc/slurm/slurm.conf",
-			"CA_PATH":          "/etc/ssl/certs/hpc-ca.pem",
-			"CERT_PATH":        "/etc/ssl/certs/client.pem",
-			"KEY_PATH":         "/etc/ssl/private/client-key.pem",
+			"CLUSTER_NAME":    "hpc-cluster",
+			"CONTROLLER_HOST": "slurmctl.hpc.edu",
+			"SLURM_CONF_PATH": "/etc/slurm/slurm.conf",
+			"CA_PATH":         "/etc/ssl/certs/hpc-ca.pem",
+			"CERT_PATH":       "/etc/ssl/certs/client.pem",
+			"KEY_PATH":        "/etc/ssl/private/client-key.pem",
 		},
 	}
 

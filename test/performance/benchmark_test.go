@@ -257,8 +257,8 @@ func BenchmarkObjectPool(b *testing.B) {
 	}
 
 	tests := []struct {
-		name     string
-		usePool  bool
+		name    string
+		usePool bool
 	}{
 		{"WithPool", true},
 		{"WithoutPool", false},

@@ -230,7 +230,7 @@ func testPersistenceIntegration(t *testing.T, testHost, testUser string) {
 
 		persistentSessions, err := persistence.LoadSessions()
 		require.NoError(t, err)
-		
+
 		// We should have at least one session saved (though it might be filtered as stale)
 		t.Logf("Found %d persistent sessions", len(persistentSessions))
 	})
@@ -276,7 +276,7 @@ func parsePort(hostPort string) int {
 		if err != nil {
 			return 22
 		}
-		
+
 		port := 22
 		if portStr != "" {
 			if p, err := net.LookupPort("tcp", portStr); err == nil {
@@ -417,7 +417,7 @@ func cleanupSSHContainer(t *testing.T, containerID string) {
 	// Stop and remove container
 	_ = exec.Command("docker", "stop", containerID).Run()
 	_ = exec.Command("docker", "rm", containerID).Run()
-	
+
 	// Remove test image
 	_ = exec.Command("docker", "rmi", "ssh-test-server").Run()
 }

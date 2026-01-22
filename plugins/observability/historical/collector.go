@@ -21,33 +21,33 @@ import (
 
 // DataPoint represents a single historical data point
 type DataPoint struct {
-	Timestamp time.Time   `json:"timestamp"`
-	Value     interface{} `json:"value"`
+	Timestamp time.Time              `json:"timestamp"`
+	Value     interface{}            `json:"value"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // MetricSeries represents a time series of metric data
 type MetricSeries struct {
-	MetricName string      `json:"metric_name"`
+	MetricName string            `json:"metric_name"`
 	Labels     map[string]string `json:"labels"`
-	DataPoints []DataPoint `json:"data_points"`
-	CreatedAt  time.Time   `json:"created_at"`
-	UpdatedAt  time.Time   `json:"updated_at"`
+	DataPoints []DataPoint       `json:"data_points"`
+	CreatedAt  time.Time         `json:"created_at"`
+	UpdatedAt  time.Time         `json:"updated_at"`
 }
 
 // HistoricalDataCollector collects and stores historical metric data
 type HistoricalDataCollector struct {
-	client         *prometheus.CachedClient
-	dataDir        string
-	retention      time.Duration
+	client          *prometheus.CachedClient
+	dataDir         string
+	retention       time.Duration
 	collectInterval time.Duration
-	maxDataPoints  int
-	
-	series         map[string]*MetricSeries
-	queries        map[string]string
-	mu             sync.RWMutex
-	running        bool
-	stopChan       chan struct{}
+	maxDataPoints   int
+
+	series   map[string]*MetricSeries
+	queries  map[string]string
+	mu       sync.RWMutex
+	running  bool
+	stopChan chan struct{}
 }
 
 // CollectorConfig configuration for historical data collector
@@ -67,10 +67,10 @@ func DefaultCollectorConfig() CollectorConfig {
 		CollectInterval: 5 * time.Minute,
 		MaxDataPoints:   10000,
 		Queries: map[string]string{
-			"node_cpu":    `100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)`,
-			"node_memory": `(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100`,
-			"node_load":   `node_load1`,
-			"job_count":   `slurm_job_total`,
+			"node_cpu":     `100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)`,
+			"node_memory":  `(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100`,
+			"node_load":    `node_load1`,
+			"job_count":    `slurm_job_total`,
 			"queue_length": `slurm_queue_pending_jobs`,
 		},
 	}
@@ -271,14 +271,14 @@ func (hdc *HistoricalDataCollector) GetMetricStatistics(metricName string, durat
 	avg := sum / float64(validPoints)
 
 	return map[string]interface{}{
-		"count":     validPoints,
-		"min":       min,
-		"max":       max,
-		"average":   avg,
-		"sum":       sum,
-		"timespan":  duration.String(),
-		"first":     series.DataPoints[0].Timestamp,
-		"last":      series.DataPoints[len(series.DataPoints)-1].Timestamp,
+		"count":    validPoints,
+		"min":      min,
+		"max":      max,
+		"average":  avg,
+		"sum":      sum,
+		"timespan": duration.String(),
+		"first":    series.DataPoints[0].Timestamp,
+		"last":     series.DataPoints[len(series.DataPoints)-1].Timestamp,
 	}, nil
 }
 
@@ -307,16 +307,16 @@ func (hdc *HistoricalDataCollector) GetCollectorStats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"running":             hdc.running,
-		"metrics_count":       len(hdc.series),
-		"total_data_points":   totalDataPoints,
-		"collect_interval":    hdc.collectInterval.String(),
-		"retention_period":    hdc.retention.String(),
-		"max_data_points":     hdc.maxDataPoints,
-		"oldest_data":         oldestTimestamp,
-		"newest_data":         newestTimestamp,
-		"data_directory":      hdc.dataDir,
-		"queries_configured":  len(hdc.queries),
+		"running":            hdc.running,
+		"metrics_count":      len(hdc.series),
+		"total_data_points":  totalDataPoints,
+		"collect_interval":   hdc.collectInterval.String(),
+		"retention_period":   hdc.retention.String(),
+		"max_data_points":    hdc.maxDataPoints,
+		"oldest_data":        oldestTimestamp,
+		"newest_data":        newestTimestamp,
+		"data_directory":     hdc.dataDir,
+		"queries_configured": len(hdc.queries),
 	}
 }
 

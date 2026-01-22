@@ -73,7 +73,7 @@ func (m *MockPrometheusClient) Labels(ctx context.Context) ([]string, error) {
 func TestCircuitBreakerBasicOperation(t *testing.T) {
 	mockClient := &MockPrometheusClient{}
 	config := DefaultCircuitBreakerConfig()
-	
+
 	cbClient := NewCircuitBreakerClient(mockClient, config)
 
 	ctx := context.Background()
@@ -96,7 +96,7 @@ func TestCircuitBreakerFailureHandling(t *testing.T) {
 	config.ReadyToTrip = func(counts Counts) bool {
 		return counts.ConsecutiveFailures >= 3
 	}
-	
+
 	cbClient := NewCircuitBreakerClient(mockClient, config)
 
 	ctx := context.Background()
@@ -128,7 +128,7 @@ func TestCircuitBreakerHalfOpenState(t *testing.T) {
 		return counts.ConsecutiveFailures >= 2
 	}
 	config.Timeout = 10 * time.Millisecond // Short timeout for testing
-	
+
 	cbClient := NewCircuitBreakerClient(mockClient, config)
 
 	ctx := context.Background()
@@ -162,7 +162,7 @@ func TestCircuitBreakerHalfOpenState(t *testing.T) {
 func TestCircuitBreakerCounts(t *testing.T) {
 	mockClient := &MockPrometheusClient{}
 	config := DefaultCircuitBreakerConfig()
-	
+
 	cbClient := NewCircuitBreakerClient(mockClient, config)
 
 	ctx := context.Background()
@@ -208,7 +208,7 @@ func TestCircuitBreakerCounts(t *testing.T) {
 func TestCircuitBreakerQueryOperations(t *testing.T) {
 	mockClient := &MockPrometheusClient{}
 	config := DefaultCircuitBreakerConfig()
-	
+
 	cbClient := NewCircuitBreakerClient(mockClient, config)
 
 	ctx := context.Background()
@@ -265,7 +265,7 @@ func TestCircuitBreakerRecovery(t *testing.T) {
 		return counts.ConsecutiveFailures >= 3
 	}
 	config.Timeout = 10 * time.Millisecond
-	
+
 	cbClient := NewCircuitBreakerClient(mockClient, config)
 
 	ctx := context.Background()

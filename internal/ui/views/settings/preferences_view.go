@@ -12,16 +12,16 @@ import (
 
 // PreferencesView displays the preferences interface
 type PreferencesView struct {
-	prefs     *preferences.UserPreferences
-	app       *tview.Application
-	pages     *tview.Pages
-	layout    *tview.Flex
-	tree      *tview.TreeView
-	form      *tview.Form
-	rootNode  *tview.TreeNode
-	modified  bool
-	onSave    func()
-	onCancel  func()
+	prefs    *preferences.UserPreferences
+	app      *tview.Application
+	pages    *tview.Pages
+	layout   *tview.Flex
+	tree     *tview.TreeView
+	form     *tview.Form
+	rootNode *tview.TreeNode
+	modified bool
+	onSave   func()
+	onCancel func()
 }
 
 // NewPreferencesView creates a new preferences view
@@ -244,7 +244,7 @@ func (pv *PreferencesView) showKeyBindings() {
 
 	pv.form.AddTextView("Info",
 		"[yellow]Key bindings can be customized below.[white]\n"+
-		"Format: Single key (q) or modifier+key (Ctrl+s)",
+			"Format: Single key (q) or modifier+key (Ctrl+s)",
 		0, 3, true, false)
 
 	// Common actions

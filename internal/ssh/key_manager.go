@@ -43,11 +43,11 @@ type SSHAgent struct {
 
 // KeyManager manages SSH keys and agent integration
 type KeyManager struct {
-	keys      map[string]*SSHKey
-	agent     *SSHAgent
-	keyDir    string // SSH key directory (usually ~/.ssh)
-	mu        sync.RWMutex
-	autoLoad  bool
+	keys     map[string]*SSHKey
+	agent    *SSHAgent
+	keyDir   string // SSH key directory (usually ~/.ssh)
+	mu       sync.RWMutex
+	autoLoad bool
 }
 
 // NewKeyManager creates a new SSH key manager
@@ -58,7 +58,7 @@ func NewKeyManager() (*KeyManager, error) {
 	}
 
 	keyDir := filepath.Join(homeDir, ".ssh")
-	
+
 	km := &KeyManager{
 		keys:     make(map[string]*SSHKey),
 		keyDir:   keyDir,
@@ -92,7 +92,7 @@ func (km *KeyManager) ConnectToAgent() error {
 	}
 
 	agentClient := agent.NewClient(conn)
-	
+
 	km.mu.Lock()
 	km.agent = &SSHAgent{
 		conn:   conn,
@@ -217,7 +217,7 @@ func (km *KeyManager) parseKey(path string) (*SSHKey, error) {
 	// Try to find the corresponding public key
 	pubPath := path + ".pub"
 	var fingerprint, comment, keyType string
-	
+
 	if pubData, err := os.ReadFile(pubPath); err == nil {
 		pubKey, commentBytes, _, _, err := ssh.ParseAuthorizedKey(pubData)
 		if err == nil {
@@ -270,7 +270,7 @@ func (km *KeyManager) GetKeys() map[string]*SSHKey {
 		keyCopy := *key
 		keysCopy[name] = &keyCopy
 	}
-	
+
 	return keysCopy
 }
 
@@ -376,7 +376,7 @@ func (km *KeyManager) generateEd25519Key(keyPath, pubPath, comment string) error
 		"-f", keyPath,
 		"-N", "", // No passphrase
 	}
-	
+
 	if comment != "" {
 		args = append(args, "-C", comment)
 	}
@@ -686,10 +686,10 @@ func (km *KeyManager) GetAgentInfo() (map[string]interface{}, error) {
 	}
 
 	info := map[string]interface{}{
-		"connected":    true,
-		"socket_path":  os.Getenv("SSH_AUTH_SOCK"),
-		"keys_loaded":  len(agentKeys),
-		"agent_pid":    os.Getenv("SSH_AGENT_PID"),
+		"connected":   true,
+		"socket_path": os.Getenv("SSH_AUTH_SOCK"),
+		"keys_loaded": len(agentKeys),
+		"agent_pid":   os.Getenv("SSH_AGENT_PID"),
 	}
 
 	// Add key details

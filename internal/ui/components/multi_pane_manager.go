@@ -22,20 +22,20 @@ const (
 
 // Pane represents a single pane in the multi-pane interface
 type Pane struct {
-	ID          string
-	Title       string
-	Type        PaneType
-	Content     tview.Primitive
-	Active      bool
-	Closable    bool
-	Resizable   bool
-	MinWidth    int
-	MinHeight   int
-	LastFocus   time.Time
-	Metadata    map[string]interface{}
-	OnClose     func(string) error
-	OnActivate  func(string)
-	OnResize    func(string, int, int)
+	ID         string
+	Title      string
+	Type       PaneType
+	Content    tview.Primitive
+	Active     bool
+	Closable   bool
+	Resizable  bool
+	MinWidth   int
+	MinHeight  int
+	LastFocus  time.Time
+	Metadata   map[string]interface{}
+	OnClose    func(string) error
+	OnActivate func(string)
+	OnResize   func(string, int, int)
 }
 
 // PaneLayout defines how panes are arranged
@@ -50,22 +50,22 @@ const (
 
 // MultiPaneManager manages multiple panes in a flexible layout
 type MultiPaneManager struct {
-	mu             sync.RWMutex
-	app            *tview.Application
-	container      *tview.Flex
-	panes          map[string]*Pane
-	paneOrder      []string
-	activePane     string
-	layout         PaneLayout
+	mu         sync.RWMutex
+	app        *tview.Application
+	container  *tview.Flex
+	panes      map[string]*Pane
+	paneOrder  []string
+	activePane string
+	layout     PaneLayout
 	// TODO(lint): Review unused code - field splitRatio is unused
 	// splitRatio     []int // Ratios for splits
-	maxPanes       int
-	showTabs       bool
-	tabBar         *tview.TextView
-	statusBar      *tview.TextView
+	maxPanes  int
+	showTabs  bool
+	tabBar    *tview.TextView
+	statusBar *tview.TextView
 
 	// Navigation
-	navMode        bool
+	navMode bool
 	// TODO(lint): Review unused code - field navIndex is unused
 	// navIndex       int
 
@@ -74,8 +74,8 @@ type MultiPaneManager struct {
 	onLayoutChange func(PaneLayout)
 
 	// Keyboard shortcuts
-	shortcuts      map[tcell.Key]func()
-	charShortcuts  map[rune]func()
+	shortcuts     map[tcell.Key]func()
+	charShortcuts map[rune]func()
 }
 
 // NewMultiPaneManager creates a new multi-pane manager
@@ -91,10 +91,10 @@ func NewMultiPaneManager(app *tview.Application) *MultiPaneManager {
 		shortcuts:     make(map[tcell.Key]func()),
 		charShortcuts: make(map[rune]func()),
 	}
-	
+
 	mpm.initializeUI()
 	mpm.setupKeyboardShortcuts()
-	
+
 	return mpm
 }
 
@@ -106,12 +106,12 @@ func (mpm *MultiPaneManager) initializeUI() {
 	mpm.tabBar.SetRegions(true)
 	mpm.tabBar.SetWrap(false)
 	mpm.tabBar.SetText("[yellow]No panes open[white]")
-	
+
 	// Create status bar
 	mpm.statusBar = tview.NewTextView()
 	mpm.statusBar.SetDynamicColors(true)
 	mpm.statusBar.SetText("[green]Ready[white] | Use Ctrl+T for new tab, Ctrl+W to close, Tab/Shift+Tab to navigate")
-	
+
 	// Setup container
 	mpm.container.SetDirection(tview.FlexRow)
 	if mpm.showTabs {
@@ -119,7 +119,7 @@ func (mpm *MultiPaneManager) initializeUI() {
 	}
 	// Content area will be added dynamically
 	mpm.container.AddItem(mpm.statusBar, 1, 0, false)
-	
+
 	// Set up input capture for the container
 	mpm.container.SetInputCapture(mpm.handleInput)
 }
@@ -136,7 +136,7 @@ func (mpm *MultiPaneManager) setupKeyboardShortcuts() {
 	mpm.shortcuts[tcell.KeyF3] = mpm.SplitHorizontal
 	mpm.shortcuts[tcell.KeyF4] = mpm.SplitVertical
 	mpm.shortcuts[tcell.KeyF11] = mpm.ToggleFullscreen
-	
+
 	// Character shortcuts
 	mpm.charShortcuts['1'] = func() { mpm.SwitchToPane(0) }
 	mpm.charShortcuts['2'] = func() { mpm.SwitchToPane(1) }
@@ -153,13 +153,13 @@ func (mpm *MultiPaneManager) setupKeyboardShortcuts() {
 func (mpm *MultiPaneManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	// Check for function key shortcuts
 	if handler, exists := mpm.shortcuts[event.Key()]; exists {
 		handler()
 		return nil
 	}
-	
+
 	// Check for character shortcuts in navigation mode
 	if mpm.navMode && event.Key() == tcell.KeyRune {
 		if handler, exists := mpm.charShortcuts[event.Rune()]; exists {
@@ -167,7 +167,7 @@ func (mpm *MultiPaneManager) handleInput(event *tcell.EventKey) *tcell.EventKey 
 			return nil
 		}
 	}
-	
+
 	// Pass through to active pane if not handled
 	if mpm.activePane != "" {
 		pane := mpm.panes[mpm.activePane]
@@ -181,7 +181,7 @@ func (mpm *MultiPaneManager) handleInput(event *tcell.EventKey) *tcell.EventKey 
 			}
 		}
 	}
-	
+
 	return event
 }
 
@@ -189,15 +189,15 @@ func (mpm *MultiPaneManager) handleInput(event *tcell.EventKey) *tcell.EventKey 
 func (mpm *MultiPaneManager) AddPane(pane *Pane) error {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	if len(mpm.panes) >= mpm.maxPanes {
 		return fmt.Errorf("maximum number of panes (%d) reached", mpm.maxPanes)
 	}
-	
+
 	if _, exists := mpm.panes[pane.ID]; exists {
 		return fmt.Errorf("pane with ID %s already exists", pane.ID)
 	}
-	
+
 	// Set defaults
 	if pane.MinWidth == 0 {
 		pane.MinWidth = 20
@@ -206,11 +206,11 @@ func (mpm *MultiPaneManager) AddPane(pane *Pane) error {
 		pane.MinHeight = 5
 	}
 	pane.LastFocus = time.Now()
-	
+
 	// Add to collections
 	mpm.panes[pane.ID] = pane
 	mpm.paneOrder = append(mpm.paneOrder, pane.ID)
-	
+
 	// Set as active if it's the first pane
 	if len(mpm.panes) == 1 {
 		mpm.activePane = pane.ID
@@ -220,12 +220,12 @@ func (mpm *MultiPaneManager) AddPane(pane *Pane) error {
 			pane.OnActivate(pane.ID)
 		}
 	}
-	
+
 	// Refresh layout
 	mpm.refreshLayout()
 	mpm.updateTabBar()
 	mpm.updateStatusBar()
-	
+
 	return nil
 }
 
@@ -235,12 +235,12 @@ func (mpm *MultiPaneManager) NewPane(id, title string, paneType PaneType, conten
 	if id == "" {
 		id = fmt.Sprintf("%s_%d", paneType, time.Now().UnixNano())
 	}
-	
+
 	// Create default content if none provided
 	if content == nil {
 		content = mpm.createDefaultContent(paneType, title)
 	}
-	
+
 	pane := &Pane{
 		ID:        id,
 		Title:     title,
@@ -250,7 +250,7 @@ func (mpm *MultiPaneManager) NewPane(id, title string, paneType PaneType, conten
 		Resizable: true,
 		Metadata:  make(map[string]interface{}),
 	}
-	
+
 	return mpm.AddPane(pane)
 }
 
@@ -264,7 +264,7 @@ func (mpm *MultiPaneManager) createDefaultContent(paneType PaneType, title strin
 		textView.SetDynamicColors(true)
 		textView.SetText(fmt.Sprintf("[green]%s Terminal[white]\n\nTerminal session would be initialized here.\nThis is a placeholder for actual terminal functionality.", title))
 		return textView
-		
+
 	case PaneTypeLog:
 		textView := tview.NewTextView()
 		textView.SetTitle(fmt.Sprintf(" %s Logs ", title))
@@ -273,7 +273,7 @@ func (mpm *MultiPaneManager) createDefaultContent(paneType PaneType, title strin
 		textView.SetDynamicColors(true)
 		textView.SetText("[yellow]Log viewer initialized[white]\n\nLogs would be displayed here...")
 		return textView
-		
+
 	case PaneTypeMonitor:
 		textView := tview.NewTextView()
 		textView.SetTitle(fmt.Sprintf(" %s Monitor ", title))
@@ -281,7 +281,7 @@ func (mpm *MultiPaneManager) createDefaultContent(paneType PaneType, title strin
 		textView.SetDynamicColors(true)
 		textView.SetText("[cyan]System Monitor[white]\n\nReal-time metrics would be displayed here...")
 		return textView
-		
+
 	default:
 		textView := tview.NewTextView()
 		textView.SetTitle(fmt.Sprintf(" %s ", title))
@@ -295,22 +295,22 @@ func (mpm *MultiPaneManager) createDefaultContent(paneType PaneType, title strin
 func (mpm *MultiPaneManager) RemovePane(id string) error {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	pane, exists := mpm.panes[id]
 	if !exists {
 		return fmt.Errorf("pane %s not found", id)
 	}
-	
+
 	// Call close callback if defined
 	if pane.OnClose != nil {
 		if err := pane.OnClose(id); err != nil {
 			return fmt.Errorf("failed to close pane: %w", err)
 		}
 	}
-	
+
 	// Remove from collections
 	delete(mpm.panes, id)
-	
+
 	// Remove from order slice
 	newOrder := make([]string, 0, len(mpm.paneOrder)-1)
 	activeIndex := -1
@@ -322,7 +322,7 @@ func (mpm *MultiPaneManager) RemovePane(id string) error {
 		}
 	}
 	mpm.paneOrder = newOrder
-	
+
 	// Handle active pane change
 	if mpm.activePane == id {
 		if len(mpm.paneOrder) > 0 {
@@ -337,12 +337,12 @@ func (mpm *MultiPaneManager) RemovePane(id string) error {
 			mpm.activePane = ""
 		}
 	}
-	
+
 	// Refresh layout
 	mpm.refreshLayout()
 	mpm.updateTabBar()
 	mpm.updateStatusBar()
-	
+
 	return nil
 }
 
@@ -350,11 +350,11 @@ func (mpm *MultiPaneManager) RemovePane(id string) error {
 func (mpm *MultiPaneManager) NextPane() {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	if len(mpm.paneOrder) <= 1 {
 		return
 	}
-	
+
 	currentIndex := mpm.getCurrentPaneIndex()
 	nextIndex := (currentIndex + 1) % len(mpm.paneOrder)
 	mpm.setActivePane(mpm.paneOrder[nextIndex])
@@ -364,11 +364,11 @@ func (mpm *MultiPaneManager) NextPane() {
 func (mpm *MultiPaneManager) PreviousPane() {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	if len(mpm.paneOrder) <= 1 {
 		return
 	}
-	
+
 	currentIndex := mpm.getCurrentPaneIndex()
 	prevIndex := (currentIndex - 1 + len(mpm.paneOrder)) % len(mpm.paneOrder)
 	mpm.setActivePane(mpm.paneOrder[prevIndex])
@@ -378,11 +378,11 @@ func (mpm *MultiPaneManager) PreviousPane() {
 func (mpm *MultiPaneManager) SwitchToPane(index int) {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	if index < 0 || index >= len(mpm.paneOrder) {
 		return
 	}
-	
+
 	mpm.setActivePane(mpm.paneOrder[index])
 }
 
@@ -391,36 +391,36 @@ func (mpm *MultiPaneManager) setActivePane(id string) {
 	if mpm.activePane == id {
 		return
 	}
-	
+
 	// Deactivate current pane
 	if mpm.activePane != "" {
 		if pane := mpm.panes[mpm.activePane]; pane != nil {
 			pane.Active = false
 		}
 	}
-	
+
 	oldPane := mpm.activePane
 	mpm.activePane = id
-	
+
 	// Activate new pane
 	if pane := mpm.panes[id]; pane != nil {
 		pane.Active = true
 		pane.LastFocus = time.Now()
-		
+
 		if pane.OnActivate != nil {
 			pane.OnActivate(id)
 		}
 	}
-	
+
 	// Refresh UI
 	mpm.updateTabBar()
 	mpm.updateStatusBar()
-	
+
 	// Call callback
 	if mpm.onPaneSwitch != nil {
 		mpm.onPaneSwitch(oldPane, id)
 	}
-	
+
 	// Set focus to the active pane
 	if pane := mpm.panes[id]; pane != nil && pane.Content != nil {
 		mpm.app.SetFocus(pane.Content)
@@ -442,7 +442,7 @@ func (mpm *MultiPaneManager) CloseActivePane() {
 	mpm.mu.RLock()
 	activePane := mpm.activePane
 	mpm.mu.RUnlock()
-	
+
 	if activePane != "" {
 		_ = mpm.RemovePane(activePane)
 	}
@@ -452,7 +452,7 @@ func (mpm *MultiPaneManager) CloseActivePane() {
 func (mpm *MultiPaneManager) ToggleNavMode() {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	mpm.navMode = !mpm.navMode
 	mpm.updateStatusBar()
 }
@@ -468,7 +468,7 @@ func (mpm *MultiPaneManager) RenameActivePane() {
 func (mpm *MultiPaneManager) SplitHorizontal() {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	if mpm.layout != LayoutHorizontal {
 		mpm.layout = LayoutHorizontal
 		mpm.refreshLayout()
@@ -479,7 +479,7 @@ func (mpm *MultiPaneManager) SplitHorizontal() {
 func (mpm *MultiPaneManager) SplitVertical() {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	if mpm.layout != LayoutVertical {
 		mpm.layout = LayoutVertical
 		mpm.refreshLayout()
@@ -496,11 +496,11 @@ func (mpm *MultiPaneManager) ToggleFullscreen() {
 func (mpm *MultiPaneManager) SetLayout(layout PaneLayout) {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	if mpm.layout != layout {
 		mpm.layout = layout
 		mpm.refreshLayout()
-		
+
 		if mpm.onLayoutChange != nil {
 			mpm.onLayoutChange(layout)
 		}
@@ -517,13 +517,13 @@ func (mpm *MultiPaneManager) refreshLayout() {
 			mpm.container.RemoveItem(mpm.container.GetItem(i - 1))
 		}
 	}
-	
+
 	if len(mpm.panes) == 0 {
 		return
 	}
-	
+
 	var contentArea tview.Primitive
-	
+
 	switch mpm.layout {
 	case LayoutTabs:
 		contentArea = mpm.createTabLayout()
@@ -536,11 +536,11 @@ func (mpm *MultiPaneManager) refreshLayout() {
 	default:
 		contentArea = mpm.createTabLayout()
 	}
-	
+
 	// Insert content area between tab bar and status bar
 	// Remove existing content area first
 	itemCount := mpm.container.GetItemCount()
-	
+
 	// Add content area before status bar
 	if itemCount > 1 {
 		// We need to rebuild the container with the new content area
@@ -563,12 +563,12 @@ func (mpm *MultiPaneManager) createTabLayout() tview.Primitive {
 		placeholder.SetTextAlign(tview.AlignCenter)
 		return placeholder
 	}
-	
+
 	activePane := mpm.panes[mpm.activePane]
 	if activePane != nil && activePane.Content != nil {
 		return activePane.Content
 	}
-	
+
 	placeholder := tview.NewTextView()
 	placeholder.SetText("[red]Error: Active pane content not found[white]")
 	placeholder.SetTextAlign(tview.AlignCenter)
@@ -579,13 +579,13 @@ func (mpm *MultiPaneManager) createTabLayout() tview.Primitive {
 func (mpm *MultiPaneManager) createHorizontalLayout() tview.Primitive {
 	flex := tview.NewFlex()
 	flex.SetDirection(tview.FlexColumn)
-	
+
 	for _, id := range mpm.paneOrder {
 		if pane := mpm.panes[id]; pane != nil && pane.Content != nil {
 			flex.AddItem(pane.Content, 0, 1, pane.Active)
 		}
 	}
-	
+
 	return flex
 }
 
@@ -593,13 +593,13 @@ func (mpm *MultiPaneManager) createHorizontalLayout() tview.Primitive {
 func (mpm *MultiPaneManager) createVerticalLayout() tview.Primitive {
 	flex := tview.NewFlex()
 	flex.SetDirection(tview.FlexRow)
-	
+
 	for _, id := range mpm.paneOrder {
 		if pane := mpm.panes[id]; pane != nil && pane.Content != nil {
 			flex.AddItem(pane.Content, 0, 1, pane.Active)
 		}
 	}
-	
+
 	return flex
 }
 
@@ -609,18 +609,18 @@ func (mpm *MultiPaneManager) createGridLayout() tview.Primitive {
 	if len(mpm.panes) <= 2 {
 		return mpm.createHorizontalLayout()
 	}
-	
+
 	mainFlex := tview.NewFlex()
 	mainFlex.SetDirection(tview.FlexRow)
-	
+
 	// Top row
 	topFlex := tview.NewFlex()
 	topFlex.SetDirection(tview.FlexColumn)
-	
+
 	// Bottom row
 	bottomFlex := tview.NewFlex()
 	bottomFlex.SetDirection(tview.FlexColumn)
-	
+
 	count := 0
 	for _, id := range mpm.paneOrder {
 		if pane := mpm.panes[id]; pane != nil && pane.Content != nil {
@@ -632,14 +632,14 @@ func (mpm *MultiPaneManager) createGridLayout() tview.Primitive {
 			count++
 		}
 	}
-	
+
 	if topFlex.GetItemCount() > 0 {
 		mainFlex.AddItem(topFlex, 0, 1, false)
 	}
 	if bottomFlex.GetItemCount() > 0 {
 		mainFlex.AddItem(bottomFlex, 0, 1, false)
 	}
-	
+
 	return mainFlex
 }
 
@@ -648,54 +648,54 @@ func (mpm *MultiPaneManager) updateTabBar() {
 	if !mpm.showTabs {
 		return
 	}
-	
+
 	if len(mpm.panes) == 0 {
 		mpm.tabBar.SetText("[yellow]No panes open[white]")
 		return
 	}
-	
+
 	var tabText string
 	for i, id := range mpm.paneOrder {
 		pane := mpm.panes[id]
 		if pane == nil {
 			continue
 		}
-		
+
 		// Format tab with number and title
 		tabPrefix := fmt.Sprintf("%d:", i+1)
-		
+
 		if pane.Active {
 			tabText += fmt.Sprintf("[black:white]%s %s[white:black] ", tabPrefix, pane.Title)
 		} else {
 			tabText += fmt.Sprintf("[white]%s %s[white] ", tabPrefix, pane.Title)
 		}
 	}
-	
+
 	mpm.tabBar.SetText(tabText)
 }
 
 // updateStatusBar updates the status bar
 func (mpm *MultiPaneManager) updateStatusBar() {
 	status := "[green]Ready[white]"
-	
+
 	if len(mpm.panes) > 0 {
 		status = fmt.Sprintf("[cyan]%d panes[white]", len(mpm.panes))
-		
+
 		if mpm.activePane != "" {
 			if pane := mpm.panes[mpm.activePane]; pane != nil {
 				status += fmt.Sprintf(" | Active: [yellow]%s[white]", pane.Title)
 			}
 		}
 	}
-	
+
 	if mpm.navMode {
 		status += " | [yellow]NAV MODE[white] - Use 1-9 to switch panes"
 	}
-	
+
 	// Add keyboard shortcuts
 	shortcuts := " | [green]Ctrl+T[white]:New [green]Ctrl+W[white]:Close [green]Tab[white]:Next [green]F3/F4[white]:Split"
 	status += shortcuts
-	
+
 	mpm.statusBar.SetText(status)
 }
 
@@ -708,11 +708,11 @@ func (mpm *MultiPaneManager) GetContainer() *tview.Flex {
 func (mpm *MultiPaneManager) GetActivePane() *Pane {
 	mpm.mu.RLock()
 	defer mpm.mu.RUnlock()
-	
+
 	if mpm.activePane == "" {
 		return nil
 	}
-	
+
 	return mpm.panes[mpm.activePane]
 }
 
@@ -720,7 +720,7 @@ func (mpm *MultiPaneManager) GetActivePane() *Pane {
 func (mpm *MultiPaneManager) GetPane(id string) *Pane {
 	mpm.mu.RLock()
 	defer mpm.mu.RUnlock()
-	
+
 	return mpm.panes[id]
 }
 
@@ -728,7 +728,7 @@ func (mpm *MultiPaneManager) GetPane(id string) *Pane {
 func (mpm *MultiPaneManager) GetPaneCount() int {
 	mpm.mu.RLock()
 	defer mpm.mu.RUnlock()
-	
+
 	return len(mpm.panes)
 }
 
@@ -736,7 +736,7 @@ func (mpm *MultiPaneManager) GetPaneCount() int {
 func (mpm *MultiPaneManager) SetOnPaneSwitch(callback func(oldPane, newPane string)) {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	mpm.onPaneSwitch = callback
 }
 
@@ -744,7 +744,7 @@ func (mpm *MultiPaneManager) SetOnPaneSwitch(callback func(oldPane, newPane stri
 func (mpm *MultiPaneManager) SetOnLayoutChange(callback func(PaneLayout)) {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	mpm.onLayoutChange = callback
 }
 
@@ -752,19 +752,19 @@ func (mpm *MultiPaneManager) SetOnLayoutChange(callback func(PaneLayout)) {
 func (mpm *MultiPaneManager) Close() {
 	mpm.mu.Lock()
 	defer mpm.mu.Unlock()
-	
+
 	// Close all panes
 	for id := range mpm.panes {
 		if pane := mpm.panes[id]; pane != nil && pane.OnClose != nil {
 			_ = pane.OnClose(id)
 		}
 	}
-	
+
 	// Clear collections
 	mpm.panes = make(map[string]*Pane)
 	mpm.paneOrder = make([]string, 0)
 	mpm.activePane = ""
-	
+
 	// Update UI
 	mpm.refreshLayout()
 	mpm.updateTabBar()

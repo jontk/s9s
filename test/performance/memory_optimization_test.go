@@ -244,7 +244,7 @@ Loading input dataset (15.7 GB)...
   - Intermediate results written to batch_%d.tmp
 
 `, time.Now().Add(time.Duration(i)*time.Minute).Format("15:04:05"),
-		i, i, 1000+i*10, 12800, 100-i, (100-i)*2, i)
+			i, i, 1000+i*10, 12800, 100-i, (100-i)*2, i)
 	}
 
 	content += fmt.Sprintf(`

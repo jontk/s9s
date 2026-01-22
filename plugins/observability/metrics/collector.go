@@ -17,7 +17,7 @@ import (
 type Collector struct {
 	metrics *PluginMetrics
 	client  prometheus.PrometheusClientInterface
-	
+
 	// Internal state
 	mu      sync.RWMutex
 	started bool
@@ -28,7 +28,7 @@ type Collector struct {
 // NewCollector creates a new metrics collector
 func NewCollector(ctx context.Context, client prometheus.PrometheusClientInterface) *Collector {
 	collectorCtx, cancel := context.WithCancel(ctx)
-	
+
 	return &Collector{
 		metrics: NewPluginMetrics(collectorCtx),
 		client:  client,
@@ -41,22 +41,22 @@ func NewCollector(ctx context.Context, client prometheus.PrometheusClientInterfa
 func (c *Collector) Start() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	if c.started {
 		return nil
 	}
-	
+
 	c.started = true
-	
+
 	// Start system metrics collection
 	go c.collectSystemMetrics()
-	
+
 	// Start Prometheus metrics collection
 	go c.collectPrometheusMetrics()
-	
+
 	// Update component status
 	c.metrics.UpdateComponentStatus("metrics_collector", "running", "Collecting plugin metrics")
-	
+
 	return nil
 }
 
@@ -64,22 +64,22 @@ func (c *Collector) Start() error {
 func (c *Collector) Stop() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	if !c.started {
 		return nil
 	}
-	
+
 	c.started = false
-	
+
 	if c.cancel != nil {
 		c.cancel()
 	}
-	
+
 	c.metrics.Stop()
-	
+
 	// Update component status
 	c.metrics.UpdateComponentStatus("metrics_collector", "stopped", "Metrics collection stopped")
-	
+
 	return nil
 }
 
@@ -92,7 +92,7 @@ func (c *Collector) GetMetrics() *PluginMetrics {
 func (c *Collector) collectSystemMetrics() {
 	ticker := time.NewTicker(10 * time.Second) // Collect every 10 seconds
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-c.ctx.Done():
@@ -108,14 +108,14 @@ func (c *Collector) updateSystemMetrics() {
 	// Memory statistics
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	
+
 	// Goroutine count
 	goroutines := int32(runtime.NumGoroutine())
-	
+
 	// CPU usage would typically be calculated from system calls
 	// For now, we'll estimate based on goroutine activity
 	cpuUsage := c.estimateCPUUsage(goroutines)
-	
+
 	c.metrics.UpdateResourceUsage(int64(m.Alloc), cpuUsage, goroutines)
 }
 
@@ -134,7 +134,7 @@ func (c *Collector) estimateCPUUsage(goroutines int32) float64 {
 func (c *Collector) collectPrometheusMetrics() {
 	ticker := time.NewTicker(30 * time.Second) // Collect every 30 seconds
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-c.ctx.Done():
@@ -151,7 +151,7 @@ func (c *Collector) updatePrometheusMetrics() {
 	start := time.Now()
 	err := c.client.TestConnection(c.ctx)
 	latency := time.Since(start)
-	
+
 	if err != nil {
 		c.metrics.RecordConnectionFailure(err, latency)
 		c.metrics.UpdateComponentStatus("prometheus_client", "error", err.Error())
@@ -159,7 +159,7 @@ func (c *Collector) updatePrometheusMetrics() {
 		c.metrics.RecordConnection(latency)
 		c.metrics.UpdateComponentStatus("prometheus_client", "running", "Connected to Prometheus")
 	}
-	
+
 	// Update cache hit rate if we have a cached client
 	// We'll check this in a different way since the client might be wrapped
 }
@@ -183,13 +183,13 @@ func (ic *InstrumentedClient) TestConnection(ctx context.Context) error {
 	start := time.Now()
 	err := ic.client.TestConnection(ctx)
 	latency := time.Since(start)
-	
+
 	if err != nil {
 		ic.metrics.RecordConnectionFailure(err, latency)
 	} else {
 		ic.metrics.RecordConnection(latency)
 	}
-	
+
 	return err
 }
 
@@ -198,10 +198,10 @@ func (ic *InstrumentedClient) Query(ctx context.Context, query string, queryTime
 	start := time.Now()
 	result, err := ic.client.Query(ctx, query, queryTime)
 	latency := time.Since(start)
-	
+
 	ic.metrics.RecordQuery(latency, err == nil)
 	ic.metrics.RecordEvent() // For rate tracking
-	
+
 	return result, err
 }
 
@@ -210,22 +210,22 @@ func (ic *InstrumentedClient) QueryRange(ctx context.Context, query string, star
 	measureStart := time.Now()
 	result, err := ic.client.QueryRange(ctx, query, startTime, endTime, step)
 	latency := time.Since(measureStart)
-	
+
 	ic.metrics.RecordQuery(latency, err == nil)
 	ic.metrics.RecordEvent()
-	
+
 	return result, err
 }
 
-// Series implements PrometheusClientInterface  
+// Series implements PrometheusClientInterface
 func (ic *InstrumentedClient) Series(ctx context.Context, matches []string, startTime, endTime time.Time) ([]map[string]string, error) {
 	measureStart := time.Now()
 	result, err := ic.client.Series(ctx, matches, startTime, endTime)
 	latency := time.Since(measureStart)
-	
+
 	ic.metrics.RecordQuery(latency, err == nil)
 	ic.metrics.RecordEvent()
-	
+
 	return result, err
 }
 
@@ -234,10 +234,10 @@ func (ic *InstrumentedClient) Labels(ctx context.Context) ([]string, error) {
 	measureStart := time.Now()
 	result, err := ic.client.Labels(ctx)
 	latency := time.Since(measureStart)
-	
+
 	ic.metrics.RecordQuery(latency, err == nil)
 	ic.metrics.RecordEvent()
-	
+
 	return result, err
 }
 
@@ -246,11 +246,11 @@ func (ic *InstrumentedClient) BatchQuery(ctx context.Context, queries map[string
 	measureStart := time.Now()
 	result, err := ic.client.BatchQuery(ctx, queries, queryTime)
 	latency := time.Since(measureStart)
-	
+
 	ic.metrics.RecordQuery(latency, err == nil)
 	ic.metrics.RecordBatchQuery()
 	ic.metrics.RecordEvent()
-	
+
 	return result, err
 }
 
@@ -269,19 +269,19 @@ func NewMetricsExporter(metrics *PluginMetrics) *MetricsExporter {
 // ExportPrometheusFormat exports metrics in Prometheus exposition format
 func (me *MetricsExporter) ExportPrometheusFormat() string {
 	stats := me.metrics.GetAllStats()
-	
+
 	var output string
-	
+
 	// Connection metrics
 	connectionStats := stats["connections"].(map[string]interface{})
 	output += formatPrometheusMetric("observability_plugin_connections_total", connectionStats["total_connections"])
 	output += formatPrometheusMetric("observability_plugin_connection_failures_total", connectionStats["failed_connections"])
 	output += formatPrometheusMetric("observability_plugin_connection_success_rate", connectionStats["success_rate"])
-	
+
 	if avgLatency, ok := connectionStats["avg_latency"].(time.Duration); ok {
 		output += formatPrometheusMetric("observability_plugin_connection_latency_seconds", avgLatency.Seconds())
 	}
-	
+
 	// Query metrics
 	queryStats := stats["queries"].(map[string]interface{})
 	output += formatPrometheusMetric("observability_plugin_queries_total", queryStats["total_queries"])
@@ -290,7 +290,7 @@ func (me *MetricsExporter) ExportPrometheusFormat() string {
 	output += formatPrometheusMetric("observability_plugin_streaming_queries_total", queryStats["streaming_queries"])
 	output += formatPrometheusMetric("observability_plugin_query_success_rate", queryStats["success_rate"])
 	output += formatPrometheusMetric("observability_plugin_cache_hit_rate", queryStats["cache_hit_rate"])
-	
+
 	// Resource metrics
 	resourceStats := stats["resources"].(map[string]interface{})
 	output += formatPrometheusMetric("observability_plugin_memory_bytes", resourceStats["memory_usage_bytes"])
@@ -298,21 +298,21 @@ func (me *MetricsExporter) ExportPrometheusFormat() string {
 	output += formatPrometheusMetric("observability_plugin_goroutines", resourceStats["goroutine_count"])
 	output += formatPrometheusMetric("observability_plugin_subscriptions", resourceStats["subscription_count"])
 	output += formatPrometheusMetric("observability_plugin_overlays", resourceStats["overlay_count"])
-	
+
 	// Performance metrics
 	performanceStats := stats["performance"].(map[string]interface{})
 	output += formatPrometheusMetric("observability_plugin_events_per_second", performanceStats["event_processing_rate"])
 	output += formatPrometheusMetric("observability_plugin_notifications_total", performanceStats["notifications_sent"])
 	output += formatPrometheusMetric("observability_plugin_alerts_total", performanceStats["alerts_triggered"])
 	output += formatPrometheusMetric("observability_plugin_data_collection_cycles_total", performanceStats["data_collection_cycles"])
-	
+
 	// Health metrics
 	healthStats := stats["health"].(map[string]interface{})
 	if uptime, ok := healthStats["uptime"].(time.Duration); ok {
 		output += formatPrometheusMetric("observability_plugin_uptime_seconds", uptime.Seconds())
 	}
 	output += formatPrometheusMetric("observability_plugin_health_score", healthStats["health_score"])
-	
+
 	return output
 }
 

@@ -44,18 +44,18 @@ func (s SessionState) String() string {
 
 // SSHSession represents an active SSH session
 type SSHSession struct {
-	ID          string
-	Hostname    string
-	Username    string
-	State       SessionState
-	StartTime   time.Time
+	ID           string
+	Hostname     string
+	Username     string
+	State        SessionState
+	StartTime    time.Time
 	LastActivity time.Time
-	Command     *exec.Cmd
-	Process     *os.Process
+	Command      *exec.Cmd
+	Process      *os.Process
 	ErrorMessage string
 	ControlPath  string // For connection multiplexing
-	Tunnels     []SSHTunnel
-	mu          sync.RWMutex
+	Tunnels      []SSHTunnel
+	mu           sync.RWMutex
 }
 
 // SSHTunnel represents an SSH port forwarding tunnel
@@ -69,12 +69,12 @@ type SSHTunnel struct {
 
 // SessionManager manages SSH sessions with advanced features
 type SessionManager struct {
-	sessions    map[string]*SSHSession
-	config      *SSHConfig
-	mu          sync.RWMutex
-	controlDir  string
-	cleanupDone chan struct{}
-	persistence *SessionPersistence
+	sessions     map[string]*SSHSession
+	config       *SSHConfig
+	mu           sync.RWMutex
+	controlDir   string
+	cleanupDone  chan struct{}
+	persistence  *SessionPersistence
 	shutdownOnce sync.Once
 }
 
@@ -445,8 +445,8 @@ func (sm *SessionManager) buildSessionArgs(session *SSHSession, enableMultiplexi
 
 	// Add multiplexing options
 	if enableMultiplexing {
-		args = append(args, "-M") // Master mode
-		args = append(args, "-S", session.ControlPath) // Control socket
+		args = append(args, "-M")                       // Master mode
+		args = append(args, "-S", session.ControlPath)  // Control socket
 		args = append(args, "-o", "ControlPersist=600") // Keep connection for 10 minutes
 	} else if session.ControlPath != "" {
 		args = append(args, "-S", session.ControlPath) // Use existing control socket
@@ -500,8 +500,8 @@ func (sm *SessionManager) cleanupStaleSessions() {
 	for sessionID, session := range sm.sessions {
 		session.mu.RLock()
 		if session.State == SessionDisconnected ||
-		   session.State == SessionError ||
-		   (session.State == SessionIdle && session.LastActivity.Before(staleThreshold)) {
+			session.State == SessionError ||
+			(session.State == SessionIdle && session.LastActivity.Before(staleThreshold)) {
 			session.mu.RUnlock()
 
 			// Clean up control socket

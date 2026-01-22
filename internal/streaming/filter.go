@@ -31,20 +31,20 @@ const (
 
 // StreamFilter represents a filter that can be applied to streaming output
 type StreamFilter struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Type        FilterType        `json:"type"`
-	Enabled     bool              `json:"enabled"`
-	Pattern     string            `json:"pattern"`      // For keyword/regex filters
-	Regex       *regexp.Regexp    `json:"-"`            // Compiled regex
-	TimeStart   time.Time         `json:"time_start"`   // For time range filters
-	TimeEnd     time.Time         `json:"time_end"`
-	LogLevels   []LogLevel        `json:"log_levels"`   // For log level filters
-	Invert      bool              `json:"invert"`       // Invert the filter results
-	CaseSensitive bool            `json:"case_sensitive"`
-	Highlight   bool              `json:"highlight"`    // Highlight matches
+	ID             string         `json:"id"`
+	Name           string         `json:"name"`
+	Type           FilterType     `json:"type"`
+	Enabled        bool           `json:"enabled"`
+	Pattern        string         `json:"pattern"`    // For keyword/regex filters
+	Regex          *regexp.Regexp `json:"-"`          // Compiled regex
+	TimeStart      time.Time      `json:"time_start"` // For time range filters
+	TimeEnd        time.Time      `json:"time_end"`
+	LogLevels      []LogLevel     `json:"log_levels"` // For log level filters
+	Invert         bool           `json:"invert"`     // Invert the filter results
+	CaseSensitive  bool           `json:"case_sensitive"`
+	Highlight      bool           `json:"highlight"` // Highlight matches
 	HighlightColor string         `json:"highlight_color"`
-	Stats       FilterStats       `json:"stats"`
+	Stats          FilterStats    `json:"stats"`
 }
 
 // FilterStats tracks filter performance and matches
@@ -75,26 +75,26 @@ const (
 
 // FilterPreset represents a saved filter configuration
 type FilterPreset struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Category    string            `json:"category"`
-	Filters     []*StreamFilter   `json:"filters"`
-	Tags        []string          `json:"tags"`
-	Created     time.Time         `json:"created"`
-	LastUsed    time.Time         `json:"last_used"`
-	UseCount    int               `json:"use_count"`
+	ID          string          `json:"id"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Category    string          `json:"category"`
+	Filters     []*StreamFilter `json:"filters"`
+	Tags        []string        `json:"tags"`
+	Created     time.Time       `json:"created"`
+	LastUsed    time.Time       `json:"last_used"`
+	UseCount    int             `json:"use_count"`
 }
 
 // NewStreamFilter creates a new stream filter
 func NewStreamFilter(filterType FilterType, pattern string) (*StreamFilter, error) {
 	filter := &StreamFilter{
-		ID:          GenerateFilterID(),
-		Type:        filterType,
-		Enabled:     true,
-		Pattern:     pattern,
-		CaseSensitive: false,
-		Highlight:   true,
+		ID:             GenerateFilterID(),
+		Type:           filterType,
+		Enabled:        true,
+		Pattern:        pattern,
+		CaseSensitive:  false,
+		Highlight:      true,
 		HighlightColor: "yellow",
 		Stats: FilterStats{
 			Created: time.Now(),

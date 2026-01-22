@@ -11,12 +11,12 @@ import (
 
 // FilterManager manages filters and presets for streaming
 type FilterManager struct {
-	filters      map[string]*StreamFilter
-	chains       map[string]*FilterChain
-	presets      map[string]*FilterPreset
-	activeChain  *FilterChain
-	presetsPath  string
-	mu           sync.RWMutex
+	filters     map[string]*StreamFilter
+	chains      map[string]*FilterChain
+	presets     map[string]*FilterPreset
+	activeChain *FilterChain
+	presetsPath string
+	mu          sync.RWMutex
 }
 
 // NewFilterManager creates a new filter manager
@@ -65,7 +65,7 @@ func (fm *FilterManager) RemoveFilter(filterID string) error {
 	}
 
 	delete(fm.filters, filterID)
-	
+
 	// Remove from active chain if present
 	if fm.activeChain != nil {
 		newFilters := make([]*StreamFilter, 0)
@@ -241,7 +241,7 @@ func (fm *FilterManager) LoadPreset(presetID string) error {
 		filterCopy := *f
 		filterCopy.ID = GenerateFilterID()
 		filterCopy.Stats = FilterStats{Created: time.Now()}
-		
+
 		fm.filters[filterCopy.ID] = &filterCopy
 		chain.Filters = append(chain.Filters, &filterCopy)
 	}
@@ -276,7 +276,7 @@ func (fm *FilterManager) GetFilterStats() map[string]FilterStats {
 	defer fm.mu.RUnlock()
 
 	stats := make(map[string]FilterStats)
-	
+
 	if fm.activeChain != nil {
 		for _, filter := range fm.activeChain.Filters {
 			stats[filter.ID] = filter.Stats

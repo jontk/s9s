@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package auth
@@ -56,7 +57,7 @@ func (k *KeyringSecureStore) Initialize() error {
 func (k *KeyringSecureStore) Store(key string, data []byte) error {
 	// Encode data as JSON string for keyring storage
 	value := string(data)
-	
+
 	if err := k.backend.Set(k.serviceName, key, value); err != nil {
 		return fmt.Errorf("failed to store in keyring: %w", err)
 	}
@@ -113,7 +114,7 @@ type LinuxKeyringBackend struct {
 func NewLinuxKeyringBackend() KeyringBackend {
 	// In a real implementation, this would detect and use:
 	// - GNOME Keyring
-	// - KDE KWallet  
+	// - KDE KWallet
 	// - Secret Service API
 	// For now, fall back to encrypted file storage
 	return &LinuxKeyringBackend{
@@ -125,9 +126,9 @@ func NewLinuxKeyringBackend() KeyringBackend {
 func (l *LinuxKeyringBackend) Set(service, user, password string) error {
 	// In a real implementation, this would use libsecret:
 	// secret_password_store_sync()
-	
+
 	debug.Logger.Printf("Linux keyring: storing password for %s@%s", user, service)
-	
+
 	// Use fallback for now
 	key := fmt.Sprintf("%s:%s", service, user)
 	return l.fallback.Store(key, []byte(password))
@@ -137,9 +138,9 @@ func (l *LinuxKeyringBackend) Set(service, user, password string) error {
 func (l *LinuxKeyringBackend) Get(service, user string) (string, error) {
 	// In a real implementation, this would use libsecret:
 	// secret_password_lookup_sync()
-	
+
 	debug.Logger.Printf("Linux keyring: retrieving password for %s@%s", user, service)
-	
+
 	// Use fallback for now
 	key := fmt.Sprintf("%s:%s", service, user)
 	data, err := l.fallback.Retrieve(key)
@@ -153,9 +154,9 @@ func (l *LinuxKeyringBackend) Get(service, user string) (string, error) {
 func (l *LinuxKeyringBackend) Delete(service, user string) error {
 	// In a real implementation, this would use libsecret:
 	// secret_password_clear_sync()
-	
+
 	debug.Logger.Printf("Linux keyring: deleting password for %s@%s", user, service)
-	
+
 	// Use fallback for now
 	key := fmt.Sprintf("%s:%s", service, user)
 	return l.fallback.Delete(key)
@@ -165,13 +166,13 @@ func (l *LinuxKeyringBackend) Delete(service, user string) error {
 func (l *LinuxKeyringBackend) List(service string) ([]string, error) {
 	// In a real implementation, this would search the keyring
 	debug.Logger.Printf("Linux keyring: listing users for service %s", service)
-	
+
 	// Use fallback for now
 	keys, err := l.fallback.List()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var users []string
 	prefix := service + ":"
 	for _, key := range keys {
@@ -203,9 +204,9 @@ func NewMacOSKeyringBackend() KeyringBackend {
 func (m *MacOSKeyringBackend) Set(service, user, password string) error {
 	// In a real implementation, this would use Security.framework:
 	// SecItemAdd with kSecClassGenericPassword
-	
+
 	debug.Logger.Printf("macOS keychain: storing password for %s@%s", user, service)
-	
+
 	// Use fallback for now
 	key := fmt.Sprintf("%s:%s", service, user)
 	return m.fallback.Store(key, []byte(password))
@@ -215,9 +216,9 @@ func (m *MacOSKeyringBackend) Set(service, user, password string) error {
 func (m *MacOSKeyringBackend) Get(service, user string) (string, error) {
 	// In a real implementation, this would use Security.framework:
 	// SecItemCopyMatching with kSecClassGenericPassword
-	
+
 	debug.Logger.Printf("macOS keychain: retrieving password for %s@%s", user, service)
-	
+
 	// Use fallback for now
 	key := fmt.Sprintf("%s:%s", service, user)
 	data, err := m.fallback.Retrieve(key)
@@ -231,9 +232,9 @@ func (m *MacOSKeyringBackend) Get(service, user string) (string, error) {
 func (m *MacOSKeyringBackend) Delete(service, user string) error {
 	// In a real implementation, this would use Security.framework:
 	// SecItemDelete with kSecClassGenericPassword
-	
+
 	debug.Logger.Printf("macOS keychain: deleting password for %s@%s", user, service)
-	
+
 	// Use fallback for now
 	key := fmt.Sprintf("%s:%s", service, user)
 	return m.fallback.Delete(key)
@@ -243,13 +244,13 @@ func (m *MacOSKeyringBackend) Delete(service, user string) error {
 func (m *MacOSKeyringBackend) List(service string) ([]string, error) {
 	// In a real implementation, this would search the keychain
 	debug.Logger.Printf("macOS keychain: listing users for service %s", service)
-	
+
 	// Use fallback for now
 	keys, err := m.fallback.List()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var users []string
 	prefix := service + ":"
 	for _, key := range keys {
@@ -294,7 +295,7 @@ func (k *KeyringTokenStore) Store(ctx context.Context, clusterID string, token *
 // Retrieve gets a token from the keyring
 func (k *KeyringTokenStore) Retrieve(ctx context.Context, clusterID string) (*Token, error) {
 	key := fmt.Sprintf("token:%s", clusterID)
-	
+
 	// Retrieve from keyring
 	tokenBytes, err := k.secureStore.Retrieve(key)
 	if err != nil {
@@ -314,7 +315,7 @@ func (k *KeyringTokenStore) Retrieve(ctx context.Context, clusterID string) (*To
 // Delete removes a token from the keyring
 func (k *KeyringTokenStore) Delete(ctx context.Context, clusterID string) error {
 	key := fmt.Sprintf("token:%s", clusterID)
-	
+
 	if err := k.secureStore.Delete(key); err != nil {
 		return fmt.Errorf("failed to delete token from keyring: %w", err)
 	}

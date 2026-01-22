@@ -16,13 +16,13 @@ import (
 
 // PerformanceDashboard provides a real-time performance monitoring widget
 type PerformanceDashboard struct {
-	mu          sync.RWMutex
-	container   *tview.Flex
-	
+	mu        sync.RWMutex
+	container *tview.Flex
+
 	// Performance components
-	profiler    *performance.Profiler
-	optimizer   *performance.Optimizer
-	
+	profiler  *performance.Profiler
+	optimizer *performance.Optimizer
+
 	// UI Widgets
 	cpuChart     *tview.TextView
 	memoryChart  *tview.TextView
@@ -30,24 +30,24 @@ type PerformanceDashboard struct {
 	opsChart     *tview.TextView
 	metricsTable *tview.Table
 	alertsPanel  *tview.TextView
-	
+
 	// Data
 	cpuHistory     []float64
 	memoryHistory  []float64
 	networkHistory []float64
 	opsHistory     []float64
 	maxHistory     int
-	
+
 	// State
 	running        bool
 	updateInterval time.Duration
 	ctx            context.Context
 	cancel         context.CancelFunc
-	
+
 	// Configuration
-	showAlerts     bool
-	autoOptimize   bool
-	thresholds     PerformanceThresholds
+	showAlerts   bool
+	autoOptimize bool
+	thresholds   PerformanceThresholds
 }
 
 // PerformanceThresholds defines alerting thresholds
@@ -65,7 +65,7 @@ type PerformanceThresholds struct {
 // NewPerformanceDashboard creates a new performance dashboard
 func NewPerformanceDashboard(profiler *performance.Profiler, optimizer *performance.Optimizer) *PerformanceDashboard {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	pd := &PerformanceDashboard{
 		profiler:       profiler,
 		optimizer:      optimizer,
@@ -86,10 +86,10 @@ func NewPerformanceDashboard(profiler *performance.Profiler, optimizer *performa
 			OpsCritical:     5000.0,
 		},
 	}
-	
+
 	pd.initializeHistory()
 	pd.initializeUI()
-	
+
 	return pd
 }
 
@@ -109,56 +109,56 @@ func (pd *PerformanceDashboard) initializeUI() {
 	pd.container.SetBorder(true)
 	pd.container.SetTitle(" 📊 Performance Dashboard ")
 	pd.container.SetTitleAlign(tview.AlignCenter)
-	
+
 	// Create top row with charts
 	chartsRow := tview.NewFlex()
 	chartsRow.SetDirection(tview.FlexColumn)
-	
+
 	// CPU Chart
 	pd.cpuChart = tview.NewTextView()
 	pd.cpuChart.SetBorder(true)
 	pd.cpuChart.SetTitle(" CPU Usage % ")
 	pd.cpuChart.SetDynamicColors(true)
 	pd.cpuChart.SetWrap(false)
-	
+
 	// Memory Chart
 	pd.memoryChart = tview.NewTextView()
 	pd.memoryChart.SetBorder(true)
 	pd.memoryChart.SetTitle(" Memory Usage % ")
 	pd.memoryChart.SetDynamicColors(true)
 	pd.memoryChart.SetWrap(false)
-	
+
 	// Network Chart
 	pd.networkChart = tview.NewTextView()
 	pd.networkChart.SetBorder(true)
 	pd.networkChart.SetTitle(" Network MB/s ")
 	pd.networkChart.SetDynamicColors(true)
 	pd.networkChart.SetWrap(false)
-	
+
 	// Operations Chart
 	pd.opsChart = tview.NewTextView()
 	pd.opsChart.SetBorder(true)
 	pd.opsChart.SetTitle(" Operations/sec ")
 	pd.opsChart.SetDynamicColors(true)
 	pd.opsChart.SetWrap(false)
-	
+
 	// Add charts to top row
 	chartsRow.AddItem(pd.cpuChart, 0, 1, false)
 	chartsRow.AddItem(pd.memoryChart, 0, 1, false)
 	chartsRow.AddItem(pd.networkChart, 0, 1, false)
 	chartsRow.AddItem(pd.opsChart, 0, 1, false)
-	
+
 	// Create bottom row with metrics and alerts
 	bottomRow := tview.NewFlex()
 	bottomRow.SetDirection(tview.FlexColumn)
-	
+
 	// Metrics Table
 	pd.metricsTable = tview.NewTable()
 	pd.metricsTable.SetBorder(true)
 	pd.metricsTable.SetTitle(" 📈 Detailed Metrics ")
 	pd.metricsTable.SetSelectable(true, false)
 	pd.setupMetricsTable()
-	
+
 	// Alerts Panel
 	pd.alertsPanel = tview.NewTextView()
 	pd.alertsPanel.SetBorder(true)
@@ -166,15 +166,15 @@ func (pd *PerformanceDashboard) initializeUI() {
 	pd.alertsPanel.SetDynamicColors(true)
 	pd.alertsPanel.SetScrollable(true)
 	pd.alertsPanel.SetWrap(true)
-	
+
 	// Add to bottom row
 	bottomRow.AddItem(pd.metricsTable, 0, 2, false)
 	bottomRow.AddItem(pd.alertsPanel, 0, 1, false)
-	
+
 	// Add rows to main container
 	pd.container.AddItem(chartsRow, 0, 2, false)
 	pd.container.AddItem(bottomRow, 0, 1, false)
-	
+
 	// Set up input handling
 	pd.container.SetInputCapture(pd.handleInput)
 }
@@ -207,7 +207,7 @@ func (pd *PerformanceDashboard) handleInput(event *tcell.EventKey) *tcell.EventK
 		pd.toggleAlerts()
 		return nil
 	}
-	
+
 	switch event.Rune() {
 	case 'r', 'R':
 		pd.refresh()
@@ -222,7 +222,7 @@ func (pd *PerformanceDashboard) handleInput(event *tcell.EventKey) *tcell.EventK
 		pd.clearHistory()
 		return nil
 	}
-	
+
 	return event
 }
 
@@ -230,14 +230,14 @@ func (pd *PerformanceDashboard) handleInput(event *tcell.EventKey) *tcell.EventK
 func (pd *PerformanceDashboard) Start() error {
 	pd.mu.Lock()
 	defer pd.mu.Unlock()
-	
+
 	if pd.running {
 		return fmt.Errorf("dashboard already running")
 	}
-	
+
 	pd.running = true
 	go pd.updateLoop()
-	
+
 	return nil
 }
 
@@ -245,11 +245,11 @@ func (pd *PerformanceDashboard) Start() error {
 func (pd *PerformanceDashboard) Stop() {
 	pd.mu.Lock()
 	defer pd.mu.Unlock()
-	
+
 	if !pd.running {
 		return
 	}
-	
+
 	pd.running = false
 	pd.cancel()
 }
@@ -277,43 +277,43 @@ func (pd *PerformanceDashboard) updateLoop() {
 func (pd *PerformanceDashboard) updateMetrics() {
 	pd.mu.Lock()
 	defer pd.mu.Unlock()
-	
+
 	if pd.profiler == nil {
 		return
 	}
-	
+
 	// Get current metrics
 	stats := pd.profiler.GetOperationStats()
 	memStats := pd.profiler.CaptureMemoryStats()
-	
+
 	// Update CPU metrics
 	cpuUsage := pd.calculateCPUUsage(stats)
 	pd.addToHistory(&pd.cpuHistory, cpuUsage)
 	pd.updateCPUChart()
-	
+
 	// Update Memory metrics
 	memUsage := pd.calculateMemoryUsage(memStats)
 	pd.addToHistory(&pd.memoryHistory, memUsage)
 	pd.updateMemoryChart()
-	
+
 	// Update Network metrics
 	netUsage := pd.calculateNetworkUsage(stats)
 	pd.addToHistory(&pd.networkHistory, netUsage)
 	pd.updateNetworkChart()
-	
+
 	// Update Operations metrics
 	opsRate := pd.calculateOpsRate(stats)
 	pd.addToHistory(&pd.opsHistory, opsRate)
 	pd.updateOpsChart()
-	
+
 	// Update detailed metrics table
 	pd.updateMetricsTable(cpuUsage, memUsage, netUsage, opsRate)
-	
+
 	// Check for alerts and recommendations
 	if pd.showAlerts {
 		pd.updateAlerts(cpuUsage, memUsage, netUsage, opsRate)
 	}
-	
+
 	// Auto-optimize if enabled
 	if pd.autoOptimize && pd.optimizer != nil {
 		pd.performAutoOptimization(cpuUsage, memUsage, netUsage, opsRate)
@@ -333,24 +333,24 @@ func (pd *PerformanceDashboard) calculateCPUUsage(stats map[string]performance.O
 	if stats == nil || len(stats) == 0 {
 		return 0.0
 	}
-	
+
 	// Calculate CPU usage based on operation timings
 	totalTime := time.Duration(0)
 	for _, op := range stats {
 		totalTime += op.AverageTime * time.Duration(op.Count)
 	}
-	
+
 	// Estimate CPU usage percentage
 	windowDuration := pd.updateInterval
 	if windowDuration == 0 {
 		windowDuration = 1 * time.Second
 	}
-	
+
 	cpuUsage := float64(totalTime.Nanoseconds()) / float64(windowDuration.Nanoseconds()) * 100.0
 	if cpuUsage > 100.0 {
 		cpuUsage = 100.0
 	}
-	
+
 	return cpuUsage
 }
 
@@ -360,7 +360,7 @@ func (pd *PerformanceDashboard) calculateMemoryUsage(memStats runtime.MemStats) 
 	if memStats.Sys > 0 {
 		return float64(memStats.HeapInuse) / float64(memStats.Sys) * 100.0
 	}
-	
+
 	return 0.0
 }
 
@@ -369,17 +369,17 @@ func (pd *PerformanceDashboard) calculateNetworkUsage(stats map[string]performan
 	if stats == nil {
 		return 0.0
 	}
-	
+
 	// Estimate network usage based on operations
 	networkOps := int64(0)
 	for name, op := range stats {
-		if strings.Contains(strings.ToLower(name), "ssh") || 
-		   strings.Contains(strings.ToLower(name), "api") || 
-		   strings.Contains(strings.ToLower(name), "network") {
+		if strings.Contains(strings.ToLower(name), "ssh") ||
+			strings.Contains(strings.ToLower(name), "api") ||
+			strings.Contains(strings.ToLower(name), "network") {
 			networkOps += op.Count
 		}
 	}
-	
+
 	// Convert to MB/s estimate
 	return float64(networkOps) * 0.1 // Rough estimate
 }
@@ -389,18 +389,18 @@ func (pd *PerformanceDashboard) calculateOpsRate(stats map[string]performance.Op
 	if stats == nil {
 		return 0.0
 	}
-	
+
 	// Calculate ops/sec based on total operations
 	totalOps := int64(0)
 	for _, op := range stats {
 		totalOps += op.Count
 	}
-	
+
 	windowSeconds := pd.updateInterval.Seconds()
 	if windowSeconds == 0 {
 		windowSeconds = 1.0
 	}
-	
+
 	return float64(totalOps) / windowSeconds
 }
 
@@ -433,12 +433,12 @@ func (pd *PerformanceDashboard) generateAsciiChart(data []float64, name, unit st
 	if len(data) == 0 {
 		return fmt.Sprintf("[gray]No %s data[white]", name)
 	}
-	
+
 	// Get current and summary values
 	current := data[len(data)-1]
 	avg := pd.calculateAverage(data)
 	max := pd.calculateMax(data)
-	
+
 	// Determine color based on thresholds
 	color := "green"
 	if current >= criticalThreshold {
@@ -446,16 +446,16 @@ func (pd *PerformanceDashboard) generateAsciiChart(data []float64, name, unit st
 	} else if current >= warningThreshold {
 		color = "yellow"
 	}
-	
+
 	// Create simple bar chart
 	chart := fmt.Sprintf("[%s]Current: %.1f%s[white]\n", color, current, unit)
 	chart += fmt.Sprintf("Average: %.1f%s\n", avg, unit)
 	chart += fmt.Sprintf("Peak: %.1f%s\n\n", max, unit)
-	
+
 	// Add simple trend line
 	trend := pd.generateTrendLine(data, 20)
 	chart += trend
-	
+
 	return chart
 }
 
@@ -464,22 +464,22 @@ func (pd *PerformanceDashboard) generateTrendLine(data []float64, width int) str
 	if len(data) < 2 {
 		return "[gray]Insufficient data[white]"
 	}
-	
+
 	max := pd.calculateMax(data)
 	if max == 0 {
 		max = 1
 	}
-	
+
 	line := ""
 	step := len(data) / width
 	if step < 1 {
 		step = 1
 	}
-	
+
 	for i := 0; i < len(data); i += step {
 		value := data[i]
 		height := int((value / max) * 8)
-		
+
 		switch height {
 		case 0:
 			line += "_"
@@ -500,12 +500,12 @@ func (pd *PerformanceDashboard) generateTrendLine(data []float64, width int) str
 		default:
 			line += "█"
 		}
-		
+
 		if len(line) >= width {
 			break
 		}
 	}
-	
+
 	return line
 }
 
@@ -514,12 +514,12 @@ func (pd *PerformanceDashboard) calculateAverage(data []float64) float64 {
 	if len(data) == 0 {
 		return 0
 	}
-	
+
 	sum := 0.0
 	for _, v := range data {
 		sum += v
 	}
-	
+
 	return sum / float64(len(data))
 }
 
@@ -528,25 +528,25 @@ func (pd *PerformanceDashboard) calculateMax(data []float64) float64 {
 	if len(data) == 0 {
 		return 0
 	}
-	
+
 	max := data[0]
 	for _, v := range data {
 		if v > max {
 			max = v
 		}
 	}
-	
+
 	return max
 }
 
 // updateMetricsTable updates the detailed metrics table
 func (pd *PerformanceDashboard) updateMetricsTable(cpuUsage, memUsage, netUsage, opsRate float64) {
 	metrics := []struct {
-		name    string
-		current float64
-		history []float64
-		unit    string
-		warning float64
+		name     string
+		current  float64
+		history  []float64
+		unit     string
+		warning  float64
 		critical float64
 	}{
 		{"CPU", cpuUsage, pd.cpuHistory, "%", pd.thresholds.CPUWarning, pd.thresholds.CPUCritical},
@@ -554,13 +554,13 @@ func (pd *PerformanceDashboard) updateMetricsTable(cpuUsage, memUsage, netUsage,
 		{"Network", netUsage, pd.networkHistory, "MB/s", pd.thresholds.NetworkWarning, pd.thresholds.NetworkCritical},
 		{"Operations", opsRate, pd.opsHistory, "/sec", pd.thresholds.OpsWarning, pd.thresholds.OpsCritical},
 	}
-	
+
 	for i, metric := range metrics {
 		row := i + 1
-		
+
 		// Metric name
 		pd.metricsTable.SetCell(row, 0, tview.NewTableCell(metric.name))
-		
+
 		// Current value
 		color := tcell.ColorGreen
 		if metric.current >= metric.critical {
@@ -568,19 +568,19 @@ func (pd *PerformanceDashboard) updateMetricsTable(cpuUsage, memUsage, netUsage,
 		} else if metric.current >= metric.warning {
 			color = tcell.ColorYellow
 		}
-		
+
 		currentCell := tview.NewTableCell(fmt.Sprintf("%.1f%s", metric.current, metric.unit))
 		currentCell.SetTextColor(color)
 		pd.metricsTable.SetCell(row, 1, currentCell)
-		
+
 		// Average
 		avg := pd.calculateAverage(metric.history)
 		pd.metricsTable.SetCell(row, 2, tview.NewTableCell(fmt.Sprintf("%.1f%s", avg, metric.unit)))
-		
+
 		// Peak
 		peak := pd.calculateMax(metric.history)
 		pd.metricsTable.SetCell(row, 3, tview.NewTableCell(fmt.Sprintf("%.1f%s", peak, metric.unit)))
-		
+
 		// Status
 		status := "OK"
 		statusColor := tcell.ColorGreen
@@ -591,7 +591,7 @@ func (pd *PerformanceDashboard) updateMetricsTable(cpuUsage, memUsage, netUsage,
 			status = "WARNING"
 			statusColor = tcell.ColorYellow
 		}
-		
+
 		statusCell := tview.NewTableCell(status)
 		statusCell.SetTextColor(statusColor)
 		pd.metricsTable.SetCell(row, 4, statusCell)
@@ -602,7 +602,7 @@ func (pd *PerformanceDashboard) updateMetricsTable(cpuUsage, memUsage, netUsage,
 func (pd *PerformanceDashboard) updateAlerts(cpuUsage, memUsage, netUsage, opsRate float64) {
 	alerts := []string{}
 	recommendations := []string{}
-	
+
 	// Check CPU alerts
 	if cpuUsage >= pd.thresholds.CPUCritical {
 		alerts = append(alerts, fmt.Sprintf("[red]🚨 CRITICAL: CPU usage at %.1f%%[white]", cpuUsage))
@@ -611,7 +611,7 @@ func (pd *PerformanceDashboard) updateAlerts(cpuUsage, memUsage, netUsage, opsRa
 	} else if cpuUsage >= pd.thresholds.CPUWarning {
 		alerts = append(alerts, fmt.Sprintf("[yellow]⚠️  WARNING: CPU usage at %.1f%%[white]", cpuUsage))
 	}
-	
+
 	// Check Memory alerts
 	if memUsage >= pd.thresholds.MemoryCritical {
 		alerts = append(alerts, fmt.Sprintf("[red]🚨 CRITICAL: Memory usage at %.1f%%[white]", memUsage))
@@ -620,7 +620,7 @@ func (pd *PerformanceDashboard) updateAlerts(cpuUsage, memUsage, netUsage, opsRa
 	} else if memUsage >= pd.thresholds.MemoryWarning {
 		alerts = append(alerts, fmt.Sprintf("[yellow]⚠️  WARNING: Memory usage at %.1f%%[white]", memUsage))
 	}
-	
+
 	// Check Network alerts
 	if netUsage >= pd.thresholds.NetworkCritical {
 		alerts = append(alerts, fmt.Sprintf("[red]🚨 CRITICAL: Network usage at %.1f MB/s[white]", netUsage))
@@ -628,7 +628,7 @@ func (pd *PerformanceDashboard) updateAlerts(cpuUsage, memUsage, netUsage, opsRa
 	} else if netUsage >= pd.thresholds.NetworkWarning {
 		alerts = append(alerts, fmt.Sprintf("[yellow]⚠️  WARNING: High network usage %.1f MB/s[white]", netUsage))
 	}
-	
+
 	// Check Operations alerts
 	if opsRate >= pd.thresholds.OpsCritical {
 		alerts = append(alerts, fmt.Sprintf("[red]🚨 CRITICAL: High operation rate %.1f/sec[white]", opsRate))
@@ -636,7 +636,7 @@ func (pd *PerformanceDashboard) updateAlerts(cpuUsage, memUsage, netUsage, opsRa
 	} else if opsRate >= pd.thresholds.OpsWarning {
 		alerts = append(alerts, fmt.Sprintf("[yellow]⚠️  WARNING: High operation rate %.1f/sec[white]", opsRate))
 	}
-	
+
 	// Build alerts text
 	alertText := ""
 	if len(alerts) == 0 {
@@ -648,7 +648,7 @@ func (pd *PerformanceDashboard) updateAlerts(cpuUsage, memUsage, netUsage, opsRa
 		}
 		alertText += "\n"
 	}
-	
+
 	// Add recommendations
 	if len(recommendations) > 0 {
 		alertText += "💡 RECOMMENDATIONS:\n"
@@ -657,12 +657,12 @@ func (pd *PerformanceDashboard) updateAlerts(cpuUsage, memUsage, netUsage, opsRa
 		}
 		alertText += "\n"
 	}
-	
+
 	// Add controls help
 	alertText += "[gray]CONTROLS:[white]\n"
 	alertText += "[gray]F5/R: Refresh • Ctrl+O/O: Toggle auto-optimize[white]\n"
 	alertText += "[gray]Ctrl+A/A: Toggle alerts • C: Clear history[white]"
-	
+
 	pd.alertsPanel.SetText(alertText)
 }
 
@@ -671,18 +671,18 @@ func (pd *PerformanceDashboard) performAutoOptimization(cpuUsage, memUsage, netU
 	if pd.optimizer == nil {
 		return
 	}
-	
+
 	// Apply optimizations based on current metrics
 	if cpuUsage >= pd.thresholds.CPUWarning {
 		pd.optimizer.TuneForInteractive()
 		log.Printf("Auto-optimization: Applied interactive tuning due to high CPU usage")
 	}
-	
+
 	if memUsage >= pd.thresholds.MemoryWarning {
 		pd.optimizer.EnableAutoTune(true)
 		log.Printf("Auto-optimization: Enabled auto-tuning due to high memory usage")
 	}
-	
+
 	if opsRate >= pd.thresholds.OpsWarning {
 		pd.optimizer.TuneForBatchOperations()
 		log.Printf("Auto-optimization: Applied batch tuning due to high operation rate")
@@ -700,7 +700,7 @@ func (pd *PerformanceDashboard) refresh() {
 func (pd *PerformanceDashboard) reset() {
 	pd.mu.Lock()
 	defer pd.mu.Unlock()
-	
+
 	pd.initializeHistory()
 	pd.cpuChart.Clear()
 	pd.memoryChart.Clear()
@@ -714,7 +714,7 @@ func (pd *PerformanceDashboard) reset() {
 func (pd *PerformanceDashboard) toggleAutoOptimize() {
 	pd.mu.Lock()
 	defer pd.mu.Unlock()
-	
+
 	pd.autoOptimize = !pd.autoOptimize
 	status := "disabled"
 	if pd.autoOptimize {
@@ -727,7 +727,7 @@ func (pd *PerformanceDashboard) toggleAutoOptimize() {
 func (pd *PerformanceDashboard) toggleAlerts() {
 	pd.mu.Lock()
 	defer pd.mu.Unlock()
-	
+
 	pd.showAlerts = !pd.showAlerts
 	if !pd.showAlerts {
 		pd.alertsPanel.SetText("[gray]Alerts disabled[white]")
@@ -738,7 +738,7 @@ func (pd *PerformanceDashboard) toggleAlerts() {
 func (pd *PerformanceDashboard) clearHistory() {
 	pd.mu.Lock()
 	defer pd.mu.Unlock()
-	
+
 	pd.initializeHistory()
 }
 
@@ -751,7 +751,7 @@ func (pd *PerformanceDashboard) GetContainer() tview.Primitive {
 func (pd *PerformanceDashboard) SetUpdateInterval(interval time.Duration) {
 	pd.mu.Lock()
 	defer pd.mu.Unlock()
-	
+
 	pd.updateInterval = interval
 }
 
@@ -759,7 +759,7 @@ func (pd *PerformanceDashboard) SetUpdateInterval(interval time.Duration) {
 func (pd *PerformanceDashboard) SetThresholds(thresholds PerformanceThresholds) {
 	pd.mu.Lock()
 	defer pd.mu.Unlock()
-	
+
 	pd.thresholds = thresholds
 }
 
@@ -767,6 +767,6 @@ func (pd *PerformanceDashboard) SetThresholds(thresholds PerformanceThresholds) 
 func (pd *PerformanceDashboard) IsRunning() bool {
 	pd.mu.RLock()
 	defer pd.mu.RUnlock()
-	
+
 	return pd.running
 }

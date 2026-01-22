@@ -21,17 +21,17 @@ type NodesOverlay struct {
 	queryBuilder *prometheus.QueryBuilder
 
 	// Cache of node metrics
-	metrics      map[string]*models.NodeMetrics
-	sparklines   map[string]*widgets.TimeSeriesSparkline
-	lastUpdate   time.Time
-	updateMutex  sync.RWMutex
+	metrics     map[string]*models.NodeMetrics
+	sparklines  map[string]*widgets.TimeSeriesSparkline
+	lastUpdate  time.Time
+	updateMutex sync.RWMutex
 
 	// Configuration
-	refreshInterval  time.Duration
-	enabled          bool
-	showSparklines   bool
-	sparklinePoints  int
-	nodeLabel        string
+	refreshInterval time.Duration
+	enabled         bool
+	showSparklines  bool
+	sparklinePoints int
+	nodeLabel       string
 }
 
 // NewNodesOverlay creates a new nodes overlay
@@ -39,16 +39,16 @@ func NewNodesOverlay(client *prometheus.CachedClient, nodeLabel string) *NodesOv
 	qb, _ := prometheus.NewQueryBuilder()
 
 	return &NodesOverlay{
-		client:           client,
-		collector:        models.NewNodeMetricsCollector(nodeLabel),
-		queryBuilder:     qb,
-		metrics:          make(map[string]*models.NodeMetrics),
-		sparklines:       make(map[string]*widgets.TimeSeriesSparkline),
-		refreshInterval:  30 * time.Second,
-		enabled:          true,
-		showSparklines:   true,
-		sparklinePoints:  20,
-		nodeLabel:        nodeLabel,
+		client:          client,
+		collector:       models.NewNodeMetricsCollector(nodeLabel),
+		queryBuilder:    qb,
+		metrics:         make(map[string]*models.NodeMetrics),
+		sparklines:      make(map[string]*widgets.TimeSeriesSparkline),
+		refreshInterval: 30 * time.Second,
+		enabled:         true,
+		showSparklines:  true,
+		sparklinePoints: 20,
+		nodeLabel:       nodeLabel,
 	}
 }
 

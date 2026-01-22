@@ -11,14 +11,14 @@ import (
 // FilterBar provides an advanced filtering interface
 type FilterBar struct {
 	*tview.Flex
-	input          *tview.InputField
+	input *tview.InputField
 	// TODO(lint): Review unused code - field presetDropdown is unused
 	// presetDropdown *tview.List
-	helpText       *tview.TextView
-	parser         *filters.FilterParser
-	presetManager  *filters.PresetManager
-	currentFilter  *filters.Filter
-	viewType       string
+	helpText      *tview.TextView
+	parser        *filters.FilterParser
+	presetManager *filters.PresetManager
+	currentFilter *filters.Filter
+	viewType      string
 	// TODO(lint): Review unused code - field isAdvancedMode is unused
 	// isAdvancedMode bool
 	onFilterChange func(filter *filters.Filter)

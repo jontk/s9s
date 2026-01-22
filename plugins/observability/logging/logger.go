@@ -40,10 +40,10 @@ func (l LogLevel) String() string {
 
 // Logger provides structured logging for the observability plugin
 type Logger struct {
-	mu       sync.Mutex
-	file     *os.File
-	logger   *log.Logger
-	level    LogLevel
+	mu        sync.Mutex
+	file      *os.File
+	logger    *log.Logger
+	level     LogLevel
 	component string
 }
 
@@ -187,7 +187,7 @@ func (l *Logger) Error(component, format string, args ...interface{}) {
 func (l *Logger) Close() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	if l.file != nil {
 		return l.file.Close()
 	}

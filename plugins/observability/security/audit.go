@@ -29,25 +29,25 @@ type AuditLogger struct {
 type AuditConfig struct {
 	// Enable audit logging
 	Enabled bool `yaml:"enabled" json:"enabled"`
-	
+
 	// Log file path (if empty, logs to stdout)
 	LogFile string `yaml:"logFile" json:"logFile"`
-	
+
 	// Log level: "info", "warn", "error"
 	LogLevel string `yaml:"logLevel" json:"logLevel"`
-	
+
 	// Maximum log file size in MB before rotation
 	MaxFileSizeMB int `yaml:"maxFileSizeMB" json:"maxFileSizeMB"`
-	
+
 	// Maximum number of log files to keep
 	MaxFiles int `yaml:"maxFiles" json:"maxFiles"`
-	
+
 	// Include request/response bodies in logs (security risk)
 	IncludeBodies bool `yaml:"includeBodies" json:"includeBodies"`
-	
+
 	// Log sensitive operations only (vs all operations)
 	SensitiveOnly bool `yaml:"sensitiveOnly" json:"sensitiveOnly"`
-	
+
 	// Additional fields to log from request headers
 	LogHeaders []string `yaml:"logHeaders" json:"logHeaders"`
 }
@@ -278,7 +278,7 @@ func (al *AuditLogger) Close() error {
 	if al == nil {
 		return nil
 	}
-	
+
 	al.mu.Lock()
 	defer al.mu.Unlock()
 
@@ -326,13 +326,13 @@ func (al *AuditLogger) isSensitivePath(path string) bool {
 
 func (al *AuditLogger) extractHeaders(r *http.Request) map[string]string {
 	headers := make(map[string]string)
-	
+
 	for _, headerName := range al.config.LogHeaders {
 		if value := r.Header.Get(headerName); value != "" {
 			headers[headerName] = value
 		}
 	}
-	
+
 	return headers
 }
 
@@ -355,17 +355,17 @@ func extractClientIP(r *http.Request) string {
 			return strings.TrimSpace(ips[0])
 		}
 	}
-	
+
 	// Check X-Real-IP header
 	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
 		return realIP
 	}
-	
+
 	// Fallback to RemoteAddr (remove port)
 	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 		return host
 	}
-	
+
 	return r.RemoteAddr
 }
 
@@ -406,7 +406,7 @@ func (al *AuditLogger) rotateIfNeeded() error {
 
 func (al *AuditLogger) rotateFiles() error {
 	baseName := al.config.LogFile
-	
+
 	// Remove oldest file if we've reached the limit
 	oldestFile := fmt.Sprintf("%s.%d", baseName, al.config.MaxFiles)
 	_ = os.Remove(oldestFile) // Ignore error if file doesn't exist
@@ -435,13 +435,13 @@ func (al *AuditLogger) GetStats() map[string]interface{} {
 	defer al.mu.Unlock()
 
 	stats := map[string]interface{}{
-		"enabled":         al.config.Enabled,
-		"log_file":        al.config.LogFile,
-		"log_level":       al.config.LogLevel,
-		"sensitive_only":  al.config.SensitiveOnly,
-		"include_bodies":  al.config.IncludeBodies,
-		"max_file_size":   al.config.MaxFileSizeMB,
-		"max_files":       al.config.MaxFiles,
+		"enabled":        al.config.Enabled,
+		"log_file":       al.config.LogFile,
+		"log_level":      al.config.LogLevel,
+		"sensitive_only": al.config.SensitiveOnly,
+		"include_bodies": al.config.IncludeBodies,
+		"max_file_size":  al.config.MaxFileSizeMB,
+		"max_files":      al.config.MaxFiles,
 	}
 
 	// Add file statistics if logging to file

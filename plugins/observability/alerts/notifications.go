@@ -47,10 +47,10 @@ const (
 
 // AlertSubscription defines a subscription to alert notifications
 type AlertSubscription struct {
-	ID          string
-	Filter      AlertFilter
-	HandlerIDs  []string
-	CreatedAt   time.Time
+	ID           string
+	Filter       AlertFilter
+	HandlerIDs   []string
+	CreatedAt    time.Time
 	LastNotified time.Time
 }
 

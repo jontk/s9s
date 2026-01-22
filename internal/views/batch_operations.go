@@ -18,30 +18,30 @@ import (
 type BatchOperation string
 
 const (
-	BatchCancel    BatchOperation = "cancel"
-	BatchHold      BatchOperation = "hold"
-	BatchRelease   BatchOperation = "release"
-	BatchRequeue   BatchOperation = "requeue"
-	BatchDelete    BatchOperation = "delete"
-	BatchPriority  BatchOperation = "priority"
-	BatchExport    BatchOperation = "export"
+	BatchCancel   BatchOperation = "cancel"
+	BatchHold     BatchOperation = "hold"
+	BatchRelease  BatchOperation = "release"
+	BatchRequeue  BatchOperation = "requeue"
+	BatchDelete   BatchOperation = "delete"
+	BatchPriority BatchOperation = "priority"
+	BatchExport   BatchOperation = "export"
 )
 
 // BatchOperationsView handles batch operations on multiple jobs
 type BatchOperationsView struct {
-	app           *tview.Application
-	pages         *tview.Pages
-	client        dao.SlurmClient
-	modal         *tview.Flex
-	operationList *tview.List
-	jobsList      *tview.TextView
-	progressBar   *tview.TextView
-	selectedJobs  []string
+	app              *tview.Application
+	pages            *tview.Pages
+	client           dao.SlurmClient
+	modal            *tview.Flex
+	operationList    *tview.List
+	jobsList         *tview.TextView
+	progressBar      *tview.TextView
+	selectedJobs     []string
 	selectedJobsData []map[string]interface{}
-	onComplete    func()
-	exporter      *export.JobOutputExporter
-	loadingManager *components.LoadingManager
-	loadingWrapper *components.LoadingWrapper
+	onComplete       func()
+	exporter         *export.JobOutputExporter
+	loadingManager   *components.LoadingManager
+	loadingWrapper   *components.LoadingWrapper
 }
 
 // NewBatchOperationsView creates a new batch operations view
@@ -54,11 +54,11 @@ func NewBatchOperationsView(client dao.SlurmClient, app *tview.Application) *Bat
 	}
 
 	return &BatchOperationsView{
-		client:       client,
-		app:          app,
-		selectedJobs: make([]string, 0),
+		client:           client,
+		app:              app,
+		selectedJobs:     make([]string, 0),
 		selectedJobsData: make([]map[string]interface{}, 0),
-		exporter:     export.NewJobOutputExporter(defaultPath),
+		exporter:         export.NewJobOutputExporter(defaultPath),
 	}
 }
 

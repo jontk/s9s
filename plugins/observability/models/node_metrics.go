@@ -8,19 +8,19 @@ import (
 
 // NodeMetrics represents metrics for a compute node
 type NodeMetrics struct {
-	NodeName      string                   `json:"node_name"`
-	NodeState     string                   `json:"node_state"`     // SLURM state
-	LastUpdate    time.Time                `json:"last_update"`
-	Resources     ResourceMetrics          `json:"resources"`
-	JobCount      int                      `json:"job_count"`
-	Labels        map[string]string        `json:"labels"`         // Prometheus labels
-	CustomMetrics map[string]float64       `json:"custom_metrics"` // Additional metrics
+	NodeName      string             `json:"node_name"`
+	NodeState     string             `json:"node_state"` // SLURM state
+	LastUpdate    time.Time          `json:"last_update"`
+	Resources     ResourceMetrics    `json:"resources"`
+	JobCount      int                `json:"job_count"`
+	Labels        map[string]string  `json:"labels"`         // Prometheus labels
+	CustomMetrics map[string]float64 `json:"custom_metrics"` // Additional metrics
 }
 
 // NodeMetricsCollector collects and manages node metrics
 type NodeMetricsCollector struct {
-	nodes          map[string]*NodeMetrics
-	nodeLabel      string // Prometheus label for node identification
+	nodes     map[string]*NodeMetrics
+	nodeLabel string // Prometheus label for node identification
 	// TODO(lint): Review unused code - field prometheusNode is unused
 	// prometheusNode string // How nodes are identified in Prometheus
 }
@@ -39,7 +39,7 @@ func (nmc *NodeMetricsCollector) UpdateFromPrometheus(nodeName string, metrics m
 	if metrics == nil || len(metrics) == 0 {
 		return
 	}
-	
+
 	node, exists := nmc.nodes[nodeName]
 	if !exists {
 		node = &NodeMetrics{

@@ -33,7 +33,7 @@ If no configuration file exists, a new one will be created with default settings
 	RunE: runConfigEdit,
 }
 
-// configValidateCmd represents the config validate command  
+// configValidateCmd represents the config validate command
 var configValidateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "Validate the configuration file",
@@ -63,22 +63,22 @@ This shows the effective configuration after merging:
 func init() {
 	// Add subcommands to config
 	configCmd.AddCommand(configEditCmd)
-	configCmd.AddCommand(configValidateCmd) 
+	configCmd.AddCommand(configValidateCmd)
 	configCmd.AddCommand(configShowCmd)
-	
+
 	// Add config command to root
 	rootCmd.AddCommand(configCmd)
 }
 
 func runConfigEdit(cmd *cobra.Command, args []string) error {
 	configPath := getConfigPath()
-	
+
 	// Create directory if it doesn't exist
 	configDir := filepath.Dir(configPath)
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
-	
+
 	// Create default config if it doesn't exist
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		if err := createDefaultConfig(configPath); err != nil {
@@ -86,20 +86,20 @@ func runConfigEdit(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Printf("Created default configuration at: %s\n", configPath)
 	}
-	
+
 	// Open in editor
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
 		editor = getDefaultEditor()
 	}
-	
+
 	fmt.Printf("Opening %s in %s...\n", configPath, editor)
-	
+
 	execCmd := exec.Command(editor, configPath)
 	execCmd.Stdin = os.Stdin
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
-	
+
 	return execCmd.Run()
 }
 
@@ -108,7 +108,7 @@ func runConfigValidate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
-	
+
 	// Basic validation - check if current context exists
 	if cfg.CurrentContext != "" {
 		_, err := cfg.GetContext(cfg.CurrentContext)
@@ -117,7 +117,7 @@ func runConfigValidate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("configuration validation failed: %w", err)
 		}
 	}
-	
+
 	// Validate contexts have valid cluster endpoints
 	for _, ctx := range cfg.Contexts {
 		if ctx.Cluster.Endpoint == "" {
@@ -125,7 +125,7 @@ func runConfigValidate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("configuration validation failed: missing cluster endpoint")
 		}
 	}
-	
+
 	fmt.Println("✅ Configuration is valid")
 	return nil
 }
@@ -135,16 +135,16 @@ func runConfigShow(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
-	
+
 	// Print configuration (with sensitive data masked)
 	fmt.Println("Current s9s configuration:")
 	fmt.Printf("Config path: %s\n\n", getConfigPath())
-	
+
 	// TODO: Implement config display with sensitive data masking
 	fmt.Printf("Contexts configured: %d\n", len(cfg.Contexts))
 	fmt.Printf("Current context: %s\n", cfg.CurrentContext)
 	fmt.Printf("Mock mode: %v\n", cfg.UseMockClient)
-	
+
 	return nil
 }
 
@@ -152,7 +152,7 @@ func getConfigPath() string {
 	if cfgFile != "" {
 		return cfgFile
 	}
-	
+
 	homeDir, _ := os.UserHomeDir()
 	return filepath.Join(homeDir, ".s9s", "config.yaml")
 }
@@ -223,18 +223,18 @@ aliases:
 # Plugin Configuration
 plugins: []
 `
-	
+
 	return os.WriteFile(path, []byte(defaultConfig), 0644)
 }
 
 func getDefaultEditor() string {
 	editors := []string{"vim", "nano", "emacs", "vi"}
-	
+
 	for _, editor := range editors {
 		if _, err := exec.LookPath(editor); err == nil {
 			return editor
 		}
 	}
-	
+
 	return "vi" // fallback
 }

@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"time"
-	
+
 	"github.com/jontk/s9s/plugins/observability/api"
 	"github.com/jontk/s9s/plugins/observability/security"
 )
@@ -30,13 +30,13 @@ type Config struct {
 
 	// Metrics configuration
 	Metrics MetricsConfig `yaml:"metrics" json:"metrics"`
-	
+
 	// Security configuration
 	Security SecurityConfig `yaml:"security" json:"security"`
-	
+
 	// External API configuration
 	ExternalAPI api.Config `yaml:"externalAPI" json:"externalAPI"`
-	
+
 	// Logging configuration
 	Logging LoggingConfig `yaml:"logging" json:"logging"`
 }
@@ -72,9 +72,9 @@ type AuthConfig struct {
 
 	// Token for bearer auth
 	Token string `yaml:"token,omitempty" json:"token,omitempty"`
-	
+
 	// Secret references for secure token storage
-	TokenSecretRef string `yaml:"tokenSecretRef,omitempty" json:"tokenSecretRef,omitempty"`
+	TokenSecretRef    string `yaml:"tokenSecretRef,omitempty" json:"tokenSecretRef,omitempty"`
 	PasswordSecretRef string `yaml:"passwordSecretRef,omitempty" json:"passwordSecretRef,omitempty"`
 }
 
@@ -232,8 +232,8 @@ type JobMetricsConfig struct {
 type SecurityConfig struct {
 	// Secrets management configuration
 	Secrets security.SecretConfig `yaml:"secrets" json:"secrets"`
-	
-	// API security settings  
+
+	// API security settings
 	API APISecurityConfig `yaml:"api" json:"api"`
 }
 
@@ -241,19 +241,19 @@ type SecurityConfig struct {
 type APISecurityConfig struct {
 	// Enable API authentication
 	EnableAuth bool `yaml:"enableAuth" json:"enableAuth"`
-	
+
 	// API token (can reference a secret)
 	AuthToken string `yaml:"authToken,omitempty" json:"authToken,omitempty"`
-	
+
 	// Reference to secret containing auth token
 	AuthTokenSecretRef string `yaml:"authTokenSecretRef,omitempty" json:"authTokenSecretRef,omitempty"`
-	
+
 	// Rate limiting configuration
 	RateLimit security.RateLimitConfig `yaml:"rateLimit" json:"rateLimit"`
-	
+
 	// Request validation configuration
 	Validation security.ValidationConfig `yaml:"validation" json:"validation"`
-	
+
 	// Audit logging configuration
 	Audit security.AuditConfig `yaml:"audit" json:"audit"`
 }
@@ -262,16 +262,16 @@ type APISecurityConfig struct {
 type LoggingConfig struct {
 	// Enable debug logging
 	Enabled bool `yaml:"enabled" json:"enabled"`
-	
+
 	// Log level: "DEBUG", "INFO", "WARN", "ERROR"
 	Level string `yaml:"level" json:"level"`
-	
+
 	// Log file path
 	LogFile string `yaml:"logFile" json:"logFile"`
-	
+
 	// Component name for logging
 	Component string `yaml:"component" json:"component"`
-	
+
 	// Log to console as well as file
 	LogToConsole bool `yaml:"logToConsole" json:"logToConsole"`
 }
@@ -456,7 +456,7 @@ func (c *Config) Validate() error {
 
 	// Validate color scheme
 	validColorSchemes := map[string]bool{
-		"default": true,
+		"default":    true,
 		"colorblind": true,
 		"monochrome": true,
 	}

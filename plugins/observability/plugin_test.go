@@ -213,7 +213,7 @@ func TestInitialization(t *testing.T) {
 	if plugin.components == nil {
 		t.Fatal("Components should be initialized")
 	}
-	
+
 	if plugin.components.Client == nil {
 		t.Error("Prometheus client should be initialized")
 	}

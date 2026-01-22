@@ -11,26 +11,26 @@ import (
 
 // LayoutManager manages dashboard layouts and widgets
 type LayoutManager struct {
-	mu            sync.RWMutex
-	currentLayout *Layout
-	layouts       map[string]*Layout
-	widgets       map[string]Widget
-	container     *tview.Flex
-	app           *tview.Application
+	mu             sync.RWMutex
+	currentLayout  *Layout
+	layouts        map[string]*Layout
+	widgets        map[string]Widget
+	container      *tview.Flex
+	app            *tview.Application
 	onLayoutChange []func(*Layout)
 }
 
 // Layout represents a dashboard layout configuration
 type Layout struct {
-	ID          string             `json:"id"`
-	Name        string             `json:"name"`
-	Description string             `json:"description"`
-	Template    string             `json:"template"` // "standard", "compact", "monitoring", "admin"
-	Grid        GridConfig         `json:"grid"`
-	Widgets     []WidgetPlacement  `json:"widgets"`
-	Responsive  bool               `json:"responsive"`
-	Created     int64              `json:"created"`
-	Modified    int64              `json:"modified"`
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Template    string            `json:"template"` // "standard", "compact", "monitoring", "admin"
+	Grid        GridConfig        `json:"grid"`
+	Widgets     []WidgetPlacement `json:"widgets"`
+	Responsive  bool              `json:"responsive"`
+	Created     int64             `json:"created"`
+	Modified    int64             `json:"modified"`
 }
 
 // GridConfig defines the layout grid system
@@ -43,17 +43,17 @@ type GridConfig struct {
 
 // WidgetPlacement defines where a widget is positioned
 type WidgetPlacement struct {
-	WidgetID   string `json:"widget_id"`
-	Row        int    `json:"row"`
-	Column     int    `json:"column"`
-	RowSpan    int    `json:"row_span"`
-	ColSpan    int    `json:"col_span"`
-	Width      int    `json:"width"`  // Percentage or fixed
-	Height     int    `json:"height"` // Percentage or fixed
-	Resizable  bool   `json:"resizable"`
-	Movable    bool   `json:"movable"`
-	Visible    bool   `json:"visible"`
-	Priority   int    `json:"priority"` // For responsive behavior
+	WidgetID  string `json:"widget_id"`
+	Row       int    `json:"row"`
+	Column    int    `json:"column"`
+	RowSpan   int    `json:"row_span"`
+	ColSpan   int    `json:"col_span"`
+	Width     int    `json:"width"`  // Percentage or fixed
+	Height    int    `json:"height"` // Percentage or fixed
+	Resizable bool   `json:"resizable"`
+	Movable   bool   `json:"movable"`
+	Visible   bool   `json:"visible"`
+	Priority  int    `json:"priority"` // For responsive behavior
 }
 
 // Widget represents a dashboard widget
@@ -75,14 +75,14 @@ type Widget interface {
 type WidgetType string
 
 const (
-	WidgetTypeView       WidgetType = "view"        // Jobs, Nodes, etc.
-	WidgetTypeMetrics    WidgetType = "metrics"     // Resource usage charts
-	WidgetTypeAlerts     WidgetType = "alerts"      // System alerts
-	WidgetTypeStatus     WidgetType = "status"      // Cluster status
-	WidgetTypeTerminal   WidgetType = "terminal"    // Command terminal
-	WidgetTypeQuickStart WidgetType = "quickstart"  // Quick action buttons
-	WidgetTypeClock      WidgetType = "clock"       // Time display
-	WidgetTypeLogs       WidgetType = "logs"        // Log viewer
+	WidgetTypeView       WidgetType = "view"       // Jobs, Nodes, etc.
+	WidgetTypeMetrics    WidgetType = "metrics"    // Resource usage charts
+	WidgetTypeAlerts     WidgetType = "alerts"     // System alerts
+	WidgetTypeStatus     WidgetType = "status"     // Cluster status
+	WidgetTypeTerminal   WidgetType = "terminal"   // Command terminal
+	WidgetTypeQuickStart WidgetType = "quickstart" // Quick action buttons
+	WidgetTypeClock      WidgetType = "clock"      // Time display
+	WidgetTypeLogs       WidgetType = "logs"       // Log viewer
 )
 
 // NewLayoutManager creates a new layout manager

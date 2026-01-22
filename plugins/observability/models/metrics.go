@@ -33,11 +33,11 @@ type MetricValue struct {
 
 // TimeSeries represents a time series of metric values
 type TimeSeries struct {
-	Name   string        `json:"name"`
+	Name   string            `json:"name"`
 	Labels map[string]string `json:"labels"`
-	Values []MetricValue `json:"values"`
-	Unit   string        `json:"unit"`
-	Type   MetricType    `json:"type"`
+	Values []MetricValue     `json:"values"`
+	Unit   string            `json:"unit"`
+	Type   MetricType        `json:"type"`
 }
 
 // Add adds a metric value to the time series
@@ -129,25 +129,25 @@ func (mc *MetricCollection) GetMetric(name string) (*TimeSeries, bool) {
 
 // ResourceMetrics represents aggregated resource metrics
 type ResourceMetrics struct {
-	CPU       CPUMetrics       `json:"cpu"`
-	Memory    MemoryMetrics    `json:"memory"`
-	Disk      DiskMetrics      `json:"disk"`
-	Network   NetworkMetrics   `json:"network"`
-	Timestamp time.Time        `json:"timestamp"`
+	CPU       CPUMetrics     `json:"cpu"`
+	Memory    MemoryMetrics  `json:"memory"`
+	Disk      DiskMetrics    `json:"disk"`
+	Network   NetworkMetrics `json:"network"`
+	Timestamp time.Time      `json:"timestamp"`
 }
 
 // CPUMetrics represents CPU-related metrics
 type CPUMetrics struct {
-	Usage      float64 `json:"usage"`       // Percentage (0-100)
-	Cores      int     `json:"cores"`       // Number of cores
-	Load1m     float64 `json:"load_1m"`     // 1-minute load average
-	Load5m     float64 `json:"load_5m"`     // 5-minute load average
-	Load15m    float64 `json:"load_15m"`    // 15-minute load average
-	Throttled  float64 `json:"throttled"`   // Throttled percentage
-	System     float64 `json:"system"`      // System CPU percentage
-	User       float64 `json:"user"`        // User CPU percentage
-	IOWait     float64 `json:"io_wait"`     // IO wait percentage
-	Limit      float64 `json:"limit"`       // CPU limit (cores or millicores)
+	Usage     float64 `json:"usage"`     // Percentage (0-100)
+	Cores     int     `json:"cores"`     // Number of cores
+	Load1m    float64 `json:"load_1m"`   // 1-minute load average
+	Load5m    float64 `json:"load_5m"`   // 5-minute load average
+	Load15m   float64 `json:"load_15m"`  // 15-minute load average
+	Throttled float64 `json:"throttled"` // Throttled percentage
+	System    float64 `json:"system"`    // System CPU percentage
+	User      float64 `json:"user"`      // User CPU percentage
+	IOWait    float64 `json:"io_wait"`   // IO wait percentage
+	Limit     float64 `json:"limit"`     // CPU limit (cores or millicores)
 }
 
 // MemoryMetrics represents memory-related metrics
@@ -174,12 +174,12 @@ type DiskMetrics struct {
 
 // NetworkMetrics represents network I/O metrics
 type NetworkMetrics struct {
-	ReceiveBytesPerSec  float64 `json:"receive_bytes_per_sec"`  // Bytes/sec
-	TransmitBytesPerSec float64 `json:"transmit_bytes_per_sec"` // Bytes/sec
-	ReceivePacketsPerSec float64 `json:"receive_packets_per_sec"` // Packets/sec
+	ReceiveBytesPerSec    float64 `json:"receive_bytes_per_sec"`    // Bytes/sec
+	TransmitBytesPerSec   float64 `json:"transmit_bytes_per_sec"`   // Bytes/sec
+	ReceivePacketsPerSec  float64 `json:"receive_packets_per_sec"`  // Packets/sec
 	TransmitPacketsPerSec float64 `json:"transmit_packets_per_sec"` // Packets/sec
-	ReceiveErrors        uint64  `json:"receive_errors"`          // Total errors
-	TransmitErrors       uint64  `json:"transmit_errors"`         // Total errors
+	ReceiveErrors         uint64  `json:"receive_errors"`           // Total errors
+	TransmitErrors        uint64  `json:"transmit_errors"`          // Total errors
 }
 
 // AggregationFunc represents a function for aggregating metric values

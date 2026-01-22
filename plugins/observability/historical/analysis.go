@@ -34,45 +34,45 @@ func (td TrendDirection) String() string {
 
 // TrendAnalysis contains trend analysis results
 type TrendAnalysis struct {
-	Direction      TrendDirection `json:"direction"`
-	Slope          float64        `json:"slope"`
-	Correlation    float64        `json:"correlation"`
-	Volatility     float64        `json:"volatility"`
-	StartValue     float64        `json:"start_value"`
-	EndValue       float64        `json:"end_value"`
-	PercentChange  float64        `json:"percent_change"`
-	DataPoints     int            `json:"data_points"`
-	TimeSpan       time.Duration  `json:"time_span"`
-	Confidence     float64        `json:"confidence"`
+	Direction     TrendDirection `json:"direction"`
+	Slope         float64        `json:"slope"`
+	Correlation   float64        `json:"correlation"`
+	Volatility    float64        `json:"volatility"`
+	StartValue    float64        `json:"start_value"`
+	EndValue      float64        `json:"end_value"`
+	PercentChange float64        `json:"percent_change"`
+	DataPoints    int            `json:"data_points"`
+	TimeSpan      time.Duration  `json:"time_span"`
+	Confidence    float64        `json:"confidence"`
 }
 
 // AnomalyDetection contains anomaly detection results
 type AnomalyDetection struct {
-	Anomalies     []AnomalyPoint `json:"anomalies"`
-	AnomalyCount  int            `json:"anomaly_count"`
-	AnomalyRate   float64        `json:"anomaly_rate"`
-	Method        string         `json:"method"`
-	Threshold     float64        `json:"threshold"`
-	Sensitivity   float64        `json:"sensitivity"`
+	Anomalies    []AnomalyPoint `json:"anomalies"`
+	AnomalyCount int            `json:"anomaly_count"`
+	AnomalyRate  float64        `json:"anomaly_rate"`
+	Method       string         `json:"method"`
+	Threshold    float64        `json:"threshold"`
+	Sensitivity  float64        `json:"sensitivity"`
 }
 
 // AnomalyPoint represents a detected anomaly
 type AnomalyPoint struct {
-	Timestamp  time.Time `json:"timestamp"`
-	Value      float64   `json:"value"`
-	Expected   float64   `json:"expected"`
-	Deviation  float64   `json:"deviation"`
-	Severity   string    `json:"severity"`
+	Timestamp time.Time `json:"timestamp"`
+	Value     float64   `json:"value"`
+	Expected  float64   `json:"expected"`
+	Deviation float64   `json:"deviation"`
+	Severity  string    `json:"severity"`
 }
 
 // SeasonalAnalysis contains seasonal pattern analysis
 type SeasonalAnalysis struct {
-	HasSeasonality bool                   `json:"has_seasonality"`
-	Period         time.Duration          `json:"period"`
-	Strength       float64                `json:"strength"`
-	Patterns       map[string]float64     `json:"patterns"`
-	PeakTimes      []time.Time            `json:"peak_times"`
-	LowTimes       []time.Time            `json:"low_times"`
+	HasSeasonality bool               `json:"has_seasonality"`
+	Period         time.Duration      `json:"period"`
+	Strength       float64            `json:"strength"`
+	Patterns       map[string]float64 `json:"patterns"`
+	PeakTimes      []time.Time        `json:"peak_times"`
+	LowTimes       []time.Time        `json:"low_times"`
 }
 
 // HistoricalAnalyzer provides analysis capabilities for historical data
@@ -350,13 +350,13 @@ func (ha *HistoricalAnalyzer) CompareMetrics(metricNames []string, duration time
 		}
 
 		stats := map[string]interface{}{
-			"metric":     metricName,
-			"count":      len(values),
-			"mean":       average(values),
-			"min":        min(values),
-			"max":        max(values),
-			"std_dev":    standardDeviation(values),
-			"variance":   variance(values),
+			"metric":   metricName,
+			"count":    len(values),
+			"mean":     average(values),
+			"min":      min(values),
+			"max":      max(values),
+			"std_dev":  standardDeviation(values),
+			"variance": variance(values),
 		}
 
 		comparison[metricName] = stats
@@ -367,23 +367,23 @@ func (ha *HistoricalAnalyzer) CompareMetrics(metricNames []string, duration time
 	if len(allStats) >= 2 {
 		// Simple correlation between first two metrics with valid data
 		correlations := make(map[string]float64)
-		
+
 		for i := 0; i < len(allStats); i++ {
 			for j := i + 1; j < len(allStats); j++ {
 				metric1 := allStats[i]["metric"].(string)
 				metric2 := allStats[j]["metric"].(string)
-				
+
 				// Get data for correlation calculation
 				series1, _ := ha.collector.GetHistoricalData(metric1, start, end)
 				series2, _ := ha.collector.GetHistoricalData(metric2, start, end)
-				
+
 				if series1 != nil && series2 != nil {
 					corr := calculateCorrelation(series1.DataPoints, series2.DataPoints)
 					correlations[fmt.Sprintf("%s_vs_%s", metric1, metric2)] = corr
 				}
 			}
 		}
-		
+
 		comparison["correlations"] = correlations
 	}
 
@@ -431,15 +431,15 @@ func linearRegression(x, y []float64) (slope, correlation float64) {
 
 func determineTrendDirection(slope, correlation, volatility float64) TrendDirection {
 	absCorr := math.Abs(correlation)
-	
+
 	if absCorr < 0.3 {
 		return TrendUnknown
 	}
-	
+
 	if volatility > 0.5 { // High volatility threshold
 		return TrendVolatile
 	}
-	
+
 	if absCorr > 0.7 { // Strong correlation
 		if slope > 0 {
 			return TrendIncreasing
@@ -447,14 +447,14 @@ func determineTrendDirection(slope, correlation, volatility float64) TrendDirect
 			return TrendDecreasing
 		}
 	}
-	
+
 	return TrendStable
 }
 
 func calculateCorrelation(data1, data2 []DataPoint) float64 {
 	// Align data points by timestamp
 	var values1, values2 []float64
-	
+
 	// Create maps for fast lookup
 	map1 := make(map[int64]float64)
 	for _, dp := range data1 {
@@ -462,7 +462,7 @@ func calculateCorrelation(data1, data2 []DataPoint) float64 {
 			map1[dp.Timestamp.Unix()] = val
 		}
 	}
-	
+
 	// Find matching timestamps
 	for _, dp := range data2 {
 		if val, ok := convertToFloat64(dp.Value); ok {
@@ -472,11 +472,11 @@ func calculateCorrelation(data1, data2 []DataPoint) float64 {
 			}
 		}
 	}
-	
+
 	if len(values1) < 2 {
 		return 0
 	}
-	
+
 	// Calculate Pearson correlation
 	_, correlation := linearRegression(values1, values2)
 	return correlation
@@ -502,7 +502,7 @@ func min(values []float64) float64 {
 	if len(values) == 0 {
 		return 0
 	}
-	
+
 	minVal := values[0]
 	for _, v := range values {
 		if v < minVal {
@@ -516,7 +516,7 @@ func max(values []float64) float64 {
 	if len(values) == 0 {
 		return 0
 	}
-	
+
 	maxVal := values[0]
 	for _, v := range values {
 		if v > maxVal {
@@ -530,15 +530,15 @@ func variance(values []float64) float64 {
 	if len(values) <= 1 {
 		return 0
 	}
-	
+
 	mean := average(values)
 	sumSquaredDiff := 0.0
-	
+
 	for _, v := range values {
 		diff := v - mean
 		sumSquaredDiff += diff * diff
 	}
-	
+
 	return sumSquaredDiff / float64(len(values)-1)
 }
 

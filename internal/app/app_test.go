@@ -92,7 +92,7 @@ func TestBasicFunctionality(t *testing.T) {
 
 	// Test basic state
 	assert.False(t, app.isRunning)
-	
+
 	// Give time for initialization
 	time.Sleep(100 * time.Millisecond)
 

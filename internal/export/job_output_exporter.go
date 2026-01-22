@@ -57,12 +57,12 @@ type JobOutputData struct {
 
 // ExportResult contains information about the export operation
 type ExportResult struct {
-	FilePath    string
-	Format      ExportFormat
-	Size        int64
-	Success     bool
-	Error       error
-	Timestamp   time.Time
+	FilePath  string
+	Format    ExportFormat
+	Size      int64
+	Success   bool
+	Error     error
+	Timestamp time.Time
 }
 
 // ExportJobOutput exports job output to a file in the specified format
@@ -78,7 +78,7 @@ func (e *JobOutputExporter) ExportJobOutput(jobID, jobName, outputType, content 
 		ExportTime:  time.Now(),
 		ContentSize: len(content),
 	}
-	
+
 	result, err := e.Export(data, FormatText, "")
 	if err != nil {
 		return "", err

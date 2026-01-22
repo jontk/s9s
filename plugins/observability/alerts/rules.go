@@ -23,7 +23,7 @@ type Rule struct {
 	Operator        string            `json:"operator"`
 	Threshold       float64           `json:"threshold"`
 	Duration        time.Duration     `json:"duration"`
-	Query           string            `json:"query,omitempty"`     // For query type rules
+	Query           string            `json:"query,omitempty"`      // For query type rules
 	Conditions      []RuleCondition   `json:"conditions,omitempty"` // For composite rules
 	Severity        string            `json:"severity"`
 	Enabled         bool              `json:"enabled"`

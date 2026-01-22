@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"gopkg.in/yaml.v3"
-	
+
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/plugin"
 	"github.com/jontk/s9s/internal/plugins"
@@ -45,12 +45,12 @@ func (a *PluginAdapter) GetInfo() plugins.PluginInfo {
 func (a *PluginAdapter) Initialize(ctx context.Context, client dao.SlurmClient) error {
 	// Convert the config from context if available
 	configMap := make(map[string]interface{})
-	
+
 	// The s9s plugin manager might pass config through context
 	if config, ok := ctx.Value("plugin_config").(map[string]interface{}); ok {
 		configMap = config
 	}
-	
+
 	// If no config from context, try to read from s9s config file
 	if len(configMap) == 0 {
 		// Try to load config from the standard s9s config location
@@ -61,10 +61,10 @@ func (a *PluginAdapter) Initialize(ctx context.Context, client dao.SlurmClient) 
 			logging.Debug("adapter", "Could not load s9s config: %v, using defaults", err)
 		}
 	}
-	
+
 	// Log debug info about config
 	logging.Debug("adapter", "Plugin config map: %+v", configMap)
-	
+
 	// Initialize the observability plugin
 	logging.Debug("adapter", "Initializing observability plugin")
 	if err := a.plugin.Init(ctx, configMap); err != nil {
@@ -72,13 +72,13 @@ func (a *PluginAdapter) Initialize(ctx context.Context, client dao.SlurmClient) 
 		return err
 	}
 	logging.Debug("adapter", "Plugin initialized successfully")
-	
+
 	// Pass the SLURM client to the plugin
 	if client != nil {
 		logging.Debug("adapter", "Setting SLURM client in plugin")
 		a.plugin.SetSlurmClient(client)
 	}
-	
+
 	// Start the plugin
 	logging.Debug("adapter", "Starting observability plugin")
 	if err := a.plugin.Start(ctx); err != nil {
@@ -86,7 +86,7 @@ func (a *PluginAdapter) Initialize(ctx context.Context, client dao.SlurmClient) 
 		return err
 	}
 	logging.Debug("adapter", "Plugin started successfully")
-	
+
 	return nil
 }
 
@@ -100,7 +100,7 @@ func (a *PluginAdapter) GetCommands() []plugins.Command {
 func (a *PluginAdapter) GetViews() []plugins.View {
 	views := a.plugin.GetViews()
 	result := make([]plugins.View, 0, len(views))
-	
+
 	for _, v := range views {
 		// Create view adapter
 		viewAdapter := &ViewAdapter{
@@ -109,7 +109,7 @@ func (a *PluginAdapter) GetViews() []plugins.View {
 		}
 		result = append(result, viewAdapter)
 	}
-	
+
 	return result
 }
 
@@ -202,7 +202,7 @@ func (v *ViewAdapter) Init(ctx context.Context) error {
 func loadS9sConfig() (map[string]interface{}, error) {
 	// Try to find the s9s config file
 	var configPath string
-	
+
 	// Check current directory first
 	if _, err := os.Stat("config.yaml"); err == nil {
 		configPath = "config.yaml"
@@ -214,45 +214,45 @@ func loadS9sConfig() (map[string]interface{}, error) {
 		}
 		configPath = filepath.Join(home, ".s9s", "config.yaml")
 	}
-	
+
 	// Read the config file
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read config file %s: %w", configPath, err)
 	}
-	
+
 	// Parse the YAML
 	var config map[string]interface{}
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("could not parse YAML: %w", err)
 	}
-	
+
 	// Extract the observability plugin config
 	plugins, ok := config["plugins"].([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("no plugins section in config")
 	}
-	
+
 	// Find the observability plugin
 	for _, p := range plugins {
 		plugin, ok := p.(map[string]interface{})
 		if !ok {
 			continue
 		}
-		
+
 		name, ok := plugin["name"].(string)
 		if !ok || name != "observability" {
 			continue
 		}
-		
+
 		// Return the plugin's config section
 		pluginConfig, ok := plugin["config"].(map[string]interface{})
 		if !ok {
 			return make(map[string]interface{}), nil
 		}
-		
+
 		return pluginConfig, nil
 	}
-	
+
 	return nil, fmt.Errorf("observability plugin not found in config")
 }

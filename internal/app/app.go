@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"path/filepath"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -35,21 +35,21 @@ type S9s struct {
 	pluginManager plugins.PluginManager
 
 	// UI components
-	app               *tview.Application
-	pages             *tview.Pages
-	header            *components.Header
-	statusBar         *components.StatusBar
-	viewMgr           *views.ViewManager
-	alertsManager     *components.AlertsManager
-	alertsBadge       *components.AlertsBadge
-	notificationMgr   interface{} // Will be set to *notifications.NotificationManager
+	app             *tview.Application
+	pages           *tview.Pages
+	header          *components.Header
+	statusBar       *components.StatusBar
+	viewMgr         *views.ViewManager
+	alertsManager   *components.AlertsManager
+	alertsBadge     *components.AlertsBadge
+	notificationMgr interface{} // Will be set to *notifications.NotificationManager
 
-	userPrefs         *preferences.UserPreferences
-	layoutManager     interface{} // Will be set to *layouts.LayoutManager
+	userPrefs     *preferences.UserPreferences
+	layoutManager interface{} // Will be set to *layouts.LayoutManager
 
 	// Main layout
-	mainLayout *tview.Flex
-	contentPages *tview.Pages  // Pages widget for stable view switching
+	mainLayout   *tview.Flex
+	contentPages *tview.Pages // Pages widget for stable view switching
 
 	// Command line
 	cmdLine    *tview.InputField
@@ -60,7 +60,7 @@ type S9s struct {
 	isRunning     bool
 }
 
-// New creates a new S9s application instance  
+// New creates a new S9s application instance
 func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is required")
@@ -878,7 +878,6 @@ func (s *S9s) generateDemoAlerts() {
 }
 */
 
-
 // showPreferences displays the preferences modal
 func (s *S9s) showPreferences() {
 	settings.ShowPreferences(s.pages, s.app, s.userPrefs)
@@ -887,15 +886,15 @@ func (s *S9s) showPreferences() {
 // showConfiguration displays the configuration management interface
 func (s *S9s) showConfiguration() {
 	configPath := ""
-	
+
 	// Try to determine the configuration file path
 	if homeDir, err := os.UserHomeDir(); err == nil {
 		configPath = filepath.Join(homeDir, ".s9s", "config.yaml")
 	}
-	
+
 	// Create configuration view
 	configView := views.NewConfigView(s.app, s.pages, configPath)
-	
+
 	// Set callback for configuration changes
 	configView.SetConfigChangedCallback(func(newConfig *config.Config) {
 		// Apply new configuration to running application
@@ -906,7 +905,7 @@ func (s *S9s) showConfiguration() {
 			s.statusBar.Success("Configuration applied")
 		}
 	})
-	
+
 	// Add the config view as a modal-like page
 	s.pages.AddPage("config", configView, true, true)
 }
@@ -959,21 +958,21 @@ func (s *S9s) loadPlugins() error {
 func (s *S9s) registerPluginViews() error {
 	// Get all plugin views
 	pluginViews := s.pluginManager.GetViews()
-	
+
 	log.Printf("Registering %d plugin views", len(pluginViews))
-	
+
 	for _, pluginView := range pluginViews {
 		log.Printf("Registering plugin view: %s", pluginView.GetName())
-		
+
 		// Create context with tview application for plugin initialization
 		ctx := context.WithValue(s.ctx, "app", s.app)
-		
+
 		// Initialize the plugin view
 		if err := pluginView.Init(ctx); err != nil {
 			log.Printf("Warning: Failed to initialize plugin view %s: %v", pluginView.GetName(), err)
 			continue
 		}
-		
+
 		// Create adapter to bridge plugin view to s9s view interface
 		viewAdapter := &PluginViewAdapter{
 			pluginView: pluginView,
@@ -987,13 +986,13 @@ func (s *S9s) registerPluginViews() error {
 
 		// Add to content pages
 		s.contentPages.AddPage(pluginView.GetName(), pluginView.Render(), true, false)
-		
+
 		log.Printf("Successfully registered plugin view: %s", pluginView.GetName())
 	}
-	
+
 	// Update header with new view names (including plugin views)
 	s.header.SetViews(s.viewMgr.GetViewNames())
-	
+
 	return nil
 }
 

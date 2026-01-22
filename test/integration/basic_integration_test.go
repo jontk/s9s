@@ -34,10 +34,10 @@ func testPerformanceProfilerIntegration(t *testing.T) {
 	const iterations = 100
 	for i := 0; i < iterations; i++ {
 		done := profiler.StartOperation("test_operation")
-		
+
 		// Simulate work
 		time.Sleep(1 * time.Millisecond)
-		
+
 		done()
 	}
 
@@ -48,7 +48,7 @@ func testPerformanceProfilerIntegration(t *testing.T) {
 	// Get operation stats
 	stats := profiler.GetOperationStats()
 	assert.Contains(t, stats, "test_operation")
-	
+
 	testStats := stats["test_operation"]
 	assert.Equal(t, int64(iterations), testStats.Count)
 	assert.Greater(t, testStats.TotalTime, time.Duration(0))
@@ -180,9 +180,9 @@ func TestContextIntegration(t *testing.T) {
 
 	// Test that context cancellation works properly
 	profiler := performance.NewProfiler()
-	
+
 	done := profiler.StartOperation("context_test")
-	
+
 	// Simulate work that respects context
 	select {
 	case <-ctx.Done():
@@ -190,7 +190,7 @@ func TestContextIntegration(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 		// Continue
 	}
-	
+
 	done()
 
 	// Verify operation was recorded
@@ -201,10 +201,10 @@ func TestContextIntegration(t *testing.T) {
 // BenchmarkIntegrationOverhead benchmarks the overhead of integration components
 func BenchmarkIntegrationOverhead(b *testing.B) {
 	profiler := performance.NewProfiler()
-	
+
 	b.ResetTimer()
 	b.ReportAllocs()
-	
+
 	for i := 0; i < b.N; i++ {
 		done := profiler.StartOperation("benchmark_test")
 		done()
@@ -214,10 +214,10 @@ func BenchmarkIntegrationOverhead(b *testing.B) {
 // BenchmarkSSHManagerCreation benchmarks SSH manager creation
 func BenchmarkSSHManagerCreation(b *testing.B) {
 	config := ssh.DefaultSSHConfig()
-	
+
 	b.ResetTimer()
 	b.ReportAllocs()
-	
+
 	for i := 0; i < b.N; i++ {
 		manager, err := ssh.NewSessionManager(config)
 		if err != nil {

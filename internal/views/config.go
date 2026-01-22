@@ -15,12 +15,12 @@ type ConfigView struct {
 	app           *tview.Application
 	pages         *tview.Pages
 	configManager *widgets.ConfigManager
-	
+
 	// State
 	configPath    string
 	originalTitle string
 	hasChanges    bool
-	
+
 	// Callbacks
 	onConfigChanged func(*config.Config)
 }
@@ -33,7 +33,7 @@ func NewConfigView(app *tview.Application, pages *tview.Pages, configPath string
 		pages:      pages,
 		configPath: configPath,
 	}
-	
+
 	cv.setupView()
 	return cv
 }
@@ -43,21 +43,21 @@ func (cv *ConfigView) setupView() {
 	// Create config manager
 	cv.configManager = widgets.NewConfigManager(cv.app, cv.configPath)
 	cv.configManager.SetPages(cv.pages)
-	
+
 	// Set up callbacks
 	cv.configManager.SetCallbacks(
 		cv.onSave,
 		cv.onApply,
 		cv.onCancel,
 	)
-	
+
 	// Track changes for title updates
 	cv.originalTitle = "Configuration"
 	cv.hasChanges = false
-	
+
 	// Add the config manager to the view
 	cv.AddItem(cv.configManager, 0, 1, true)
-	
+
 	// Set up input handling
 	cv.SetInputCapture(cv.handleInput)
 }
@@ -68,7 +68,7 @@ func (cv *ConfigView) onSave(cfg *config.Config) error {
 	if cv.onConfigChanged != nil {
 		cv.onConfigChanged(cfg)
 	}
-	
+
 	cv.hasChanges = false
 	cv.updateTitle()
 	return nil
@@ -80,7 +80,7 @@ func (cv *ConfigView) onApply(cfg *config.Config) error {
 	if cv.onConfigChanged != nil {
 		cv.onConfigChanged(cfg)
 	}
-	
+
 	return nil
 }
 
@@ -111,7 +111,7 @@ func (cv *ConfigView) handleInput(event *tcell.EventKey) *tcell.EventKey {
 		cv.showHelp()
 		return nil
 	}
-	
+
 	// Pass through to config manager
 	return event
 }
@@ -134,7 +134,7 @@ func (cv *ConfigView) showExitConfirmation() {
 	modal.AddButtons([]string{"Save & Exit", "Discard & Exit", "Cancel"})
 	modal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 		cv.pages.RemovePage("exit-confirm")
-		
+
 		switch buttonIndex {
 		case 0: // Save & Exit
 			cv.configManager.GetCurrentConfig()
@@ -145,7 +145,7 @@ func (cv *ConfigView) showExitConfirmation() {
 			// Do nothing, stay in config view
 		}
 	})
-	
+
 	cv.pages.AddPage("exit-confirm", modal, false, true)
 }
 
@@ -192,7 +192,7 @@ Environment Variables:
 		cv.pages.RemovePage("config-help")
 		cv.app.SetFocus(cv.configManager)
 	})
-	
+
 	cv.pages.AddPage("config-help", modal, false, true)
 }
 
@@ -206,7 +206,7 @@ func (cv *ConfigView) GetConfigPath() string {
 	if cv.configPath != "" {
 		return cv.configPath
 	}
-	
+
 	// Return default path
 	homeDir := "~" // Simplified for display
 	return filepath.Join(homeDir, ".s9s", "config.yaml")
@@ -234,11 +234,11 @@ func (cv *ConfigView) Refresh() {
 	cv.configManager = widgets.NewConfigManager(cv.app, cv.configPath)
 	cv.configManager.SetPages(cv.pages)
 	cv.configManager.SetCallbacks(cv.onSave, cv.onApply, cv.onCancel)
-	
+
 	// Update view
 	cv.Clear()
 	cv.AddItem(cv.configManager, 0, 1, true)
-	
+
 	cv.hasChanges = false
 	cv.updateTitle()
 }

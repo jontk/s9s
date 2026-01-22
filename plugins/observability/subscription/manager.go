@@ -26,17 +26,17 @@ type SubscriptionManager struct {
 
 // Subscription represents an active data subscription
 type Subscription struct {
-	ID           string                 `json:"id"`
-	ProviderID   string                 `json:"provider_id"`
-	Params       map[string]interface{} `json:"params"`
-	Callback     plugin.DataCallback    `json:"-"`
-	CreatedAt    time.Time              `json:"created_at"`
-	LastUpdate   time.Time              `json:"last_update"`
-	UpdateCount  int64                  `json:"update_count"`
-	UpdateInterval time.Duration        `json:"update_interval"`
-	Active       bool                   `json:"active"`
-	ErrorCount   int                    `json:"error_count"`
-	LastError    string                 `json:"last_error,omitempty"`
+	ID             string                 `json:"id"`
+	ProviderID     string                 `json:"provider_id"`
+	Params         map[string]interface{} `json:"params"`
+	Callback       plugin.DataCallback    `json:"-"`
+	CreatedAt      time.Time              `json:"created_at"`
+	LastUpdate     time.Time              `json:"last_update"`
+	UpdateCount    int64                  `json:"update_count"`
+	UpdateInterval time.Duration          `json:"update_interval"`
+	Active         bool                   `json:"active"`
+	ErrorCount     int                    `json:"error_count"`
+	LastError      string                 `json:"last_error,omitempty"`
 }
 
 // NewSubscriptionManager creates a new subscription manager
@@ -362,8 +362,8 @@ func (sm *SubscriptionManager) getNodeMetrics(ctx context.Context, params map[st
 	}
 
 	return map[string]interface{}{
-		"node_id": nodeID,
-		"metrics": results,
+		"node_id":   nodeID,
+		"metrics":   results,
 		"timestamp": time.Now().Unix(),
 	}, nil
 }

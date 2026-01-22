@@ -81,7 +81,7 @@ func TestJobOutputExporter(t *testing.T) {
 func TestPerformanceExporter(t *testing.T) {
 	tempDir := t.TempDir()
 	exporter := NewPerformanceExporter(tempDir)
-	
+
 	// Create mock profiler and optimizer
 	profiler := performance.NewProfiler()
 	optimizer := performance.NewOptimizer(profiler)
@@ -91,7 +91,7 @@ func TestPerformanceExporter(t *testing.T) {
 		stop := profiler.StartOperation("TestOp1")
 		time.Sleep(10 * time.Millisecond)
 		stop()
-		
+
 		stop = profiler.StartOperation("TestOp2")
 		time.Sleep(5 * time.Millisecond)
 		stop()
@@ -169,7 +169,7 @@ func TestFormatBytes(t *testing.T) {
 
 func TestExportFilename(t *testing.T) {
 	exporter := NewJobOutputExporter("")
-	
+
 	// Test filename generation
 	filename := exporter.generateFilename("12345", "test job/name", "stdout", FormatText)
 	assert.Contains(t, filename, "job_12345_test_job_name_stdout")

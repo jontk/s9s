@@ -10,14 +10,14 @@ import (
 
 // LayoutSwitcher provides a UI for switching between layouts
 type LayoutSwitcher struct {
-	manager     *LayoutManager
-	app         *tview.Application
-	pages       *tview.Pages
-	modal       *tview.Flex
-	list        *tview.List
-	preview     *tview.TextView
-	onSwitch    func(layoutID string)
-	onCancel    func()
+	manager  *LayoutManager
+	app      *tview.Application
+	pages    *tview.Pages
+	modal    *tview.Flex
+	list     *tview.List
+	preview  *tview.TextView
+	onSwitch func(layoutID string)
+	onCancel func()
 }
 
 // NewLayoutSwitcher creates a new layout switcher

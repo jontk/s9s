@@ -198,8 +198,8 @@ func (w *MetricsWidget) startAutoUpdate() {
 // StatusWidget displays cluster status
 type StatusWidget struct {
 	*BaseWidget
-	client     dao.SlurmClient
-	statusBar  *components.StatusBar
+	client    dao.SlurmClient
+	statusBar *components.StatusBar
 }
 
 // NewStatusWidget creates a new status widget
@@ -670,7 +670,7 @@ func (w *LogsWidget) AddLog(message string) {
 // Helper function to check if string contains substring
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && s[len(s)-len(substr):] == substr ||
-		   len(s) > len(substr) && findInString(s, substr)
+		len(s) > len(substr) && findInString(s, substr)
 }
 
 func findInString(s, substr string) bool {

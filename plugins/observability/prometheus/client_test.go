@@ -265,7 +265,7 @@ func TestBatchQuery(t *testing.T) {
 
 	// This will fail due to no actual Prometheus server, but we can verify the method exists
 	results, err := client.BatchQuery(ctx, queries, time.Now())
-	
+
 	// We expect an error since there's no real server
 	if err == nil {
 		t.Log("Unexpected success - there might be a Prometheus server running")

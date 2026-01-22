@@ -20,23 +20,23 @@ type Terminal interface {
 
 // TerminalInfo contains information about a terminal
 type TerminalInfo struct {
-	NodeID      string
-	Hostname    string
-	Username    string
-	IsActive    bool
-	ConnectedAt time.Time
+	NodeID       string
+	Hostname     string
+	Username     string
+	IsActive     bool
+	ConnectedAt  time.Time
 	LastActivity time.Time
 }
 
 // TerminalManager manages multiple SSH terminal sessions
 type TerminalManager struct {
-	app       *tview.Application
-	terminals map[string]Terminal
-	order     []string // Maintains order of terminals
-	current   int      // Current terminal index
-	mu        sync.RWMutex
+	app          *tview.Application
+	terminals    map[string]Terminal
+	order        []string // Maintains order of terminals
+	current      int      // Current terminal index
+	mu           sync.RWMutex
 	maxTerminals int
-	onSwitch  func(nodeID string)
+	onSwitch     func(nodeID string)
 }
 
 // NewTerminalManager creates a new terminal manager

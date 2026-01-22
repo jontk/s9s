@@ -22,14 +22,14 @@ const (
 
 // Alert represents a system alert
 type Alert struct {
-	ID          string
-	Level       AlertLevel
-	Title       string
-	Message     string
-	Source      string // e.g., "nodes", "jobs", "cluster"
-	Timestamp   time.Time
+	ID           string
+	Level        AlertLevel
+	Title        string
+	Message      string
+	Source       string // e.g., "nodes", "jobs", "cluster"
+	Timestamp    time.Time
 	Acknowledged bool
-	AutoDismiss bool
+	AutoDismiss  bool
 	DismissAfter time.Duration
 }
 
@@ -197,11 +197,11 @@ func (am *AlertsManager) CheckClusterHealth(health *monitoring.ClusterHealth) {
 		})
 	case monitoring.HealthStatusWarning:
 		am.AddAlert(&Alert{
-			Level:   AlertWarning,
-			Title:   "Cluster Health Warning",
-			Message: "Cluster health is degraded - review health checks",
-			Source:  "cluster",
-			AutoDismiss: true,
+			Level:        AlertWarning,
+			Title:        "Cluster Health Warning",
+			Message:      "Cluster health is degraded - review health checks",
+			Source:       "cluster",
+			AutoDismiss:  true,
 			DismissAfter: 10 * time.Minute,
 		})
 	}
@@ -218,11 +218,11 @@ func (am *AlertsManager) CheckClusterHealth(health *monitoring.ClusterHealth) {
 			})
 		case monitoring.HealthStatusWarning:
 			am.AddAlert(&Alert{
-				Level:   AlertWarning,
-				Title:   fmt.Sprintf("Warning: %s", check.Name),
-				Message: check.Message,
-				Source:  "health-check",
-				AutoDismiss: true,
+				Level:        AlertWarning,
+				Title:        fmt.Sprintf("Warning: %s", check.Name),
+				Message:      check.Message,
+				Source:       "health-check",
+				AutoDismiss:  true,
 				DismissAfter: 15 * time.Minute,
 			})
 		}

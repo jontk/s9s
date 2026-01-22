@@ -21,16 +21,16 @@ const (
 
 // NavigationTarget represents a navigable target
 type NavigationTarget struct {
-	ID          string
-	Name        string
-	Description string
-	Type        string
-	Component   tview.Primitive
-	Shortcut    rune
-	KeyBinding  tcell.Key
-	Priority    int
-	Visible     bool
-	OnActivate  func()
+	ID           string
+	Name         string
+	Description  string
+	Type         string
+	Component    tview.Primitive
+	Shortcut     rune
+	KeyBinding   tcell.Key
+	Priority     int
+	Visible      bool
+	OnActivate   func()
 	OnDeactivate func()
 }
 
@@ -43,34 +43,34 @@ type NavigationHistory struct {
 
 // NavigationManager handles advanced navigation throughout the application
 type NavigationManager struct {
-	mu               sync.RWMutex
-	app              *tview.Application
-	targets          map[string]*NavigationTarget
-	targetOrder      []string
-	currentTarget    string
-	mode             NavigationMode
-	history          *NavigationHistory
-	quickAccessMap   map[rune]string
-	keyBindings      map[tcell.Key]string
-	
+	mu             sync.RWMutex
+	app            *tview.Application
+	targets        map[string]*NavigationTarget
+	targetOrder    []string
+	currentTarget  string
+	mode           NavigationMode
+	history        *NavigationHistory
+	quickAccessMap map[rune]string
+	keyBindings    map[tcell.Key]string
+
 	// UI Components
-	breadcrumb       *tview.TextView
-	quickHelpBar     *tview.TextView
-	commandPalette   *tview.InputField
-	searchOverlay    *tview.TextView
-	
+	breadcrumb     *tview.TextView
+	quickHelpBar   *tview.TextView
+	commandPalette *tview.InputField
+	searchOverlay  *tview.TextView
+
 	// State
-	quickModeActive  bool
-	commandMode      bool
-	searchMode       bool
-	searchQuery      string
-	searchResults    []string
-	
+	quickModeActive bool
+	commandMode     bool
+	searchMode      bool
+	searchQuery     string
+	searchResults   []string
+
 	// Callbacks
-	onNavigate       func(from, to string)
-	onModeChange     func(NavigationMode)
-	onSearch         func(string) []string
-	
+	onNavigate   func(from, to string)
+	onModeChange func(NavigationMode)
+	onSearch     func(string) []string
+
 	// Configuration
 	enableBreadcrumb bool
 	enableQuickHelp  bool
@@ -92,16 +92,16 @@ func NewNavigationManager(app *tview.Application) *NavigationManager {
 		enableHistory:    true,
 		maxHistorySize:   50,
 	}
-	
+
 	nm.history = &NavigationHistory{
 		items:   make([]string, 0),
 		current: -1,
 		maxSize: nm.maxHistorySize,
 	}
-	
+
 	nm.initializeUI()
 	nm.setupDefaultBindings()
-	
+
 	return nm
 }
 
@@ -111,18 +111,18 @@ func (nm *NavigationManager) initializeUI() {
 	nm.breadcrumb = tview.NewTextView()
 	nm.breadcrumb.SetDynamicColors(true)
 	nm.breadcrumb.SetText("[gray]Home[white]")
-	
+
 	// Quick help bar
 	nm.quickHelpBar = tview.NewTextView()
 	nm.quickHelpBar.SetDynamicColors(true)
 	nm.quickHelpBar.SetText(nm.getQuickHelpText())
-	
+
 	// Command palette
 	nm.commandPalette = tview.NewInputField()
 	nm.commandPalette.SetLabel("Command: ")
 	nm.commandPalette.SetFieldBackgroundColor(tcell.ColorBlack)
 	nm.commandPalette.SetFieldTextColor(tcell.ColorWhite)
-	
+
 	// Search overlay
 	nm.searchOverlay = tview.NewTextView()
 	nm.searchOverlay.SetDynamicColors(true)
@@ -143,7 +143,7 @@ func (nm *NavigationManager) setupDefaultBindings() {
 	nm.keyBindings[tcell.KeyCtrlH] = "history"
 	nm.keyBindings[tcell.KeyCtrlB] = "back"
 	nm.keyBindings[tcell.KeyCtrlN] = "forward"
-	
+
 	// Quick access shortcuts (1-9, a-z)
 	shortcuts := "123456789abcdefghijklmnopqrstuvwxyz"
 	for _, char := range shortcuts {
@@ -155,35 +155,35 @@ func (nm *NavigationManager) setupDefaultBindings() {
 func (nm *NavigationManager) RegisterTarget(target *NavigationTarget) error {
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
-	
+
 	if target.ID == "" {
 		return fmt.Errorf("target ID cannot be empty")
 	}
-	
+
 	// Check for duplicate shortcuts
 	if target.Shortcut != 0 {
 		if existingID, exists := nm.quickAccessMap[target.Shortcut]; exists && existingID != "" {
 			return fmt.Errorf("shortcut '%c' already assigned to target %s", target.Shortcut, existingID)
 		}
 	}
-	
+
 	// Check for duplicate key bindings
 	if target.KeyBinding != tcell.KeyNUL {
 		if existingID, exists := nm.keyBindings[target.KeyBinding]; exists && existingID != target.ID {
 			return fmt.Errorf("key binding already assigned to target %s", existingID)
 		}
 	}
-	
+
 	// Set defaults
 	if target.Priority == 0 {
 		target.Priority = 5
 	}
 	target.Visible = true
-	
+
 	// Register target
 	nm.targets[target.ID] = target
 	nm.targetOrder = append(nm.targetOrder, target.ID)
-	
+
 	// Register shortcuts
 	if target.Shortcut != 0 {
 		nm.quickAccessMap[target.Shortcut] = target.ID
@@ -191,9 +191,9 @@ func (nm *NavigationManager) RegisterTarget(target *NavigationTarget) error {
 	if target.KeyBinding != tcell.KeyNUL {
 		nm.keyBindings[target.KeyBinding] = target.ID
 	}
-	
+
 	nm.updateQuickHelp()
-	
+
 	return nil
 }
 
@@ -201,15 +201,15 @@ func (nm *NavigationManager) RegisterTarget(target *NavigationTarget) error {
 func (nm *NavigationManager) UnregisterTarget(id string) error {
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
-	
+
 	target, exists := nm.targets[id]
 	if !exists {
 		return fmt.Errorf("target %s not found", id)
 	}
-	
+
 	// Remove from maps
 	delete(nm.targets, id)
-	
+
 	// Remove from order slice
 	newOrder := make([]string, 0, len(nm.targetOrder)-1)
 	for _, targetID := range nm.targetOrder {
@@ -218,7 +218,7 @@ func (nm *NavigationManager) UnregisterTarget(id string) error {
 		}
 	}
 	nm.targetOrder = newOrder
-	
+
 	// Remove shortcuts
 	if target.Shortcut != 0 {
 		nm.quickAccessMap[target.Shortcut] = ""
@@ -226,7 +226,7 @@ func (nm *NavigationManager) UnregisterTarget(id string) error {
 	if target.KeyBinding != tcell.KeyNUL {
 		delete(nm.keyBindings, target.KeyBinding)
 	}
-	
+
 	// Handle current target change
 	if nm.currentTarget == id {
 		if len(nm.targetOrder) > 0 {
@@ -235,9 +235,9 @@ func (nm *NavigationManager) UnregisterTarget(id string) error {
 			nm.currentTarget = ""
 		}
 	}
-	
+
 	nm.updateQuickHelp()
-	
+
 	return nil
 }
 
@@ -300,7 +300,7 @@ func (nm *NavigationManager) navigateToTargetLocked(targetID string, addToHistor
 func (nm *NavigationManager) HandleInput(event *tcell.EventKey) *tcell.EventKey {
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
-	
+
 	// Handle mode-specific input
 	switch nm.mode {
 	case NavigationModeCommand:
@@ -310,13 +310,13 @@ func (nm *NavigationManager) HandleInput(event *tcell.EventKey) *tcell.EventKey 
 	case NavigationModeQuick:
 		return nm.handleQuickInput(event)
 	}
-	
+
 	// Handle global key bindings
 	if targetID, exists := nm.keyBindings[event.Key()]; exists {
 		nm.handleSpecialCommand(targetID)
 		return nil
 	}
-	
+
 	// Handle character shortcuts in quick mode
 	if nm.quickModeActive && event.Key() == tcell.KeyRune {
 		if targetID, exists := nm.quickAccessMap[event.Rune()]; exists && targetID != "" {
@@ -341,7 +341,7 @@ func (nm *NavigationManager) handleCommandInput(event *tcell.EventKey) *tcell.Ev
 		nm.ExitCommandMode()
 		return nil
 	}
-	
+
 	return event
 }
 
@@ -369,7 +369,7 @@ func (nm *NavigationManager) handleSearchInput(event *tcell.EventKey) *tcell.Eve
 		}
 		return nil
 	}
-	
+
 	return event
 }
 
@@ -417,9 +417,9 @@ func (nm *NavigationManager) handleSpecialCommand(command string) {
 func (nm *NavigationManager) EnterQuickMode() {
 	nm.mode = NavigationModeQuick
 	nm.quickModeActive = true
-	
+
 	nm.updateQuickHelp()
-	
+
 	if nm.onModeChange != nil {
 		nm.onModeChange(nm.mode)
 	}
@@ -429,9 +429,9 @@ func (nm *NavigationManager) EnterQuickMode() {
 func (nm *NavigationManager) ExitQuickMode() {
 	nm.mode = NavigationModeNormal
 	nm.quickModeActive = false
-	
+
 	nm.updateQuickHelp()
-	
+
 	if nm.onModeChange != nil {
 		nm.onModeChange(nm.mode)
 	}
@@ -441,9 +441,9 @@ func (nm *NavigationManager) ExitQuickMode() {
 func (nm *NavigationManager) EnterCommandMode() {
 	nm.mode = NavigationModeCommand
 	nm.commandMode = true
-	
+
 	nm.commandPalette.SetText("")
-	
+
 	if nm.onModeChange != nil {
 		nm.onModeChange(nm.mode)
 	}
@@ -453,7 +453,7 @@ func (nm *NavigationManager) EnterCommandMode() {
 func (nm *NavigationManager) ExitCommandMode() {
 	nm.mode = NavigationModeNormal
 	nm.commandMode = false
-	
+
 	if nm.onModeChange != nil {
 		nm.onModeChange(nm.mode)
 	}
@@ -465,9 +465,9 @@ func (nm *NavigationManager) EnterSearchMode() {
 	nm.searchMode = true
 	nm.searchQuery = ""
 	nm.searchResults = nil
-	
+
 	nm.updateSearchOverlay()
-	
+
 	if nm.onModeChange != nil {
 		nm.onModeChange(nm.mode)
 	}
@@ -479,7 +479,7 @@ func (nm *NavigationManager) ExitSearchMode() {
 	nm.searchMode = false
 	nm.searchQuery = ""
 	nm.searchResults = nil
-	
+
 	if nm.onModeChange != nil {
 		nm.onModeChange(nm.mode)
 	}
@@ -493,29 +493,29 @@ func (nm *NavigationManager) performSearch() {
 		// Default search implementation
 		nm.searchResults = nm.defaultSearch(nm.searchQuery)
 	}
-	
+
 	nm.updateSearchOverlay()
 }
 
 // defaultSearch provides default search functionality
 func (nm *NavigationManager) defaultSearch(query string) []string {
 	var results []string
-	
+
 	query = strings.ToLower(query)
-	
+
 	for _, targetID := range nm.targetOrder {
 		target := nm.targets[targetID]
 		if target == nil || !target.Visible {
 			continue
 		}
-		
+
 		if strings.Contains(strings.ToLower(target.Name), query) ||
-		   strings.Contains(strings.ToLower(target.Description), query) ||
-		   strings.Contains(strings.ToLower(target.Type), query) {
+			strings.Contains(strings.ToLower(target.Description), query) ||
+			strings.Contains(strings.ToLower(target.Type), query) {
 			results = append(results, targetID)
 		}
 	}
-	
+
 	return results
 }
 
@@ -558,13 +558,13 @@ func (nm *NavigationManager) executeCommand(command string) {
 // findTargetByName finds a target by name
 func (nm *NavigationManager) findTargetByName(name string) string {
 	name = strings.ToLower(name)
-	
+
 	for targetID, target := range nm.targets {
 		if strings.ToLower(target.Name) == name {
 			return targetID
 		}
 	}
-	
+
 	return ""
 }
 
@@ -590,11 +590,11 @@ func (nm *NavigationManager) GoForward() {
 func (nm *NavigationManager) addToHistory(targetID string) {
 	// Remove items after current position
 	nm.history.items = nm.history.items[:nm.history.current+1]
-	
+
 	// Add new item
 	nm.history.items = append(nm.history.items, targetID)
 	nm.history.current = len(nm.history.items) - 1
-	
+
 	// Trim history if too long
 	if len(nm.history.items) > nm.history.maxSize {
 		nm.history.items = nm.history.items[1:]
@@ -626,9 +626,9 @@ func (nm *NavigationManager) updateBreadcrumb() {
 	if !nm.enableBreadcrumb {
 		return
 	}
-	
+
 	var breadcrumbText string
-	
+
 	if nm.currentTarget != "" {
 		if target := nm.targets[nm.currentTarget]; target != nil {
 			breadcrumbText = fmt.Sprintf("[cyan]%s[white]", target.Name)
@@ -636,7 +636,7 @@ func (nm *NavigationManager) updateBreadcrumb() {
 	} else {
 		breadcrumbText = "[gray]Home[white]"
 	}
-	
+
 	nm.breadcrumb.SetText(breadcrumbText)
 }
 
@@ -645,7 +645,7 @@ func (nm *NavigationManager) updateQuickHelp() {
 	if !nm.enableQuickHelp {
 		return
 	}
-	
+
 	nm.quickHelpBar.SetText(nm.getQuickHelpText())
 }
 
@@ -667,12 +667,12 @@ func (nm *NavigationManager) getQuickHelpText() string {
 				}
 			}
 		}
-		
+
 		if len(shortcuts) > 8 {
 			shortcuts = shortcuts[:8]
 			shortcuts = append(shortcuts, "...")
 		}
-		
+
 		return fmt.Sprintf("Shortcuts: %s | [green]F4[white]:Quick [green]Ctrl+P[white]:Command", strings.Join(shortcuts, " "))
 	}
 }
@@ -682,9 +682,9 @@ func (nm *NavigationManager) updateSearchOverlay() {
 	if !nm.searchMode {
 		return
 	}
-	
+
 	text := fmt.Sprintf("[yellow]Search:[white] %s\n", nm.searchQuery)
-	
+
 	if len(nm.searchResults) > 0 {
 		text += "[cyan]Results:[white]\n"
 		for i, targetID := range nm.searchResults {
@@ -699,7 +699,7 @@ func (nm *NavigationManager) updateSearchOverlay() {
 	} else if nm.searchQuery != "" {
 		text += "[red]No results found[white]"
 	}
-	
+
 	nm.searchOverlay.SetText(text)
 }
 

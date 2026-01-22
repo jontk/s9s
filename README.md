@@ -5,9 +5,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/jontk/s9s/releases"><img src="https://img.shields.io/github/release/jontk/s9s.svg" alt="Latest Release"></a>
-  <a href="https://github.com/jontk/s9s/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <a href="https://github.com/jontk/s9s/releases/latest"><img src="https://img.shields.io/github/v/release/jontk/s9s" alt="Release"></a>
+  <a href="https://github.com/jontk/s9s/actions/workflows/ci.yml"><img src="https://github.com/jontk/s9s/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/jontk/s9s"><img src="https://codecov.io/gh/jontk/s9s/branch/main/graph/badge.svg" alt="codecov"></a>
+  <a href="https://pkg.go.dev/github.com/jontk/s9s"><img src="https://pkg.go.dev/badge/github.com/jontk/s9s.svg" alt="Go Reference"></a>
   <a href="https://goreportcard.com/report/github.com/jontk/s9s"><img src="https://goreportcard.com/badge/github.com/jontk/s9s" alt="Go Report Card"></a>
+</p>
+<p align="center">
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/jontk/s9s/blob/main/go.mod"><img src="https://img.shields.io/github/go-mod/go-version/jontk/s9s" alt="Go Version"></a>
+  <a href="https://api.securityscorecards.dev/projects/github.com/jontk/s9s"><img src="https://api.securityscorecards.dev/projects/github.com/jontk/s9s/badge" alt="OpenSSF Scorecard"></a>
   <a href="https://s9s.dev/docs"><img src="https://img.shields.io/badge/docs-s9s.dev-brightgreen.svg" alt="Documentation"></a>
 </p>
 

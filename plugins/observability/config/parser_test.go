@@ -7,14 +7,14 @@ import (
 
 func TestParserBasicFunctionality(t *testing.T) {
 	configMap := map[string]interface{}{
-		"prometheus.endpoint":                "http://test:9090",
-		"prometheus.timeout":                 "30s",
-		"display.refreshInterval":            "60s",
-		"display.showOverlays":               true,
-		"cache.enabled":                      true,
-		"cache.maxSize":                      500,
-		"metrics.node.enabledMetrics":        []interface{}{"cpu", "memory"},
-		"metrics.job.enabledMetrics":         "cpu,memory,disk",
+		"prometheus.endpoint":         "http://test:9090",
+		"prometheus.timeout":          "30s",
+		"display.refreshInterval":     "60s",
+		"display.showOverlays":        true,
+		"cache.enabled":               true,
+		"cache.maxSize":               500,
+		"metrics.node.enabledMetrics": []interface{}{"cpu", "memory"},
+		"metrics.job.enabledMetrics":  "cpu,memory,disk",
 	}
 
 	parser := NewParser(configMap)
@@ -47,8 +47,8 @@ func TestParserBasicFunctionality(t *testing.T) {
 
 func TestParserDurationErrors(t *testing.T) {
 	tests := []struct {
-		name     string
-		value    interface{}
+		name      string
+		value     interface{}
 		shouldErr bool
 	}{
 		{"valid string", "30s", false},
@@ -77,9 +77,9 @@ func TestParserDurationErrors(t *testing.T) {
 
 func TestParserBooleanErrors(t *testing.T) {
 	tests := []struct {
-		name     string
-		value    interface{}
-		expected bool
+		name      string
+		value     interface{}
+		expected  bool
 		shouldErr bool
 	}{
 		{"bool true", true, true, false},
@@ -113,9 +113,9 @@ func TestParserBooleanErrors(t *testing.T) {
 
 func TestParserIntegerErrors(t *testing.T) {
 	tests := []struct {
-		name     string
-		value    interface{}
-		expected int
+		name      string
+		value     interface{}
+		expected  int
 		shouldErr bool
 	}{
 		{"int value", 42, 42, false},
@@ -148,9 +148,9 @@ func TestParserIntegerErrors(t *testing.T) {
 
 func TestParserStringArrayErrors(t *testing.T) {
 	tests := []struct {
-		name     string
-		value    interface{}
-		expected []string
+		name      string
+		value     interface{}
+		expected  []string
 		shouldErr bool
 	}{
 		{"string slice", []interface{}{"a", "b", "c"}, []string{"a", "b", "c"}, false},
@@ -287,14 +287,14 @@ func TestParserNilConfigMap(t *testing.T) {
 
 func TestParserComplexNestedConfig(t *testing.T) {
 	configMap := map[string]interface{}{
-		"prometheus.auth.type":     "bearer",
-		"prometheus.auth.token":    "secret-token",
-		"prometheus.tls.enabled":   true,
-		"prometheus.tls.caFile":    "/path/to/ca.pem",
-		"alerts.enabled":           false,
-		"alerts.checkInterval":     "2m",
-		"cache.defaultTTL":         "45s",
-		"metrics.node.nodeLabel":   "custom_instance",
+		"prometheus.auth.type":      "bearer",
+		"prometheus.auth.token":     "secret-token",
+		"prometheus.tls.enabled":    true,
+		"prometheus.tls.caFile":     "/path/to/ca.pem",
+		"alerts.enabled":            false,
+		"alerts.checkInterval":      "2m",
+		"cache.defaultTTL":          "45s",
+		"metrics.node.nodeLabel":    "custom_instance",
 		"metrics.job.cgroupPattern": "/custom/path/%s",
 	}
 

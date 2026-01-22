@@ -21,10 +21,10 @@ const (
 )
 
 var (
-	cfgFile    string
-	useMock    bool
-	noMock     bool
-	debugMode  bool
+	cfgFile     string
+	useMock     bool
+	noMock      bool
+	debugMode   bool
 	showVersion bool
 )
 
@@ -44,12 +44,12 @@ Features:
 • Export capabilities (CSV, JSON, Markdown)
 • Plugin system for extensibility
 • Vim-like navigation`,
-	
+
 	Example: `  s9s                         # Launch interactive TUI
   S9S_ENABLE_MOCK=dev s9s --mock  # Use mock SLURM for testing
   s9s setup                       # Run configuration wizard
   s9s setup --auto-discover      # Auto-discover clusters`,
-	
+
 	RunE: runRoot,
 }
 
@@ -64,7 +64,7 @@ func init() {
 	// Global flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.s9s/config.yaml)")
 	rootCmd.PersistentFlags().BoolVar(&debugMode, "debug", false, "enable debug logging")
-	
+
 	// Local flags
 	rootCmd.Flags().BoolVar(&useMock, "mock", false, "use mock SLURM client (requires S9S_ENABLE_MOCK)")
 	rootCmd.Flags().BoolVar(&noMock, "no-mock", false, "use real SLURM client (override config)")
@@ -138,7 +138,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  1. Run the setup wizard: %s\n", cmd.Root().CommandPath()+" setup")
 		fmt.Printf("  2. Or use mock mode: %s\n", cmd.Root().CommandPath()+" --mock")
 		fmt.Printf("  3. Or manually edit: ~/.s9s/config.yaml\n\n")
-		
+
 		if !cfg.UseMockClient {
 			return fmt.Errorf("no clusters configured")
 		}

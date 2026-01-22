@@ -101,7 +101,7 @@ func (s *SlurmTokenAuthenticator) Authenticate(ctx context.Context, config AuthC
 
 	// Execute scontrol token command
 	cmd := exec.CommandContext(ctx, scontrolPath, "token", fmt.Sprintf("username=%s", s.user), fmt.Sprintf("lifespan=%d", tokenLifetime))
-	
+
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate SLURM token: %w", err)
@@ -132,7 +132,7 @@ func (s *SlurmTokenAuthenticator) Authenticate(ctx context.Context, config AuthC
 func (s *SlurmTokenAuthenticator) parseTokenOutput(output string, lifetime int) (string, time.Time, error) {
 	// scontrol token output format:
 	// SLURM_JWT=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
-	
+
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -160,7 +160,7 @@ func (s *SlurmTokenAuthenticator) parseTokenOutput(output string, lifetime int) 
 // RefreshToken generates a new token (SLURM tokens cannot be refreshed, only regenerated)
 func (s *SlurmTokenAuthenticator) RefreshToken(ctx context.Context, token *Token) (*Token, error) {
 	debug.Logger.Printf("Refreshing SLURM token (regenerating)")
-	
+
 	// For SLURM tokens, refresh means generating a new token
 	return s.Authenticate(ctx, s.config)
 }
@@ -186,7 +186,7 @@ func (s *SlurmTokenAuthenticator) ValidateToken(ctx context.Context, token *Toke
 // RevokeToken revokes a SLURM token (not supported by SLURM, token will expire naturally)
 func (s *SlurmTokenAuthenticator) RevokeToken(ctx context.Context, token *Token) error {
 	debug.Logger.Printf("SLURM token revocation requested - tokens will expire naturally")
-	
+
 	// SLURM doesn't support token revocation, tokens expire based on their lifetime
 	// We could potentially try to generate a very short-lived token to "revoke" the current one
 	// but that's not really revocation. For now, we'll just log and return success.

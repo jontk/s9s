@@ -14,91 +14,91 @@ import (
 
 // UserPreferences represents all user-configurable preferences
 type UserPreferences struct {
-	mu               *sync.RWMutex
-	configPath       string
-	General          GeneralPrefs          `json:"general"`
-	Display          DisplayPrefs          `json:"display"`
-	Colors           ColorPrefs            `json:"colors"`
-	KeyBindings      map[string]string     `json:"key_bindings"`
-	ViewSettings     map[string]ViewPrefs  `json:"view_settings"`
-	Filters          FilterPrefs           `json:"filters"`
-	JobSubmission    JobSubmissionPrefs    `json:"job_submission"`
-	Alerts           AlertPrefs            `json:"alerts"`
-	Performance      PerformancePrefs      `json:"performance"`
-	Layouts          LayoutPrefs           `json:"layouts"`
-	lastSaved        time.Time
-	onChange         []func()
+	mu            *sync.RWMutex
+	configPath    string
+	General       GeneralPrefs         `json:"general"`
+	Display       DisplayPrefs         `json:"display"`
+	Colors        ColorPrefs           `json:"colors"`
+	KeyBindings   map[string]string    `json:"key_bindings"`
+	ViewSettings  map[string]ViewPrefs `json:"view_settings"`
+	Filters       FilterPrefs          `json:"filters"`
+	JobSubmission JobSubmissionPrefs   `json:"job_submission"`
+	Alerts        AlertPrefs           `json:"alerts"`
+	Performance   PerformancePrefs     `json:"performance"`
+	Layouts       LayoutPrefs          `json:"layouts"`
+	lastSaved     time.Time
+	onChange      []func()
 }
 
 // GeneralPrefs contains general application preferences
 type GeneralPrefs struct {
-	AutoRefresh      bool   `json:"auto_refresh"`
-	RefreshInterval  string `json:"refresh_interval"` // e.g., "5s", "30s", "1m"
-	Theme            string `json:"theme"`            // "default", "dark", "light"
-	DateFormat       string `json:"date_format"`      // e.g., "2006-01-02 15:04:05"
-	RelativeTime     bool   `json:"relative_time"`    // Show times as "5m ago"
-	ConfirmOnExit    bool   `json:"confirm_on_exit"`
-	ShowWelcome      bool   `json:"show_welcome"`
-	DefaultView      string `json:"default_view"`     // Starting view
-	SaveWindowSize   bool   `json:"save_window_size"`
-	Language         string `json:"language"`         // For future i18n
+	AutoRefresh     bool   `json:"auto_refresh"`
+	RefreshInterval string `json:"refresh_interval"` // e.g., "5s", "30s", "1m"
+	Theme           string `json:"theme"`            // "default", "dark", "light"
+	DateFormat      string `json:"date_format"`      // e.g., "2006-01-02 15:04:05"
+	RelativeTime    bool   `json:"relative_time"`    // Show times as "5m ago"
+	ConfirmOnExit   bool   `json:"confirm_on_exit"`
+	ShowWelcome     bool   `json:"show_welcome"`
+	DefaultView     string `json:"default_view"` // Starting view
+	SaveWindowSize  bool   `json:"save_window_size"`
+	Language        string `json:"language"` // For future i18n
 }
 
 // DisplayPrefs contains display-related preferences
 type DisplayPrefs struct {
-	ShowHeader       bool   `json:"show_header"`
-	ShowStatusBar    bool   `json:"show_status_bar"`
-	ShowLineNumbers  bool   `json:"show_line_numbers"`
-	CompactMode      bool   `json:"compact_mode"`
-	ShowGridLines    bool   `json:"show_grid_lines"`
-	AnimationsEnabled bool  `json:"animations_enabled"`
-	HighlightChanges bool   `json:"highlight_changes"`
-	TruncateLongText bool   `json:"truncate_long_text"`
-	MaxColumnWidth   int    `json:"max_column_width"`
-	TimeZone         string `json:"timezone"` // Local, UTC, or specific TZ
+	ShowHeader        bool   `json:"show_header"`
+	ShowStatusBar     bool   `json:"show_status_bar"`
+	ShowLineNumbers   bool   `json:"show_line_numbers"`
+	CompactMode       bool   `json:"compact_mode"`
+	ShowGridLines     bool   `json:"show_grid_lines"`
+	AnimationsEnabled bool   `json:"animations_enabled"`
+	HighlightChanges  bool   `json:"highlight_changes"`
+	TruncateLongText  bool   `json:"truncate_long_text"`
+	MaxColumnWidth    int    `json:"max_column_width"`
+	TimeZone          string `json:"timezone"` // Local, UTC, or specific TZ
 }
 
 // ColorPrefs contains color scheme preferences
 type ColorPrefs struct {
-	Scheme           string            `json:"scheme"` // "default", "solarized", "monokai", etc.
-	HighContrast     bool              `json:"high_contrast"`
-	ColorBlindMode   string            `json:"colorblind_mode"` // "", "protanopia", "deuteranopia", "tritanopia"
-	CustomColors     map[string]string `json:"custom_colors"`
-	SyntaxHighlight  bool              `json:"syntax_highlight"`
+	Scheme          string            `json:"scheme"` // "default", "solarized", "monokai", etc.
+	HighContrast    bool              `json:"high_contrast"`
+	ColorBlindMode  string            `json:"colorblind_mode"` // "", "protanopia", "deuteranopia", "tritanopia"
+	CustomColors    map[string]string `json:"custom_colors"`
+	SyntaxHighlight bool              `json:"syntax_highlight"`
 }
 
 // ViewPrefs contains view-specific preferences
 type ViewPrefs struct {
-	SortColumn       string   `json:"sort_column"`
-	SortOrder        string   `json:"sort_order"` // "asc" or "desc"
-	VisibleColumns   []string `json:"visible_columns"`
+	SortColumn       string         `json:"sort_column"`
+	SortOrder        string         `json:"sort_order"` // "asc" or "desc"
+	VisibleColumns   []string       `json:"visible_columns"`
 	ColumnWidths     map[string]int `json:"column_widths"`
-	GroupBy          string   `json:"group_by"`
-	ShowDetails      bool     `json:"show_details"`
-	AutoExpandGroups bool     `json:"auto_expand_groups"`
-	PageSize         int      `json:"page_size"`
+	GroupBy          string         `json:"group_by"`
+	ShowDetails      bool           `json:"show_details"`
+	AutoExpandGroups bool           `json:"auto_expand_groups"`
+	PageSize         int            `json:"page_size"`
 }
 
 // FilterPrefs contains filter-related preferences
 type FilterPrefs struct {
-	SaveHistory      bool     `json:"save_history"`
-	HistorySize      int      `json:"history_size"`
-	DefaultOperator  string   `json:"default_operator"`
-	CaseSensitive    bool     `json:"case_sensitive"`
-	UseRegex         bool     `json:"use_regex"`
-	ShowAdvanced     bool     `json:"show_advanced"`
-	QuickFilters     []string `json:"quick_filters"`
+	SaveHistory     bool     `json:"save_history"`
+	HistorySize     int      `json:"history_size"`
+	DefaultOperator string   `json:"default_operator"`
+	CaseSensitive   bool     `json:"case_sensitive"`
+	UseRegex        bool     `json:"use_regex"`
+	ShowAdvanced    bool     `json:"show_advanced"`
+	QuickFilters    []string `json:"quick_filters"`
 }
 
 // JobSubmissionPrefs contains job submission preferences
 type JobSubmissionPrefs struct {
-	DefaultTemplate  string            `json:"default_template"`
-	SaveHistory      bool              `json:"save_history"`
-	HistorySize      int               `json:"history_size"`
-	DefaultValues    map[string]string `json:"default_values"`
-	ValidateOnType   bool              `json:"validate_on_type"`
-	ShowAdvancedOptions bool           `json:"show_advanced_options"`
-	AutoSuggest      bool              `json:"auto_suggest"`
+	DefaultTemplate     string            `json:"default_template"`
+	SaveHistory         bool              `json:"save_history"`
+	HistorySize         int               `json:"history_size"`
+	DefaultValues       map[string]string `json:"default_values"`
+	ValidateOnType      bool              `json:"validate_on_type"`
+	ShowAdvancedOptions bool              `json:"show_advanced_options"`
+	AutoSuggest         bool              `json:"auto_suggest"`
 }
 
 // AlertPrefs contains alert-related preferences
@@ -114,35 +114,35 @@ type AlertPrefs struct {
 
 // PerformancePrefs contains performance-related preferences
 type PerformancePrefs struct {
-	LazyLoading      bool `json:"lazy_loading"`
-	CacheSize        int  `json:"cache_size_mb"`
-	MaxConcurrentReq int  `json:"max_concurrent_requests"`
+	LazyLoading      bool   `json:"lazy_loading"`
+	CacheSize        int    `json:"cache_size_mb"`
+	MaxConcurrentReq int    `json:"max_concurrent_requests"`
 	RequestTimeout   string `json:"request_timeout"`
-	EnableProfiling  bool `json:"enable_profiling"`
-	DebugMode        bool `json:"debug_mode"`
+	EnableProfiling  bool   `json:"enable_profiling"`
+	DebugMode        bool   `json:"debug_mode"`
 }
 
 // LayoutPrefs contains dashboard layout preferences
 type LayoutPrefs struct {
-	CurrentLayout    string            `json:"current_layout"`
-	AutoSave         bool              `json:"auto_save"`
-	CustomLayouts    []string          `json:"custom_layouts"`
-	LayoutHistory    []string          `json:"layout_history"`
-	ResponsiveMode   bool              `json:"responsive_mode"`
-	GridSnap         bool              `json:"grid_snap"`
-	ShowGrid         bool              `json:"show_grid"`
-	AnimateTransitions bool            `json:"animate_transitions"`
-	WidgetSettings   map[string]WidgetPrefs `json:"widget_settings"`
+	CurrentLayout      string                 `json:"current_layout"`
+	AutoSave           bool                   `json:"auto_save"`
+	CustomLayouts      []string               `json:"custom_layouts"`
+	LayoutHistory      []string               `json:"layout_history"`
+	ResponsiveMode     bool                   `json:"responsive_mode"`
+	GridSnap           bool                   `json:"grid_snap"`
+	ShowGrid           bool                   `json:"show_grid"`
+	AnimateTransitions bool                   `json:"animate_transitions"`
+	WidgetSettings     map[string]WidgetPrefs `json:"widget_settings"`
 }
 
 // WidgetPrefs contains widget-specific preferences
 type WidgetPrefs struct {
-	Enabled       bool   `json:"enabled"`
-	UpdateRate    string `json:"update_rate"`
-	ShowBorder    bool   `json:"show_border"`
-	ShowTitle     bool   `json:"show_title"`
-	ColorScheme   string `json:"color_scheme"`
-	CustomConfig  map[string]interface{} `json:"custom_config"`
+	Enabled      bool                   `json:"enabled"`
+	UpdateRate   string                 `json:"update_rate"`
+	ShowBorder   bool                   `json:"show_border"`
+	ShowTitle    bool                   `json:"show_title"`
+	ColorScheme  string                 `json:"color_scheme"`
+	CustomConfig map[string]interface{} `json:"custom_config"`
 }
 
 // NewUserPreferences creates a new preferences manager
@@ -171,27 +171,27 @@ func (up *UserPreferences) setDefaults() {
 	up.General = GeneralPrefs{
 		AutoRefresh:     true,
 		RefreshInterval: "30s",
-		Theme:          "default",
-		DateFormat:     "2006-01-02 15:04:05",
-		RelativeTime:   true,
-		ConfirmOnExit:  true,
-		ShowWelcome:    true,
-		DefaultView:    "jobs",
-		SaveWindowSize: true,
-		Language:       "en",
+		Theme:           "default",
+		DateFormat:      "2006-01-02 15:04:05",
+		RelativeTime:    true,
+		ConfirmOnExit:   true,
+		ShowWelcome:     true,
+		DefaultView:     "jobs",
+		SaveWindowSize:  true,
+		Language:        "en",
 	}
 
 	up.Display = DisplayPrefs{
-		ShowHeader:       true,
-		ShowStatusBar:    true,
-		ShowLineNumbers:  false,
-		CompactMode:      false,
-		ShowGridLines:    true,
+		ShowHeader:        true,
+		ShowStatusBar:     true,
+		ShowLineNumbers:   false,
+		CompactMode:       false,
+		ShowGridLines:     true,
 		AnimationsEnabled: true,
-		HighlightChanges: true,
-		TruncateLongText: true,
-		MaxColumnWidth:   50,
-		TimeZone:        "Local",
+		HighlightChanges:  true,
+		TruncateLongText:  true,
+		MaxColumnWidth:    50,
+		TimeZone:          "Local",
 	}
 
 	up.Colors = ColorPrefs{
@@ -213,22 +213,22 @@ func (up *UserPreferences) setDefaults() {
 	}
 
 	up.JobSubmission = JobSubmissionPrefs{
-		DefaultTemplate:    "",
-		SaveHistory:       true,
-		HistorySize:       20,
-		DefaultValues:     make(map[string]string),
-		ValidateOnType:    true,
+		DefaultTemplate:     "",
+		SaveHistory:         true,
+		HistorySize:         20,
+		DefaultValues:       make(map[string]string),
+		ValidateOnType:      true,
 		ShowAdvancedOptions: false,
-		AutoSuggest:       true,
+		AutoSuggest:         true,
 	}
 
 	up.Alerts = AlertPrefs{
-		ShowBadge:       true,
-		BadgePosition:   "top-right",
-		AutoDismissInfo: true,
-		InfoDismissTime: "5s",
-		PlaySound:       false,
-		FlashWindow:     false,
+		ShowBadge:        true,
+		BadgePosition:    "top-right",
+		AutoDismissInfo:  true,
+		InfoDismissTime:  "5s",
+		PlaySound:        false,
+		FlashWindow:      false,
 		ShowDesktopNotif: true,
 	}
 
@@ -255,35 +255,35 @@ func (up *UserPreferences) setDefaults() {
 
 	// Default key bindings
 	up.KeyBindings = map[string]string{
-		"quit":           "q",
-		"help":           "?",
-		"refresh":        "F5",
-		"search":         "/",
-		"filter":         "f",
-		"next_view":      "Tab",
-		"prev_view":      "Shift+Tab",
-		"select":         "Enter",
-		"cancel":         "Esc",
-		"page_up":        "PgUp",
-		"page_down":      "PgDn",
-		"home":           "Home",
-		"end":            "End",
-		"delete":         "d",
-		"edit":           "e",
-		"new":            "n",
-		"save":           "Ctrl+s",
-		"copy":           "Ctrl+c",
-		"paste":          "Ctrl+v",
-		"undo":           "Ctrl+z",
-		"redo":           "Ctrl+y",
-		"toggle_details": "Space",
-		"expand_all":     "+",
-		"collapse_all":   "-",
-		"mark":           "m",
-		"mark_all":       "Ctrl+a",
-		"clear_marks":    "Ctrl+u",
+		"quit":            "q",
+		"help":            "?",
+		"refresh":         "F5",
+		"search":          "/",
+		"filter":          "f",
+		"next_view":       "Tab",
+		"prev_view":       "Shift+Tab",
+		"select":          "Enter",
+		"cancel":          "Esc",
+		"page_up":         "PgUp",
+		"page_down":       "PgDn",
+		"home":            "Home",
+		"end":             "End",
+		"delete":          "d",
+		"edit":            "e",
+		"new":             "n",
+		"save":            "Ctrl+s",
+		"copy":            "Ctrl+c",
+		"paste":           "Ctrl+v",
+		"undo":            "Ctrl+z",
+		"redo":            "Ctrl+y",
+		"toggle_details":  "Space",
+		"expand_all":      "+",
+		"collapse_all":    "-",
+		"mark":            "m",
+		"mark_all":        "Ctrl+a",
+		"clear_marks":     "Ctrl+u",
 		"layout_switcher": "F4",
-		"layout_edit":    "Ctrl+l",
+		"layout_edit":     "Ctrl+l",
 	}
 }
 
@@ -291,7 +291,6 @@ func (up *UserPreferences) setDefaults() {
 func (up *UserPreferences) Load() error {
 	up.mu.Lock()
 	defer up.mu.Unlock()
-
 
 	data, err := ioutil.ReadFile(up.configPath)
 	if err != nil {
@@ -539,10 +538,10 @@ func (up *UserPreferences) GetViewSettings(viewName string) ViewPrefs {
 
 	// Return defaults
 	return ViewPrefs{
-		SortColumn:    "",
-		SortOrder:     "asc",
-		ShowDetails:   true,
-		PageSize:      50,
+		SortColumn:  "",
+		SortOrder:   "asc",
+		ShowDetails: true,
+		PageSize:    50,
 	}
 }
 

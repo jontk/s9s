@@ -28,8 +28,8 @@ type Metric struct {
 
 // Profiler handles performance profiling
 type Profiler struct {
-	metrics            []Metric
-	mu                 sync.RWMutex
+	metrics []Metric
+	mu      sync.RWMutex
 	// TODO(lint): Review unused code - field cpuProfile is unused
 	// cpuProfile         *pprof.Profile
 	startTime          time.Time

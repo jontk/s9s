@@ -11,11 +11,11 @@ import (
 
 // Mock overlay for testing
 type mockOverlay struct {
-	id           string
+	id            string
 	shouldRefresh bool
-	columns      []plugin.ColumnDefinition
-	cellData     map[string]string
-	cellStyles   map[string]plugin.CellStyle
+	columns       []plugin.ColumnDefinition
+	cellData      map[string]string
+	cellStyles    map[string]plugin.CellStyle
 }
 
 func (m *mockOverlay) GetID() string {
@@ -497,7 +497,7 @@ func TestConcurrentAccess(t *testing.T) {
 
 	// Test concurrent registration and access
 	done := make(chan bool)
-	
+
 	// Register overlays concurrently
 	go func() {
 		for i := 0; i < 10; i++ {

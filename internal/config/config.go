@@ -108,11 +108,11 @@ type PluginConfig struct {
 
 // PluginSettings contains global plugin settings
 type PluginSettings struct {
-	EnableAll    bool   `mapstructure:"enableAll"`
-	PluginDir    string `mapstructure:"pluginDir"`
-	AutoDiscover bool   `mapstructure:"autoDiscover"`
-	SafeMode     bool   `mapstructure:"safeMode"`     // Disable external plugins
-	MaxMemoryMB  int    `mapstructure:"maxMemoryMB"`  // Memory limit per plugin
+	EnableAll     bool    `mapstructure:"enableAll"`
+	PluginDir     string  `mapstructure:"pluginDir"`
+	AutoDiscover  bool    `mapstructure:"autoDiscover"`
+	SafeMode      bool    `mapstructure:"safeMode"`      // Disable external plugins
+	MaxMemoryMB   int     `mapstructure:"maxMemoryMB"`   // Memory limit per plugin
 	MaxCPUPercent float64 `mapstructure:"maxCPUPercent"` // CPU limit per plugin
 }
 

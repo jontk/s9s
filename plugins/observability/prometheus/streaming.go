@@ -1,9 +1,9 @@
 // Package prometheus provides streaming capabilities for large Prometheus query results.
-// 
-// IMPORTANT: Prometheus API does not natively support streaming responses. 
+//
+// IMPORTANT: Prometheus API does not natively support streaming responses.
 // This implementation provides CLIENT-SIDE streaming by:
 // 1. Fetching complete responses from Prometheus
-// 2. Post-processing large datasets into manageable chunks  
+// 2. Post-processing large datasets into manageable chunks
 // 3. Streaming chunks to consumer applications for memory efficiency
 //
 // This is particularly useful for:
@@ -43,11 +43,11 @@ func DefaultStreamingConfig() StreamingConfig {
 
 // QueryResultStream represents a streaming query result
 type QueryResultStream struct {
-	Status    string                   `json:"status"`
-	Data      StreamingResultData      `json:"data"`
-	Error     string                   `json:"error,omitempty"`
-	ErrorType string                   `json:"errorType,omitempty"`
-	Warnings  []string                 `json:"warnings,omitempty"`
+	Status    string                    `json:"status"`
+	Data      StreamingResultData       `json:"data"`
+	Error     string                    `json:"error,omitempty"`
+	ErrorType string                    `json:"errorType,omitempty"`
+	Warnings  []string                  `json:"warnings,omitempty"`
 	Stream    <-chan StreamingDataChunk `json:"-"`
 }
 
@@ -158,8 +158,8 @@ func (c *Client) processStreamingResponse(ctx context.Context, body io.ReadClose
 	var initialResponse struct {
 		Status string `json:"status"`
 		Data   struct {
-			ResultType string            `json:"resultType"`
-			Result     json.RawMessage   `json:"result"`
+			ResultType string          `json:"resultType"`
+			Result     json.RawMessage `json:"result"`
 		} `json:"data"`
 		Error     string   `json:"error,omitempty"`
 		ErrorType string   `json:"errorType,omitempty"`
@@ -213,7 +213,7 @@ func (c *Client) streamifyMatrixData(ctx context.Context, rawData json.RawMessag
 	}
 
 	chunkID := 0
-	
+
 	// Stream each series as separate chunks
 	for seriesIdx, series := range matrix {
 		select {
@@ -229,13 +229,13 @@ func (c *Client) streamifyMatrixData(ctx context.Context, rawData json.RawMessag
 
 		// Split large series into smaller chunks
 		valueChunks := c.chunkValues(series.Values, config.ChunkSize)
-		
+
 		for chunkIdx, valueChunk := range valueChunks {
 			chunkSeries := MatrixSeries{
 				Metric: series.Metric,
 				Values: valueChunk,
 			}
-			
+
 			chunkData, err := json.Marshal([]MatrixSeries{chunkSeries})
 			if err != nil {
 				dataStream <- StreamingDataChunk{
@@ -245,16 +245,16 @@ func (c *Client) streamifyMatrixData(ctx context.Context, rawData json.RawMessag
 				}
 				return
 			}
-			
+
 			isLastChunk := (seriesIdx == len(matrix)-1) && (chunkIdx == len(valueChunks)-1)
-			
+
 			chunk := StreamingDataChunk{
 				ChunkID:    chunkID,
 				Data:       json.RawMessage(chunkData),
 				IsComplete: isLastChunk,
 				Timestamp:  time.Now(),
 			}
-			
+
 			select {
 			case dataStream <- chunk:
 			case <-ctx.Done():
@@ -272,7 +272,7 @@ func (c *Client) streamifyMatrixData(ctx context.Context, rawData json.RawMessag
 				}
 				return
 			}
-			
+
 			chunkID++
 		}
 	}
@@ -292,14 +292,14 @@ func (c *Client) chunkValues(values []SamplePair, chunkSize int) [][]SamplePair 
 		}
 		chunks = append(chunks, values[i:end])
 	}
-	
+
 	return chunks
 }
 
 // CollectStreamingResults collects all chunks from a streaming result into a standard QueryResult
 func CollectStreamingResults(ctx context.Context, streamResult *QueryResultStream) (*QueryResult, error) {
 	var allSeries []MatrixSeries
-	
+
 	for {
 		select {
 		case chunk, ok := <-streamResult.Stream:
@@ -311,29 +311,29 @@ func CollectStreamingResults(ctx context.Context, streamResult *QueryResultStrea
 						ResultType: ResultTypeMatrix,
 					},
 				}
-				
+
 				// Marshal the collected series
 				matrixData, err := json.Marshal(allSeries)
 				if err != nil {
 					return nil, fmt.Errorf("failed to marshal collected data: %w", err)
 				}
 				result.Data.Result = json.RawMessage(matrixData)
-				
+
 				return result, nil
 			}
-			
+
 			if chunk.Error != nil {
 				return nil, fmt.Errorf("streaming error in chunk %d: %w", chunk.ChunkID, chunk.Error)
 			}
-			
+
 			// Parse and append chunk data
 			var chunkSeries []MatrixSeries
 			if err := json.Unmarshal(chunk.Data, &chunkSeries); err != nil {
 				return nil, fmt.Errorf("failed to parse chunk %d: %w", chunk.ChunkID, err)
 			}
-			
+
 			allSeries = append(allSeries, chunkSeries...)
-			
+
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		}

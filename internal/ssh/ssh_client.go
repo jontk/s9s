@@ -12,15 +12,15 @@ import (
 
 // SSHConfig holds SSH connection configuration
 type SSHConfig struct {
-	Username    string
-	Port        int
-	KeyFile     string
-	ConfigFile  string
-	Options     map[string]string
-	Timeout     time.Duration
-	UseAgent    bool                    // Use SSH agent for authentication
-	KeyManager  *KeyManager            // Key manager for advanced key handling
-	ClientConfig *ssh.ClientConfig     // Native SSH client config
+	Username     string
+	Port         int
+	KeyFile      string
+	ConfigFile   string
+	Options      map[string]string
+	Timeout      time.Duration
+	UseAgent     bool              // Use SSH agent for authentication
+	KeyManager   *KeyManager       // Key manager for advanced key handling
+	ClientConfig *ssh.ClientConfig // Native SSH client config
 }
 
 // SSHClient handles SSH connections to cluster nodes
@@ -200,10 +200,10 @@ func DefaultSSHConfig() *SSHConfig {
 		UseAgent: false, // Don't check agent availability during startup to avoid hanging
 		Options: map[string]string{
 			"StrictHostKeyChecking": "no",
-			"UserKnownHostsFile":   "/dev/null",
-			"ConnectTimeout":       "10",
-			"ServerAliveInterval":  "60",
-			"ServerAliveCountMax":  "3",
+			"UserKnownHostsFile":    "/dev/null",
+			"ConnectTimeout":        "10",
+			"ServerAliveInterval":   "60",
+			"ServerAliveCountMax":   "3",
 		},
 	}
 
@@ -211,7 +211,7 @@ func DefaultSSHConfig() *SSHConfig {
 	// Key manager will be initialized later when actually needed for SSH connections
 	// if km, err := NewKeyManager(); err == nil {
 	//	config.KeyManager = km
-	//	
+	//
 	//	// Use SSH config from key manager if available
 	//	if sshConfig, err := km.GetSSHConfig(); err == nil {
 	//		config.KeyFile = sshConfig.KeyFile
@@ -226,12 +226,12 @@ func DefaultSSHConfig() *SSHConfig {
 func (c *SSHConfig) WithKeyManager(km *KeyManager) *SSHConfig {
 	c.KeyManager = km
 	c.UseAgent = km.IsAgentConnected()
-	
+
 	// Update key file from key manager
 	if sshConfig, err := km.GetSSHConfig(); err == nil {
 		c.KeyFile = sshConfig.KeyFile
 	}
-	
+
 	return c
 }
 

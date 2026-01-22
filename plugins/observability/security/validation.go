@@ -19,25 +19,25 @@ type RequestValidator struct {
 type ValidationConfig struct {
 	// Enable request validation
 	Enabled bool `yaml:"enabled" json:"enabled"`
-	
+
 	// Maximum query length
 	MaxQueryLength int `yaml:"maxQueryLength" json:"maxQueryLength"`
-	
+
 	// Maximum time range for queries
 	MaxTimeRange time.Duration `yaml:"maxTimeRange" json:"maxTimeRange"`
-	
+
 	// Allowed metric patterns (regex)
 	AllowedMetricPatterns []string `yaml:"allowedMetricPatterns" json:"allowedMetricPatterns"`
-	
+
 	// Blocked metric patterns (regex)
 	BlockedMetricPatterns []string `yaml:"blockedMetricPatterns" json:"blockedMetricPatterns"`
-	
+
 	// Maximum number of time series that can be returned
 	MaxTimeSeries int `yaml:"maxTimeSeries" json:"maxTimeSeries"`
-	
+
 	// Enable query complexity validation
 	EnableComplexityValidation bool `yaml:"enableComplexityValidation" json:"enableComplexityValidation"`
-	
+
 	// Maximum query complexity score
 	MaxComplexityScore int `yaml:"maxComplexityScore" json:"maxComplexityScore"`
 }
@@ -255,10 +255,10 @@ func (v *RequestValidator) validateQueryComplexity(query string) error {
 // calculateComplexityScore calculates a simple complexity score for a query
 func calculateComplexityScore(query string) int {
 	score := 0
-	
+
 	// Base score for query length
 	score += len(query) / 10
-	
+
 	// Add score for various operations
 	complexOperations := map[string]int{
 		"rate(":        10,
@@ -289,12 +289,12 @@ func calculateComplexityScore(query string) int {
 
 	// Add score for nested operations (count parentheses)
 	score += strings.Count(query, "(") * 2
-	
+
 	// Add score for label matchers
-	score += strings.Count(query, "=~") * 5  // Regex matching
-	score += strings.Count(query, "!~") * 5  // Negative regex matching
-	score += strings.Count(query, "!=") * 3  // Not equal
-	score += strings.Count(query, "=") * 1   // Equal matching
+	score += strings.Count(query, "=~") * 5 // Regex matching
+	score += strings.Count(query, "!~") * 5 // Negative regex matching
+	score += strings.Count(query, "!=") * 3 // Not equal
+	score += strings.Count(query, "=") * 1  // Equal matching
 
 	return score
 }
@@ -390,13 +390,13 @@ func writeValidationError(w http.ResponseWriter, err error) {
 // GetStats returns validation statistics
 func (v *RequestValidator) GetStats() map[string]interface{} {
 	return map[string]interface{}{
-		"validation_enabled":          v.config.Enabled,
-		"max_query_length":           v.config.MaxQueryLength,
-		"max_time_range":             v.config.MaxTimeRange.String(),
-		"allowed_metric_patterns":    v.config.AllowedMetricPatterns,
-		"blocked_metric_patterns":    v.config.BlockedMetricPatterns,
-		"max_time_series":            v.config.MaxTimeSeries,
-		"complexity_validation":      v.config.EnableComplexityValidation,
-		"max_complexity_score":       v.config.MaxComplexityScore,
+		"validation_enabled":      v.config.Enabled,
+		"max_query_length":        v.config.MaxQueryLength,
+		"max_time_range":          v.config.MaxTimeRange.String(),
+		"allowed_metric_patterns": v.config.AllowedMetricPatterns,
+		"blocked_metric_patterns": v.config.BlockedMetricPatterns,
+		"max_time_series":         v.config.MaxTimeSeries,
+		"complexity_validation":   v.config.EnableComplexityValidation,
+		"max_complexity_score":    v.config.MaxComplexityScore,
 	}
 }

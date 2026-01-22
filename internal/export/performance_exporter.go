@@ -36,11 +36,11 @@ func NewPerformanceExporter(defaultPath string) *PerformanceExporter {
 
 // PerformanceReportData represents performance metrics for export
 type PerformanceReportData struct {
-	GeneratedAt      time.Time                             `json:"generated_at"`
-	ReportPeriod     string                                `json:"report_period"`
-	SystemMetrics    SystemMetrics                         `json:"system_metrics"`
-	OperationStats   []performance.OperationSummary        `json:"operation_stats"`
-	OptimizationTips []performance.Recommendation          `json:"optimization_tips"`
+	GeneratedAt      time.Time                      `json:"generated_at"`
+	ReportPeriod     string                         `json:"report_period"`
+	SystemMetrics    SystemMetrics                  `json:"system_metrics"`
+	OperationStats   []performance.OperationSummary `json:"operation_stats"`
+	OptimizationTips []performance.Recommendation   `json:"optimization_tips"`
 }
 
 // SystemMetrics represents system-level performance metrics
@@ -63,13 +63,13 @@ func (pe *PerformanceExporter) ExportPerformanceReport(profiler *performance.Pro
 	// Collect performance data
 	memStats := profiler.CaptureMemoryStats()
 	opStatsMap := profiler.GetOperationStats()
-	
+
 	// Convert operation stats map to slice
 	opStats := make([]performance.OperationSummary, 0, len(opStatsMap))
 	for _, stat := range opStatsMap {
 		opStats = append(opStats, stat)
 	}
-	
+
 	// Calculate system metrics
 	systemMetrics := SystemMetrics{
 		CPUUsage:       calculateCPUUsage(opStats),
@@ -79,10 +79,10 @@ func (pe *PerformanceExporter) ExportPerformanceReport(profiler *performance.Pro
 		GoroutineCount: runtime.NumGoroutine(),
 		ResponseTime:   calculateAvgResponseTime(opStats),
 	}
-	
+
 	// Get optimization recommendations
 	recommendations := optimizer.Analyze()
-	
+
 	data := PerformanceReportData{
 		GeneratedAt:      time.Now(),
 		ReportPeriod:     "Last 24 hours", // This could be configurable
@@ -512,7 +512,7 @@ func (pe *PerformanceExporter) exportHTML(data PerformanceReportData, outputPath
 				return "0 B"
 			}
 		},
-		"add": func(a, b int) int { return a + b },
+		"add":   func(a, b int) int { return a + b },
 		"lower": strings.ToLower,
 	}
 
@@ -572,20 +572,20 @@ func calculateCPUUsage(opStats []performance.OperationSummary) float64 {
 	if len(opStats) == 0 {
 		return 0.0
 	}
-	
+
 	// Calculate CPU usage based on operation timings
 	totalTime := time.Duration(0)
 	for _, op := range opStats {
 		totalTime += op.TotalTime
 	}
-	
+
 	// Estimate CPU usage percentage (simplified)
 	// This is a rough estimate based on operations per second
 	cpuUsage := float64(totalTime.Nanoseconds()) / float64(time.Second.Nanoseconds()) * 100.0
 	if cpuUsage > 100.0 {
 		cpuUsage = 100.0
 	}
-	
+
 	return cpuUsage
 }
 
@@ -594,18 +594,18 @@ func calculateAvgResponseTime(opStats []performance.OperationSummary) time.Durat
 	if len(opStats) == 0 {
 		return 0
 	}
-	
+
 	totalTime := time.Duration(0)
 	totalCount := int64(0)
-	
+
 	for _, op := range opStats {
 		totalTime += op.TotalTime
 		totalCount += op.Count
 	}
-	
+
 	if totalCount == 0 {
 		return 0
 	}
-	
+
 	return totalTime / time.Duration(totalCount)
 }

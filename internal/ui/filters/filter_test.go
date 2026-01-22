@@ -15,189 +15,189 @@ func TestFilterOperators(t *testing.T) {
 	}{
 		// Test Equals operator
 		{
-			name:   "equals_string",
-			filter: "name=test",
-			data:   map[string]interface{}{"Name": "test"},
+			name:     "equals_string",
+			filter:   "name=test",
+			data:     map[string]interface{}{"Name": "test"},
 			expected: true,
 		},
 		{
-			name:   "equals_number",
-			filter: "cpus=4",
-			data:   map[string]interface{}{"CPUs": 4},
+			name:     "equals_number",
+			filter:   "cpus=4",
+			data:     map[string]interface{}{"CPUs": 4},
 			expected: true,
 		},
 		{
-			name:   "equals_false",
-			filter: "name=test",
-			data:   map[string]interface{}{"Name": "other"},
+			name:     "equals_false",
+			filter:   "name=test",
+			data:     map[string]interface{}{"Name": "other"},
 			expected: false,
 		},
 
 		// Test Not Equals operator
 		{
-			name:   "not_equals_true",
-			filter: "state!=running",
-			data:   map[string]interface{}{"State": "pending"},
+			name:     "not_equals_true",
+			filter:   "state!=running",
+			data:     map[string]interface{}{"State": "pending"},
 			expected: true,
 		},
 		{
-			name:   "not_equals_false",
-			filter: "state!=running",
-			data:   map[string]interface{}{"State": "running"},
+			name:     "not_equals_false",
+			filter:   "state!=running",
+			data:     map[string]interface{}{"State": "running"},
 			expected: false,
 		},
 
 		// Test Contains operator
 		{
-			name:   "contains_true",
-			filter: "name~test",
-			data:   map[string]interface{}{"Name": "my_test_job"},
+			name:     "contains_true",
+			filter:   "name~test",
+			data:     map[string]interface{}{"Name": "my_test_job"},
 			expected: true,
 		},
 		{
-			name:   "contains_false",
-			filter: "name~test",
-			data:   map[string]interface{}{"Name": "production"},
+			name:     "contains_false",
+			filter:   "name~test",
+			data:     map[string]interface{}{"Name": "production"},
 			expected: false,
 		},
 
 		// Test Not Contains operator
 		{
-			name:   "not_contains_true",
-			filter: "name!~test",
-			data:   map[string]interface{}{"Name": "production"},
+			name:     "not_contains_true",
+			filter:   "name!~test",
+			data:     map[string]interface{}{"Name": "production"},
 			expected: true,
 		},
 		{
-			name:   "not_contains_false",
-			filter: "name!~test",
-			data:   map[string]interface{}{"Name": "my_test_job"},
+			name:     "not_contains_false",
+			filter:   "name!~test",
+			data:     map[string]interface{}{"Name": "my_test_job"},
 			expected: false,
 		},
 
 		// Test Greater Than operator
 		{
-			name:   "greater_than_true",
-			filter: "cpus>4",
-			data:   map[string]interface{}{"CPUs": 8},
+			name:     "greater_than_true",
+			filter:   "cpus>4",
+			data:     map[string]interface{}{"CPUs": 8},
 			expected: true,
 		},
 		{
-			name:   "greater_than_false",
-			filter: "cpus>4",
-			data:   map[string]interface{}{"CPUs": 2},
+			name:     "greater_than_false",
+			filter:   "cpus>4",
+			data:     map[string]interface{}{"CPUs": 2},
 			expected: false,
 		},
 
 		// Test Less Than operator
 		{
-			name:   "less_than_true",
-			filter: "cpus<8",
-			data:   map[string]interface{}{"CPUs": 4},
+			name:     "less_than_true",
+			filter:   "cpus<8",
+			data:     map[string]interface{}{"CPUs": 4},
 			expected: true,
 		},
 		{
-			name:   "less_than_false",
-			filter: "cpus<8",
-			data:   map[string]interface{}{"CPUs": 12},
+			name:     "less_than_false",
+			filter:   "cpus<8",
+			data:     map[string]interface{}{"CPUs": 12},
 			expected: false,
 		},
 
 		// Test Greater Than or Equal operator
 		{
-			name:   "greater_equal_true",
-			filter: "cpus>=4",
-			data:   map[string]interface{}{"CPUs": 4},
+			name:     "greater_equal_true",
+			filter:   "cpus>=4",
+			data:     map[string]interface{}{"CPUs": 4},
 			expected: true,
 		},
 		{
-			name:   "greater_equal_false",
-			filter: "cpus>=4",
-			data:   map[string]interface{}{"CPUs": 2},
+			name:     "greater_equal_false",
+			filter:   "cpus>=4",
+			data:     map[string]interface{}{"CPUs": 2},
 			expected: false,
 		},
 
 		// Test Less Than or Equal operator
 		{
-			name:   "less_equal_true",
-			filter: "cpus<=8",
-			data:   map[string]interface{}{"CPUs": 8},
+			name:     "less_equal_true",
+			filter:   "cpus<=8",
+			data:     map[string]interface{}{"CPUs": 8},
 			expected: true,
 		},
 		{
-			name:   "less_equal_false",
-			filter: "cpus<=8",
-			data:   map[string]interface{}{"CPUs": 12},
+			name:     "less_equal_false",
+			filter:   "cpus<=8",
+			data:     map[string]interface{}{"CPUs": 12},
 			expected: false,
 		},
 
 		// Test Regex operator
 		{
-			name:   "regex_true",
-			filter: "name=~^test.*$",
-			data:   map[string]interface{}{"Name": "test_job_123"},
+			name:     "regex_true",
+			filter:   "name=~^test.*$",
+			data:     map[string]interface{}{"Name": "test_job_123"},
 			expected: true,
 		},
 		{
-			name:   "regex_false",
-			filter: "name=~^test.*$",
-			data:   map[string]interface{}{"Name": "prod_job_123"},
+			name:     "regex_false",
+			filter:   "name=~^test.*$",
+			data:     map[string]interface{}{"Name": "prod_job_123"},
 			expected: false,
 		},
 
 		// Test In operator
 		{
-			name:   "in_true",
-			filter: "state in (running,pending)",
-			data:   map[string]interface{}{"State": "running"},
+			name:     "in_true",
+			filter:   "state in (running,pending)",
+			data:     map[string]interface{}{"State": "running"},
 			expected: true,
 		},
 		{
-			name:   "in_false",
-			filter: "state in (running,pending)",
-			data:   map[string]interface{}{"State": "completed"},
+			name:     "in_false",
+			filter:   "state in (running,pending)",
+			data:     map[string]interface{}{"State": "completed"},
 			expected: false,
 		},
 
 		// Test Not In operator
 		{
-			name:   "not_in_true",
-			filter: "state not in (running,pending)",
-			data:   map[string]interface{}{"State": "completed"},
+			name:     "not_in_true",
+			filter:   "state not in (running,pending)",
+			data:     map[string]interface{}{"State": "completed"},
 			expected: true,
 		},
 		{
-			name:   "not_in_false",
-			filter: "state not in (running,pending)",
-			data:   map[string]interface{}{"State": "running"},
+			name:     "not_in_false",
+			filter:   "state not in (running,pending)",
+			data:     map[string]interface{}{"State": "running"},
 			expected: false,
 		},
 
 		// Test multiple conditions (AND logic)
 		{
-			name:   "multiple_and_true",
-			filter: "state=running cpus>4",
-			data:   map[string]interface{}{"State": "running", "CPUs": 8},
+			name:     "multiple_and_true",
+			filter:   "state=running cpus>4",
+			data:     map[string]interface{}{"State": "running", "CPUs": 8},
 			expected: true,
 		},
 		{
-			name:   "multiple_and_false",
-			filter: "state=running cpus>4",
-			data:   map[string]interface{}{"State": "running", "CPUs": 2},
+			name:     "multiple_and_false",
+			filter:   "state=running cpus>4",
+			data:     map[string]interface{}{"State": "running", "CPUs": 2},
 			expected: false,
 		},
 
 		// Test field aliases
 		{
-			name:   "alias_user",
-			filter: "user=john",
-			data:   map[string]interface{}{"User": "john"},
+			name:     "alias_user",
+			filter:   "user=john",
+			data:     map[string]interface{}{"User": "john"},
 			expected: true,
 		},
 		{
-			name:   "alias_mem",
-			filter: "mem>1024",
-			data:   map[string]interface{}{"Memory": 2048},
+			name:     "alias_mem",
+			filter:   "mem>1024",
+			data:     map[string]interface{}{"Memory": 2048},
 			expected: true,
 		},
 	}

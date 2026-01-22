@@ -324,11 +324,11 @@ Last login: %s
 [user@%s ~]$ `, nodeID, time.Now().Format(time.RFC3339), nodeID))
 
 	return &MockTerminal{
-		TextView:    textView,
-		nodeID:      nodeID,
-		isActive:    true,
-		width:       80,
-		height:      24,
+		TextView: textView,
+		nodeID:   nodeID,
+		isActive: true,
+		width:    80,
+		height:   24,
 	}
 }
 

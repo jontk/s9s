@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	
+
 	"github.com/jontk/s9s/plugins/observability/api"
 	"github.com/jontk/s9s/plugins/observability/security"
 )
@@ -23,42 +23,42 @@ func NewParser(data map[string]interface{}) *Parser {
 // ParseConfig parses configuration from map into Config struct
 func (p *Parser) ParseConfig() (*Config, error) {
 	config := DefaultConfig()
-	
+
 	// Parse Prometheus configuration
 	if err := p.parsePrometheusConfig(&config.Prometheus); err != nil {
 		return nil, fmt.Errorf("failed to parse prometheus config: %w", err)
 	}
-	
+
 	// Parse Display configuration
 	if err := p.parseDisplayConfig(&config.Display); err != nil {
 		return nil, fmt.Errorf("failed to parse display config: %w", err)
 	}
-	
+
 	// Parse Alerts configuration
 	if err := p.parseAlertsConfig(&config.Alerts); err != nil {
 		return nil, fmt.Errorf("failed to parse alerts config: %w", err)
 	}
-	
+
 	// Parse Cache configuration
 	if err := p.parseCacheConfig(&config.Cache); err != nil {
 		return nil, fmt.Errorf("failed to parse cache config: %w", err)
 	}
-	
+
 	// Parse Metrics configuration
 	if err := p.parseMetricsConfig(&config.Metrics); err != nil {
 		return nil, fmt.Errorf("failed to parse metrics config: %w", err)
 	}
-	
+
 	// Parse Security configuration
 	if err := p.parseSecurityConfig(&config.Security); err != nil {
 		return nil, fmt.Errorf("failed to parse security config: %w", err)
 	}
-	
+
 	// Parse External API configuration
 	if err := p.parseExternalAPIConfig(&config.ExternalAPI); err != nil {
 		return nil, fmt.Errorf("failed to parse external API config: %w", err)
 	}
-	
+
 	return config, nil
 }
 
@@ -308,77 +308,77 @@ func (p *Parser) parseSecurityConfig(config *SecurityConfig) error {
 			config.Secrets.StorageDir = str
 		}
 	}
-	
+
 	if val, ok := p.getValue("security.secrets.encryptAtRest"); ok {
 		if b, err := p.parseBool(val); err == nil {
 			config.Secrets.EncryptAtRest = b
 		}
 	}
-	
+
 	if val, ok := p.getValue("security.secrets.masterKeySource"); ok {
 		if str, ok := val.(string); ok {
 			config.Secrets.MasterKeySource = security.SecretSource(str)
 		}
 	}
-	
+
 	if val, ok := p.getValue("security.secrets.masterKeyEnv"); ok {
 		if str, ok := val.(string); ok {
 			config.Secrets.MasterKeyEnv = str
 		}
 	}
-	
+
 	// Parse API security configuration
 	if val, ok := p.getValue("security.api.enableAuth"); ok {
 		if b, err := p.parseBool(val); err == nil {
 			config.API.EnableAuth = b
 		}
 	}
-	
+
 	// Parse rate limit configuration
 	if val, ok := p.getValue("security.api.rateLimit.requestsPerMinute"); ok {
 		if i, err := p.parseInt(val); err == nil {
 			config.API.RateLimit.RequestsPerMinute = i
 		}
 	}
-	
+
 	if val, ok := p.getValue("security.api.rateLimit.enableGlobalLimit"); ok {
 		if b, err := p.parseBool(val); err == nil {
 			config.API.RateLimit.EnableGlobalLimit = b
 		}
 	}
-	
+
 	if val, ok := p.getValue("security.api.rateLimit.globalRequestsPerMinute"); ok {
 		if i, err := p.parseInt(val); err == nil {
 			config.API.RateLimit.GlobalRequestsPerMinute = i
 		}
 	}
-	
+
 	// Parse validation configuration
 	if val, ok := p.getValue("security.api.validation.enabled"); ok {
 		if b, err := p.parseBool(val); err == nil {
 			config.API.Validation.Enabled = b
 		}
 	}
-	
+
 	if val, ok := p.getValue("security.api.validation.maxQueryLength"); ok {
 		if i, err := p.parseInt(val); err == nil {
 			config.API.Validation.MaxQueryLength = i
 		}
 	}
-	
+
 	// Parse audit configuration
 	if val, ok := p.getValue("security.api.audit.enabled"); ok {
 		if b, err := p.parseBool(val); err == nil {
 			config.API.Audit.Enabled = b
 		}
 	}
-	
+
 	if val, ok := p.getValue("security.api.audit.logFile"); ok {
 		if str, ok := val.(string); ok {
 			config.API.Audit.LogFile = str
 		}
 	}
-	
+
 	return nil
 }
 
@@ -389,13 +389,13 @@ func (p *Parser) parseExternalAPIConfig(config *api.Config) error {
 			config.Enabled = b
 		}
 	}
-	
+
 	if val, ok := p.getValue("externalAPI.port"); ok {
 		if i, err := p.parseInt(val); err == nil {
 			config.Port = i
 		}
 	}
-	
+
 	return nil
 }
 
