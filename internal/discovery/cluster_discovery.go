@@ -62,6 +62,7 @@ func (cd *ClusterDiscovery) DiscoverClusters(ctx context.Context) ([]*Discovered
 	methods := []DiscoveryMethod{
 		NewEnvironmentDiscovery(),
 		NewConfigFileDiscovery(),
+		NewScontrolDiscovery(),
 		NewNetworkDiscovery(cd.client),
 		NewDNSDiscovery(),
 		NewProcessDiscovery(),
