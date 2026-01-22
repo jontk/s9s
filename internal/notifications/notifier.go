@@ -29,23 +29,23 @@ type NotificationChannel interface {
 
 // NotificationManager manages all notification channels
 type NotificationManager struct {
-	mu           sync.RWMutex
-	channels     map[string]NotificationChannel
-	config       *NotificationConfig
-	alertLog     *AlertLogger
+	mu       sync.RWMutex
+	channels map[string]NotificationChannel
+	config   *NotificationConfig
+	alertLog *AlertLogger
 }
 
 // NotificationConfig holds configuration for all notification channels
 type NotificationConfig struct {
 	// Global settings
 	EnableNotifications bool `json:"enable_notifications"`
-	MinAlertLevel      int  `json:"min_alert_level"` // Minimum alert level to notify
+	MinAlertLevel       int  `json:"min_alert_level"` // Minimum alert level to notify
 
 	// Channel-specific settings
-	TerminalBell   TerminalBellConfig   `json:"terminal_bell"`
-	LogFile        LogFileConfig        `json:"log_file"`
-	DesktopNotify  DesktopNotifyConfig  `json:"desktop_notify"`
-	Webhook        WebhookConfig        `json:"webhook"`
+	TerminalBell  TerminalBellConfig  `json:"terminal_bell"`
+	LogFile       LogFileConfig       `json:"log_file"`
+	DesktopNotify DesktopNotifyConfig `json:"desktop_notify"`
+	Webhook       WebhookConfig       `json:"webhook"`
 }
 
 // NewNotificationManager creates a new notification manager
@@ -151,17 +151,17 @@ func (nm *NotificationManager) GetConfig() *NotificationConfig {
 
 // AlertLogger handles logging alerts to file
 type AlertLogger struct {
-	mu       sync.Mutex
-	logPath  string
-	maxSize  int64 // Max log file size in bytes
-	maxAge   time.Duration // Max age of log entries
+	mu      sync.Mutex
+	logPath string
+	maxSize int64         // Max log file size in bytes
+	maxAge  time.Duration // Max age of log entries
 }
 
 // NewAlertLogger creates a new alert logger
 func NewAlertLogger(logPath string) *AlertLogger {
 	return &AlertLogger{
 		logPath: logPath,
-		maxSize: 10 * 1024 * 1024, // 10MB
+		maxSize: 10 * 1024 * 1024,   // 10MB
 		maxAge:  7 * 24 * time.Hour, // 7 days
 	}
 }
@@ -305,7 +305,7 @@ func defaultConfig() *NotificationConfig {
 	homeDir, _ := os.UserHomeDir()
 	return &NotificationConfig{
 		EnableNotifications: true,
-		MinAlertLevel:      int(components.AlertWarning),
+		MinAlertLevel:       int(components.AlertWarning),
 		TerminalBell: TerminalBellConfig{
 			Enabled:       true,
 			MinAlertLevel: int(components.AlertError),

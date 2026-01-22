@@ -55,9 +55,9 @@ const (
 
 // ConfigValidator validates and fixes s9s configuration
 type ConfigValidator struct {
-	config    *Config
-	result    *ConfigValidationResult
-	autoFix   bool
+	config  *Config
+	result  *ConfigValidationResult
+	autoFix bool
 	// TODO(lint): Review unused code - field strict is unused
 	// strict    bool
 }
@@ -107,7 +107,7 @@ func (v *ConfigValidator) Validate() *ConfigValidationResult {
 	// Final assessment
 	v.result.Valid = len(v.result.Errors) == 0
 
-	debug.Logger.Printf("Configuration validation completed: valid=%v, errors=%d, warnings=%d, fixes=%d", 
+	debug.Logger.Printf("Configuration validation completed: valid=%v, errors=%d, warnings=%d, fixes=%d",
 		v.result.Valid, len(v.result.Errors), len(v.result.Warnings), len(v.result.Fixes))
 
 	return v.result
@@ -158,8 +158,8 @@ func (v *ConfigValidator) validateContexts() {
 
 		// Check for duplicate names
 		if contextNames[context.Name] {
-			v.addError(fmt.Sprintf("%s.name", contextPath), 
-				fmt.Sprintf("Duplicate context name: %s", context.Name), 
+			v.addError(fmt.Sprintf("%s.name", contextPath),
+				fmt.Sprintf("Duplicate context name: %s", context.Name),
 				"Use unique context names", false)
 		}
 		contextNames[context.Name] = true
@@ -178,8 +178,8 @@ func (v *ConfigValidator) validateContexts() {
 			}
 		}
 		if !found {
-			v.fix("current_context", 
-				fmt.Sprintf("Current context '%s' not found", v.config.CurrentContext), 
+			v.fix("current_context",
+				fmt.Sprintf("Current context '%s' not found", v.config.CurrentContext),
 				v.config.CurrentContext, v.config.Contexts[0].Name)
 		}
 	}
@@ -196,12 +196,12 @@ func (v *ConfigValidator) validateClusters() {
 func (v *ConfigValidator) validateCluster(cluster ClusterConfig, basePath string) {
 	// Endpoint validation (main connection method)
 	if cluster.Endpoint == "" {
-		v.addError(fmt.Sprintf("%s.endpoint", basePath), 
-			"No endpoint specified", 
+		v.addError(fmt.Sprintf("%s.endpoint", basePath),
+			"No endpoint specified",
 			"Provide SLURM REST API endpoint", false)
 	} else if !v.isValidURL(cluster.Endpoint) {
-		v.addError(fmt.Sprintf("%s.endpoint", basePath), 
-			fmt.Sprintf("Invalid endpoint URL: %s", cluster.Endpoint), 
+		v.addError(fmt.Sprintf("%s.endpoint", basePath),
+			fmt.Sprintf("Invalid endpoint URL: %s", cluster.Endpoint),
 			"Use valid URL format (https://host:port)", false)
 	}
 
@@ -217,7 +217,7 @@ func (v *ConfigValidator) validateCluster(cluster ClusterConfig, basePath string
 
 	// Token validation (if present)
 	if cluster.Token != "" && len(cluster.Token) < 10 {
-		v.addWarning(fmt.Sprintf("%s.token", basePath), 
+		v.addWarning(fmt.Sprintf("%s.token", basePath),
 			"Token appears to be too short",
 			"Verify token is valid SLURM JWT")
 	}
@@ -232,7 +232,7 @@ func (v *ConfigValidator) validateClusterInContext(context ContextConfig, contex
 func (v *ConfigValidator) validateAuthentication() {
 	// This would validate auth configurations if they were part of the main config
 	// For now, we'll add basic validation for auth-related metadata
-	
+
 	// Basic token validation for existing ClusterConfig
 	for i, context := range v.config.Contexts {
 		if context.Cluster.Token != "" {
@@ -254,11 +254,11 @@ func (v *ConfigValidator) validatePerformanceSettings() {
 		if duration, err := time.ParseDuration(v.config.RefreshRate); err != nil {
 			v.fix("refresh_rate", "Invalid refresh rate duration", v.config.RefreshRate, "30s")
 		} else if duration < time.Second {
-			v.addWarning("refresh_rate", 
+			v.addWarning("refresh_rate",
 				"Very fast refresh rate may impact performance",
 				"Consider using 5s or higher for production")
 		} else if duration > 10*time.Minute {
-			v.addWarning("refresh_rate", 
+			v.addWarning("refresh_rate",
 				"Very slow refresh rate may show stale data",
 				"Consider using 5m or lower for better user experience")
 		}
@@ -266,7 +266,7 @@ func (v *ConfigValidator) validatePerformanceSettings() {
 
 	// Mock client warning
 	if v.config.UseMockClient {
-		v.addWarning("use_mock_client", 
+		v.addWarning("use_mock_client",
 			"Using mock client - no real SLURM connection",
 			"Disable for production use")
 	}
@@ -276,7 +276,7 @@ func (v *ConfigValidator) validatePerformanceSettings() {
 func (v *ConfigValidator) validateSecurity() {
 	for i, context := range v.config.Contexts {
 		cluster := context.Cluster
-		
+
 		// Check for insecure configurations
 		if cluster.Endpoint != "" && strings.HasPrefix(cluster.Endpoint, "http://") {
 			v.addWarning(fmt.Sprintf("contexts[%d].cluster.endpoint", i),
@@ -306,7 +306,7 @@ func (v *ConfigValidator) validatePaths() {
 	if !v.directoryExists(configDir) {
 		if v.autoFix {
 			if err := os.MkdirAll(configDir, 0755); err != nil {
-				v.addError("paths", 
+				v.addError("paths",
 					fmt.Sprintf("Cannot create config directory: %s", configDir),
 					"Create directory manually with proper permissions", false)
 			} else {
@@ -319,7 +319,7 @@ func (v *ConfigValidator) validatePaths() {
 				})
 			}
 		} else {
-			v.addError("paths", 
+			v.addError("paths",
 				fmt.Sprintf("Config directory does not exist: %s", configDir),
 				"Run 's9s setup' or create directory manually", true)
 		}
@@ -360,7 +360,7 @@ func (v *ConfigValidator) validateEnvironmentVariables() {
 	requiredEnvVars := []string{"USER", "HOME"}
 	for _, envVar := range requiredEnvVars {
 		if os.Getenv(envVar) == "" {
-			v.addWarning("environment", 
+			v.addWarning("environment",
 				fmt.Sprintf("Environment variable %s is not set", envVar),
 				"Some features may not work correctly")
 		}
@@ -377,7 +377,7 @@ func (v *ConfigValidator) validateEnvironmentVariables() {
 	}
 
 	if !foundSlurmEnv && !v.config.UseMockClient {
-		v.addWarning("environment", 
+		v.addWarning("environment",
 			"No SLURM environment variables detected",
 			"Consider setting SLURM_CONF or SLURM_CONTROLLER_HOST")
 	}
@@ -431,7 +431,7 @@ func (v *ConfigValidator) applyFix(field string, newValue interface{}) {
 		v.config.RefreshRate = newValue.(string)
 	case "current_context":
 		v.config.CurrentContext = newValue.(string)
-	// Add more cases as needed for different fields
+		// Add more cases as needed for different fields
 	}
 }
 

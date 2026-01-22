@@ -13,24 +13,24 @@ import (
 type NotificationLevel string
 
 const (
-	LevelInfo    NotificationLevel = "info"
-	LevelWarning NotificationLevel = "warning"
-	LevelError   NotificationLevel = "error"
+	LevelInfo     NotificationLevel = "info"
+	LevelWarning  NotificationLevel = "warning"
+	LevelError    NotificationLevel = "error"
 	LevelCritical NotificationLevel = "critical"
 )
 
 // Notification represents a data change notification
 type Notification struct {
-	ID           string                 `json:"id"`
-	SubscriptionID string               `json:"subscription_id"`
-	ProviderID   string                 `json:"provider_id"`
-	Level        NotificationLevel      `json:"level"`
-	Title        string                 `json:"title"`
-	Message      string                 `json:"message"`
-	Data         interface{}            `json:"data"`
-	Metadata     map[string]interface{} `json:"metadata"`
-	Timestamp    time.Time              `json:"timestamp"`
-	Acknowledged bool                   `json:"acknowledged"`
+	ID             string                 `json:"id"`
+	SubscriptionID string                 `json:"subscription_id"`
+	ProviderID     string                 `json:"provider_id"`
+	Level          NotificationLevel      `json:"level"`
+	Title          string                 `json:"title"`
+	Message        string                 `json:"message"`
+	Data           interface{}            `json:"data"`
+	Metadata       map[string]interface{} `json:"metadata"`
+	Timestamp      time.Time              `json:"timestamp"`
+	Acknowledged   bool                   `json:"acknowledged"`
 }
 
 // NotificationManager manages notifications and callbacks
@@ -87,26 +87,26 @@ func (nm *NotificationManager) UnregisterCallback(subscriptionType string) {
 // SendNotification sends a notification to registered callbacks
 func (nm *NotificationManager) SendNotification(notification Notification) {
 	nm.mu.Lock()
-	
+
 	// Add to history
 	nm.notifications = append(nm.notifications, notification)
-	
+
 	// Trim history if necessary
 	if len(nm.notifications) > nm.maxHistory {
 		nm.notifications = nm.notifications[len(nm.notifications)-nm.maxHistory:]
 	}
-	
+
 	// Get callbacks for this provider
 	callbacks := make([]NotificationCallback, 0)
 	if cbs, exists := nm.callbacks[notification.ProviderID]; exists {
 		callbacks = append(callbacks, cbs...)
 	}
-	
+
 	// Also get general callbacks
 	if cbs, exists := nm.callbacks["*"]; exists {
 		callbacks = append(callbacks, cbs...)
 	}
-	
+
 	nm.mu.Unlock()
 
 	// Call callbacks asynchronously
@@ -177,11 +177,11 @@ func (nm *NotificationManager) GetStats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"total_notifications":    len(nm.notifications),
-		"acknowledged":           acknowledgedCount,
-		"unacknowledged":        unacknowledgedCount,
-		"level_counts":          levelCounts,
-		"registered_callbacks":  len(nm.callbacks),
+		"total_notifications":  len(nm.notifications),
+		"acknowledged":         acknowledgedCount,
+		"unacknowledged":       unacknowledgedCount,
+		"level_counts":         levelCounts,
+		"registered_callbacks": len(nm.callbacks),
 	}
 }
 
@@ -208,7 +208,7 @@ func (dcd *DataChangeDetector) DetectChanges(subscriptionID, providerID string, 
 
 	notifications := make([]Notification, 0)
 	key := fmt.Sprintf("%s_%s", subscriptionID, providerID)
-	
+
 	previousData, exists := dcd.previousValues[key]
 	dcd.previousValues[key] = currentData
 
@@ -386,11 +386,11 @@ func dataToMap(data interface{}) (map[string]interface{}, error) {
 
 // Enhanced subscription callback wrapper
 type EnhancedSubscriptionCallback struct {
-	callback           plugin.DataCallback
-	changeDetector     *DataChangeDetector
-	notificationMgr    *NotificationManager
-	subscriptionID     string
-	providerID         string
+	callback        plugin.DataCallback
+	changeDetector  *DataChangeDetector
+	notificationMgr *NotificationManager
+	subscriptionID  string
+	providerID      string
 }
 
 // SetSubscriptionID sets the subscription ID after the subscription is created

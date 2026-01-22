@@ -125,7 +125,7 @@ func NewCircuitBreaker(name string, config CircuitBreakerConfig) *CircuitBreaker
 func (cb *CircuitBreaker) State() CircuitState {
 	cb.mutex.RLock()
 	defer cb.mutex.RUnlock()
-	
+
 	now := time.Now()
 	state, _ := cb.currentState(now)
 	return state
@@ -135,7 +135,7 @@ func (cb *CircuitBreaker) State() CircuitState {
 func (cb *CircuitBreaker) Counts() Counts {
 	cb.mutex.RLock()
 	defer cb.mutex.RUnlock()
-	
+
 	return cb.counts
 }
 
@@ -281,7 +281,7 @@ func NewCircuitBreakerClient(client PrometheusClientInterface, config CircuitBre
 	}
 
 	breaker := NewCircuitBreaker("prometheus-client", config)
-	
+
 	return &CircuitBreakerClient{
 		client:  client,
 		breaker: breaker,

@@ -37,13 +37,13 @@ func NewAdvancedFilterParser() *AdvancedFilterParser {
 	return &AdvancedFilterParser{
 		FilterParser: NewFilterParser(),
 		dateFormats: []string{
-			"2006-01-02",                    // YYYY-MM-DD
-			"2006-01-02 15:04:05",          // YYYY-MM-DD HH:MM:SS
-			"2006-01-02T15:04:05Z",         // ISO 8601
-			"01/02/2006",                   // MM/DD/YYYY
-			"15:04:05",                     // HH:MM:SS (today)
-			"Jan 2, 2006",                  // Month Day, Year
-			"January 2, 2006 15:04:05",     // Full format
+			"2006-01-02",               // YYYY-MM-DD
+			"2006-01-02 15:04:05",      // YYYY-MM-DD HH:MM:SS
+			"2006-01-02T15:04:05Z",     // ISO 8601
+			"01/02/2006",               // MM/DD/YYYY
+			"15:04:05",                 // HH:MM:SS (today)
+			"Jan 2, 2006",              // Month Day, Year
+			"January 2, 2006 15:04:05", // Full format
 		},
 	}
 }

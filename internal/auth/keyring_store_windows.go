@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package auth
@@ -42,7 +43,7 @@ func (k *KeyringSecureStore) Initialize() error {
 func (k *KeyringSecureStore) Store(key string, data []byte) error {
 	// Encode data as JSON string for keyring storage
 	value := string(data)
-	
+
 	if err := k.backend.Set(k.serviceName, key, value); err != nil {
 		return fmt.Errorf("failed to store in Windows keyring: %w", err)
 	}
@@ -108,9 +109,9 @@ func NewWindowsKeyringBackend() KeyringBackend {
 func (w *WindowsKeyringBackend) Set(service, user, password string) error {
 	// In a real implementation, this would use advapi32.dll:
 	// CredWriteW with CREDENTIAL_TYPE_GENERIC
-	
+
 	debug.Logger.Printf("Windows credential store: storing credential for %s@%s", user, service)
-	
+
 	// Use fallback for now
 	key := fmt.Sprintf("%s:%s", service, user)
 	return w.fallback.Store(key, []byte(password))
@@ -120,9 +121,9 @@ func (w *WindowsKeyringBackend) Set(service, user, password string) error {
 func (w *WindowsKeyringBackend) Get(service, user string) (string, error) {
 	// In a real implementation, this would use advapi32.dll:
 	// CredReadW with CREDENTIAL_TYPE_GENERIC
-	
+
 	debug.Logger.Printf("Windows credential store: retrieving credential for %s@%s", user, service)
-	
+
 	// Use fallback for now
 	key := fmt.Sprintf("%s:%s", service, user)
 	data, err := w.fallback.Retrieve(key)
@@ -136,9 +137,9 @@ func (w *WindowsKeyringBackend) Get(service, user string) (string, error) {
 func (w *WindowsKeyringBackend) Delete(service, user string) error {
 	// In a real implementation, this would use advapi32.dll:
 	// CredDeleteW with CREDENTIAL_TYPE_GENERIC
-	
+
 	debug.Logger.Printf("Windows credential store: deleting credential for %s@%s", user, service)
-	
+
 	// Use fallback for now
 	key := fmt.Sprintf("%s:%s", service, user)
 	return w.fallback.Delete(key)
@@ -148,15 +149,15 @@ func (w *WindowsKeyringBackend) Delete(service, user string) error {
 func (w *WindowsKeyringBackend) List(service string) ([]string, error) {
 	// In a real implementation, this would use advapi32.dll:
 	// CredEnumerateW to list credentials
-	
+
 	debug.Logger.Printf("Windows credential store: listing users for service %s", service)
-	
+
 	// Use fallback for now
 	keys, err := w.fallback.List()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var users []string
 	prefix := service + ":"
 	for _, key := range keys {
@@ -201,7 +202,7 @@ func (k *KeyringTokenStore) Store(ctx context.Context, clusterID string, token *
 // Retrieve gets a token from the keyring
 func (k *KeyringTokenStore) Retrieve(ctx context.Context, clusterID string) (*Token, error) {
 	key := fmt.Sprintf("token:%s", clusterID)
-	
+
 	// Retrieve from keyring
 	tokenBytes, err := k.secureStore.Retrieve(key)
 	if err != nil {
@@ -221,7 +222,7 @@ func (k *KeyringTokenStore) Retrieve(ctx context.Context, clusterID string) (*To
 // Delete removes a token from the keyring
 func (k *KeyringTokenStore) Delete(ctx context.Context, clusterID string) error {
 	key := fmt.Sprintf("token:%s", clusterID)
-	
+
 	if err := k.secureStore.Delete(key); err != nil {
 		return fmt.Errorf("failed to delete token from Windows keyring: %w", err)
 	}

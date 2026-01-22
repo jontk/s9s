@@ -27,30 +27,30 @@ type Plugin interface {
 
 // Info contains metadata about a plugin
 type Info struct {
-	Name        string   `json:"name"`
-	Version     string   `json:"version"`
-	Description string   `json:"description"`
-	Author      string   `json:"author"`
-	License     string   `json:"license"`
-	Requires    []string `json:"requires"`    // Required plugins
-	Provides    []string `json:"provides"`    // Capabilities provided
+	Name         string                 `json:"name"`
+	Version      string                 `json:"version"`
+	Description  string                 `json:"description"`
+	Author       string                 `json:"author"`
+	License      string                 `json:"license"`
+	Requires     []string               `json:"requires"` // Required plugins
+	Provides     []string               `json:"provides"` // Capabilities provided
 	ConfigSchema map[string]ConfigField `json:"config_schema"`
 }
 
 // ConfigField describes a configuration field
 type ConfigField struct {
-	Type        string      `json:"type"`        // string, int, bool, float, array, object
+	Type        string      `json:"type"` // string, int, bool, float, array, object
 	Description string      `json:"description"`
 	Default     interface{} `json:"default"`
 	Required    bool        `json:"required"`
-	Validation  string      `json:"validation"`  // Regex or validation rule
+	Validation  string      `json:"validation"` // Regex or validation rule
 }
 
 // HealthStatus represents the health of a plugin
 type HealthStatus struct {
-	Healthy bool   `json:"healthy"`
-	Status  string `json:"status"`  // "healthy", "degraded", "unhealthy"
-	Message string `json:"message"`
+	Healthy bool                   `json:"healthy"`
+	Status  string                 `json:"status"` // "healthy", "degraded", "unhealthy"
+	Message string                 `json:"message"`
 	Details map[string]interface{} `json:"details,omitempty"`
 }
 
@@ -67,12 +67,12 @@ type ViewPlugin interface {
 
 // ViewInfo describes a view provided by a plugin
 type ViewInfo struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Icon        string   `json:"icon"`        // Icon character or emoji
-	Shortcut    string   `json:"shortcut"`    // Keyboard shortcut
-	Category    string   `json:"category"`    // View category (monitoring, management, etc.)
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Icon        string `json:"icon"`     // Icon character or emoji
+	Shortcut    string `json:"shortcut"` // Keyboard shortcut
+	Category    string `json:"category"` // View category (monitoring, management, etc.)
 }
 
 // View represents a custom view interface
@@ -170,8 +170,8 @@ type OverlayColumn = ColumnDefinition
 
 // OverlayCellData represents data for an overlay cell
 type OverlayCellData struct {
-	Value string    `json:"value"`
-	Style CellStyle `json:"style"`
+	Value string      `json:"value"`
+	Style CellStyle   `json:"style"`
 	Raw   interface{} `json:"raw,omitempty"`
 }
 
@@ -223,7 +223,7 @@ type DataProviderInfo struct {
 	ID          string                 `json:"id"`
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
-	Schema      map[string]interface{} `json:"schema"`      // Data schema
+	Schema      map[string]interface{} `json:"schema"`       // Data schema
 	QueryParams map[string]ConfigField `json:"query_params"` // Available query parameters
 }
 
@@ -304,18 +304,18 @@ type ResourceManager interface {
 
 // ResourceUsage represents current resource usage
 type ResourceUsage struct {
-	MemoryBytes   int64   `json:"memory_bytes"`
-	CPUPercent    float64 `json:"cpu_percent"`
-	Goroutines    int     `json:"goroutines"`
-	Connections   int     `json:"connections"`
-	CacheSize     int64   `json:"cache_size"`
+	MemoryBytes int64   `json:"memory_bytes"`
+	CPUPercent  float64 `json:"cpu_percent"`
+	Goroutines  int     `json:"goroutines"`
+	Connections int     `json:"connections"`
+	CacheSize   int64   `json:"cache_size"`
 }
 
 // ResourceLimits represents resource limits
 type ResourceLimits struct {
-	MaxMemoryBytes   int64   `json:"max_memory_bytes"`
-	MaxCPUPercent    float64 `json:"max_cpu_percent"`
-	MaxGoroutines    int     `json:"max_goroutines"`
-	MaxConnections   int     `json:"max_connections"`
-	MaxCacheSize     int64   `json:"max_cache_size"`
+	MaxMemoryBytes int64   `json:"max_memory_bytes"`
+	MaxCPUPercent  float64 `json:"max_cpu_percent"`
+	MaxGoroutines  int     `json:"max_goroutines"`
+	MaxConnections int     `json:"max_connections"`
+	MaxCacheSize   int64   `json:"max_cache_size"`
 }

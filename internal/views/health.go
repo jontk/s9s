@@ -26,8 +26,8 @@ type HealthView struct {
 	pages         *tview.Pages
 	// TODO(lint): Review unused code - field mu is unused
 	// mu            sync.RWMutex
-	refreshTimer  *time.Timer
-	refreshRate   time.Duration
+	refreshTimer *time.Timer
+	refreshRate  time.Duration
 }
 
 // NewHealthView creates a new health monitoring view

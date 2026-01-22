@@ -19,10 +19,10 @@ type StreamMonitorView struct {
 	streamManager *streaming.StreamManager
 
 	// UI components
-	modal         *tview.Flex
-	layout        *tview.Grid
-	statusBar     *tview.TextView
-	helpBar       *tview.TextView
+	modal     *tview.Flex
+	layout    *tview.Grid
+	statusBar *tview.TextView
+	helpBar   *tview.TextView
 
 	// Stream panels
 	activeStreams map[string]*StreamPanel
@@ -35,16 +35,16 @@ type StreamMonitorView struct {
 
 // StreamPanel represents a single streaming job panel
 type StreamPanel struct {
-	jobID        string
-	outputType   string
-	jobName      string
-	outputView   *tview.TextView
-	statusBar    *tview.TextView
-	controls     *tview.Flex
-	isActive     bool
-	isSelected   bool
-	streamChan   <-chan streaming.StreamEvent
-	lastUpdate   time.Time
+	jobID      string
+	outputType string
+	jobName    string
+	outputView *tview.TextView
+	statusBar  *tview.TextView
+	controls   *tview.Flex
+	isActive   bool
+	isSelected bool
+	streamChan <-chan streaming.StreamEvent
+	lastUpdate time.Time
 }
 
 // NewStreamMonitorView creates a new multi-stream monitor

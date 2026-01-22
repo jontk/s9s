@@ -20,9 +20,9 @@ type JobsOverlay struct {
 	queryBuilder *prometheus.QueryBuilder
 
 	// Cache of job metrics
-	metrics      map[string]*models.JobMetrics
-	lastUpdate   time.Time
-	updateMutex  sync.RWMutex
+	metrics     map[string]*models.JobMetrics
+	lastUpdate  time.Time
+	updateMutex sync.RWMutex
 
 	// Configuration
 	refreshInterval time.Duration

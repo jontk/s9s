@@ -11,21 +11,21 @@ import (
 
 // ConfigField represents a configuration field with metadata
 type ConfigField struct {
-	Key          string        `json:"key"`
-	Label        string        `json:"label"`
-	Description  string        `json:"description"`
-	Type         FieldType     `json:"type"`
-	Required     bool          `json:"required"`
-	Default      interface{}   `json:"default"`
-	Options      []string      `json:"options,omitempty"`      // For select/enum types
-	Min          *float64      `json:"min,omitempty"`          // For numeric types
-	Max          *float64      `json:"max,omitempty"`          // For numeric types
-	Pattern      string        `json:"pattern,omitempty"`      // For string validation
-	Group        string        `json:"group"`                  // For UI grouping
-	Order        int           `json:"order"`                  // For UI ordering
-	Sensitive    bool          `json:"sensitive"`              // For password fields
-	Depends      []Dependency  `json:"depends,omitempty"`      // Conditional fields
-	Examples     []string      `json:"examples,omitempty"`     // Usage examples
+	Key         string       `json:"key"`
+	Label       string       `json:"label"`
+	Description string       `json:"description"`
+	Type        FieldType    `json:"type"`
+	Required    bool         `json:"required"`
+	Default     interface{}  `json:"default"`
+	Options     []string     `json:"options,omitempty"`  // For select/enum types
+	Min         *float64     `json:"min,omitempty"`      // For numeric types
+	Max         *float64     `json:"max,omitempty"`      // For numeric types
+	Pattern     string       `json:"pattern,omitempty"`  // For string validation
+	Group       string       `json:"group"`              // For UI grouping
+	Order       int          `json:"order"`              // For UI ordering
+	Sensitive   bool         `json:"sensitive"`          // For password fields
+	Depends     []Dependency `json:"depends,omitempty"`  // Conditional fields
+	Examples    []string     `json:"examples,omitempty"` // Usage examples
 }
 
 // FieldType represents the type of a configuration field
@@ -40,10 +40,10 @@ const (
 	FieldTypeSelect   FieldType = "select"
 	FieldTypeArray    FieldType = "array"
 	FieldTypeObject   FieldType = "object"
-	FieldTypeContext  FieldType = "context"    // Special type for contexts
-	FieldTypeShortcut FieldType = "shortcut"   // Special type for shortcuts
-	FieldTypePlugin   FieldType = "plugin"     // Special type for plugins
-	FieldTypeAlias    FieldType = "alias"      // Special type for aliases
+	FieldTypeContext  FieldType = "context"  // Special type for contexts
+	FieldTypeShortcut FieldType = "shortcut" // Special type for shortcuts
+	FieldTypePlugin   FieldType = "plugin"   // Special type for plugins
+	FieldTypeAlias    FieldType = "alias"    // Special type for aliases
 )
 
 // Dependency represents a field dependency
@@ -54,8 +54,8 @@ type Dependency struct {
 
 // ValidationResult represents the result of field validation
 type ValidationResult struct {
-	Valid   bool     `json:"valid"`
-	Errors  []string `json:"errors,omitempty"`
+	Valid    bool     `json:"valid"`
+	Errors   []string `json:"errors,omitempty"`
 	Warnings []string `json:"warnings,omitempty"`
 }
 

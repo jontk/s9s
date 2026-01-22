@@ -31,14 +31,14 @@ type JobOutputView struct {
 	exporter      *export.JobOutputExporter
 
 	// Streaming support
-	streamManager   *streaming.StreamManager
-	isStreaming     bool
-	autoScroll      bool
-	streamChannel   <-chan streaming.StreamEvent
-	streamStatus    string
-	outputBuffer    *streaming.CircularBuffer
-	streamToggle    *tview.Button
-	scrollToggle    *tview.Button
+	streamManager *streaming.StreamManager
+	isStreaming   bool
+	autoScroll    bool
+	streamChannel <-chan streaming.StreamEvent
+	streamStatus  string
+	outputBuffer  *streaming.CircularBuffer
+	streamToggle  *tview.Button
+	scrollToggle  *tview.Button
 }
 
 // NewJobOutputView creates a new job output view
@@ -290,8 +290,8 @@ Peak memory usage: 2.3 GB
 
 Job completed at: %s
 `, v.jobID, v.jobName,
-	time.Now().Add(-25*time.Minute).Format("2006-01-02 15:04:05"),
-	time.Now().Add(-10*time.Minute).Format("2006-01-02 15:04:05"))
+		time.Now().Add(-25*time.Minute).Format("2006-01-02 15:04:05"),
+		time.Now().Add(-10*time.Minute).Format("2006-01-02 15:04:05"))
 }
 
 // toggleAutoRefresh toggles automatic refresh

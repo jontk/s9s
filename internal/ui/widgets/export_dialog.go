@@ -16,8 +16,8 @@ import (
 type ExportType string
 
 const (
-	ExportTypeJobOutput    ExportType = "job_output"
-	ExportTypePerformance  ExportType = "performance"
+	ExportTypeJobOutput   ExportType = "job_output"
+	ExportTypePerformance ExportType = "performance"
 )
 
 // ExportDialog handles export functionality for various data types
@@ -48,7 +48,7 @@ func (ed *ExportDialog) setupUI() {
 	ed.form = tview.NewForm()
 	ed.form.SetBorder(true)
 	ed.form.SetBorderPadding(1, 1, 2, 2)
-	
+
 	title := "Export "
 	switch ed.exportType {
 	case ExportTypeJobOutput:
@@ -99,7 +99,7 @@ func (ed *ExportDialog) setupUI() {
 		previewText += "• Network performance\n"
 		previewText += "• Optimization recommendations"
 	}
-	
+
 	preview := tview.NewTextView().
 		SetText(previewText).
 		SetTextColor(tcell.ColorGray)
@@ -286,21 +286,21 @@ func (bd *BatchExportDialog) setupBatchUI(items []string) {
 	// Add items
 	for _, item := range items {
 		prefix := "[ ] "
-		bd.list.AddItem(prefix + item, "", 0, nil)
+		bd.list.AddItem(prefix+item, "", 0, nil)
 	}
 
 	// Handle selection
 	bd.list.SetSelectedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
 		bd.selectedItems[index] = !bd.selectedItems[index]
-		
+
 		// Update display
 		item := strings.TrimPrefix(mainText, "[ ] ")
 		item = strings.TrimPrefix(item, "[✓] ")
-		
+
 		if bd.selectedItems[index] {
-			bd.list.SetItemText(index, "[✓] " + item, "")
+			bd.list.SetItemText(index, "[✓] "+item, "")
 		} else {
-			bd.list.SetItemText(index, "[ ] " + item, "")
+			bd.list.SetItemText(index, "[ ] "+item, "")
 		}
 	})
 
@@ -354,7 +354,7 @@ func (bd *BatchExportDialog) setupBatchUI(items []string) {
 			mainText, _ := bd.list.GetItemText(i)
 			item := strings.TrimPrefix(mainText, "[ ] ")
 			item = strings.TrimPrefix(item, "[✓] ")
-			bd.list.SetItemText(i, "[✓] " + item, "")
+			bd.list.SetItemText(i, "[✓] "+item, "")
 		}
 	})
 
@@ -365,7 +365,7 @@ func (bd *BatchExportDialog) setupBatchUI(items []string) {
 			mainText, _ := bd.list.GetItemText(i)
 			item := strings.TrimPrefix(mainText, "[ ] ")
 			item = strings.TrimPrefix(item, "[✓] ")
-			bd.list.SetItemText(i, "[ ] " + item, "")
+			bd.list.SetItemText(i, "[ ] "+item, "")
 		}
 	})
 

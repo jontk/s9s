@@ -56,8 +56,8 @@ func TestManagerBasicInitialization(t *testing.T) {
 
 func TestManagerInvalidPrometheusConfig(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.Prometheus.Endpoint = "://invalid-url-format"  // This will fail url.Parse
-	
+	cfg.Prometheus.Endpoint = "://invalid-url-format" // This will fail url.Parse
+
 	manager := NewManager(cfg)
 	_, err := manager.InitializeComponents()
 	if err == nil {
@@ -68,7 +68,7 @@ func TestManagerInvalidPrometheusConfig(t *testing.T) {
 func TestManagerEmptyPrometheusEndpoint(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Prometheus.Endpoint = ""
-	
+
 	manager := NewManager(cfg)
 	_, err := manager.InitializeComponents()
 	if err == nil {
@@ -79,13 +79,13 @@ func TestManagerEmptyPrometheusEndpoint(t *testing.T) {
 func TestManagerZeroTimeout(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Prometheus.Timeout = 0
-	
+
 	manager := NewManager(cfg)
 	components, err := manager.InitializeComponents()
 	if err != nil {
 		t.Fatalf("InitializeComponents should handle zero timeout: %v", err)
 	}
-	
+
 	// Should still initialize components
 	if components.Client == nil {
 		t.Error("Expected Client to be initialized even with zero timeout")
@@ -96,13 +96,13 @@ func TestManagerInvalidCacheConfig(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Cache.MaxSize = 0
 	cfg.Cache.DefaultTTL = 0
-	
+
 	manager := NewManager(cfg)
 	components, err := manager.InitializeComponents()
 	if err != nil {
 		t.Fatalf("InitializeComponents should handle invalid cache config: %v", err)
 	}
-	
+
 	// Should still initialize with defaults
 	if components.CachedClient == nil {
 		t.Error("Expected CachedClient to be initialized with default values")
@@ -267,8 +267,8 @@ func TestManagerWithCustomConfig(t *testing.T) {
 			Endpoint: "http://custom-prometheus:9090",
 			Timeout:  5 * time.Second,
 			Auth: config.AuthConfig{
-				Type:     "bearer",
-				Token:    "test-token",
+				Type:  "bearer",
+				Token: "test-token",
 			},
 		},
 		Cache: config.CacheConfig{
@@ -316,7 +316,7 @@ func TestManagerInitializationErrors(t *testing.T) {
 			name: "invalid prometheus scheme",
 			config: &config.Config{
 				Prometheus: config.PrometheusConfig{
-					Endpoint: " ://invalid-url",  // Invalid URL with space
+					Endpoint: " ://invalid-url", // Invalid URL with space
 					Timeout:  10 * time.Second,
 				},
 				Cache: config.CacheConfig{

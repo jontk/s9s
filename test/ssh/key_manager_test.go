@@ -132,7 +132,7 @@ func TestKeyManager(t *testing.T) {
 
 		keyPath := filepath.Join(sshDir, "test_delete")
 		pubPath := keyPath + ".pub"
-		
+
 		// Verify files exist
 		assert.FileExists(t, keyPath)
 		assert.FileExists(t, pubPath)

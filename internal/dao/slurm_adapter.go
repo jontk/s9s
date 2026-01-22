@@ -27,7 +27,7 @@ func NewSlurmAdapter(ctx context.Context, cfg *config.ClusterConfig) (*SlurmAdap
 	}
 
 	// Parse timeout - use shorter timeout for database operations to fail fast
-	timeout := 5 * time.Second  // Reduced from 30s to 5s for faster failover
+	timeout := 5 * time.Second // Reduced from 30s to 5s for faster failover
 	if cfg.Timeout != "" {
 		if t, err := time.ParseDuration(cfg.Timeout); err == nil {
 			timeout = t
@@ -651,7 +651,7 @@ func convertJob(job *slurm.Job) *Job {
 
 func convertNode(node *slurm.Node) *Node {
 	// Use available fields from the slurm-client, with fallbacks for missing fields
-	
+
 	// Try to get allocated CPUs, fallback to 0 if not available
 	allocCPUs := 0
 	if node.CPUs > 0 {
@@ -667,7 +667,7 @@ func convertNode(node *slurm.Node) *Node {
 			allocCPUs = 0
 		}
 	}
-	
+
 	// Estimate memory allocation (in MB)
 	allocMemory := int64(0)
 	if node.Memory > 0 {
@@ -679,28 +679,28 @@ func convertNode(node *slurm.Node) *Node {
 			allocMemory = 0
 		}
 	}
-	
+
 	// CPU load - provide reasonable defaults
 	cpuLoad := float64(0.0)
 	if allocCPUs > 0 && node.CPUs > 0 {
 		cpuLoad = float64(allocCPUs) / float64(node.CPUs) * 100.0
 	}
-	
+
 	// Convert memory to MB if needed
 	memoryTotalMB := int64(node.Memory)
-	
+
 	// Calculate idle CPUs (total - allocated)
 	idleCPUs := int(node.CPUs) - allocCPUs
 	if idleCPUs < 0 {
 		idleCPUs = 0
 	}
-	
+
 	// Calculate free memory (total - allocated)
 	freeMemory := memoryTotalMB - allocMemory
 	if freeMemory < 0 {
 		freeMemory = 0
 	}
-	
+
 	// If FreeMemory not available, calculate from allocation
 	// This is less accurate as it doesn't reflect actual system usage
 	if freeMemory == 0 {
@@ -709,10 +709,10 @@ func convertNode(node *slurm.Node) *Node {
 			freeMemory = 0
 		}
 	}
-	
-	debug.Logger.Printf("convertNode: %s state='%s' CPULoad=%.2f AllocCPUs=%d AllocMem=%dMB MemTotal=%dMB FreeMem=%dMB", 
+
+	debug.Logger.Printf("convertNode: %s state='%s' CPULoad=%.2f AllocCPUs=%d AllocMem=%dMB MemTotal=%dMB FreeMem=%dMB",
 		node.Name, node.State, cpuLoad, allocCPUs, allocMemory, memoryTotalMB, freeMemory)
-	
+
 	return &Node{
 		Name:            node.Name,
 		State:           node.State,
@@ -722,8 +722,8 @@ func convertNode(node *slurm.Node) *Node {
 		CPUsIdle:        idleCPUs,
 		CPULoad:         cpuLoad,
 		MemoryTotal:     memoryTotalMB,
-		MemoryAllocated: allocMemory,      // Memory allocated by SLURM to jobs
-		MemoryFree:      freeMemory,       // Actual free memory on the system
+		MemoryAllocated: allocMemory, // Memory allocated by SLURM to jobs
+		MemoryFree:      freeMemory,  // Actual free memory on the system
 		Features:        node.Features,
 		Reason:          node.Reason,
 		ReasonTime:      node.LastBusy,

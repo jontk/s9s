@@ -399,7 +399,7 @@ func contains(s, substr string) bool {
 	substr = toLower(substr)
 	return len(s) >= len(substr) &&
 		(len(s) == len(substr) && s == substr ||
-		 len(s) > len(substr) && (s[:len(substr)] == substr || contains(s[1:], substr)))
+			len(s) > len(substr) && (s[:len(substr)] == substr || contains(s[1:], substr)))
 }
 
 // Simple ASCII lowercase conversion for benchmarking

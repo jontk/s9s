@@ -13,34 +13,34 @@ import (
 // StreamingPreferences represents user preferences for streaming functionality
 type StreamingPreferences struct {
 	// General streaming settings
-	AutoStartForRunningJobs bool          `json:"auto_start_for_running_jobs"`
-	DefaultAutoScroll       bool          `json:"default_auto_scroll"`
-	ShowTimestamps          bool          `json:"show_timestamps"`
-	ExportFormat            string        `json:"export_format"`
+	AutoStartForRunningJobs bool   `json:"auto_start_for_running_jobs"`
+	DefaultAutoScroll       bool   `json:"default_auto_scroll"`
+	ShowTimestamps          bool   `json:"show_timestamps"`
+	ExportFormat            string `json:"export_format"`
 
 	// Performance settings
-	MaxConcurrentStreams    int           `json:"max_concurrent_streams"`
-	BufferSizeLines         int           `json:"buffer_size_lines"`
-	PollIntervalSeconds     int           `json:"poll_interval_seconds"`
-	MaxMemoryMB             int           `json:"max_memory_mb"`
-	FileCheckIntervalMs     int           `json:"file_check_interval_ms"`
+	MaxConcurrentStreams int `json:"max_concurrent_streams"`
+	BufferSizeLines      int `json:"buffer_size_lines"`
+	PollIntervalSeconds  int `json:"poll_interval_seconds"`
+	MaxMemoryMB          int `json:"max_memory_mb"`
+	FileCheckIntervalMs  int `json:"file_check_interval_ms"`
 
 	// Remote streaming settings
-	EnableRemoteStreaming   bool          `json:"enable_remote_streaming"`
-	SSHTimeout              int           `json:"ssh_timeout_seconds"`
-	RemoteBufferSize        int           `json:"remote_buffer_size"`
+	EnableRemoteStreaming bool `json:"enable_remote_streaming"`
+	SSHTimeout            int  `json:"ssh_timeout_seconds"`
+	RemoteBufferSize      int  `json:"remote_buffer_size"`
 
 	// Display settings
-	MultiStreamGridSize     string        `json:"multi_stream_grid_size"` // "2x2", "3x3", "2x3"
-	StreamPanelHeight       int           `json:"stream_panel_height"`
-	ShowBufferStats         bool          `json:"show_buffer_stats"`
-	HighlightPatterns       []string      `json:"highlight_patterns"`
+	MultiStreamGridSize string   `json:"multi_stream_grid_size"` // "2x2", "3x3", "2x3"
+	StreamPanelHeight   int      `json:"stream_panel_height"`
+	ShowBufferStats     bool     `json:"show_buffer_stats"`
+	HighlightPatterns   []string `json:"highlight_patterns"`
 
 	// Advanced settings
-	EnableCompression       bool          `json:"enable_compression"`
-	StreamHistoryDays       int           `json:"stream_history_days"`
-	AutoCleanupInactive     bool          `json:"auto_cleanup_inactive"`
-	InactiveTimeoutMinutes  int           `json:"inactive_timeout_minutes"`
+	EnableCompression      bool `json:"enable_compression"`
+	StreamHistoryDays      int  `json:"stream_history_days"`
+	AutoCleanupInactive    bool `json:"auto_cleanup_inactive"`
+	InactiveTimeoutMinutes int  `json:"inactive_timeout_minutes"`
 }
 
 // StreamingPreferencesManager manages streaming preferences
@@ -60,28 +60,28 @@ func DefaultStreamingPreferences() *StreamingPreferences {
 		ExportFormat:            "txt",
 
 		// Performance settings
-		MaxConcurrentStreams:    4,
-		BufferSizeLines:         10000,
-		PollIntervalSeconds:     2,
-		MaxMemoryMB:             50,
-		FileCheckIntervalMs:     1000,
+		MaxConcurrentStreams: 4,
+		BufferSizeLines:      10000,
+		PollIntervalSeconds:  2,
+		MaxMemoryMB:          50,
+		FileCheckIntervalMs:  1000,
 
 		// Remote streaming settings
-		EnableRemoteStreaming:   true,
-		SSHTimeout:              30,
-		RemoteBufferSize:        5000,
+		EnableRemoteStreaming: true,
+		SSHTimeout:            30,
+		RemoteBufferSize:      5000,
 
 		// Display settings
-		MultiStreamGridSize:     "2x2",
-		StreamPanelHeight:       20,
-		ShowBufferStats:         true,
-		HighlightPatterns:       []string{"ERROR", "WARNING", "FAILED", "SUCCESS"},
+		MultiStreamGridSize: "2x2",
+		StreamPanelHeight:   20,
+		ShowBufferStats:     true,
+		HighlightPatterns:   []string{"ERROR", "WARNING", "FAILED", "SUCCESS"},
 
 		// Advanced settings
-		EnableCompression:       false,
-		StreamHistoryDays:       7,
-		AutoCleanupInactive:     true,
-		InactiveTimeoutMinutes:  30,
+		EnableCompression:      false,
+		StreamHistoryDays:      7,
+		AutoCleanupInactive:    true,
+		InactiveTimeoutMinutes: 30,
 	}
 }
 
@@ -224,12 +224,12 @@ func (m *StreamingPreferencesManager) ToStreamConfig() *streaming.StreamConfig {
 
 	return &streaming.StreamConfig{
 		MaxConcurrentStreams: m.preferences.MaxConcurrentStreams,
-		BufferSize:          m.preferences.BufferSizeLines,
-		PollInterval:        time.Duration(m.preferences.PollIntervalSeconds) * time.Second,
-		MaxMemoryMB:         m.preferences.MaxMemoryMB,
-		AutoScroll:          m.preferences.DefaultAutoScroll,
-		ShowTimestamps:      m.preferences.ShowTimestamps,
-		ExportFormat:        m.preferences.ExportFormat,
+		BufferSize:           m.preferences.BufferSizeLines,
+		PollInterval:         time.Duration(m.preferences.PollIntervalSeconds) * time.Second,
+		MaxMemoryMB:          m.preferences.MaxMemoryMB,
+		AutoScroll:           m.preferences.DefaultAutoScroll,
+		ShowTimestamps:       m.preferences.ShowTimestamps,
+		ExportFormat:         m.preferences.ExportFormat,
 	}
 }
 

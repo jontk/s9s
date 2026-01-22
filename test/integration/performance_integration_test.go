@@ -63,15 +63,15 @@ func testProfilerUnderLoad(t *testing.T) {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			
+
 			for j := 0; j < numIterations/numWorkers; j++ {
 				opName := operations[j%len(operations)]
 				done := profiler.StartOperation(fmt.Sprintf("%s_worker_%d", opName, workerID))
-				
+
 				// Simulate work with varying duration
 				workDuration := time.Duration(j%10+1) * time.Millisecond
 				time.Sleep(workDuration)
-				
+
 				done()
 			}
 		}(i)
@@ -119,18 +119,18 @@ func testOptimizerWithRealWorkload(t *testing.T) {
 
 	// Create a workload that will trigger optimization recommendations
 	const iterations = 500
-	
+
 	// Simulate memory-intensive operations
 	allocations := make([][]byte, iterations)
 	for i := 0; i < iterations; i++ {
 		done := profiler.StartOperation("memory_intensive_task")
-		
+
 		// Allocate memory
 		allocations[i] = make([]byte, 1024*1024) // 1MB each
-		
+
 		// Simulate processing
 		time.Sleep(1 * time.Millisecond)
-		
+
 		done()
 	}
 
@@ -143,16 +143,16 @@ func testOptimizerWithRealWorkload(t *testing.T) {
 
 	// Run optimization analysis
 	recommendations := optimizer.Analyze()
-	
+
 	assert.NotEmpty(t, recommendations, "Should generate optimization recommendations")
 
 	// Verify we get meaningful recommendations
 	foundMemoryRec := false
-	
+
 	for _, rec := range recommendations {
-		t.Logf("Recommendation: [%s] %s - %s (Impact: %s)", 
+		t.Logf("Recommendation: [%s] %s - %s (Impact: %s)",
 			rec.Category, rec.Issue, rec.Suggestion, rec.Impact)
-		
+
 		if rec.Category == "Memory" {
 			foundMemoryRec = true
 		}
@@ -181,10 +181,10 @@ func testOptimizerWithRealWorkload(t *testing.T) {
 
 func testConcurrentOperations(t *testing.T) {
 	profiler := performance.NewProfiler()
-	
+
 	const numGoroutines = 50
 	const operationsPerGoroutine = 100
-	
+
 	var wg sync.WaitGroup
 	start := time.Now()
 
@@ -193,11 +193,11 @@ func testConcurrentOperations(t *testing.T) {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			
+
 			for j := 0; j < operationsPerGoroutine; j++ {
 				opName := fmt.Sprintf("concurrent_op_%d", id%5) // Group into 5 operation types
 				done := profiler.StartOperation(opName)
-				
+
 				// Simulate varying workload
 				switch j % 4 {
 				case 0:
@@ -217,7 +217,7 @@ func testConcurrentOperations(t *testing.T) {
 					}
 					_ = sum
 				}
-				
+
 				done()
 			}
 		}(i)
@@ -228,14 +228,14 @@ func testConcurrentOperations(t *testing.T) {
 
 	// Verify concurrent operations were tracked correctly
 	stats := profiler.GetOperationStats()
-	
+
 	totalOperations := numGoroutines * operationsPerGoroutine
 	actualOperations := int64(0)
 	for _, stat := range stats {
 		actualOperations += stat.Count
 	}
 
-	assert.Equal(t, int64(totalOperations), actualOperations, 
+	assert.Equal(t, int64(totalOperations), actualOperations,
 		"Should track all concurrent operations")
 
 	// Check that we have the expected number of operation types
@@ -259,14 +259,14 @@ func testMemoryLeakDetection(t *testing.T) {
 
 	// Create a controlled memory leak scenario
 	leakData := make([][]byte, 0)
-	
+
 	for i := 0; i < 100; i++ {
 		done := profiler.StartOperation("potential_leak_operation")
-		
+
 		// Simulate operation that might leak memory
 		data := make([]byte, 10*1024) // 10KB
 		leakData = append(leakData, data)
-		
+
 		time.Sleep(1 * time.Millisecond)
 		done()
 	}
@@ -277,7 +277,7 @@ func testMemoryLeakDetection(t *testing.T) {
 
 	// Check for memory leaks
 	memoryIssues := profiler.FindMemoryLeaks()
-	
+
 	if len(memoryIssues) > 0 {
 		t.Logf("Detected potential memory issues:")
 		for _, issue := range memoryIssues {
@@ -287,7 +287,7 @@ func testMemoryLeakDetection(t *testing.T) {
 
 	// Run optimization analysis
 	recommendations := optimizer.Analyze()
-	
+
 	// Look for memory-related recommendations
 	memoryRecs := 0
 	for _, rec := range recommendations {
@@ -300,7 +300,7 @@ func testMemoryLeakDetection(t *testing.T) {
 	// Clean up the "leak" to avoid affecting other tests
 	_ = leakData // Keep reference to avoid compiler optimization
 	runtime.GC()
-	
+
 	t.Logf("Found %d memory-related recommendations", memoryRecs)
 }
 
@@ -310,11 +310,11 @@ func testLongRunningProfiling(t *testing.T) {
 	}
 
 	profiler := performance.NewProfiler()
-	
+
 	// Run profiling for a longer period to test stability
 	duration := 10 * time.Second
 	interval := 100 * time.Millisecond
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), duration)
 	defer cancel()
 
@@ -331,13 +331,13 @@ func testLongRunningProfiling(t *testing.T) {
 		case <-ticker.C:
 			// Perform operation
 			done := profiler.StartOperation("long_running_test")
-			
+
 			// Simulate work
 			time.Sleep(10 * time.Millisecond)
-			
+
 			done()
 			operationCount++
-			
+
 			// Capture memory stats periodically
 			if operationCount%10 == 0 {
 				profiler.CaptureMemoryStats()
@@ -348,16 +348,16 @@ func testLongRunningProfiling(t *testing.T) {
 done:
 	stats := profiler.GetOperationStats()
 	report := profiler.Report()
-	
+
 	assert.NotEmpty(t, stats)
 	assert.Contains(t, report, "Performance Report")
 	assert.Contains(t, report, "long_running_test")
-	
+
 	// Verify we collected the expected number of operations
 	if longRunningStats, exists := stats["long_running_test"]; exists {
 		expectedOps := int64(duration / interval)
 		tolerance := expectedOps / 10 // 10% tolerance
-		
+
 		assert.InDelta(t, expectedOps, longRunningStats.Count, float64(tolerance),
 			"Should have approximately %d operations, got %d", expectedOps, longRunningStats.Count)
 	}
@@ -369,9 +369,9 @@ done:
 // Benchmark tests for performance system itself
 func BenchmarkProfilerOverhead(b *testing.B) {
 	profiler := performance.NewProfiler()
-	
+
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		done := profiler.StartOperation("benchmark_test")
 		// Minimal work to measure profiler overhead
@@ -381,7 +381,7 @@ func BenchmarkProfilerOverhead(b *testing.B) {
 
 func BenchmarkConcurrentProfiling(b *testing.B) {
 	profiler := performance.NewProfiler()
-	
+
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -393,9 +393,9 @@ func BenchmarkConcurrentProfiling(b *testing.B) {
 
 func BenchmarkMemoryCapture(b *testing.B) {
 	profiler := performance.NewProfiler()
-	
+
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		profiler.CaptureMemoryStats()
 	}
@@ -403,9 +403,9 @@ func BenchmarkMemoryCapture(b *testing.B) {
 
 // Helper function
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && 
-		   (s == substr || (len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || 
-		   (len(s) > 2*len(substr) && findSubstring(s, substr)))))
+	return len(s) >= len(substr) &&
+		(s == substr || (len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+			(len(s) > 2*len(substr) && findSubstring(s, substr)))))
 }
 
 func findSubstring(s, substr string) bool {

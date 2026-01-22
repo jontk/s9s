@@ -16,7 +16,7 @@ func main() {
 	// Set up master key for testing (32 bytes base64 encoded)
 	// This is just a test key: "test-master-key-32-bytes-long!!!!"
 	_ = os.Setenv("OBSERVABILITY_MASTER_KEY", "dGVzdC1tYXN0ZXIta2V5LTMyLWJ5dGVzLWxvbmchISEh")
-	
+
 	// Load configuration
 	configData, err := os.ReadFile("test-config.yaml")
 	if err != nil {
@@ -40,7 +40,7 @@ func main() {
 	// Initialize components
 	ctx := context.Background()
 	manager := initialization.NewManagerWithContext(ctx, &cfg)
-	
+
 	fmt.Println("\nInitializing components...")
 	components, err := manager.InitializeComponents()
 	if err != nil {
@@ -92,7 +92,7 @@ func main() {
 	start = time.Now()
 	_, _ = components.CachedClient.Query(testCtx, "node_cpu_seconds_total", time.Now())
 	secondQueryTime := time.Since(start)
-	
+
 	fmt.Printf("✓ First query: %v\n", firstQueryTime)
 	fmt.Printf("✓ Second query (cached): %v\n", secondQueryTime)
 	fmt.Printf("✓ Cache speedup: %.2fx\n", float64(firstQueryTime)/float64(secondQueryTime))

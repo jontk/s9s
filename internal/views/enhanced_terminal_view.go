@@ -19,28 +19,28 @@ import (
 // EnhancedTerminalView provides an advanced multi-pane terminal interface
 type EnhancedTerminalView struct {
 	BaseView
-	
+
 	// Dependencies
 	client         dao.SlurmClient
 	sessionManager *ssh.SessionManager
-	
+
 	// UI Components
-	paneManager    *components.MultiPaneManager
-	navManager     *navigation.NavigationManager
-	container      *tview.Flex
-	
+	paneManager *components.MultiPaneManager
+	navManager  *navigation.NavigationManager
+	container   *tview.Flex
+
 	// Terminal Panes
-	terminalPanes  map[string]*components.TerminalPane
-	
+	terminalPanes map[string]*components.TerminalPane
+
 	// State
-	mu             sync.RWMutex
-	nodes          []string
-	activeNodes    map[string]bool
-	
+	mu          sync.RWMutex
+	nodes       []string
+	activeNodes map[string]bool
+
 	// Configuration
-	maxTerminals   int
-	autoConnect    bool
-	defaultLayout  components.PaneLayout
+	maxTerminals  int
+	autoConnect   bool
+	defaultLayout components.PaneLayout
 }
 
 // NewEnhancedTerminalView creates a new enhanced terminal view
@@ -53,12 +53,12 @@ func NewEnhancedTerminalView(client dao.SlurmClient) *EnhancedTerminalView {
 		autoConnect:   false,
 		defaultLayout: components.LayoutTabs,
 	}
-	
+
 	etv.BaseView = BaseView{
 		name:  "terminal",
 		title: "Enhanced Terminal",
 	}
-	
+
 	// Initialize SSH session manager
 	sshConfig := ssh.DefaultSSHConfig()
 	var err error
@@ -66,48 +66,48 @@ func NewEnhancedTerminalView(client dao.SlurmClient) *EnhancedTerminalView {
 	if err != nil {
 		log.Printf("Warning: Failed to initialize SSH session manager: %v", err)
 	}
-	
+
 	return etv
 }
 
 // Init initializes the enhanced terminal view
 func (etv *EnhancedTerminalView) Init(ctx context.Context) error {
 	etv.ctx = ctx
-	
+
 	// Initialize UI components
 	etv.paneManager = components.NewMultiPaneManager(etv.app)
 	etv.navManager = navigation.NewNavigationManager(etv.app)
-	
+
 	// Setup callbacks
 	etv.setupCallbacks()
-	
+
 	// Create main container
 	etv.container = tview.NewFlex()
 	etv.container.SetDirection(tview.FlexRow)
-	
+
 	// Add navigation breadcrumb
 	etv.container.AddItem(etv.navManager.GetBreadcrumb(), 1, 0, false)
-	
+
 	// Add main pane manager
 	etv.container.AddItem(etv.paneManager.GetContainer(), 0, 1, true)
-	
+
 	// Add quick help bar
 	etv.container.AddItem(etv.navManager.GetQuickHelpBar(), 1, 0, false)
-	
+
 	// Setup input handling
 	etv.container.SetInputCapture(etv.handleInput)
-	
+
 	// Register navigation targets
 	etv.registerNavigationTargets()
-	
+
 	// Load available nodes
 	etv.loadNodes()
-	
+
 	// Create initial terminal if auto-connect is enabled
 	if etv.autoConnect && len(etv.nodes) > 0 {
 		etv.createTerminalPane(etv.nodes[0], "")
 	}
-	
+
 	return nil
 }
 
@@ -117,20 +117,20 @@ func (etv *EnhancedTerminalView) setupCallbacks() {
 	etv.paneManager.SetOnPaneSwitch(func(oldPane, newPane string) {
 		etv.onPaneSwitch(oldPane, newPane)
 	})
-	
+
 	etv.paneManager.SetOnLayoutChange(func(layout components.PaneLayout) {
 		etv.onLayoutChange(layout)
 	})
-	
+
 	// Navigation manager callbacks
 	etv.navManager.SetOnNavigate(func(from, to string) {
 		etv.onNavigate(from, to)
 	})
-	
+
 	etv.navManager.SetOnModeChange(func(mode navigation.NavigationMode) {
 		etv.onModeChange(mode)
 	})
-	
+
 	etv.navManager.SetOnSearch(func(query string) []string {
 		return etv.performSearch(query)
 	})
@@ -172,7 +172,7 @@ func (etv *EnhancedTerminalView) registerNavigationTargets() {
 		},
 		{
 			ID:          "split-vertical",
-			Name:        "Split Vertical", 
+			Name:        "Split Vertical",
 			Description: "Split panes vertically",
 			Type:        "layout",
 			Shortcut:    'v',
@@ -199,7 +199,7 @@ func (etv *EnhancedTerminalView) registerNavigationTargets() {
 			OnActivate:  etv.switchToGridLayout,
 		},
 	}
-	
+
 	for _, target := range targets {
 		if err := etv.navManager.RegisterTarget(target); err != nil {
 			log.Printf("Warning: Failed to register navigation target %s: %v", target.ID, err)
@@ -212,7 +212,7 @@ func (etv *EnhancedTerminalView) loadNodes() {
 	if etv.client == nil {
 		return
 	}
-	
+
 	// Try to get nodes from the cluster
 	if nodesMgr := etv.client.Nodes(); nodesMgr != nil {
 		nodesList, err := nodesMgr.List(nil) // Pass nil for default options
@@ -225,7 +225,7 @@ func (etv *EnhancedTerminalView) loadNodes() {
 			etv.mu.Unlock()
 		}
 	}
-	
+
 	// If no nodes found, add some default options
 	if len(etv.nodes) == 0 {
 		etv.nodes = []string{"localhost"}
@@ -238,7 +238,7 @@ func (etv *EnhancedTerminalView) handleInput(event *tcell.EventKey) *tcell.Event
 	if handled := etv.navManager.HandleInput(event); handled == nil {
 		return nil
 	}
-	
+
 	// Let pane manager handle pane-specific shortcuts
 	return event
 }
@@ -254,49 +254,49 @@ func (etv *EnhancedTerminalView) showNodeSelectionDialog() {
 	form.SetBorder(true)
 	form.SetTitle(" New Terminal Connection ")
 	form.SetTitleAlign(tview.AlignCenter)
-	
+
 	selectedNode := ""
 	username := ""
-	
+
 	// Add node selection dropdown
 	nodeOptions := make([]string, len(etv.nodes))
 	copy(nodeOptions, etv.nodes)
 	nodeOptions = append(nodeOptions, "Custom...")
-	
+
 	form.AddDropDown("Node", nodeOptions, 0, func(option string, optionIndex int) {
 		selectedNode = option
 	})
-	
+
 	// Add username field
 	form.AddInputField("Username", "", 20, nil, func(text string) {
 		username = text
 	})
-	
+
 	// Add custom hostname field (initially hidden)
 	customHostname := ""
 	form.AddInputField("Custom Hostname", "", 30, nil, func(text string) {
 		customHostname = text
 	})
-	
+
 	// Connect button
 	form.AddButton("Connect", func() {
 		hostname := selectedNode
 		if selectedNode == "Custom..." {
 			hostname = customHostname
 		}
-		
+
 		if hostname != "" {
 			etv.createTerminalPane(hostname, username)
 		}
-		
+
 		etv.hideModal("new-terminal")
 	})
-	
+
 	// Cancel button
 	form.AddButton("Cancel", func() {
 		etv.hideModal("new-terminal")
 	})
-	
+
 	etv.showModal("new-terminal", form)
 }
 
@@ -304,27 +304,27 @@ func (etv *EnhancedTerminalView) showNodeSelectionDialog() {
 func (etv *EnhancedTerminalView) createTerminalPane(hostname, username string) {
 	etv.mu.Lock()
 	defer etv.mu.Unlock()
-	
+
 	// Generate unique ID
 	paneID := fmt.Sprintf("terminal_%s_%d", hostname, time.Now().Unix())
-	
+
 	// Use current user if username not specified
 	if username == "" {
 		username = "user" // Default username
 	}
-	
+
 	// Create terminal pane
 	terminalPane := components.NewTerminalPane(paneID, hostname, username, etv.sessionManager)
-	
+
 	// Set callbacks
 	terminalPane.SetOnClose(func(id string) error {
 		return etv.closeTerminalPane(id)
 	})
-	
+
 	terminalPane.SetOnTitleChange(func(id, title string) {
 		etv.updatePaneTitle(id, title)
 	})
-	
+
 	// Create pane for pane manager
 	pane := &components.Pane{
 		ID:        paneID,
@@ -333,7 +333,7 @@ func (etv *EnhancedTerminalView) createTerminalPane(hostname, username string) {
 		Content:   terminalPane.GetContainer(),
 		Closable:  true,
 		Resizable: true,
-		Metadata:  map[string]interface{}{
+		Metadata: map[string]interface{}{
 			"hostname": hostname,
 			"username": username,
 		},
@@ -344,13 +344,13 @@ func (etv *EnhancedTerminalView) createTerminalPane(hostname, username string) {
 			etv.onTerminalActivate(id)
 		},
 	}
-	
+
 	// Add to pane manager
 	if err := etv.paneManager.AddPane(pane); err != nil {
 		log.Printf("Error adding terminal pane: %v", err)
 		return
 	}
-	
+
 	// Store terminal pane reference
 	etv.terminalPanes[paneID] = terminalPane
 	etv.activeNodes[hostname] = true
@@ -368,13 +368,13 @@ func (etv *EnhancedTerminalView) closeActiveTerminal() {
 func (etv *EnhancedTerminalView) closeTerminalPane(paneID string) error {
 	etv.mu.Lock()
 	defer etv.mu.Unlock()
-	
+
 	// Close the terminal pane
 	if terminalPane, exists := etv.terminalPanes[paneID]; exists {
 		_ = terminalPane.Close()
 		delete(etv.terminalPanes, paneID)
 	}
-	
+
 	// Remove from pane manager
 	return etv.paneManager.RemovePane(paneID)
 }
@@ -428,7 +428,7 @@ func (etv *EnhancedTerminalView) onModeChange(mode navigation.NavigationMode) {
 func (etv *EnhancedTerminalView) onTerminalActivate(paneID string) {
 	// Handle terminal activation
 	if terminalPane, exists := etv.terminalPanes[paneID]; exists {
-		log.Printf("Terminal %s (%s@%s) activated", 
+		log.Printf("Terminal %s (%s@%s) activated",
 			paneID, terminalPane.GetUsername(), terminalPane.GetHostname())
 	}
 }
@@ -437,18 +437,18 @@ func (etv *EnhancedTerminalView) onTerminalActivate(paneID string) {
 func (etv *EnhancedTerminalView) performSearch(query string) []string {
 	results := make([]string, 0)
 	query = strings.ToLower(query)
-	
+
 	// Search through active terminals
 	etv.mu.RLock()
 	for paneID, terminalPane := range etv.terminalPanes {
 		hostname := strings.ToLower(terminalPane.GetHostname())
 		username := strings.ToLower(terminalPane.GetUsername())
-		
+
 		if strings.Contains(hostname, query) || strings.Contains(username, query) {
 			results = append(results, paneID)
 		}
 	}
-	
+
 	// Search through available nodes
 	for _, node := range etv.nodes {
 		if strings.Contains(strings.ToLower(node), query) {
@@ -456,7 +456,7 @@ func (etv *EnhancedTerminalView) performSearch(query string) []string {
 		}
 	}
 	etv.mu.RUnlock()
-	
+
 	return results
 }
 
@@ -486,7 +486,7 @@ func (etv *EnhancedTerminalView) Update() error {
 		_ = terminalPane
 	}
 	etv.mu.RUnlock()
-	
+
 	return nil
 }
 
@@ -503,7 +503,7 @@ func (etv *EnhancedTerminalView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 func (etv *EnhancedTerminalView) Hints() []string {
 	return []string{
 		"Ctrl+T: New Terminal",
-		"Ctrl+W: Close Terminal", 
+		"Ctrl+W: Close Terminal",
 		"F3: Split Horizontal",
 		"F4: Split Vertical",
 		"F4: Quick Nav",
@@ -519,7 +519,7 @@ func (etv *EnhancedTerminalView) Stop() {
 		_ = etv.closeTerminalPane(paneID)
 	}
 	etv.mu.Unlock()
-	
+
 	// Close pane manager
 	etv.paneManager.Close()
 }
@@ -535,7 +535,7 @@ func (etv *EnhancedTerminalView) GetTerminalCount() int {
 func (etv *EnhancedTerminalView) GetActiveNodes() []string {
 	etv.mu.RLock()
 	defer etv.mu.RUnlock()
-	
+
 	nodes := make([]string, 0, len(etv.activeNodes))
 	for node := range etv.activeNodes {
 		nodes = append(nodes, node)
@@ -547,7 +547,7 @@ func (etv *EnhancedTerminalView) GetActiveNodes() []string {
 func (etv *EnhancedTerminalView) BroadcastCommand(command string) error {
 	etv.mu.RLock()
 	defer etv.mu.RUnlock()
-	
+
 	var errors []string
 	for paneID, terminalPane := range etv.terminalPanes {
 		if terminalPane.IsConnected() {
@@ -556,10 +556,10 @@ func (etv *EnhancedTerminalView) BroadcastCommand(command string) error {
 			}
 		}
 	}
-	
+
 	if len(errors) > 0 {
 		return fmt.Errorf("broadcast failed for some terminals: %s", strings.Join(errors, "; "))
 	}
-	
+
 	return nil
 }

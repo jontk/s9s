@@ -123,7 +123,7 @@ func (sp *SubscriptionPersistence) LoadSubscriptions() error {
 	defer sp.mu.Unlock()
 
 	filename := filepath.Join(sp.dataDir, "subscriptions.json")
-	
+
 	// Check if file exists
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		// No saved subscriptions, that's okay
@@ -207,7 +207,7 @@ func (sp *SubscriptionPersistence) SaveSubscription(subscriptionID string) error
 // DeleteSubscription removes a persisted subscription
 func (sp *SubscriptionPersistence) DeleteSubscription(subscriptionID string) error {
 	filename := filepath.Join(sp.dataDir, fmt.Sprintf("subscription_%s.json", subscriptionID))
-	
+
 	if err := os.Remove(filename); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to delete subscription file: %w", err)
 	}
@@ -222,7 +222,7 @@ func (sp *SubscriptionPersistence) BackupSubscriptions() (string, error) {
 
 	timestamp := time.Now().Format("20060102_150405")
 	backupDir := filepath.Join(sp.dataDir, "backups")
-	
+
 	if err := os.MkdirAll(backupDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create backup directory: %w", err)
 	}
@@ -290,7 +290,7 @@ func (sp *SubscriptionPersistence) RestoreFromBackup(backupFile string) error {
 // GetBackupList returns a list of available backup files
 func (sp *SubscriptionPersistence) GetBackupList() ([]string, error) {
 	backupDir := filepath.Join(sp.dataDir, "backups")
-	
+
 	if _, err := os.Stat(backupDir); os.IsNotExist(err) {
 		return []string{}, nil
 	}
@@ -334,12 +334,12 @@ func (sp *SubscriptionPersistence) CleanupOldBackups(maxAge time.Duration) error
 // GetPersistenceStats returns statistics about persistence operations
 func (sp *SubscriptionPersistence) GetPersistenceStats() map[string]interface{} {
 	backupFiles, _ := sp.GetBackupList()
-	
+
 	stats := map[string]interface{}{
-		"data_directory":      sp.dataDir,
-		"auto_save_enabled":   sp.autoSave,
-		"save_interval":       sp.saveInterval.String(),
-		"backup_count":        len(backupFiles),
+		"data_directory":    sp.dataDir,
+		"auto_save_enabled": sp.autoSave,
+		"save_interval":     sp.saveInterval.String(),
+		"backup_count":      len(backupFiles),
 	}
 
 	// Add file size information
@@ -394,7 +394,7 @@ func NewSubscriptionRecovery(subscriptionMgr *SubscriptionManager, persistence *
 // RecoverFailedSubscriptions attempts to recover failed subscriptions
 func (sr *SubscriptionRecovery) RecoverFailedSubscriptions(ctx context.Context) error {
 	subscriptions := sr.subscriptionMgr.ListSubscriptions()
-	
+
 	for _, sub := range subscriptions {
 		if !sub.Active && sub.ErrorCount > 0 {
 			// Try to recover the subscription
@@ -429,7 +429,7 @@ func (sr *SubscriptionRecovery) recoverSubscription(ctx context.Context, subscri
 			testParams[k] = v
 		}
 		testParams["query"] = "up"
-		
+
 		_, err := sr.subscriptionMgr.getData(ctx, subscription.ProviderID, testParams)
 		if err != nil {
 			return fmt.Errorf("subscription test failed: %w", err)

@@ -472,15 +472,15 @@ func (sm *StreamManager) GetActiveStreams() []StreamInfo {
 		if stream.IsActive {
 			stats := stream.Buffer.GetStats()
 			streams = append(streams, StreamInfo{
-				JobID:        stream.JobID,
-				OutputType:   stream.OutputType,
-				FilePath:     stream.FilePath,
-				IsRemote:     stream.IsRemote,
-				NodeID:       stream.NodeID,
-				BufferSize:   stats.CurrentSize,
-				BufferUsage:  stats.UsagePercent,
-				LastUpdate:   stream.LastUpdate,
-				Subscribers:  sm.eventBus.GetSubscriberCount(stream.JobID, stream.OutputType),
+				JobID:       stream.JobID,
+				OutputType:  stream.OutputType,
+				FilePath:    stream.FilePath,
+				IsRemote:    stream.IsRemote,
+				NodeID:      stream.NodeID,
+				BufferSize:  stats.CurrentSize,
+				BufferUsage: stats.UsagePercent,
+				LastUpdate:  stream.LastUpdate,
+				Subscribers: sm.eventBus.GetSubscriberCount(stream.JobID, stream.OutputType),
 			})
 		}
 	}

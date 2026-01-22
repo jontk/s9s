@@ -112,7 +112,7 @@ func (aa *AgentAuth) HasKey(fingerprint string) bool {
 // GetKeyInfo returns information about keys in the agent
 func (aa *AgentAuth) GetKeyInfo() []map[string]string {
 	var keyInfos []map[string]string
-	
+
 	for _, signer := range aa.signers {
 		pubKey := signer.PublicKey()
 		keyInfo := map[string]string{
@@ -121,7 +121,7 @@ func (aa *AgentAuth) GetKeyInfo() []map[string]string {
 		}
 		keyInfos = append(keyInfos, keyInfo)
 	}
-	
+
 	return keyInfos
 }
 

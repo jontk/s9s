@@ -32,8 +32,8 @@ type MetricCache struct {
 	keyGen *CacheKeyGenerator
 
 	// Metrics
-	hits   int64
-	misses int64
+	hits      int64
+	misses    int64
 	evictions int64
 
 	// Lifecycle management
@@ -76,7 +76,7 @@ func (mc *MetricCache) GetInstantQuery(query string, queryTime *time.Time) (*Que
 	return mc.GetWithKey(key, query)
 }
 
-// GetRangeQuery retrieves a cached range query result with optimized key  
+// GetRangeQuery retrieves a cached range query result with optimized key
 func (mc *MetricCache) GetRangeQuery(query string, start, end time.Time, step time.Duration) (*QueryResult, bool) {
 	key := mc.keyGen.GenerateRangeQueryKey(query, start, end, step)
 	return mc.GetWithKey(key, query)
@@ -397,7 +397,7 @@ func (cc *CachedClient) Series(ctx context.Context, matches []string, start, end
 func (cc *CachedClient) Labels(ctx context.Context) ([]string, error) {
 	// Generate cache key for labels
 	cacheKey := "labels_query"
-	
+
 	// Check cache
 	if result, found := cc.cache.Get(cacheKey); found {
 		// Extract labels from cached result - this is a simplified approach
@@ -406,17 +406,17 @@ func (cc *CachedClient) Labels(ctx context.Context) ([]string, error) {
 			// For now, delegate to client and cache result
 		}
 	}
-	
+
 	// Execute labels query
 	labels, err := cc.client.Labels(ctx)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Note: We're not caching labels for now as the QueryResult structure
 	// is designed for metric queries, not label queries
 	// TODO: Implement proper labels caching
-	
+
 	return labels, nil
 }
 

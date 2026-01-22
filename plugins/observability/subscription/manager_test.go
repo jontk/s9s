@@ -60,7 +60,7 @@ func TestSubscriptionManagerStartStop(t *testing.T) {
 
 func TestSubscribe(t *testing.T) {
 	manager := NewSubscriptionManager(nil)
-	
+
 	callback := func(data interface{}, err error) {
 		// Callback for testing
 	}
@@ -99,7 +99,7 @@ func TestSubscribe(t *testing.T) {
 
 func TestUnsubscribe(t *testing.T) {
 	manager := NewSubscriptionManager(nil)
-	
+
 	callback := func(data interface{}, err error) {}
 	params := map[string]interface{}{}
 

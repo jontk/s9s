@@ -108,7 +108,7 @@ func (p *ObservabilityPlugin) Init(ctx context.Context, configMap map[string]int
 	if err != nil {
 		return fmt.Errorf("configuration parsing failed: %w", err)
 	}
-	
+
 	// Merge with defaults for any missing values
 	parsedConfig.MergeWithDefaults()
 
@@ -116,7 +116,7 @@ func (p *ObservabilityPlugin) Init(ctx context.Context, configMap map[string]int
 	if err := parsedConfig.Validate(); err != nil {
 		return fmt.Errorf("configuration validation failed: %w", err)
 	}
-	
+
 	p.config = parsedConfig
 
 	// Initialize logger first so we can log everything else
@@ -141,7 +141,7 @@ func (p *ObservabilityPlugin) Init(ctx context.Context, configMap map[string]int
 	}
 
 	p.logger.Info("plugin", "Starting observability plugin initialization")
-	p.logger.Debug("plugin", "Configuration: Prometheus endpoint=%s, timeout=%v", 
+	p.logger.Debug("plugin", "Configuration: Prometheus endpoint=%s, timeout=%v",
 		p.config.Prometheus.Endpoint, p.config.Prometheus.Timeout)
 
 	// Initialize all plugin components
@@ -152,7 +152,7 @@ func (p *ObservabilityPlugin) Init(ctx context.Context, configMap map[string]int
 		p.logger.Error("plugin", "Component initialization failed: %v", err)
 		return fmt.Errorf("component initialization failed: %w", err)
 	}
-	
+
 	p.components = components
 	p.logger.Info("plugin", "Plugin initialization completed successfully")
 	return nil
@@ -178,7 +178,7 @@ func (p *ObservabilityPlugin) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start metrics collector: %w", err)
 	}
 	p.logger.Debug("plugin", "Metrics collector started successfully")
-	
+
 	// Start overlay manager
 	p.logger.Debug("plugin", "Starting overlay manager")
 	if err := p.components.OverlayMgr.Start(ctx); err != nil {
@@ -304,7 +304,7 @@ func (p *ObservabilityPlugin) Health() plugin.HealthStatus {
 	if p.components.MetricsCollector != nil {
 		pluginMetrics = p.components.MetricsCollector.GetMetrics().GetAllStats()
 	}
-	
+
 	// Get secrets manager health
 	var secretsHealth map[string]interface{}
 	if p.components.SecretsManager != nil {
@@ -347,7 +347,7 @@ func (p *ObservabilityPlugin) GetViews() []plugin.ViewInfo {
 // CreateView creates a view instance
 func (p *ObservabilityPlugin) CreateView(ctx context.Context, viewID string) (plugin.View, error) {
 	p.logger.Debug("plugin", "CreateView called with viewID: %s", viewID)
-	
+
 	if viewID != "observability" {
 		p.logger.Error("plugin", "Unknown view requested: %s", viewID)
 		return nil, fmt.Errorf("unknown view: %s", viewID)
@@ -365,13 +365,13 @@ func (p *ObservabilityPlugin) CreateView(ctx context.Context, viewID string) (pl
 	// Create the observability view
 	p.logger.Debug("plugin", "Creating observability view with cached client and config")
 	p.view = views.NewObservabilityView(app, p.components.CachedClient, p.config)
-	
+
 	// Pass SLURM client if available
 	if p.slurmClient != nil {
 		p.logger.Debug("plugin", "Setting SLURM client in view")
 		p.view.SetSlurmClient(p.slurmClient)
 	}
-	
+
 	p.logger.Info("plugin", "Observability view created successfully")
 
 	return p.view, nil
@@ -516,31 +516,31 @@ func (p *ObservabilityPlugin) Query(ctx context.Context, providerID string, para
 			return nil, fmt.Errorf("subscription manager not initialized")
 		}
 		return p.components.SubscriptionMgr.GetData(ctx, providerID, params)
-	
+
 	case "historical-data":
 		return p.queryHistoricalData(params)
-	
+
 	case "trend-analysis":
 		return p.queryTrendAnalysis(params)
-	
+
 	case "anomaly-detection":
 		return p.queryAnomalyDetection(params)
-	
+
 	case "seasonal-analysis":
 		return p.querySeasonalAnalysis(params)
-	
+
 	case "resource-efficiency":
 		return p.queryResourceEfficiency(params)
-	
+
 	case "cluster-efficiency":
 		return p.queryClusterEfficiency(params)
-	
+
 	case "plugin-metrics":
 		return p.queryPluginMetrics(params)
-	
+
 	case "secrets-manager":
 		return p.querySecretsManager(params)
-	
+
 	default:
 		return nil, fmt.Errorf("unknown data provider: %s", providerID)
 	}
@@ -616,20 +616,20 @@ func (p *ObservabilityPlugin) GetConfigSchema() map[string]plugin.ConfigField {
 // GetCurrentConfig returns the current configuration
 func (p *ObservabilityPlugin) GetCurrentConfig() map[string]interface{} {
 	return map[string]interface{}{
-		"prometheus.endpoint": p.config.Prometheus.Endpoint,
-		"prometheus.timeout": p.config.Prometheus.Timeout.String(),
-		"prometheus.auth.type": p.config.Prometheus.Auth.Type,
+		"prometheus.endpoint":               p.config.Prometheus.Endpoint,
+		"prometheus.timeout":                p.config.Prometheus.Timeout.String(),
+		"prometheus.auth.type":              p.config.Prometheus.Auth.Type,
 		"prometheus.tls.insecureSkipVerify": p.config.Prometheus.TLS.InsecureSkipVerify,
-		"display.refreshInterval": p.config.Display.RefreshInterval.String(),
-		"display.showOverlays": p.config.Display.ShowOverlays,
-		"display.showSparklines": p.config.Display.ShowSparklines,
-		"display.colorScheme": p.config.Display.ColorScheme,
-		"alerts.enabled": p.config.Alerts.Enabled,
-		"alerts.checkInterval": p.config.Alerts.CheckInterval.String(),
-		"alerts.showNotifications": p.config.Alerts.ShowNotifications,
-		"cache.enabled": p.config.Cache.Enabled,
-		"cache.defaultTTL": p.config.Cache.DefaultTTL.String(),
-		"cache.maxSize": p.config.Cache.MaxSize,
+		"display.refreshInterval":           p.config.Display.RefreshInterval.String(),
+		"display.showOverlays":              p.config.Display.ShowOverlays,
+		"display.showSparklines":            p.config.Display.ShowSparklines,
+		"display.colorScheme":               p.config.Display.ColorScheme,
+		"alerts.enabled":                    p.config.Alerts.Enabled,
+		"alerts.checkInterval":              p.config.Alerts.CheckInterval.String(),
+		"alerts.showNotifications":          p.config.Alerts.ShowNotifications,
+		"cache.enabled":                     p.config.Cache.Enabled,
+		"cache.defaultTTL":                  p.config.Cache.DefaultTTL.String(),
+		"cache.maxSize":                     p.config.Cache.MaxSize,
 	}
 }
 

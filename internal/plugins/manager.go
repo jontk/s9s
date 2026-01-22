@@ -121,33 +121,33 @@ func (m *Manager) GetAllPlugins() []Plugin {
 // GetCommands returns all commands from all plugins
 func (m *Manager) GetCommands() []Command {
 	var commands []Command
-	
+
 	for _, p := range m.GetAllPlugins() {
 		commands = append(commands, p.GetCommands()...)
 	}
-	
+
 	return commands
 }
 
 // GetViews returns all views from all plugins
 func (m *Manager) GetViews() []View {
 	var views []View
-	
+
 	for _, p := range m.GetAllPlugins() {
 		views = append(views, p.GetViews()...)
 	}
-	
+
 	return views
 }
 
 // GetKeyBindings returns all key bindings from all plugins
 func (m *Manager) GetKeyBindings() []KeyBinding {
 	var bindings []KeyBinding
-	
+
 	for _, p := range m.GetAllPlugins() {
 		bindings = append(bindings, p.GetKeyBindings()...)
 	}
-	
+
 	return bindings
 }
 

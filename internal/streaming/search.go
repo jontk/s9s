@@ -23,12 +23,12 @@ type Match struct {
 
 // SearchOptions configures search behavior
 type SearchOptions struct {
-	CaseSensitive bool   `json:"case_sensitive"`
-	WholeWord     bool   `json:"whole_word"`
-	UseRegex      bool   `json:"use_regex"`
-	ContextLines  int    `json:"context_lines"` // Number of lines before/after to include
-	MaxResults    int    `json:"max_results"`   // Limit number of results
-	Reverse       bool   `json:"reverse"`       // Search from bottom to top
+	CaseSensitive bool `json:"case_sensitive"`
+	WholeWord     bool `json:"whole_word"`
+	UseRegex      bool `json:"use_regex"`
+	ContextLines  int  `json:"context_lines"` // Number of lines before/after to include
+	MaxResults    int  `json:"max_results"`   // Limit number of results
+	Reverse       bool `json:"reverse"`       // Search from bottom to top
 }
 
 // StreamSearcher handles searching within stream buffers
@@ -307,9 +307,9 @@ func HighlightLine(line string, highlights map[string][]int, colors map[string]s
 
 	// Collect all highlight ranges
 	type highlightRange struct {
-		start  int
-		end    int
-		color  string
+		start    int
+		end      int
+		color    string
 		priority int
 	}
 

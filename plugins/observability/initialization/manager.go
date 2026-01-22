@@ -63,54 +63,54 @@ func (m *Manager) InitializeComponents() (*Components, error) {
 	if m.config == nil {
 		return nil, fmt.Errorf("config cannot be nil")
 	}
-	
+
 	components := &Components{}
-	
+
 	// Initialize secrets manager first (needed for auth)
 	if err := m.initSecretsManager(components); err != nil {
 		return nil, fmt.Errorf("failed to initialize secrets manager: %w", err)
 	}
-	
+
 	// Initialize Prometheus client
 	if err := m.initPrometheusClient(components); err != nil {
 		return nil, fmt.Errorf("failed to initialize Prometheus client: %w", err)
 	}
-	
+
 	// Initialize caching layer
 	if err := m.initCaching(components); err != nil {
 		return nil, fmt.Errorf("failed to initialize caching: %w", err)
 	}
-	
+
 	// Initialize metrics collection
 	if err := m.initMetrics(components); err != nil {
 		return nil, fmt.Errorf("failed to initialize metrics: %w", err)
 	}
-	
+
 	// Initialize overlay management
 	if err := m.initOverlays(components); err != nil {
 		return nil, fmt.Errorf("failed to initialize overlays: %w", err)
 	}
-	
+
 	// Initialize subscription system
 	if err := m.initSubscriptions(components); err != nil {
 		return nil, fmt.Errorf("failed to initialize subscriptions: %w", err)
 	}
-	
+
 	// Initialize historical data collection
 	if err := m.initHistoricalData(components); err != nil {
 		return nil, fmt.Errorf("failed to initialize historical data: %w", err)
 	}
-	
+
 	// Initialize analysis components
 	if err := m.initAnalysis(components); err != nil {
 		return nil, fmt.Errorf("failed to initialize analysis: %w", err)
 	}
-	
+
 	// Initialize external API if enabled
 	if err := m.initExternalAPI(components); err != nil {
 		return nil, fmt.Errorf("failed to initialize external API: %w", err)
 	}
-	
+
 	return components, nil
 }
 
@@ -120,7 +120,7 @@ func (m *Manager) initSecretsManager(components *Components) error {
 	if err != nil {
 		return fmt.Errorf("failed to create secrets manager: %w", err)
 	}
-	
+
 	components.SecretsManager = secretsManager
 	return nil
 }
@@ -150,14 +150,14 @@ func (m *Manager) initPrometheusClient(components *Components) error {
 	switch m.config.Prometheus.Auth.Type {
 	case "basic":
 		clientConfig.Username = m.config.Prometheus.Auth.Username
-		
+
 		// Resolve password from secret or direct config
 		password, err := m.resolveSecret(m.config.Prometheus.Auth.Password, m.config.Prometheus.Auth.PasswordSecretRef, components)
 		if err != nil {
 			return fmt.Errorf("failed to resolve password secret: %w", err)
 		}
 		clientConfig.Password = password
-		
+
 	case "bearer":
 		// Resolve token from secret or direct config
 		token, err := m.resolveSecret(m.config.Prometheus.Auth.Token, m.config.Prometheus.Auth.TokenSecretRef, components)
@@ -171,7 +171,7 @@ func (m *Manager) initPrometheusClient(components *Components) error {
 	if err != nil {
 		return err
 	}
-	
+
 	components.Client = client
 	return nil
 }
@@ -193,13 +193,13 @@ func (m *Manager) initCaching(components *Components) error {
 
 	circuitClient := prometheus.NewCircuitBreakerClient(components.Client, circuitConfig)
 	clientForCache := circuitClient
-	
+
 	components.CachedClient = prometheus.NewCachedClientWithInterface(
 		clientForCache,
 		m.config.Cache.DefaultTTL,
 		m.config.Cache.MaxSize,
 	)
-	
+
 	return nil
 }
 
@@ -208,13 +208,13 @@ func (m *Manager) initMetrics(components *Components) error {
 	if components.CachedClient == nil {
 		return fmt.Errorf("cached client not initialized")
 	}
-	
+
 	// Create metrics collector
 	collector := metrics.NewCollector(m.ctx, components.CachedClient)
-	
+
 	// Wrap the cached client with instrumentation
 	instrumentedClient := collector.WrapClient(components.CachedClient)
-	
+
 	// Update the cached client to use the instrumented version
 	if cachedClient, ok := instrumentedClient.(*prometheus.CachedClient); ok {
 		components.CachedClient = cachedClient
@@ -227,9 +227,9 @@ func (m *Manager) initMetrics(components *Components) error {
 			m.config.Cache.MaxSize,
 		)
 	}
-	
+
 	components.MetricsCollector = collector
-	
+
 	return nil
 }
 
@@ -238,12 +238,12 @@ func (m *Manager) initOverlays(components *Components) error {
 	if components.CachedClient == nil {
 		return fmt.Errorf("cached client not initialized")
 	}
-	
+
 	components.OverlayMgr = overlays.NewOverlayManager(
 		components.CachedClient,
 		m.config.Display.RefreshInterval,
 	)
-	
+
 	return nil
 }
 
@@ -252,13 +252,13 @@ func (m *Manager) initSubscriptions(components *Components) error {
 	if components.CachedClient == nil {
 		return fmt.Errorf("cached client not initialized")
 	}
-	
+
 	// Create subscription manager
 	components.SubscriptionMgr = subscription.NewSubscriptionManager(components.CachedClient)
-	
+
 	// Create notification manager
 	components.NotificationMgr = subscription.NewNotificationManager(1000)
-	
+
 	// Create persistence manager
 	persistenceConfig := subscription.PersistenceConfig{
 		DataDir:      "./data/observability",
@@ -274,7 +274,7 @@ func (m *Manager) initSubscriptions(components *Components) error {
 
 	// Load persisted subscriptions (ignore errors for initialization)
 	_ = components.Persistence.LoadSubscriptions()
-	
+
 	return nil
 }
 
@@ -283,7 +283,7 @@ func (m *Manager) initHistoricalData(components *Components) error {
 	if components.CachedClient == nil {
 		return fmt.Errorf("cached client not initialized")
 	}
-	
+
 	// Create historical data collector
 	historicalConfig := historical.CollectorConfig{
 		DataDir:         "./data/historical",
@@ -302,7 +302,7 @@ func (m *Manager) initHistoricalData(components *Components) error {
 	// Create historical data analyzer
 	analyzer := historical.NewHistoricalAnalyzer(collector)
 	components.HistoricalAnalyzer = analyzer
-	
+
 	return nil
 }
 
@@ -311,7 +311,7 @@ func (m *Manager) initAnalysis(components *Components) error {
 	if components.CachedClient == nil {
 		return fmt.Errorf("cached client not initialized")
 	}
-	
+
 	// Create resource efficiency analyzer
 	analyzer := analysis.NewResourceEfficiencyAnalyzer(
 		components.CachedClient,
@@ -319,7 +319,7 @@ func (m *Manager) initAnalysis(components *Components) error {
 		components.HistoricalAnalyzer,
 	)
 	components.EfficiencyAnalyzer = analyzer
-	
+
 	return nil
 }
 
@@ -360,60 +360,60 @@ func (m *Manager) initExternalAPI(components *Components) error {
 // Stop gracefully stops all components
 func (c *Components) Stop() error {
 	var errors []error
-	
+
 	// Stop external API
 	if c.ExternalAPI != nil {
 		// Note: ExternalAPI.Stop needs a context, we'll handle this in the main plugin
 	}
-	
+
 	// Stop historical collector
 	if c.HistoricalCollector != nil {
 		if err := c.HistoricalCollector.Stop(); err != nil {
 			errors = append(errors, fmt.Errorf("failed to stop historical collector: %w", err))
 		}
 	}
-	
+
 	// Stop subscription persistence
 	if c.Persistence != nil {
 		c.Persistence.Stop()
 	}
-	
+
 	// Stop subscription manager
 	if c.SubscriptionMgr != nil {
 		if err := c.SubscriptionMgr.Stop(); err != nil {
 			errors = append(errors, fmt.Errorf("failed to stop subscription manager: %w", err))
 		}
 	}
-	
+
 	// Stop overlay manager
 	if c.OverlayMgr != nil {
 		if err := c.OverlayMgr.Stop(); err != nil {
 			errors = append(errors, fmt.Errorf("failed to stop overlay manager: %w", err))
 		}
 	}
-	
+
 	// Stop metrics collector
 	if c.MetricsCollector != nil {
 		if err := c.MetricsCollector.Stop(); err != nil {
 			errors = append(errors, fmt.Errorf("failed to stop metrics collector: %w", err))
 		}
 	}
-	
+
 	// Stop cached client
 	if c.CachedClient != nil {
 		c.CachedClient.Stop()
 	}
-	
+
 	// Stop secrets manager
 	if c.SecretsManager != nil {
 		if err := c.SecretsManager.Stop(); err != nil {
 			errors = append(errors, fmt.Errorf("failed to stop secrets manager: %w", err))
 		}
 	}
-	
+
 	if len(errors) > 0 {
 		return fmt.Errorf("errors during shutdown: %v", errors)
 	}
-	
+
 	return nil
 }

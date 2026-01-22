@@ -63,11 +63,11 @@ func TestRateLimiterAllow(t *testing.T) {
 
 func TestRateLimiterTokenRefill(t *testing.T) {
 	config := RateLimitConfig{
-		RequestsPerMinute:       60, // 1 per second
-		EnableGlobalLimit:       false,
-		BurstSize:               1,
-		CleanupInterval:         time.Minute,
-		ClientIDMethod:          "ip",
+		RequestsPerMinute: 60, // 1 per second
+		EnableGlobalLimit: false,
+		BurstSize:         1,
+		CleanupInterval:   time.Minute,
+		ClientIDMethod:    "ip",
 	}
 
 	rl := NewRateLimiter(config)
@@ -99,7 +99,7 @@ func TestRateLimiterGlobalLimit(t *testing.T) {
 		RequestsPerMinute:       100,
 		EnableGlobalLimit:       true,
 		GlobalRequestsPerMinute: 3, // Very low global limit for testing
-		BurstSize:               2,  // Small burst size
+		BurstSize:               2, // Small burst size
 		CleanupInterval:         time.Minute,
 		ClientIDMethod:          "ip",
 	}
@@ -125,10 +125,10 @@ func TestRateLimiterGlobalLimit(t *testing.T) {
 
 func TestRateLimiterCleanup(t *testing.T) {
 	config := RateLimitConfig{
-		RequestsPerMinute:       100,
-		BurstSize:               10,
-		CleanupInterval:         100 * time.Millisecond, // Fast cleanup for testing
-		ClientIDMethod:          "ip",
+		RequestsPerMinute: 100,
+		BurstSize:         10,
+		CleanupInterval:   100 * time.Millisecond, // Fast cleanup for testing
+		ClientIDMethod:    "ip",
 	}
 
 	rl := NewRateLimiter(config)
@@ -142,7 +142,7 @@ func TestRateLimiterCleanup(t *testing.T) {
 	rl.mu.RLock()
 	initialCount := len(rl.clients)
 	rl.mu.RUnlock()
-	
+
 	if initialCount == 0 {
 		t.Error("Client should exist after request")
 	}
@@ -154,7 +154,7 @@ func TestRateLimiterCleanup(t *testing.T) {
 	rl.mu.RLock()
 	finalCount := len(rl.clients)
 	rl.mu.RUnlock()
-	
+
 	if finalCount != 0 {
 		t.Errorf("All clients should be removed after cleanup, got %d clients", finalCount)
 	}

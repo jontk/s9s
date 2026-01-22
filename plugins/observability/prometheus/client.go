@@ -306,13 +306,13 @@ func (c *Client) BatchQueryWithConfig(ctx context.Context, queries map[string]st
 	semaphore := make(chan struct{}, config.MaxConcurrency)
 	results := make(map[string]*QueryResult)
 	resultsChan := make(chan batchResult, len(queries))
-	
+
 	// Execute queries with controlled concurrency
 	for name, query := range queries {
 		go func(n, q string) {
-			semaphore <- struct{}{} // Acquire semaphore
+			semaphore <- struct{}{}        // Acquire semaphore
 			defer func() { <-semaphore }() // Release semaphore
-			
+
 			result, err := c.executeQueryWithRetry(batchCtx, q, queryTime, config.RetryAttempts)
 			resultsChan <- batchResult{name: n, result: result, err: err}
 		}(name, query)
@@ -321,7 +321,7 @@ func (c *Client) BatchQueryWithConfig(ctx context.Context, queries map[string]st
 	// Collect results
 	var errors []error
 	successCount := 0
-	
+
 	for i := 0; i < len(queries); i++ {
 		select {
 		case r := <-resultsChan:
@@ -332,7 +332,7 @@ func (c *Client) BatchQueryWithConfig(ctx context.Context, queries map[string]st
 				successCount++
 			}
 		case <-batchCtx.Done():
-			return results, fmt.Errorf("batch query timed out after %v, completed %d/%d queries", 
+			return results, fmt.Errorf("batch query timed out after %v, completed %d/%d queries",
 				config.BatchTimeout, successCount, len(queries))
 		}
 	}
@@ -355,20 +355,20 @@ type batchResult struct {
 // executeQueryWithRetry executes a query with exponential backoff retry logic
 func (c *Client) executeQueryWithRetry(ctx context.Context, query string, queryTime time.Time, maxRetries int) (*QueryResult, error) {
 	var lastErr error
-	
+
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		result, err := c.Query(ctx, query, queryTime)
 		if err == nil {
 			return result, nil
 		}
-		
+
 		lastErr = err
-		
+
 		// Don't retry on context cancellation or certain HTTP errors
 		if ctx.Err() != nil {
 			break
 		}
-		
+
 		// Exponential backoff: 100ms, 200ms, 400ms, 800ms...
 		if attempt < maxRetries {
 			backoffDuration := time.Duration(100<<uint(attempt)) * time.Millisecond
@@ -382,7 +382,7 @@ func (c *Client) executeQueryWithRetry(ctx context.Context, query string, queryT
 			}
 		}
 	}
-	
+
 	return nil, fmt.Errorf("query failed after %d retries: %w", maxRetries, lastErr)
 }
 

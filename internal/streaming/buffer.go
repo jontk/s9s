@@ -7,12 +7,12 @@ import (
 
 // CircularBuffer implements a thread-safe circular buffer for storing job output lines
 type CircularBuffer struct {
-	data       []string  // Circular buffer storage
-	head       int       // Current write position
-	tail       int       // Current read position
-	size       int       // Current number of elements
-	capacity   int       // Maximum capacity
-	totalLines int64     // Total lines ever added (for statistics)
+	data       []string // Circular buffer storage
+	head       int      // Current write position
+	tail       int      // Current read position
+	size       int      // Current number of elements
+	capacity   int      // Maximum capacity
+	totalLines int64    // Total lines ever added (for statistics)
 	mu         sync.RWMutex
 }
 

@@ -32,32 +32,32 @@ type Engine struct {
 	jobCollector  *models.JobMetricsCollector
 
 	// Control
-	stopChan     chan struct{}
-	checkTicker  *time.Ticker
-	mu           sync.RWMutex
+	stopChan    chan struct{}
+	checkTicker *time.Ticker
+	mu          sync.RWMutex
 
 	// Callbacks
-	onAlert      func(alert Alert)
-	onResolved   func(alert Alert)
+	onAlert    func(alert Alert)
+	onResolved func(alert Alert)
 }
 
 // Alert represents an active or historical alert
 type Alert struct {
-	ID           string              `json:"id"`
-	RuleName     string              `json:"rule_name"`
-	Severity     string              `json:"severity"`
-	State        AlertState          `json:"state"`
-	Message      string              `json:"message"`
-	Description  string              `json:"description"`
-	Labels       map[string]string   `json:"labels"`
-	Annotations  map[string]string   `json:"annotations"`
-	Value        float64             `json:"value"`
-	Threshold    float64             `json:"threshold"`
-	FirstSeen    time.Time           `json:"first_seen"`
-	LastSeen     time.Time           `json:"last_seen"`
-	ResolvedAt   time.Time           `json:"resolved_at,omitempty"`
-	Duration     time.Duration       `json:"duration"`
-	Source       string              `json:"source"`
+	ID          string            `json:"id"`
+	RuleName    string            `json:"rule_name"`
+	Severity    string            `json:"severity"`
+	State       AlertState        `json:"state"`
+	Message     string            `json:"message"`
+	Description string            `json:"description"`
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+	Value       float64           `json:"value"`
+	Threshold   float64           `json:"threshold"`
+	FirstSeen   time.Time         `json:"first_seen"`
+	LastSeen    time.Time         `json:"last_seen"`
+	ResolvedAt  time.Time         `json:"resolved_at,omitempty"`
+	Duration    time.Duration     `json:"duration"`
+	Source      string            `json:"source"`
 }
 
 // AlertState represents the state of an alert

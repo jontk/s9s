@@ -403,5 +403,5 @@ Exit code: 0
 func containsText(s, substr string) bool {
 	return len(s) >= len(substr) &&
 		(len(s) == len(substr) && s == substr ||
-		 len(s) > len(substr) && (s[:len(substr)] == substr || containsText(s[1:], substr)))
+			len(s) > len(substr) && (s[:len(substr)] == substr || containsText(s[1:], substr)))
 }

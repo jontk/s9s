@@ -437,9 +437,9 @@ func TestAlertRuleValidation(t *testing.T) {
 
 		config := &Config{
 			Prometheus: PrometheusConfig{
-				Endpoint: "http://localhost:9090", 
-				Timeout: time.Second,
-				Auth: AuthConfig{Type: "none"},
+				Endpoint: "http://localhost:9090",
+				Timeout:  time.Second,
+				Auth:     AuthConfig{Type: "none"},
 				Retry: RetryConfig{
 					MaxRetries:   3,
 					InitialDelay: time.Second,
@@ -447,10 +447,10 @@ func TestAlertRuleValidation(t *testing.T) {
 					Multiplier:   2.0,
 				},
 			},
-			Display:    DisplayConfig{RefreshInterval: time.Minute, ColorScheme: "default"},
-			Alerts:     AlertConfig{Enabled: true, CheckInterval: time.Minute, Rules: []AlertRule{rule}},
-			Cache:      CacheConfig{Enabled: true, DefaultTTL: time.Minute, MaxSize: 100, CleanupInterval: time.Minute},
-			Metrics:    MetricsConfig{Node: NodeMetricsConfig{NodeLabel: "instance", RateRange: "5m"}},
+			Display: DisplayConfig{RefreshInterval: time.Minute, ColorScheme: "default"},
+			Alerts:  AlertConfig{Enabled: true, CheckInterval: time.Minute, Rules: []AlertRule{rule}},
+			Cache:   CacheConfig{Enabled: true, DefaultTTL: time.Minute, MaxSize: 100, CleanupInterval: time.Minute},
+			Metrics: MetricsConfig{Node: NodeMetricsConfig{NodeLabel: "instance", RateRange: "5m"}},
 		}
 
 		if err := config.Validate(); err != nil {
@@ -471,9 +471,9 @@ func TestAlertRuleValidation(t *testing.T) {
 
 		config := &Config{
 			Prometheus: PrometheusConfig{
-				Endpoint: "http://localhost:9090", 
-				Timeout: time.Second,
-				Auth: AuthConfig{Type: "none"},
+				Endpoint: "http://localhost:9090",
+				Timeout:  time.Second,
+				Auth:     AuthConfig{Type: "none"},
 				Retry: RetryConfig{
 					MaxRetries:   3,
 					InitialDelay: time.Second,
@@ -481,10 +481,10 @@ func TestAlertRuleValidation(t *testing.T) {
 					Multiplier:   2.0,
 				},
 			},
-			Display:    DisplayConfig{RefreshInterval: time.Minute, ColorScheme: "default"},
-			Alerts:     AlertConfig{Enabled: true, CheckInterval: time.Minute, Rules: []AlertRule{rule}},
-			Cache:      CacheConfig{Enabled: true, DefaultTTL: time.Minute, MaxSize: 100, CleanupInterval: time.Minute},
-			Metrics:    MetricsConfig{Node: NodeMetricsConfig{NodeLabel: "instance", RateRange: "5m"}},
+			Display: DisplayConfig{RefreshInterval: time.Minute, ColorScheme: "default"},
+			Alerts:  AlertConfig{Enabled: true, CheckInterval: time.Minute, Rules: []AlertRule{rule}},
+			Cache:   CacheConfig{Enabled: true, DefaultTTL: time.Minute, MaxSize: 100, CleanupInterval: time.Minute},
+			Metrics: MetricsConfig{Node: NodeMetricsConfig{NodeLabel: "instance", RateRange: "5m"}},
 		}
 
 		if err := config.Validate(); err != nil {

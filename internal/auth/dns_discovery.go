@@ -15,19 +15,19 @@ import (
 
 // DNSEndpointDiscoverer implements DNS-based service discovery
 type DNSEndpointDiscoverer struct {
-	config    DiscoveryConfig
-	balancer  LoadBalancer
-	resolver  *net.Resolver
-	cache     *dnsCache
+	config   DiscoveryConfig
+	balancer LoadBalancer
+	resolver *net.Resolver
+	cache    *dnsCache
 	// TODO(lint): Review unused code - field mutex is unused
 	// mutex     sync.RWMutex
 }
 
 // dnsCache caches DNS resolution results
 type dnsCache struct {
-	mutex       sync.RWMutex
-	entries     map[string]*dnsCacheEntry
-	defaultTTL  time.Duration
+	mutex      sync.RWMutex
+	entries    map[string]*dnsCacheEntry
+	defaultTTL time.Duration
 }
 
 // dnsCacheEntry represents a cached DNS result
@@ -95,7 +95,7 @@ func (d *DNSEndpointDiscoverer) Initialize(ctx context.Context, config Discovery
 						if !strings.Contains(dnsAddr, ":") {
 							dnsAddr += ":53"
 						}
-						
+
 						dialer := net.Dialer{
 							Timeout: time.Second * 5,
 						}
@@ -118,7 +118,7 @@ func (d *DNSEndpointDiscoverer) Initialize(ctx context.Context, config Discovery
 // DiscoverEndpoints discovers endpoints using DNS resolution
 func (d *DNSEndpointDiscoverer) DiscoverEndpoints(ctx context.Context, clusterID string) ([]Endpoint, error) {
 	serviceName := d.config.GetString("service_name")
-	
+
 	// Check cache first
 	if endpoints := d.getFromCache(serviceName); endpoints != nil {
 		debug.Logger.Printf("Retrieved %d endpoints from DNS cache for cluster %s", len(endpoints), clusterID)
@@ -173,7 +173,7 @@ func (d *DNSEndpointDiscoverer) discoverViaSRV(ctx context.Context, serviceName,
 	for _, srv := range srvRecords {
 		// Remove trailing dot from target
 		target := strings.TrimSuffix(srv.Target, ".")
-		
+
 		port := int(srv.Port)
 		if port == 0 && defaultPort > 0 {
 			port = defaultPort
@@ -276,7 +276,7 @@ func (d *DNSEndpointDiscoverer) sortEndpointsByPriority(endpoints []Endpoint) {
 		for j := 0; j < n-i-1; j++ {
 			priority1, _ := strconv.Atoi(endpoints[j].Metadata["priority"])
 			priority2, _ := strconv.Atoi(endpoints[j+1].Metadata["priority"])
-			
+
 			if priority1 > priority2 {
 				endpoints[j], endpoints[j+1] = endpoints[j+1], endpoints[j]
 			}

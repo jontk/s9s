@@ -12,11 +12,11 @@ import (
 
 // NotificationSettingsView displays notification configuration
 type NotificationSettingsView struct {
-	manager      interface{} // *notifications.NotificationManager
-	form         *tview.Form
-	pages        *tview.Pages
-	app          *tview.Application
-	onSave       func()
+	manager interface{} // *notifications.NotificationManager
+	form    *tview.Form
+	pages   *tview.Pages
+	app     *tview.Application
+	onSave  func()
 }
 
 // NewNotificationSettingsView creates a new notification settings view
@@ -43,7 +43,7 @@ func (v *NotificationSettingsView) buildForm() {
 		// Default config if manager is nil
 		config = &notifications.NotificationConfig{
 			EnableNotifications: true,
-			MinAlertLevel:      int(components.AlertWarning),
+			MinAlertLevel:       int(components.AlertWarning),
 			TerminalBell: notifications.TerminalBellConfig{
 				Enabled:       true,
 				MinAlertLevel: int(components.AlertError),

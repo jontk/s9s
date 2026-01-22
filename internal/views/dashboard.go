@@ -23,7 +23,7 @@ type DashboardView struct {
 	container    *tview.Flex
 	// TODO(lint): Review unused code - field app is unused
 	// app          *tview.Application
-	pages        *tview.Pages
+	pages *tview.Pages
 
 	// Dashboard components
 	clusterOverview *tview.TextView

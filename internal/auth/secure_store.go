@@ -167,11 +167,11 @@ func (f *FileSecureStore) validateMasterKey() error {
 // promptForPassword prompts the user for a password securely
 func (f *FileSecureStore) promptForPassword(prompt string) (string, error) {
 	fmt.Print(prompt)
-	
+
 	// Use terminal package for secure password input
 	password, err := term.ReadPassword(int(syscall.Stdin))
 	fmt.Println() // Print newline after password input
-	
+
 	if err != nil {
 		return "", fmt.Errorf("failed to read password: %w", err)
 	}
@@ -428,7 +428,7 @@ func (f *FileTokenStore) Store(ctx context.Context, clusterID string, token *Tok
 // Retrieve gets a token from storage
 func (f *FileTokenStore) Retrieve(ctx context.Context, clusterID string) (*Token, error) {
 	key := fmt.Sprintf("token:%s", clusterID)
-	
+
 	// Retrieve encrypted token
 	tokenBytes, err := f.secureStore.Retrieve(key)
 	if err != nil {
@@ -448,7 +448,7 @@ func (f *FileTokenStore) Retrieve(ctx context.Context, clusterID string) (*Token
 // Delete removes a token from storage
 func (f *FileTokenStore) Delete(ctx context.Context, clusterID string) error {
 	key := fmt.Sprintf("token:%s", clusterID)
-	
+
 	if err := f.secureStore.Delete(key); err != nil {
 		return fmt.Errorf("failed to delete token: %w", err)
 	}
