@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/jontk/s9s/internal/app"
+	"github.com/jontk/s9s/internal/auth"
 	"github.com/jontk/s9s/internal/config"
+	"github.com/jontk/s9s/internal/discovery"
 	"github.com/jontk/s9s/internal/mock"
 	"github.com/jontk/s9s/internal/version"
 	"github.com/spf13/cobra"
@@ -21,11 +23,13 @@ const (
 )
 
 var (
-	cfgFile     string
-	useMock     bool
-	noMock      bool
-	debugMode   bool
-	showVersion bool
+	cfgFile          string
+	useMock          bool
+	noMock           bool
+	debugMode        bool
+	showVersion      bool
+	noDiscovery      bool
+	discoveryTimeout string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -69,6 +73,8 @@ func init() {
 	rootCmd.Flags().BoolVar(&useMock, "mock", false, "use mock SLURM client (requires S9S_ENABLE_MOCK)")
 	rootCmd.Flags().BoolVar(&noMock, "no-mock", false, "use real SLURM client (override config)")
 	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "show version information")
+	rootCmd.Flags().BoolVar(&noDiscovery, "no-discovery", false, "disable auto-discovery of slurmrestd endpoint and token")
+	rootCmd.Flags().StringVar(&discoveryTimeout, "discovery-timeout", "", "timeout for auto-discovery (e.g., 10s, 30s)")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -131,8 +137,21 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		cfg.UseMockClient = false
 	}
 
+	// Apply discovery flag overrides
+	if noDiscovery {
+		cfg.Discovery.Enabled = false
+	}
+	if discoveryTimeout != "" {
+		cfg.Discovery.Timeout = discoveryTimeout
+	}
+
+	// Attempt auto-discovery if enabled and no endpoint/token configured
+	if cfg.Discovery.Enabled && !cfg.UseMockClient {
+		cfg = applyAutoDiscovery(ctx, cfg)
+	}
+
 	// Check if config is empty and suggest setup
-	if len(cfg.Contexts) == 0 && !cfg.UseMockClient {
+	if len(cfg.Contexts) == 0 && !cfg.UseMockClient && cfg.Cluster.Endpoint == "" {
 		fmt.Printf("⚠️  No SLURM clusters configured.\n\n")
 		fmt.Printf("To get started:\n")
 		fmt.Printf("  1. Run the setup wizard: %s\n", cmd.Root().CommandPath()+" setup")
@@ -190,4 +209,109 @@ func runRoot(cmd *cobra.Command, args []string) error {
 
 	log.Println("S9S shutdown complete")
 	return nil
+}
+
+// applyAutoDiscovery attempts to auto-discover slurmrestd endpoint and token
+// when they are not explicitly configured
+func applyAutoDiscovery(ctx context.Context, cfg *config.Config) *config.Config {
+	// Skip if endpoint is already configured
+	if cfg.Cluster.Endpoint != "" {
+		// But still try to discover token if not set
+		if cfg.Cluster.Token == "" && cfg.Discovery.EnableToken {
+			if token := discoverToken(ctx, cfg); token != "" {
+				cfg.Cluster.Token = token
+				log.Printf("Auto-discovered SLURM token")
+			}
+		}
+		return cfg
+	}
+
+	// Try to discover endpoint
+	if cfg.Discovery.EnableEndpoint {
+		endpoint := discoverEndpoint(ctx, cfg)
+		if endpoint != nil {
+			cfg.Cluster.Endpoint = endpoint.URL
+			log.Printf("Auto-discovered slurmrestd endpoint: %s (source: %s)", endpoint.URL, endpoint.Source)
+
+			// Set API version if not already set
+			if cfg.Cluster.APIVersion == "" {
+				cfg.Cluster.APIVersion = "v0.0.43"
+			}
+
+			// Create a default context if none exists
+			if len(cfg.Contexts) == 0 {
+				cfg.Contexts = append(cfg.Contexts, config.ContextConfig{
+					Name:    "default",
+					Cluster: cfg.Cluster,
+				})
+				cfg.CurrentContext = "default"
+			}
+		}
+	}
+
+	// Try to discover token if not set
+	if cfg.Cluster.Token == "" && cfg.Discovery.EnableToken {
+		if token := discoverToken(ctx, cfg); token != "" {
+			cfg.Cluster.Token = token
+			log.Printf("Auto-discovered SLURM token")
+		}
+	}
+
+	return cfg
+}
+
+// discoverEndpoint attempts to discover the slurmrestd endpoint
+func discoverEndpoint(ctx context.Context, cfg *config.Config) *discovery.DiscoveredEndpoint {
+	timeout, err := time.ParseDuration(cfg.Discovery.Timeout)
+	if err != nil {
+		timeout = 10 * time.Second
+	}
+
+	adCfg := discovery.AutoDiscoveryConfig{
+		Enabled:        true,
+		EnableEndpoint: true,
+		Timeout:        timeout,
+		DefaultPort:    cfg.Discovery.DefaultPort,
+		ScontrolPath:   cfg.Discovery.ScontrolPath,
+		CacheDuration:  5 * time.Minute,
+	}
+
+	ad := discovery.NewAutoDiscoveryWithConfig(adCfg)
+
+	endpoint, err := ad.DiscoverEndpoint(ctx)
+	if err != nil {
+		if debugMode {
+			log.Printf("Auto-discovery failed: %v", err)
+		}
+		return nil
+	}
+
+	return endpoint
+}
+
+// discoverToken attempts to discover or generate a SLURM JWT token
+func discoverToken(ctx context.Context, cfg *config.Config) string {
+	timeout, err := time.ParseDuration(cfg.Discovery.Timeout)
+	if err != nil {
+		timeout = 10 * time.Second
+	}
+
+	tdCfg := auth.TokenDiscoveryConfig{
+		Enabled:       true,
+		ScontrolPath:  cfg.Discovery.ScontrolPath,
+		Timeout:       timeout,
+		TokenLifespan: 3600, // 1 hour
+	}
+
+	td := auth.NewTokenDiscoveryWithConfig(tdCfg)
+
+	token, err := td.DiscoverToken(ctx, cfg.CurrentContext)
+	if err != nil {
+		if debugMode {
+			log.Printf("Token discovery failed: %v", err)
+		}
+		return ""
+	}
+
+	return token.Token
 }
