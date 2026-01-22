@@ -23,9 +23,20 @@ type Config struct {
 	Plugins        []PluginConfig    `mapstructure:"plugins"`
 	UseMockClient  bool              `mapstructure:"useMockClient"`
 	PluginSettings PluginSettings    `mapstructure:"pluginSettings"`
+	Discovery      DiscoveryConfig   `mapstructure:"discovery"`
 
 	// Computed fields
 	Cluster ClusterConfig `mapstructure:"-"`
+}
+
+// DiscoveryConfig holds settings for auto-discovery of slurmrestd endpoint and token
+type DiscoveryConfig struct {
+	Enabled        bool   `mapstructure:"enabled"`
+	EnableEndpoint bool   `mapstructure:"enableEndpoint"`
+	EnableToken    bool   `mapstructure:"enableToken"`
+	Timeout        string `mapstructure:"timeout"`
+	DefaultPort    int    `mapstructure:"defaultPort"`
+	ScontrolPath   string `mapstructure:"scontrolPath"`
 }
 
 // ContextConfig represents a cluster context
@@ -228,6 +239,14 @@ func setDefaults(v *viper.Viper) {
 		"dn":  "describe node",
 		"sub": "submit job",
 	})
+
+	// Discovery defaults
+	v.SetDefault("discovery.enabled", true)
+	v.SetDefault("discovery.enableEndpoint", true)
+	v.SetDefault("discovery.enableToken", true)
+	v.SetDefault("discovery.timeout", "10s")
+	v.SetDefault("discovery.defaultPort", 6820)
+	v.SetDefault("discovery.scontrolPath", "scontrol")
 }
 
 // applyEnvironmentOverrides applies environment variable overrides

@@ -254,7 +254,7 @@ func (k *KeyringTokenStore) List(ctx context.Context) ([]string, error) {
 func (k *KeyringTokenStore) Clear(ctx context.Context) error {
 	keys, err := k.secureStore.List()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list Windows keyring keys: %w", err)
+		return fmt.Errorf("failed to list Windows keyring keys: %w", err)
 	}
 
 	// Delete all token keys
