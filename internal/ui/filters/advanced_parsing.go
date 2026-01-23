@@ -174,12 +174,12 @@ func (p *AdvancedFilterParser) ParseDateRange(rangeStr string) (*DateRangeFilter
 
 		startDate, err := p.parseDate(strings.TrimSpace(parts[0]))
 		if err != nil {
-			return nil, fmt.Errorf("invalid start date: %v", err)
+			return nil, fmt.Errorf("invalid start date: %w", err)
 		}
 
 		endDate, err := p.parseDate(strings.TrimSpace(parts[1]))
 		if err != nil {
-			return nil, fmt.Errorf("invalid end date: %v", err)
+			return nil, fmt.Errorf("invalid end date: %w", err)
 		}
 
 		return &DateRangeFilter{

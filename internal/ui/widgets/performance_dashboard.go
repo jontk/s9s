@@ -330,7 +330,7 @@ func (pd *PerformanceDashboard) addToHistory(history *[]float64, value float64) 
 
 // calculateCPUUsage extracts CPU usage from operation stats
 func (pd *PerformanceDashboard) calculateCPUUsage(stats map[string]performance.OperationSummary) float64 {
-	if stats == nil || len(stats) == 0 {
+	if len(stats) == 0 {
 		return 0.0
 	}
 
@@ -638,7 +638,7 @@ func (pd *PerformanceDashboard) updateAlerts(cpuUsage, memUsage, netUsage, opsRa
 	}
 
 	// Build alerts text
-	alertText := ""
+	var alertText string
 	if len(alerts) == 0 {
 		alertText = "[green]✅ All systems operating normally[white]\n\n"
 	} else {

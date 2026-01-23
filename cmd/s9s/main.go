@@ -1,15 +1,19 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"github.com/jontk/s9s/internal/cli"
+	"github.com/jontk/s9s/internal/logging"
 )
 
 func main() {
+	// Initialize structured logging early
+	logging.Init(logging.DefaultConfig())
+	logger := logging.GetLogger()
+
 	if err := cli.Execute(); err != nil {
-		log.Printf("Error: %v", err)
+		logger.Error().Err(err).Msg("Failed to execute command")
 		os.Exit(1)
 	}
 }

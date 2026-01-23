@@ -123,10 +123,15 @@ lint:
 		golangci-lint run ./...; \
 	fi
 
-# Format the code
+# Format the code with gofumpt (stricter than gofmt)
 fmt:
 	@echo "Formatting code..."
-	$(GOCMD) fmt ./...
+	@if command -v gofumpt >/dev/null 2>&1; then \
+		gofumpt -w .; \
+	else \
+		echo "gofumpt not installed, using go fmt..."; \
+		$(GOCMD) fmt ./...; \
+	fi
 
 # Vet the code
 vet:
@@ -183,6 +188,14 @@ install-tools:
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install github.com/axw/gocov/gocov@latest
 	go install github.com/matm/gocov-html@latest
+	go install mvdan.cc/gofumpt@latest
+	@echo "Installing pre-commit..."
+	@if ! command -v pre-commit >/dev/null 2>&1; then \
+		echo "Installing pre-commit (requires pip)..."; \
+		pip install --user pre-commit || pip3 install --user pre-commit; \
+	fi
+	@echo "Setting up pre-commit hooks..."
+	pre-commit install
 
 # CI/CD targets
 .PHONY: ci ci-test ci-build ci-lint

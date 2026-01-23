@@ -339,7 +339,7 @@ func (c *Client) BatchQueryWithConfig(ctx context.Context, queries map[string]st
 
 	// Return results with error summary if some queries failed
 	if len(errors) > 0 {
-		return results, fmt.Errorf("batch query completed with %d errors: %v", len(errors), errors[0])
+		return results, fmt.Errorf("batch query completed with %d errors: %w", len(errors), errors[0])
 	}
 
 	return results, nil
@@ -387,9 +387,15 @@ func (c *Client) executeQueryWithRetry(ctx context.Context, query string, queryT
 }
 
 // createTLSConfig creates a TLS configuration from ClientConfig
+//
+// SECURITY WARNING: TLSSkipVerify disables certificate validation when set to true.
+// This should only be used in development/testing environments or when using self-signed
+// certificates in trusted networks. For production use, provide proper CA certificates
+// via TLSCAFile configuration instead.
 func createTLSConfig(config ClientConfig) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: config.TLSSkipVerify,
+		InsecureSkipVerify: config.TLSSkipVerify, // nolint:gosec // G402: User-configurable, with security warning in docs
+		MinVersion:         tls.VersionTLS12,     // Enforce minimum TLS 1.2
 	}
 
 	// Load CA certificate if specified

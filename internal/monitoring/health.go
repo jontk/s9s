@@ -147,19 +147,16 @@ func (hm *HealthMonitor) monitorLoop() {
 	// Initial check
 	hm.performHealthChecks()
 
-	for {
-		select {
-		case <-ticker.C:
-			hm.mu.RLock()
-			running := hm.running
-			hm.mu.RUnlock()
+	for range ticker.C {
+		hm.mu.RLock()
+		running := hm.running
+		hm.mu.RUnlock()
 
-			if !running {
-				return
-			}
-
-			hm.performHealthChecks()
+		if !running {
+			return
 		}
+
+		hm.performHealthChecks()
 	}
 }
 

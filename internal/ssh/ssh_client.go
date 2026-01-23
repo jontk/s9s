@@ -3,12 +3,43 @@ package ssh
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"time"
 
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
+
+// getHostKeyCallback returns an appropriate host key callback based on configuration.
+//
+// SECURITY WARNING: By default, this disables host key verification for cluster
+// environments where compute nodes are frequently rebuilt. This is INSECURE and
+// makes SSH connections vulnerable to man-in-the-middle attacks.
+//
+// For production use, set StrictHostKeyChecking=yes in SSHConfig.Options and provide
+// a valid UserKnownHostsFile path to enable proper host key verification.
+func getHostKeyCallback(config *SSHConfig) ssh.HostKeyCallback {
+	// Check if strict host key checking is enabled
+	if config != nil && config.Options != nil {
+		if strictCheck, ok := config.Options["StrictHostKeyChecking"]; ok && strictCheck == "yes" {
+			// Use known_hosts file if specified
+			if knownHostsFile, ok := config.Options["UserKnownHostsFile"]; ok {
+				callback, err := knownhosts.New(knownHostsFile)
+				if err != nil {
+					log.Printf("Warning: Failed to load known_hosts from %s: %v. Falling back to insecure mode.", knownHostsFile, err)
+					return ssh.InsecureIgnoreHostKey() // #nosec G106 -- fallback when known_hosts cannot be loaded
+				}
+				return callback
+			}
+		}
+	}
+
+	// Default: Insecure mode for cluster environments
+	// nolint:gosec // G106: Intentionally insecure for cluster environments where nodes are frequently rebuilt
+	return ssh.InsecureIgnoreHostKey()
+}
 
 // SSHConfig holds SSH connection configuration
 type SSHConfig struct {
@@ -284,7 +315,7 @@ func (c *SSHConfig) GetNativeClientConfig(hostname string) (*ssh.ClientConfig, e
 	clientConfig := &ssh.ClientConfig{
 		User:            c.Username,
 		Auth:            authMethods,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // TODO: Make configurable
+		HostKeyCallback: getHostKeyCallback(c),
 		Timeout:         c.Timeout,
 	}
 

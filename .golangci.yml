@@ -16,12 +16,26 @@ linters:
     - errcheck      # Unchecked errors are critical
     - govet         # Suspicious constructs
     - ineffassign   # Ineffective assignments
+    # staticcheck and gosec are temporarily disabled due to 200+ pre-existing issues
+    # They will be re-enabled after addressing these in follow-up PRs
+
+    # Additional linters - Phase 7
+    # Note: gofumpt and goimports are handled by pre-commit hooks and Makefile
+    - misspell      # Check for commonly misspelled English words
+    - bodyclose     # Check HTTP response body is closed
+    - errorlint     # Find code that will cause problems with Go 1.13 error wrapping (fixed in this PR)
+    - wastedassign  # Finds wasted assignment statements (fixed in this PR)
 
   disable:
-    # Explicitly disable these linters - they will be fixed in follow-up PRs
-    - staticcheck   # 83 issues remaining
-    - gosec         # 147 issues remaining
-    - unused        # 1 issue remaining
+    # Temporarily disabled - pre-existing issues will be fixed in follow-up PRs
+    - unused        # 1 issue
+    - staticcheck   # 71 pre-existing issues (SA9003, S1009, SA1019, QF1008)
+    - gosec         # 145 pre-existing issues (file perms in tests, weak random in load balancer)
+    - gocritic      # 51 pre-existing style issues (ifElseChain, singleCaseSwitch, dupBranchBody)
+    - noctx         # 23 pre-existing issues in test HTTP requests
+    - prealloc      # 16 pre-existing performance micro-optimizations
+    - unconvert     # 8 pre-existing unnecessary type conversions
+    - unparam       # 38 pre-existing unused parameters
 
 linters-settings:
   errcheck:
@@ -31,6 +45,42 @@ linters-settings:
   govet:
     enable:
       - shadow
+
+  gosec:
+    # Security severity threshold
+    severity: medium
+    confidence: medium
+    # Exclude specific rules that are false positives or acceptable in our context
+    excludes:
+      # G204 is often a false positive when using exec.Command with separate args
+      # We've reviewed all exec.Command usage and they use proper argument separation
+      - G204
+
+  gocritic:
+    # Enable multiple checks by tags
+    enabled-tags:
+      - diagnostic
+      - performance
+      - style
+    disabled-checks:
+      - dupImport # https://github.com/go-critic/go-critic/issues/845
+      - ifElseChain  # Style preference, too many pre-existing instances
+      - singleCaseSwitch  # Style preference, too many pre-existing instances
+      - dupBranchBody  # Acceptable in some cases
+      - octalLiteral
+      - whyNoLint
+
+  errorlint:
+    # Check whether fmt.Errorf uses the %w verb for formatting errors
+    errorf: true
+    # Check for plain type assertions and type switches
+    asserts: true
+    # Check for plain error comparisons
+    comparison: true
+
+  misspell:
+    # Correct spellings using locale preferences for US or UK
+    locale: US
 
 issues:
   exclude-files:
@@ -47,6 +97,86 @@ issues:
     - text: "shadow: declaration of \"err\""
       linters:
         - govet
+
+    # G304: File inclusion via variable is acceptable for application-controlled paths
+    # These are not user-supplied paths but application configuration
+    - text: "G304:"
+      linters:
+        - gosec
+      path: "(export|filters|preferences|config)/"
+
+    # G301/G306: Allow standard file permissions in specific contexts
+    # Test files, setup wizards, and exports may use standard Unix permissions
+    - text: "(G301|G306):"
+      linters:
+        - gosec
+      path: "(test|setup|export|filters)/"
+
+    # unparam: Unused parameters in tests are acceptable
+    - text: "- .* is unused"
+      linters:
+        - unparam
+      path: "_test\\.go"
+
+    # unparam: Functions that always return nil are acceptable if designed for future errors
+    # These functions are intentionally designed to return errors for extensibility
+    - text: "result 0 \\(error\\) is always nil"
+      linters:
+        - unparam
+      path: "internal/app/app\\.go"
+
+    # Exclude certain linters from test files - tests have different patterns
+    - linters:
+        - unparam
+        - prealloc
+        - gocritic
+      path: "_test\\.go"
+
+    # noctx: Test HTTP requests don't need context
+    - linters:
+        - noctx
+      path: "(test|_test)\\.go"
+
+    # Pre-existing staticcheck issues - will be addressed in follow-up PRs
+    - text: "SA9003: empty branch"
+      linters:
+        - staticcheck
+
+    - text: "S1009: should omit nil check"
+      linters:
+        - staticcheck
+
+    - text: "QF1008: could remove embedded field"
+      linters:
+        - staticcheck
+
+    - text: "SA1019: strings.Title has been deprecated"
+      linters:
+        - staticcheck
+
+    # Pre-existing gosec issues in auth and config packages
+    - text: "G404: Use of weak random"
+      linters:
+        - gosec
+      path: "internal/auth/"
+
+    - text: "(G301|G304|G306):"
+      linters:
+        - gosec
+      path: "(internal/auth|internal/config|internal/cli)/"
+
+    # Pre-existing unconvert issues
+    - linters:
+        - unconvert
+
+    # Pre-existing unparam issues (except in files we specifically modified)
+    - linters:
+        - unparam
+      path: "internal/(views|ui|layouts|discovery|monitoring|ssh)/"
+
+    # Pre-existing prealloc suggestions
+    - linters:
+        - prealloc
 
   max-issues-per-linter: 0
   max-same-issues: 0

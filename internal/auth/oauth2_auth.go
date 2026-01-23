@@ -306,8 +306,12 @@ func (o *OAuth2Authenticator) startCallbackServer(redirectURI, state, callbackPa
 	})
 
 	o.server = &http.Server{
-		Addr:    u.Host,
-		Handler: mux,
+		Addr:              u.Host,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -130,8 +131,9 @@ func (td *TokenDiscovery) generateToken(ctx context.Context) (*DiscoveredToken, 
 
 	output, err := cmd.Output()
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("scontrol token failed: %s (stderr: %s)", err, string(exitErr.Stderr))
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return nil, fmt.Errorf("scontrol token failed: %w (stderr: %s)", err, string(exitErr.Stderr))
 		}
 		return nil, fmt.Errorf("scontrol token failed: %w", err)
 	}

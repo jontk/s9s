@@ -3,13 +3,13 @@ package preferences
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/jontk/s9s/internal/fileperms"
 )
 
 // UserPreferences represents all user-configurable preferences
@@ -292,7 +292,7 @@ func (up *UserPreferences) Load() error {
 	up.mu.Lock()
 	defer up.mu.Unlock()
 
-	data, err := ioutil.ReadFile(up.configPath)
+	data, err := os.ReadFile(up.configPath)
 	if err != nil {
 		return err
 	}
@@ -336,7 +336,7 @@ func (up *UserPreferences) Save() error {
 
 	// Create directory if needed
 	dir := filepath.Dir(up.configPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, fileperms.ConfigDir); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -348,7 +348,7 @@ func (up *UserPreferences) Save() error {
 
 	// Write to temp file first
 	tempFile := up.configPath + ".tmp"
-	if err := ioutil.WriteFile(tempFile, data, 0644); err != nil {
+	if err := os.WriteFile(tempFile, data, fileperms.ConfigFile); err != nil {
 		return fmt.Errorf("failed to write preferences: %w", err)
 	}
 
@@ -563,12 +563,12 @@ func (up *UserPreferences) Export(path string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, fileperms.ConfigFile)
 }
 
 // Import imports preferences from a file
 func (up *UserPreferences) Import(path string) error {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
@@ -627,7 +627,7 @@ func (up *UserPreferences) Reset() error {
 func (up *UserPreferences) saveWithoutLock() error {
 	// Create directory if needed
 	dir := filepath.Dir(up.configPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, fileperms.ConfigDir); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -639,7 +639,7 @@ func (up *UserPreferences) saveWithoutLock() error {
 
 	// Write to temp file first
 	tempFile := up.configPath + ".tmp"
-	if err := ioutil.WriteFile(tempFile, data, 0644); err != nil {
+	if err := os.WriteFile(tempFile, data, fileperms.ConfigFile); err != nil {
 		return fmt.Errorf("failed to write preferences: %w", err)
 	}
 

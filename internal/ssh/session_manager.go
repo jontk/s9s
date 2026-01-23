@@ -614,23 +614,20 @@ func (sm *SessionManager) MonitorSession(sessionID string, interval time.Duratio
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
-		for {
+		for range ticker.C {
+			session.mu.RLock()
+			currentState := session.State
+			session.mu.RUnlock()
+
 			select {
-			case <-ticker.C:
-				session.mu.RLock()
-				currentState := session.State
-				session.mu.RUnlock()
+			case statusChan <- currentState:
+			default:
+				// Channel full, skip this update
+			}
 
-				select {
-				case statusChan <- currentState:
-				default:
-					// Channel full, skip this update
-				}
-
-				// Stop monitoring if session is disconnected or error
-				if currentState == SessionDisconnected || currentState == SessionError {
-					return
-				}
+			// Stop monitoring if session is disconnected or error
+			if currentState == SessionDisconnected || currentState == SessionError {
+				return
 			}
 		}
 	}()

@@ -132,7 +132,7 @@ func (aa *AgentAuth) CreateSSHClientConfig(username string) *ssh.ClientConfig {
 		Auth: []ssh.AuthMethod{
 			aa.GetAuthMethod(),
 		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // For testing - should be configurable
+		HostKeyCallback: getHostKeyCallback(nil), // Use default (insecure) for backward compatibility
 	}
 }
 

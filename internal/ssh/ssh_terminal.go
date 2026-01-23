@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -165,7 +166,7 @@ func (t *SSHTerminal) readOutput(reader io.ReadCloser, isError bool) {
 		t.lastActivity = time.Now()
 	}
 
-	if err := scanner.Err(); err != nil && err != io.EOF {
+	if err := scanner.Err(); err != nil && !errors.Is(err, io.EOF) {
 		t.appendLine(fmt.Sprintf("[red]Read error: %v[white]", err))
 	}
 }

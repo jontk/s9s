@@ -8,6 +8,7 @@ import (
 
 	"github.com/jontk/s9s/internal/config"
 	"github.com/jontk/s9s/internal/debug"
+	"github.com/jontk/s9s/internal/errors"
 	slurm "github.com/jontk/slurm-client"
 	"github.com/jontk/slurm-client/pkg/auth"
 	slurmconfig "github.com/jontk/slurm-client/pkg/config"
@@ -23,7 +24,7 @@ type SlurmAdapter struct {
 // NewSlurmAdapter creates a new SLURM adapter instance
 func NewSlurmAdapter(ctx context.Context, cfg *config.ClusterConfig) (*SlurmAdapter, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("cluster config is required")
+		return nil, errors.Config("cluster config is required")
 	}
 
 	// Parse timeout - use shorter timeout for database operations to fail fast
@@ -64,7 +65,10 @@ func NewSlurmAdapter(ctx context.Context, cfg *config.ClusterConfig) (*SlurmAdap
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("creating slurm client: %w", err)
+		return nil, errors.Wrap(err, errors.ErrorTypeNetwork, "failed to create SLURM client").
+			WithContext("component", "dao").
+			WithContext("endpoint", cfg.Endpoint).
+			WithContext("timeout", timeout.String())
 	}
 
 	return &SlurmAdapter{
@@ -147,7 +151,7 @@ func (s *SlurmAdapter) Info() InfoManager {
 func (s *SlurmAdapter) ClusterInfo() (*ClusterInfo, error) {
 	info, err := s.client.Info().Get(s.ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getting cluster info: %w", err)
+		return nil, errors.SlurmAPI("get cluster info", err)
 	}
 
 	return &ClusterInfo{
@@ -179,7 +183,7 @@ func (j *jobManager) List(opts *ListJobsOptions) (*JobList, error) {
 	result, err := j.client.List(j.ctx, clientOpts)
 	debug.Logger.Printf("Jobs List() returned at %s", time.Now().Format("15:04:05.000"))
 	if err != nil {
-		return nil, fmt.Errorf("listing jobs: %w", err)
+		return nil, errors.SlurmAPI("list jobs", err)
 	}
 
 	// Convert to our types
@@ -197,7 +201,7 @@ func (j *jobManager) List(opts *ListJobsOptions) (*JobList, error) {
 func (j *jobManager) Get(id string) (*Job, error) {
 	job, err := j.client.Get(j.ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("getting job %s: %w", id, err)
+		return nil, errors.DAOError("get", "job", err).WithContext("job_id", id)
 	}
 	return convertJob(job), nil
 }
@@ -209,7 +213,7 @@ func (j *jobManager) Submit(job *JobSubmission) (string, error) {
 	// Call slurm-client Submit directly
 	result, err := j.client.Submit(j.ctx, slurmJob)
 	if err != nil {
-		return "", fmt.Errorf("submitting job via slurm-client: %w", err)
+		return "", errors.SlurmAPI("submit job", err)
 	}
 
 	return result.JobID, nil
@@ -297,7 +301,7 @@ func (j *jobManager) Requeue(id string) (*Job, error) {
 	// Call slurm-client Requeue directly
 	err := j.client.Requeue(j.ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("requeuing job %s via slurm-client: %w", id, err)
+		return nil, errors.SlurmAPI("requeue job", err).WithContext("job_id", id)
 	}
 
 	// Get the updated job details
@@ -309,12 +313,12 @@ func (j *jobManager) simulateRequeue(id string) (*Job, error) {
 	// Get the existing job
 	existingJob, err := j.Get(id)
 	if err != nil {
-		return nil, fmt.Errorf("getting job %s for requeue: %w", id, err)
+		return nil, errors.DAOError("get", "job", err).WithContext("job_id", id).WithContext("operation", "requeue")
 	}
 
 	// Check if job can be requeued (must be completed, failed, or cancelled)
 	if existingJob.State != "COMPLETED" && existingJob.State != "FAILED" && existingJob.State != "CANCELLED" {
-		return nil, fmt.Errorf("job %s cannot be requeued (current state: %s)", id, existingJob.State)
+		return nil, errors.Invalid("job_state", fmt.Sprintf("job %s cannot be requeued (current state: %s)", id, existingJob.State))
 	}
 
 	// Create a new job with a new ID but same parameters
@@ -348,7 +352,7 @@ func (j *jobManager) simulateJobOutput(id string) (string, error) {
 	// Get job details to create realistic output
 	job, err := j.Get(id)
 	if err != nil {
-		return "", fmt.Errorf("getting job %s for output: %w", id, err)
+		return "", errors.DAOError("get", "job", err).WithContext("job_id", id).WithContext("operation", "get_output")
 	}
 
 	// Create simulated output based on job state and type
@@ -416,7 +420,7 @@ func (n *nodeManager) List(opts *ListNodesOptions) (*NodeList, error) {
 
 	result, err := n.client.List(n.ctx, clientOpts)
 	if err != nil {
-		return nil, fmt.Errorf("listing nodes: %w", err)
+		return nil, errors.SlurmAPI("list nodes", err)
 	}
 
 	// Convert to our types
@@ -434,7 +438,7 @@ func (n *nodeManager) List(opts *ListNodesOptions) (*NodeList, error) {
 func (n *nodeManager) Get(name string) (*Node, error) {
 	node, err := n.client.Get(n.ctx, name)
 	if err != nil {
-		return nil, fmt.Errorf("getting node %s: %w", name, err)
+		return nil, errors.DAOError("get", "node", err).WithContext("node_name", name)
 	}
 	return convertNode(node), nil
 }
@@ -463,7 +467,7 @@ func (n *nodeManager) Resume(name string) error {
 
 func (n *nodeManager) SetState(name string, state string) error {
 	// Note: May need to implement if slurm-client supports it
-	return fmt.Errorf("set state operation not supported by slurm-client")
+	return errors.Internal("set state operation not supported by slurm-client")
 }
 
 // partitionManager implements PartitionManager
@@ -475,7 +479,7 @@ type partitionManager struct {
 func (p *partitionManager) List() (*PartitionList, error) {
 	result, err := p.client.List(p.ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("listing partitions: %w", err)
+		return nil, errors.SlurmAPI("list partitions", err)
 	}
 
 	// Convert to our types
@@ -492,7 +496,7 @@ func (p *partitionManager) List() (*PartitionList, error) {
 func (p *partitionManager) Get(name string) (*Partition, error) {
 	partition, err := p.client.Get(p.ctx, name)
 	if err != nil {
-		return nil, fmt.Errorf("getting partition %s: %w", name, err)
+		return nil, errors.DAOError("get", "partition", err).WithContext("partition_name", name)
 	}
 	return convertPartition(partition), nil
 }
@@ -506,7 +510,7 @@ type reservationManager struct {
 func (r *reservationManager) List() (*ReservationList, error) {
 	result, err := r.client.List(r.ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("listing reservations: %w", err)
+		return nil, errors.SlurmAPI("list reservations", err)
 	}
 
 	// Convert to our types
@@ -574,7 +578,7 @@ func (r *reservationManager) getMockReservationList() *ReservationList {
 func (r *reservationManager) Get(name string) (*Reservation, error) {
 	reservation, err := r.client.Get(r.ctx, name)
 	if err != nil {
-		return nil, fmt.Errorf("getting reservation %s: %w", name, err)
+		return nil, errors.DAOError("get", "reservation", err).WithContext("reservation_name", name)
 	}
 	return convertReservation(reservation), nil
 }
@@ -588,7 +592,7 @@ type infoManager struct {
 func (i *infoManager) GetClusterInfo() (*ClusterInfo, error) {
 	info, err := i.client.Get(i.ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getting cluster info: %w", err)
+		return nil, errors.SlurmAPI("get cluster info", err)
 	}
 
 	return &ClusterInfo{
@@ -601,7 +605,7 @@ func (i *infoManager) GetClusterInfo() (*ClusterInfo, error) {
 func (i *infoManager) GetStats() (*ClusterMetrics, error) {
 	stats, err := i.client.Stats(i.ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getting cluster stats: %w", err)
+		return nil, errors.SlurmAPI("get cluster stats", err)
 	}
 
 	return &ClusterMetrics{
@@ -770,7 +774,7 @@ func (q *qosManager) List() (*QoSList, error) {
 	result, err := q.client.List(q.ctx, nil)
 	debug.Logger.Printf("QoS List() returned at %s", time.Now().Format("15:04:05.000"))
 	if err != nil {
-		return nil, fmt.Errorf("listing qos: %w", err)
+		return nil, errors.SlurmAPI("list QoS", err)
 	}
 
 	debug.Logger.Printf("QoS converting %d items at %s", len(result.QoS), time.Now().Format("15:04:05.000"))
@@ -853,7 +857,7 @@ func (q *qosManager) getMockQoSList() *QoSList {
 func (q *qosManager) Get(name string) (*QoS, error) {
 	qos, err := q.client.Get(q.ctx, name)
 	if err != nil {
-		return nil, fmt.Errorf("getting QoS %s: %w", name, err)
+		return nil, errors.DAOError("get", "QoS", err).WithContext("qos_name", name)
 	}
 	return convertQoS(qos), nil
 }
@@ -867,7 +871,7 @@ type accountManager struct {
 func (a *accountManager) List() (*AccountList, error) {
 	result, err := a.client.List(a.ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("listing accounts: %w", err)
+		return nil, errors.SlurmAPI("list accounts", err)
 	}
 
 	// Convert to our types
@@ -960,7 +964,7 @@ func (a *accountManager) getMockAccountList() *AccountList {
 func (a *accountManager) Get(name string) (*Account, error) {
 	account, err := a.client.Get(a.ctx, name)
 	if err != nil {
-		return nil, fmt.Errorf("getting account %s: %w", name, err)
+		return nil, errors.DAOError("get", "account", err).WithContext("account_name", name)
 	}
 	return convertAccount(account), nil
 }
@@ -974,7 +978,7 @@ type userManager struct {
 func (u *userManager) List() (*UserList, error) {
 	result, err := u.client.List(u.ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("listing users: %w", err)
+		return nil, errors.SlurmAPI("list users", err)
 	}
 
 	// Convert to our types
@@ -1072,7 +1076,7 @@ func (u *userManager) getMockUserList() *UserList {
 func (u *userManager) Get(name string) (*User, error) {
 	user, err := u.client.Get(u.ctx, name)
 	if err != nil {
-		return nil, fmt.Errorf("getting user %s: %w", name, err)
+		return nil, errors.DAOError("get", "user", err).WithContext("user_name", name)
 	}
 	return convertUser(user), nil
 }

@@ -142,8 +142,12 @@ func (api *ExternalAPI) Start(ctx context.Context) error {
 	mux.HandleFunc("/health", api.handleHealth) // Health endpoint doesn't require rate limiting
 
 	api.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", api.port),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", api.port),
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	go func() {

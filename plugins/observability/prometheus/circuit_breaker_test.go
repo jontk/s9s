@@ -224,7 +224,7 @@ func TestCircuitBreakerQueryOperations(t *testing.T) {
 	}
 
 	// Test QueryRange
-	result, err = cbClient.QueryRange(ctx, "test_query", testTime, testTime.Add(time.Hour), time.Minute)
+	_, err = cbClient.QueryRange(ctx, "test_query", testTime, testTime.Add(time.Hour), time.Minute)
 	if err != nil {
 		t.Fatalf("QueryRange failed: %v", err)
 	}

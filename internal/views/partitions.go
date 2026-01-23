@@ -295,7 +295,7 @@ func (v *PartitionsView) updateTable() {
 		pending := "0"
 		avgWait := "-"
 		maxWait := "-"
-		efficiency := ""
+		var efficiency string
 
 		if queueInfo != nil {
 			queueDepth = v.createQueueDepthBar(queueInfo.PendingJobs, queueInfo.RunningJobs)

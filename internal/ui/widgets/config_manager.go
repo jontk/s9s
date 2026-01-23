@@ -277,7 +277,7 @@ func (cm *ConfigManager) addFormField(field config.ConfigField) {
 
 	case config.FieldTypeSelect:
 		currentIndex := 0
-		currentStr := ""
+		var currentStr string
 		if currentValue != nil {
 			currentStr = fmt.Sprintf("%v", currentValue)
 			for i, option := range field.Options {

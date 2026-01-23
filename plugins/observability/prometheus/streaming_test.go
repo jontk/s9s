@@ -375,7 +375,7 @@ func TestCollectStreamingResultsTimeout(t *testing.T) {
 		t.Error("Expected timeout error, got nil")
 	}
 
-	if err != context.DeadlineExceeded {
+	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("Expected context deadline exceeded, got: %v", err)
 	}
 }

@@ -400,7 +400,7 @@ func (cf *ConfigField) validateString(value interface{}) error {
 	if cf.Pattern != "" {
 		matched, err := regexp.MatchString(cf.Pattern, str)
 		if err != nil {
-			return fmt.Errorf("invalid pattern for %s: %v", cf.Label, err)
+			return fmt.Errorf("invalid pattern for %s: %w", cf.Label, err)
 		}
 		if !matched {
 			return fmt.Errorf("%s does not match required pattern", cf.Label)

@@ -282,7 +282,7 @@ func (w *JobSubmissionWizard) validateAndSubmitJob(job *dao.JobSubmission) error
 	// Submit the job
 	jobID, err := w.client.Jobs().Submit(job)
 	if err != nil {
-		return fmt.Errorf("failed to submit job: %v", err)
+		return fmt.Errorf("failed to submit job: %w", err)
 	}
 
 	// Show success message

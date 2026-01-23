@@ -273,3 +273,83 @@ func Config(message string) *S9sError {
 func Configf(format string, args ...interface{}) *S9sError {
 	return Newf(ErrorTypeConfiguration, format, args...)
 }
+
+// Domain-specific error constructors for s9s
+
+// SlurmConnection creates an error for SLURM connection failures
+func SlurmConnection(message string) *S9sError {
+	err := New(ErrorTypeNetwork, message)
+	return err.WithContext("component", "slurm").WithContext("operation", "connect")
+}
+
+// SlurmConnectionf creates a SLURM connection error with formatted message
+func SlurmConnectionf(format string, args ...interface{}) *S9sError {
+	err := Newf(ErrorTypeNetwork, format, args...)
+	return err.WithContext("component", "slurm").WithContext("operation", "connect")
+}
+
+// SlurmAPI wraps a SLURM API error with operation context
+func SlurmAPI(operation string, err error) *S9sError {
+	wrapped := Wrapf(err, ErrorTypeInternal, "SLURM API error during %s", operation)
+	return wrapped.WithContext("component", "slurm").WithContext("operation", operation)
+}
+
+// SlurmAPIf creates a SLURM API error with formatted message
+func SlurmAPIf(operation, format string, args ...interface{}) *S9sError {
+	err := Newf(ErrorTypeInternal, format, args...)
+	return err.WithContext("component", "slurm").WithContext("operation", operation)
+}
+
+// ConfigLoad wraps a configuration loading error
+func ConfigLoad(path string, err error) *S9sError {
+	wrapped := Wrapf(err, ErrorTypeConfiguration, "failed to load configuration from %s", path)
+	return wrapped.WithContext("config_path", path)
+}
+
+// ConfigLoadf creates a configuration load error with formatted message
+func ConfigLoadf(path, format string, args ...interface{}) *S9sError {
+	err := Newf(ErrorTypeConfiguration, format, args...)
+	return err.WithContext("config_path", path)
+}
+
+// DAOError creates a data access error
+func DAOError(operation, resource string, err error) *S9sError {
+	wrapped := Wrapf(err, ErrorTypeInternal, "data access error during %s of %s", operation, resource)
+	return wrapped.WithContext("component", "dao").
+		WithContext("operation", operation).
+		WithContext("resource", resource)
+}
+
+// SSHError creates an SSH-related error
+func SSHError(operation string, err error) *S9sError {
+	wrapped := Wrapf(err, ErrorTypeNetwork, "SSH error during %s", operation)
+	return wrapped.WithContext("component", "ssh").WithContext("operation", operation)
+}
+
+// SSHErrorf creates an SSH error with formatted message
+func SSHErrorf(operation, format string, args ...interface{}) *S9sError {
+	err := Newf(ErrorTypeNetwork, format, args...)
+	return err.WithContext("component", "ssh").WithContext("operation", operation)
+}
+
+// PluginError creates a plugin-related error
+func PluginError(pluginName, operation string, err error) *S9sError {
+	wrapped := Wrapf(err, ErrorTypeInternal, "plugin '%s' error during %s", pluginName, operation)
+	return wrapped.WithContext("component", "plugin").
+		WithContext("plugin", pluginName).
+		WithContext("operation", operation)
+}
+
+// AuthError creates an authentication/authorization error
+func AuthError(operation string, err error) *S9sError {
+	wrapped := Wrapf(err, ErrorTypeAuthentication, "authentication error during %s", operation)
+	return wrapped.WithContext("component", "auth").WithContext("operation", operation)
+}
+
+// ViewError creates a view-related error
+func ViewError(viewName, operation string, err error) *S9sError {
+	wrapped := Wrapf(err, ErrorTypeInternal, "view '%s' error during %s", viewName, operation)
+	return wrapped.WithContext("component", "view").
+		WithContext("view", viewName).
+		WithContext("operation", operation)
+}
