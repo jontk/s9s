@@ -135,6 +135,9 @@ func NewTable(config *TableConfig) *Table {
 
 // SetColumns sets the table columns
 func (t *Table) SetColumns(columns []Column) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	t.config.Columns = columns
 	t.refresh()
 }
