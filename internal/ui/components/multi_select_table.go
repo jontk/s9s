@@ -65,6 +65,9 @@ func (mst *MultiSelectTable) IsMultiSelectMode() bool {
 
 // SetShowCheckboxes controls whether to show selection checkboxes
 func (mst *MultiSelectTable) SetShowCheckboxes(show bool) {
+	mst.mu.Lock()
+	defer mst.mu.Unlock()
+
 	mst.showCheckboxes = show
 	mst.refreshDisplay()
 }
@@ -392,6 +395,10 @@ func (mst *MultiSelectTable) updateSelectAllStateUnsafe() {
 
 // refreshDisplay updates the visual display with selection indicators
 func (mst *MultiSelectTable) refreshDisplay() {
+	// Acquire Table's mutex to protect tview.Table operations
+	mst.Table.mu.Lock()
+	defer mst.Table.mu.Unlock()
+
 	mst.Table.Table.Clear()
 
 	if len(mst.config.Columns) == 0 {
@@ -426,10 +433,8 @@ func (mst *MultiSelectTable) refreshDisplay() {
 		headerRow++
 	}
 
-	// Lock Table mutex to safely access filteredData
-	mst.Table.mu.RLock()
+	// Access filteredData (already protected by Table.mu.Lock above)
 	filteredData := mst.filteredData
-	mst.Table.mu.RUnlock()
 
 	// Add data rows with selection indicators
 	for rowIndex, rowData := range filteredData {

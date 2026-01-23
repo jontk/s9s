@@ -533,6 +533,9 @@ func (v *JobsView) updateStatusBar(message string) {
 
 // scheduleRefresh schedules the next refresh
 func (v *JobsView) scheduleRefresh() {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	// Only schedule if auto-refresh is enabled
 	if !v.autoRefresh {
 		return
