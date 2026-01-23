@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+	"github.com/jontk/s9s/internal/fileperms"
 )
 
 // FilterManager manages filters and presets for streaming
@@ -322,9 +323,9 @@ func (fm *FilterManager) savePresets() error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(fm.presetsPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, fileperms.ConfigDir); err != nil {
 		return err
 	}
 
-	return os.WriteFile(fm.presetsPath, data, 0644)
+	return os.WriteFile(fm.presetsPath, data, fileperms.ConfigFile)
 }

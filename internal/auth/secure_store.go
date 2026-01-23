@@ -119,6 +119,7 @@ func (f *FileSecureStore) loadMasterKey(keyFile string) error {
 	debug.Logger.Printf("Loading existing master key")
 
 	// Read key file
+	// nolint:gosec // G304: keyFile path is application-controlled (storePath + ".key"), not user input
 	keyDataBytes, err := os.ReadFile(keyFile)
 	if err != nil {
 		return fmt.Errorf("failed to read key file: %w", err)

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jontk/s9s/internal/fileperms"
 	"github.com/jontk/s9s/internal/ui/components"
 )
 
@@ -173,12 +174,12 @@ func (al *AlertLogger) LogAlert(alert *components.Alert) error {
 
 	// Ensure log directory exists
 	logDir := filepath.Dir(al.logPath)
-	if err := os.MkdirAll(logDir, 0755); err != nil {
+	if err := os.MkdirAll(logDir, fileperms.LogDir); err != nil {
 		return fmt.Errorf("failed to create log directory: %w", err)
 	}
 
 	// Open log file
-	file, err := os.OpenFile(al.logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(al.logPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, fileperms.LogFile)
 	if err != nil {
 		return fmt.Errorf("failed to open log file: %w", err)
 	}
@@ -268,6 +269,7 @@ func (al *AlertLogger) cleanOldLogs() {
 // Helper functions
 
 func loadConfig(path string) (*NotificationConfig, error) {
+	// nolint:gosec // G304: path is application-controlled config file path, not user input
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -284,7 +286,7 @@ func loadConfig(path string) (*NotificationConfig, error) {
 func saveConfig(config *NotificationConfig, path string) error {
 	// Ensure directory exists
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, fileperms.ConfigDir); err != nil {
 		return err
 	}
 
@@ -293,7 +295,7 @@ func saveConfig(config *NotificationConfig, path string) error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, fileperms.ConfigFile)
 }
 
 func getConfigPath() string {

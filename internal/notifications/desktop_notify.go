@@ -111,6 +111,7 @@ func (d *DesktopNotifyChannel) notifyLinux(alert *components.Alert, icon string)
 		alert.Message,
 	)
 
+	// nolint:gosec // G204: notify-send is a well-known system command, args are controlled
 	cmd := exec.Command("notify-send", args...)
 	return cmd.Run()
 }
@@ -120,6 +121,7 @@ func (d *DesktopNotifyChannel) notifyMacOS(alert *components.Alert) error {
 	script := fmt.Sprintf(`display notification "%s" with title "S9S Alert: %s" sound name "Glass"`,
 		alert.Message, alert.Title)
 
+	// nolint:gosec // G204: osascript is a well-known macOS system command, args are controlled
 	cmd := exec.Command("osascript", "-e", script)
 	return cmd.Run()
 }

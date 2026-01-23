@@ -383,6 +383,7 @@ func (sm *StreamManager) handleFileError(err error) {
 
 // readFileFromOffset reads file content from a specific offset
 func (sm *StreamManager) readFileFromOffset(filePath string, offset int64) (string, int64, error) {
+	// nolint:gosec // G304: filePath from JobStream.FilePath, sourced from SLURM job metadata via DAO client
 	file, err := os.Open(filePath)
 	if err != nil {
 		return "", offset, err

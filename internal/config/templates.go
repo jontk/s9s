@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/jontk/s9s/internal/fileperms"
 )
 
 // ConfigTemplate represents a configuration template
@@ -300,12 +302,12 @@ func (tm *TemplateManager) SaveTemplateAsConfig(templateName string, variables m
 
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(configPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, fileperms.ConfigDir); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
 	// Write configuration file
-	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(config), fileperms.ConfigFile); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

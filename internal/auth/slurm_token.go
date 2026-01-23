@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jontk/s9s/internal/debug"
+	"github.com/jontk/s9s/internal/security"
 )
 
 // SlurmTokenAuthenticator implements authentication using SLURM's native token system
@@ -94,13 +95,20 @@ func (s *SlurmTokenAuthenticator) Authenticate(ctx context.Context, config AuthC
 		scontrolPath = "scontrol"
 	}
 
+	// Validate and resolve scontrol command path
+	validatedPath, err := security.ValidateAndResolveCommand(scontrolPath, "slurm")
+	if err != nil {
+		return nil, fmt.Errorf("invalid scontrol path: %w", err)
+	}
+
 	tokenLifetime := config.GetInt("token_lifetime")
 	if tokenLifetime == 0 {
 		tokenLifetime = 3600 // Default to 1 hour
 	}
 
-	// Execute scontrol token command
-	cmd := exec.CommandContext(ctx, scontrolPath, "token", fmt.Sprintf("username=%s", s.user), fmt.Sprintf("lifespan=%d", tokenLifetime))
+	// Execute scontrol token command with validated path
+	// nolint:gosec // G204: Command path is validated via security.ValidateAndResolveCommand
+	cmd := exec.CommandContext(ctx, validatedPath, "token", fmt.Sprintf("username=%s", s.user), fmt.Sprintf("lifespan=%d", tokenLifetime))
 
 	output, err := cmd.Output()
 	if err != nil {

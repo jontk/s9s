@@ -11,28 +11,30 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/jontk/s9s/internal/security"
 	"github.com/rivo/tview"
 )
 
 // SSHTerminal represents an SSH terminal session
 type SSHTerminal struct {
 	*tview.TextView
-	nodeID   string
-	hostname string
-	username string
+	nodeID         string
+	hostname       string
+	username       string
 	// TODO(lint): Review unused code - field sessionID is unused
 	// sessionID     string
-	cmd           *exec.Cmd
-	stdin         io.WriteCloser
-	stdout        io.ReadCloser
-	stderr        io.ReadCloser
-	isActive      bool
-	mu            sync.RWMutex
-	onClose       func()
-	buffer        []string
-	maxBufferSize int
-	lastActivity  time.Time
-	connectedAt   time.Time
+	cmd            *exec.Cmd
+	stdin          io.WriteCloser
+	stdout         io.ReadCloser
+	stderr         io.ReadCloser
+	isActive       bool
+	mu             sync.RWMutex
+	onClose        func()
+	buffer         []string
+	maxBufferSize  int
+	lastActivity   time.Time
+	connectedAt    time.Time
+	sshCommandPath string // Validated absolute path to ssh command
 }
 
 // NewSSHTerminal creates a new SSH terminal
@@ -50,20 +52,28 @@ func NewSSHTerminal(nodeID, hostname, username string, config *SSHConfig) (*SSHT
 	textView.SetBackgroundColor(tcell.ColorBlack)
 	textView.SetTextColor(tcell.ColorWhite)
 
+	// Validate and resolve ssh command path
+	sshPath, err := security.ValidateAndResolveCommand("ssh", "ssh")
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate ssh command: %w", err)
+	}
+
 	terminal := &SSHTerminal{
-		TextView:      textView,
-		nodeID:        nodeID,
-		hostname:      hostname,
-		username:      username,
-		maxBufferSize: 10000, // Max lines to keep in buffer
-		buffer:        make([]string, 0, 10000),
-		connectedAt:   time.Now(),
-		lastActivity:  time.Now(),
+		TextView:       textView,
+		nodeID:         nodeID,
+		hostname:       hostname,
+		username:       username,
+		maxBufferSize:  10000, // Max lines to keep in buffer
+		buffer:         make([]string, 0, 10000),
+		connectedAt:    time.Now(),
+		lastActivity:   time.Now(),
+		sshCommandPath: sshPath,
 	}
 
 	// Build SSH command
 	args := buildSSHArgs(config, hostname, username)
-	terminal.cmd = exec.Command("ssh", args...)
+	// nolint:gosec // G204: Command path validated before use, arguments from application config
+	terminal.cmd = exec.Command(terminal.sshCommandPath, args...)
 
 	// Create pipes
 	stdin, err := terminal.cmd.StdinPipe()

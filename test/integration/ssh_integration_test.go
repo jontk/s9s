@@ -359,6 +359,7 @@ func setupSSHContainer(t *testing.T) (string, error) {
 	privateKeyPath := filepath.Join(keyDir, "test_key")
 	publicKeyPath := filepath.Join(keyDir, "test_key.pub")
 
+	// nolint:gosec // G204: Test code with controlled arguments
 	cmd := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-f", privateKeyPath, "-N", "")
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to generate SSH key: %w", err)
@@ -393,6 +394,7 @@ CMD ["/usr/sbin/sshd", "-D"]
 	}
 
 	// Build Docker image
+	// nolint:gosec // G204: Test code with controlled arguments
 	buildCmd := exec.Command("docker", "build", "-t", "ssh-test-server", keyDir)
 	if err := buildCmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to build Docker image: %w", err)

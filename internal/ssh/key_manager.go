@@ -177,6 +177,7 @@ func (km *KeyManager) DiscoverKeys() error {
 
 // isPrivateKey checks if a file is likely an SSH private key
 func (km *KeyManager) isPrivateKey(path string) bool {
+	// nolint:gosec // G304: path from scanning user's ~/.ssh directory, application-controlled
 	file, err := os.Open(path)
 	if err != nil {
 		return false
@@ -197,6 +198,7 @@ func (km *KeyManager) isPrivateKey(path string) bool {
 
 // parseKey parses an SSH key file
 func (km *KeyManager) parseKey(path string) (*SSHKey, error) {
+	// nolint:gosec // G304: path from scanning user's ~/.ssh directory, application-controlled
 	keyData, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read key file: %w", err)
@@ -218,6 +220,7 @@ func (km *KeyManager) parseKey(path string) (*SSHKey, error) {
 	pubPath := path + ".pub"
 	var fingerprint, comment, keyType string
 
+	// nolint:gosec // G304: pubPath derived from path in user's ~/.ssh directory, application-controlled
 	if pubData, err := os.ReadFile(pubPath); err == nil {
 		pubKey, commentBytes, _, _, err := ssh.ParseAuthorizedKey(pubData)
 		if err == nil {
@@ -298,6 +301,11 @@ func (km *KeyManager) GenerateKey(name, comment string, keyType string, bits int
 		bits = 2048
 	}
 
+	// Validate that name doesn't contain path separators or traversal attempts
+	if strings.Contains(name, string(filepath.Separator)) || strings.Contains(name, "..") {
+		return fmt.Errorf("invalid key name: must not contain path separators or traversal")
+	}
+
 	keyPath := filepath.Join(km.keyDir, name)
 	pubPath := keyPath + ".pub"
 
@@ -325,6 +333,7 @@ func (km *KeyManager) generateRSAKey(keyPath, pubPath, comment string, bits int)
 	}
 
 	// Create private key file
+	// nolint:gosec // G304: keyPath validated in GenerateKey() to prevent path traversal
 	privFile, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to create private key file: %w", err)
@@ -349,6 +358,7 @@ func (km *KeyManager) generateRSAKey(keyPath, pubPath, comment string, bits int)
 	}
 
 	// Write public key file
+	// nolint:gosec // G304: pubPath validated in GenerateKey() to prevent path traversal
 	pubFile, err := os.OpenFile(pubPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to create public key file: %w", err)
@@ -381,6 +391,7 @@ func (km *KeyManager) generateEd25519Key(keyPath, pubPath, comment string) error
 		args = append(args, "-C", comment)
 	}
 
+	// nolint:gosec // G204: ssh-keygen is a well-known system command, args are controlled and validated
 	cmd := exec.Command("ssh-keygen", args...)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to generate Ed25519 key: %w", err)
@@ -759,6 +770,7 @@ func (km *KeyManager) StopAgent() error {
 	if pidStr != "" {
 		pid, err := strconv.Atoi(pidStr)
 		if err == nil {
+			// nolint:gosec // G204: kill command with validated numeric PID from SSH_AGENT_PID
 			cmd := exec.Command("kill", strconv.Itoa(pid))
 			_ = cmd.Run() // Ignore errors
 		}

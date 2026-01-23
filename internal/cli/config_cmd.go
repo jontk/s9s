@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/jontk/s9s/internal/config"
+	"github.com/jontk/s9s/internal/fileperms"
+	"github.com/jontk/s9s/internal/security"
 	"github.com/spf13/cobra"
 )
 
@@ -75,7 +77,7 @@ func runConfigEdit(cmd *cobra.Command, args []string) error {
 
 	// Create directory if it doesn't exist
 	configDir := filepath.Dir(configPath)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, fileperms.ConfigDir); err != nil{
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -93,9 +95,16 @@ func runConfigEdit(cmd *cobra.Command, args []string) error {
 		editor = getDefaultEditor()
 	}
 
-	fmt.Printf("Opening %s in %s...\n", configPath, editor)
+	// Validate editor command path
+	validatedEditor, err := security.ValidateAndResolveCommand(editor, "editor")
+	if err != nil {
+		return fmt.Errorf("invalid editor command %q: %w", editor, err)
+	}
 
-	execCmd := exec.Command(editor, configPath)
+	fmt.Printf("Opening %s in %s...\n", configPath, filepath.Base(validatedEditor))
+
+	// nolint:gosec // G204: Command path is validated via security.ValidateAndResolveCommand
+	execCmd := exec.Command(validatedEditor, configPath)
 	execCmd.Stdin = os.Stdin
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
@@ -224,7 +233,7 @@ aliases:
 plugins: []
 `
 
-	return os.WriteFile(path, []byte(defaultConfig), 0644)
+	return os.WriteFile(path, []byte(defaultConfig), fileperms.ConfigFile)
 }
 
 func getDefaultEditor() string {

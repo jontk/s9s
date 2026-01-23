@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/jontk/s9s/internal/mathutil"
 )
 
 // MetricType represents different types of metrics
@@ -194,8 +196,8 @@ func (p *Profiler) GetMemoryDelta() MemoryDelta {
 	runtime.ReadMemStats(&current)
 
 	return MemoryDelta{
-		HeapAllocDelta:   int64(current.HeapAlloc) - int64(p.memBaseline.HeapAlloc),
-		HeapObjectsDelta: int64(current.HeapObjects) - int64(p.memBaseline.HeapObjects),
+		HeapAllocDelta:   mathutil.Uint64ToInt64(current.HeapAlloc) - mathutil.Uint64ToInt64(p.memBaseline.HeapAlloc),
+		HeapObjectsDelta: mathutil.Uint64ToInt64(current.HeapObjects) - mathutil.Uint64ToInt64(p.memBaseline.HeapObjects),
 		GoroutinesDelta:  runtime.NumGoroutine() - p.baselineGoroutines,
 		GCCycles:         current.NumGC - p.memBaseline.NumGC,
 	}
@@ -292,8 +294,8 @@ func BenchmarkOperation(name string, iterations int, operation func()) Benchmark
 		Iterations:  iterations,
 		TotalTime:   elapsed,
 		TimePerOp:   elapsed / time.Duration(iterations),
-		AllocsPerOp: int64(memAfter.Mallocs-memBefore.Mallocs) / int64(iterations),
-		BytesPerOp:  int64(memAfter.TotalAlloc-memBefore.TotalAlloc) / int64(iterations),
+		AllocsPerOp: mathutil.Uint64ToInt64(memAfter.Mallocs-memBefore.Mallocs) / int64(iterations),
+		BytesPerOp:  mathutil.Uint64ToInt64(memAfter.TotalAlloc-memBefore.TotalAlloc) / int64(iterations),
 	}
 }
 

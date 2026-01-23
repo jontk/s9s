@@ -11,7 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jontk/s9s/internal/fileperms"
+	"github.com/jontk/s9s/internal/mathutil"
 	"github.com/jontk/s9s/internal/performance"
+	"github.com/jontk/s9s/internal/security"
 )
 
 // PerformanceExporter handles exporting performance reports to various formats
@@ -27,7 +30,7 @@ func NewPerformanceExporter(defaultPath string) *PerformanceExporter {
 	}
 
 	// Ensure export directory exists
-	_ = os.MkdirAll(defaultPath, 0755)
+	_ = os.MkdirAll(defaultPath, fileperms.DirUserOnly)
 
 	return &PerformanceExporter{
 		defaultPath: defaultPath,
@@ -102,11 +105,25 @@ func (pe *PerformanceExporter) ExportPerformanceReport(profiler *performance.Pro
 		outputPath = filepath.Join(pe.defaultPath, filename)
 	}
 
+	// Validate output path is within safe directory
+	// Allow writes within defaultPath or user's home directory
+	homeDir, _ := os.UserHomeDir()
+	validPath, validationErr := security.ValidatePathWithinBase(outputPath, pe.defaultPath)
+	if validationErr != nil && homeDir != "" {
+		// Try validating against home directory as fallback
+		validPath, validationErr = security.ValidatePathWithinBase(outputPath, homeDir)
+	}
+	if validationErr != nil {
+		result.Error = fmt.Errorf("invalid export path %q: %w", outputPath, validationErr)
+		return result, result.Error
+	}
+	outputPath = validPath
+
 	result.FilePath = outputPath
 
 	// Ensure directory exists
 	dir := filepath.Dir(outputPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, fileperms.DirUserOnly); err != nil{
 		result.Error = fmt.Errorf("failed to create directory %s: %w", dir, err)
 		return result, result.Error
 	}
@@ -144,6 +161,7 @@ func (pe *PerformanceExporter) ExportPerformanceReport(profiler *performance.Pro
 
 // exportText exports performance report as plain text
 func (pe *PerformanceExporter) exportText(data PerformanceReportData, outputPath string) error {
+	// nolint:gosec // G304: outputPath validated in ExportPerformanceReport() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -176,8 +194,8 @@ func (pe *PerformanceExporter) exportText(data PerformanceReportData, outputPath
 	}
 	if _, err := fmt.Fprintf(file, "Memory Usage: %.2f%% (%s / %s)\n",
 		data.SystemMetrics.MemoryUsage,
-		formatBytes(int64(data.SystemMetrics.MemoryUsed)),
-		formatBytes(int64(data.SystemMetrics.MemoryTotal))); err != nil {
+		formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryUsed)),
+		formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryTotal))); err != nil {
 		return err
 	}
 	if _, err := fmt.Fprintf(file, "Goroutines: %d\n", data.SystemMetrics.GoroutineCount); err != nil {
@@ -237,6 +255,7 @@ func (pe *PerformanceExporter) exportText(data PerformanceReportData, outputPath
 
 // exportJSON exports performance report as JSON
 func (pe *PerformanceExporter) exportJSON(data PerformanceReportData, outputPath string) error {
+	// nolint:gosec // G304: outputPath validated in ExportPerformanceReport() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -255,6 +274,7 @@ func (pe *PerformanceExporter) exportJSON(data PerformanceReportData, outputPath
 
 // exportCSV exports performance report as CSV
 func (pe *PerformanceExporter) exportCSV(data PerformanceReportData, outputPath string) error {
+	// nolint:gosec // G304: outputPath validated in ExportPerformanceReport() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -291,10 +311,10 @@ func (pe *PerformanceExporter) exportCSV(data PerformanceReportData, outputPath 
 	if err := writer.Write([]string{"Memory Usage", fmt.Sprintf("%.2f%%", data.SystemMetrics.MemoryUsage)}); err != nil {
 		return err
 	}
-	if err := writer.Write([]string{"Memory Used", formatBytes(int64(data.SystemMetrics.MemoryUsed))}); err != nil {
+	if err := writer.Write([]string{"Memory Used", formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryUsed))}); err != nil {
 		return err
 	}
-	if err := writer.Write([]string{"Memory Total", formatBytes(int64(data.SystemMetrics.MemoryTotal))}); err != nil {
+	if err := writer.Write([]string{"Memory Total", formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryTotal))}); err != nil {
 		return err
 	}
 	if err := writer.Write([]string{"Goroutines", fmt.Sprintf("%d", data.SystemMetrics.GoroutineCount)}); err != nil {
@@ -330,6 +350,7 @@ func (pe *PerformanceExporter) exportCSV(data PerformanceReportData, outputPath 
 
 // exportMarkdown exports performance report as Markdown
 func (pe *PerformanceExporter) exportMarkdown(data PerformanceReportData, outputPath string) error {
+	// nolint:gosec // G304: outputPath validated in ExportPerformanceReport() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -363,10 +384,10 @@ func (pe *PerformanceExporter) exportMarkdown(data PerformanceReportData, output
 	if _, err := fmt.Fprintf(file, "| Memory Usage | %.2f%% |\n", data.SystemMetrics.MemoryUsage); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(file, "| Memory Used | %s |\n", formatBytes(int64(data.SystemMetrics.MemoryUsed))); err != nil {
+	if _, err := fmt.Fprintf(file, "| Memory Used | %s |\n", formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryUsed))); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(file, "| Memory Total | %s |\n", formatBytes(int64(data.SystemMetrics.MemoryTotal))); err != nil {
+	if _, err := fmt.Fprintf(file, "| Memory Total | %s |\n", formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryTotal))); err != nil {
 		return err
 	}
 	if _, err := fmt.Fprintf(file, "| Goroutines | %d |\n", data.SystemMetrics.GoroutineCount); err != nil {
@@ -419,6 +440,7 @@ func (pe *PerformanceExporter) exportMarkdown(data PerformanceReportData, output
 
 // exportHTML exports performance report as HTML
 func (pe *PerformanceExporter) exportHTML(data PerformanceReportData, outputPath string) error {
+	// nolint:gosec // G304: outputPath validated in ExportPerformanceReport() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -507,7 +529,7 @@ func (pe *PerformanceExporter) exportHTML(data PerformanceReportData, outputPath
 			case int64:
 				return formatBytes(v)
 			case uint64:
-				return formatBytes(int64(v))
+				return formatBytes(mathutil.Uint64ToInt64(v))
 			default:
 				return "0 B"
 			}
@@ -542,7 +564,7 @@ func (pe *PerformanceExporter) GetDefaultPath() string {
 // SetDefaultPath sets the default export path
 func (pe *PerformanceExporter) SetDefaultPath(path string) {
 	pe.defaultPath = path
-	_ = os.MkdirAll(path, 0755)
+	_ = os.MkdirAll(path, fileperms.DirUserOnly)
 }
 
 // BatchExportReports exports multiple performance reports in different formats

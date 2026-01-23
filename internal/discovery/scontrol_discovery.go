@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jontk/s9s/internal/debug"
+	"github.com/jontk/s9s/internal/security"
 )
 
 // ScontrolDiscovery discovers SLURM clusters by parsing scontrol ping output
@@ -28,8 +29,14 @@ type ScontrolResult struct {
 
 // NewScontrolDiscovery creates a new ScontrolDiscovery instance
 func NewScontrolDiscovery() DiscoveryMethod {
+	// Validate scontrol path, fall back to original if validation fails
+	scontrolPath := "scontrol"
+	if validated, err := security.ValidateAndResolveCommand(scontrolPath, "slurm"); err == nil {
+		scontrolPath = validated
+	}
+
 	return &ScontrolDiscovery{
-		scontrolPath: "scontrol",
+		scontrolPath: scontrolPath,
 		timeout:      10 * time.Second,
 		defaultPort:  6820,
 	}
@@ -37,13 +44,18 @@ func NewScontrolDiscovery() DiscoveryMethod {
 
 // NewScontrolDiscoveryWithConfig creates a new ScontrolDiscovery with custom configuration
 func NewScontrolDiscoveryWithConfig(scontrolPath string, timeout time.Duration, defaultPort int) DiscoveryMethod {
+	// Validate scontrol path, fall back to original if validation fails
+	if scontrolPath == "" {
+		scontrolPath = "scontrol"
+	}
+	if validated, err := security.ValidateAndResolveCommand(scontrolPath, "slurm"); err == nil {
+		scontrolPath = validated
+	}
+
 	sd := &ScontrolDiscovery{
 		scontrolPath: scontrolPath,
 		timeout:      timeout,
 		defaultPort:  defaultPort,
-	}
-	if sd.scontrolPath == "" {
-		sd.scontrolPath = "scontrol"
 	}
 	if sd.timeout == 0 {
 		sd.timeout = 10 * time.Second
@@ -73,6 +85,7 @@ func (sd *ScontrolDiscovery) Discover(ctx context.Context) ([]*DiscoveredCluster
 	defer cancel()
 
 	// Execute scontrol ping
+	// nolint:gosec // G204: Command path is validated during initialization via security.ValidateAndResolveCommand
 	cmd := exec.CommandContext(ctxWithTimeout, sd.scontrolPath, "ping")
 	output, err := cmd.Output()
 	if err != nil {

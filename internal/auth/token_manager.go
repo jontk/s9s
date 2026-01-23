@@ -168,6 +168,7 @@ func (tm *TokenManager) saveToKeyring(clusterName string, token *Token) error {
 func (tm *TokenManager) loadFromFile(clusterName string) (*Token, error) {
 	cachePath := filepath.Join(tm.cacheDir, TokenCacheFile)
 
+	// nolint:gosec // G304: cachePath is application-controlled (cacheDir from config), not user input
 	data, err := os.ReadFile(cachePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -200,6 +201,7 @@ func (tm *TokenManager) saveToFile(clusterName string, token *Token) error {
 
 	// Load existing cache
 	cache := make(map[string]*Token)
+	// nolint:gosec // G304: cachePath is application-controlled (cacheDir from config), not user input
 	if data, err := os.ReadFile(cachePath); err == nil {
 		_ = json.Unmarshal(data, &cache)
 	}
@@ -222,6 +224,7 @@ func (tm *TokenManager) removeFromFile(clusterName string) error {
 
 	// Load existing cache
 	cache := make(map[string]*Token)
+	// nolint:gosec // G304: cachePath is application-controlled (cacheDir from config), not user input
 	if data, err := os.ReadFile(cachePath); err == nil {
 		_ = json.Unmarshal(data, &cache)
 	}

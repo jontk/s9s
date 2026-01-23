@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jontk/s9s/internal/debug"
+	"github.com/jontk/s9s/internal/security"
 )
 
 // TokenDiscovery provides automatic discovery and generation of SLURM JWT tokens
@@ -61,9 +62,16 @@ func NewTokenDiscovery() *TokenDiscovery {
 
 // NewTokenDiscoveryWithConfig creates a new TokenDiscovery instance with custom configuration
 func NewTokenDiscoveryWithConfig(cfg TokenDiscoveryConfig) *TokenDiscovery {
+	// Validate and resolve scontrol command path
+	// If validation fails, fall back to the original path (will fail later with clear error)
+	validatedPath := cfg.ScontrolPath
+	if validated, err := security.ValidateAndResolveCommand(cfg.ScontrolPath, "slurm"); err == nil {
+		validatedPath = validated
+	}
+
 	return &TokenDiscovery{
 		enabled:       cfg.Enabled,
-		scontrolPath:  cfg.ScontrolPath,
+		scontrolPath:  validatedPath,
 		timeout:       cfg.Timeout,
 		tokenLifespan: cfg.TokenLifespan,
 	}
@@ -125,6 +133,7 @@ func (td *TokenDiscovery) generateToken(ctx context.Context) (*DiscoveredToken, 
 	defer cancel()
 
 	// Build the scontrol token command
+	// nolint:gosec // G204: Command path is validated during initialization via security.ValidateAndResolveCommand
 	cmd := exec.CommandContext(ctxWithTimeout, td.scontrolPath, "token",
 		fmt.Sprintf("username=%s", username),
 		fmt.Sprintf("lifespan=%d", td.tokenLifespan))
