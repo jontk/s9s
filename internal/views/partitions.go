@@ -544,7 +544,7 @@ func (v *PartitionsView) scheduleRefresh() {
 // onPartitionSelect handles partition selection
 func (v *PartitionsView) onPartitionSelect(row, col int) {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -574,7 +574,7 @@ func (v *PartitionsView) onFilterDone(key tcell.Key) {
 // showPartitionDetails shows detailed information for the selected partition
 func (v *PartitionsView) showPartitionDetails() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -680,7 +680,7 @@ func (v *PartitionsView) formatPartitionDetails(partition *dao.Partition) string
 // showPartitionJobs shows jobs for the selected partition
 func (v *PartitionsView) showPartitionJobs() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -693,7 +693,7 @@ func (v *PartitionsView) showPartitionJobs() {
 // showPartitionNodes shows nodes for the selected partition
 func (v *PartitionsView) showPartitionNodes() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -706,7 +706,7 @@ func (v *PartitionsView) showPartitionNodes() {
 // showPartitionAnalytics shows comprehensive analytics for the selected partition
 func (v *PartitionsView) showPartitionAnalytics() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 

@@ -264,7 +264,7 @@ func OLD_showJobTemplateSelector(v *JobsView) {
 
 	// Add "Save Current as Template" option if a job is selected
 	data := v.table.GetSelectedData()
-	if data != nil && len(data) > 0 {
+	if len(data) > 0 {
 		list.AddItem("Save Current Job as Template", "Save selected job as a reusable template", 0, func() {
 			v.saveJobAsTemplate(data[0])
 			if v.pages != nil {

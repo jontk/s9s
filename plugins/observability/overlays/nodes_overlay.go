@@ -387,7 +387,7 @@ func (o *NodesOverlay) refreshMetrics(ctx context.Context) error {
 		// Convert to time series
 		metrics := make(map[string]*models.TimeSeries)
 		for queryName, result := range results {
-			if result.Data.Result != nil && len(result.Data.Result) > 0 {
+			if len(result.Data.Result) > 0 {
 				ts := convertToTimeSeries(queryName, result)
 				if ts != nil {
 					metrics[queryName] = ts

@@ -10,6 +10,8 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/ssh"
 	"github.com/rivo/tview"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // SSHTerminalView provides an SSH terminal interface
@@ -360,7 +362,7 @@ func (v *SSHTerminalView) showSystemInfo() {
 					if len(value) > 200 {
 						value = value[:200] + "..."
 					}
-					infoText.WriteString(fmt.Sprintf("  [cyan]%s:[white] %s\n", strings.Title(strings.ReplaceAll(key, "_", " ")), value))
+					infoText.WriteString(fmt.Sprintf("  [cyan]%s:[white] %s\n", cases.Title(language.English).String(strings.ReplaceAll(key, "_", " ")), value))
 				}
 			}
 			infoText.WriteString("\n")

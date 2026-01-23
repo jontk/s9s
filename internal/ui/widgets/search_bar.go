@@ -305,7 +305,7 @@ func (sb *SearchBar) updateLayout() {
 
 // updateResultsView updates the search results display
 func (sb *SearchBar) updateResultsView() {
-	if sb.currentResults == nil || len(sb.currentResults) == 0 {
+	if len(sb.currentResults) == 0 {
 		sb.resultsView.SetText("[gray]No search results[white]")
 		return
 	}

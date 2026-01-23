@@ -243,7 +243,7 @@ func TestMultiSelectTableCompatibility(t *testing.T) {
 		// Simulate row selection
 		data := table.GetSelectedData()
 		// In compatibility mode, should return single row or nil
-		if data != nil && len(data) > 4 {
+		if len(data) > 4 {
 			t.Error("Compatibility mode should return single row data")
 		}
 

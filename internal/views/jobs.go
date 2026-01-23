@@ -554,7 +554,7 @@ func (v *JobsView) scheduleRefresh() {
 func (v *JobsView) onJobSelect(row, col int) {
 	// Get selected job data
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -585,7 +585,7 @@ func (v *JobsView) onFilterDone(key tcell.Key) {
 // cancelSelectedJob cancels the selected job
 func (v *JobsView) cancelSelectedJob() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		debug.Logger.Printf("cancelSelectedJob() - no data selected")
 		return
 	}
@@ -674,7 +674,7 @@ func (v *JobsView) performCancelJob(jobID string) {
 // holdSelectedJob holds the selected job
 func (v *JobsView) holdSelectedJob() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		debug.Logger.Printf("holdSelectedJob() - no data selected")
 		return
 	}
@@ -724,7 +724,7 @@ func (v *JobsView) holdSelectedJob() {
 // releaseSelectedJob releases the selected job
 func (v *JobsView) releaseSelectedJob() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		debug.Logger.Printf("releaseSelectedJob() - no data selected")
 		return
 	}
@@ -775,7 +775,7 @@ func (v *JobsView) releaseSelectedJob() {
 // showJobDetails shows detailed information for the selected job
 func (v *JobsView) showJobDetails() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -885,7 +885,7 @@ func (v *JobsView) formatJobDetails(job *dao.Job) string {
 // showJobOutput shows job output logs using the new output viewer
 func (v *JobsView) showJobOutput() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		if v.mainStatusBar != nil {
 			v.mainStatusBar.Warning("No job selected")
 		}
@@ -925,7 +925,7 @@ func (v *JobsView) performJobSubmission(jobSub *dao.JobSubmission) {
 // requeueSelectedJob requeues the selected job
 func (v *JobsView) requeueSelectedJob() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -1008,7 +1008,7 @@ func (v *JobsView) showJobTemplateSelector() {
 // showJobActions shows an action menu for the selected job
 func (v *JobsView) showJobActions() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
@@ -1203,7 +1203,7 @@ func (v *JobsView) showBatchOperations() {
 	} else {
 		// If no jobs selected, use currently highlighted job
 		data := v.table.GetSelectedData()
-		if data != nil && len(data) > 0 {
+		if len(data) > 0 {
 			selectedJobs = append(selectedJobs, data[0])
 			jobData := map[string]interface{}{
 				"name":  data[1],
@@ -1253,7 +1253,7 @@ func (v *JobsView) showJobSelectionMenu() {
 
 	list.AddItem("Select Current Job", "Select the currently highlighted job", 0, func() {
 		data := v.table.GetSelectedData()
-		if data != nil && len(data) > 0 {
+		if len(data) > 0 {
 			v.selectedJobs[data[0]] = true
 		}
 		v.closeBatchMenu()

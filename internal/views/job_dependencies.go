@@ -20,7 +20,7 @@ type JobDependency struct {
 // showJobDependencies shows job dependency visualization
 func (v *JobsView) showJobDependencies() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}

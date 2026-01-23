@@ -260,7 +260,7 @@ func TestMultiSelectTableFunctionality(t *testing.T) {
 		// In compatibility mode, GetSelectedData should work for single row
 		data := table.GetSelectedData()
 		// Should return nil or valid single row data (not crash)
-		if data != nil && len(data) > 10 {
+		if len(data) > 10 {
 			t.Error("Compatibility mode should return reasonable single row data")
 		}
 

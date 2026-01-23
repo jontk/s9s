@@ -219,13 +219,6 @@ func (j *jobManager) Submit(job *JobSubmission) (string, error) {
 	return result.JobID, nil
 }
 
-// simulateJobSubmission creates a simulated job for testing/demo purposes
-func (j *jobManager) simulateJobSubmission(job *JobSubmission) (string, error) {
-	// Generate a simple job ID (in real implementation, this would come from SLURM)
-	jobID := fmt.Sprintf("sim_%d", time.Now().Unix())
-	return jobID, nil
-}
-
 // convertJobSubmissionToSlurm converts our JobSubmission to the format expected by slurm-client
 func convertJobSubmissionToSlurm(job *JobSubmission) *slurm.JobSubmission {
 	// Convert time limit from string to int (minutes)
@@ -306,33 +299,6 @@ func (j *jobManager) Requeue(id string) (*Job, error) {
 
 	// Get the updated job details
 	return j.Get(id)
-}
-
-// simulateRequeue simulates a requeue operation for testing/demo purposes
-func (j *jobManager) simulateRequeue(id string) (*Job, error) {
-	// Get the existing job
-	existingJob, err := j.Get(id)
-	if err != nil {
-		return nil, errors.DAOError("get", "job", err).WithContext("job_id", id).WithContext("operation", "requeue")
-	}
-
-	// Check if job can be requeued (must be completed, failed, or cancelled)
-	if existingJob.State != "COMPLETED" && existingJob.State != "FAILED" && existingJob.State != "CANCELLED" {
-		return nil, errors.Invalid("job_state", fmt.Sprintf("job %s cannot be requeued (current state: %s)", id, existingJob.State))
-	}
-
-	// Create a new job with a new ID but same parameters
-	newJobID := fmt.Sprintf("sim_%d", time.Now().Unix())
-	requeuedJob := *existingJob // Copy the job
-	requeuedJob.ID = newJobID
-	requeuedJob.State = "PENDING"
-	requeuedJob.SubmitTime = time.Now()
-	requeuedJob.StartTime = nil
-	requeuedJob.EndTime = nil
-	requeuedJob.ExitCode = nil
-	requeuedJob.TimeUsed = "0:00:00"
-
-	return &requeuedJob, nil
 }
 
 func (j *jobManager) GetOutput(id string) (string, error) {

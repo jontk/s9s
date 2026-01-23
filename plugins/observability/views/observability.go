@@ -444,11 +444,11 @@ func (v *ObservabilityView) fetchNodeMetrics(ctx context.Context) error {
 	// Add extra safety checks
 	if v.client == nil {
 		logging.Error("observability-view", "Prometheus client not initialized")
-		return fmt.Errorf("Prometheus client not initialized")
+		return fmt.Errorf("prometheus client not initialized")
 	}
 	if v.queryBuilder == nil {
 		logging.Error("observability-view", "Query builder not initialized")
-		return fmt.Errorf("Query builder not initialized")
+		return fmt.Errorf("query builder not initialized")
 	}
 
 	// Get list of nodes - in a real implementation, this would come from SLURM
@@ -531,7 +531,7 @@ func (v *ObservabilityView) fetchNodeMetrics(ctx context.Context) error {
 		// Convert results to TimeSeries
 		metrics := make(map[string]*models.TimeSeries)
 		for queryName, result := range results {
-			if result.Data.Result != nil && len(result.Data.Result) > 0 {
+			if len(result.Data.Result) > 0 {
 				logging.Debug("observability-view", "Query %s returned %d results for node %s",
 					queryName, len(result.Data.Result), nodeName)
 				// Convert first result to TimeSeries
@@ -609,7 +609,7 @@ func (v *ObservabilityView) fetchJobMetrics(ctx context.Context) error {
 		metrics := make(map[string]*models.TimeSeries)
 		foundMetrics := 0
 		for queryName, result := range results {
-			if result.Data.Result != nil && len(result.Data.Result) > 0 {
+			if len(result.Data.Result) > 0 {
 				logging.Debug("observability-view", "Job %s query %s returned %d results", jobID, queryName, len(result.Data.Result))
 
 				// Log the actual result for debugging
