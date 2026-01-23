@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jontk/s9s/internal/debug"
+	"github.com/jontk/s9s/internal/mathutil"
 )
 
 // AdvancedLoadBalancer provides sophisticated load balancing with health checking
@@ -240,7 +241,9 @@ func secureRandInt(max int) int {
 
 	// Convert bytes to uint64 and take modulo
 	randomValue := binary.BigEndian.Uint64(buf[:])
-	return int(randomValue % uint64(max))
+	result := randomValue % uint64(max)
+	// Safe conversion: result is guaranteed to be < max, so if max fits in int, result will too
+	return mathutil.Uint64ToInt(result)
 }
 
 // Selection strategies

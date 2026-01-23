@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jontk/s9s/internal/fileperms"
+	"github.com/jontk/s9s/internal/mathutil"
 	"github.com/jontk/s9s/internal/performance"
 	"github.com/jontk/s9s/internal/security"
 )
@@ -193,8 +194,8 @@ func (pe *PerformanceExporter) exportText(data PerformanceReportData, outputPath
 	}
 	if _, err := fmt.Fprintf(file, "Memory Usage: %.2f%% (%s / %s)\n",
 		data.SystemMetrics.MemoryUsage,
-		formatBytes(int64(data.SystemMetrics.MemoryUsed)),
-		formatBytes(int64(data.SystemMetrics.MemoryTotal))); err != nil {
+		formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryUsed)),
+		formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryTotal))); err != nil {
 		return err
 	}
 	if _, err := fmt.Fprintf(file, "Goroutines: %d\n", data.SystemMetrics.GoroutineCount); err != nil {
@@ -310,10 +311,10 @@ func (pe *PerformanceExporter) exportCSV(data PerformanceReportData, outputPath 
 	if err := writer.Write([]string{"Memory Usage", fmt.Sprintf("%.2f%%", data.SystemMetrics.MemoryUsage)}); err != nil {
 		return err
 	}
-	if err := writer.Write([]string{"Memory Used", formatBytes(int64(data.SystemMetrics.MemoryUsed))}); err != nil {
+	if err := writer.Write([]string{"Memory Used", formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryUsed))}); err != nil {
 		return err
 	}
-	if err := writer.Write([]string{"Memory Total", formatBytes(int64(data.SystemMetrics.MemoryTotal))}); err != nil {
+	if err := writer.Write([]string{"Memory Total", formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryTotal))}); err != nil {
 		return err
 	}
 	if err := writer.Write([]string{"Goroutines", fmt.Sprintf("%d", data.SystemMetrics.GoroutineCount)}); err != nil {
@@ -383,10 +384,10 @@ func (pe *PerformanceExporter) exportMarkdown(data PerformanceReportData, output
 	if _, err := fmt.Fprintf(file, "| Memory Usage | %.2f%% |\n", data.SystemMetrics.MemoryUsage); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(file, "| Memory Used | %s |\n", formatBytes(int64(data.SystemMetrics.MemoryUsed))); err != nil {
+	if _, err := fmt.Fprintf(file, "| Memory Used | %s |\n", formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryUsed))); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(file, "| Memory Total | %s |\n", formatBytes(int64(data.SystemMetrics.MemoryTotal))); err != nil {
+	if _, err := fmt.Fprintf(file, "| Memory Total | %s |\n", formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryTotal))); err != nil {
 		return err
 	}
 	if _, err := fmt.Fprintf(file, "| Goroutines | %d |\n", data.SystemMetrics.GoroutineCount); err != nil {
@@ -528,7 +529,7 @@ func (pe *PerformanceExporter) exportHTML(data PerformanceReportData, outputPath
 			case int64:
 				return formatBytes(v)
 			case uint64:
-				return formatBytes(int64(v))
+				return formatBytes(mathutil.Uint64ToInt64(v))
 			default:
 				return "0 B"
 			}
