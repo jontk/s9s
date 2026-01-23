@@ -10,6 +10,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/rivo/tview"
+	"github.com/jontk/s9s/internal/fileperms"
 )
 
 // JobTemplate represents a saved job configuration
@@ -31,7 +32,7 @@ func NewJobTemplateManager() *JobTemplateManager {
 	templatesDir := filepath.Join(homeDir, ".s9s", "templates")
 
 	// Create templates directory if it doesn't exist
-	_ = os.MkdirAll(templatesDir, 0755)
+	_ = os.MkdirAll(templatesDir, fileperms.ConfigDir)
 
 	manager := &JobTemplateManager{
 		templatesDir: templatesDir,
@@ -90,7 +91,7 @@ func (m *JobTemplateManager) saveTemplate(template JobTemplate) error {
 		return err
 	}
 
-	return os.WriteFile(templatePath, data, 0644)
+	return os.WriteFile(templatePath, data, fileperms.ConfigFile)
 }
 
 /*

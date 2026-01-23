@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/jontk/s9s/internal/config"
+	"github.com/jontk/s9s/internal/fileperms"
 	"github.com/jontk/s9s/internal/security"
 	"github.com/spf13/cobra"
 )
@@ -76,7 +77,7 @@ func runConfigEdit(cmd *cobra.Command, args []string) error {
 
 	// Create directory if it doesn't exist
 	configDir := filepath.Dir(configPath)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, fileperms.ConfigDir); err != nil{
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -232,7 +233,7 @@ aliases:
 plugins: []
 `
 
-	return os.WriteFile(path, []byte(defaultConfig), 0644)
+	return os.WriteFile(path, []byte(defaultConfig), fileperms.ConfigFile)
 }
 
 func getDefaultEditor() string {

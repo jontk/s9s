@@ -15,6 +15,7 @@ import (
 	"github.com/jontk/s9s/internal/debug"
 	"golang.org/x/term"
 	"gopkg.in/yaml.v2"
+	"github.com/jontk/s9s/internal/fileperms"
 )
 
 // SetupWizard guides users through initial s9s configuration
@@ -639,7 +640,7 @@ func (w *SetupWizard) saveConfiguration() error {
 	}
 
 	configDir := filepath.Join(homeDir, ".s9s")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, fileperms.ConfigDir); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -651,7 +652,7 @@ func (w *SetupWizard) saveConfiguration() error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(configPath, yamlData, 0644); err != nil {
+	if err := os.WriteFile(configPath, yamlData, fileperms.ConfigFile); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

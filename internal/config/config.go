@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jontk/s9s/internal/fileperms"
 	"github.com/spf13/viper"
 )
 
@@ -246,7 +247,7 @@ func LoadWithPath(configPath string) (*Config, error) {
 
 	// Ensure config directory exists
 	configDir := filepath.Join(os.Getenv("HOME"), ".s9s")
-	_ = os.MkdirAll(configDir, 0755)
+	_ = os.MkdirAll(configDir, fileperms.ConfigDir)
 
 	return cfg, nil
 }

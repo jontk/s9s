@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jontk/s9s/internal/streaming"
+	"github.com/jontk/s9s/internal/fileperms"
 )
 
 // StreamingPreferences represents user preferences for streaming functionality
@@ -141,11 +142,11 @@ func (m *StreamingPreferencesManager) Save() error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(m.configPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, fileperms.ConfigDir); err != nil {
 		return err
 	}
 
-	return os.WriteFile(m.configPath, data, 0644)
+	return os.WriteFile(m.configPath, data, fileperms.ConfigFile)
 }
 
 // GetPreferences returns a copy of the current preferences

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"github.com/jontk/s9s/internal/fileperms"
 )
 
 // FilterPreset represents a saved filter configuration
@@ -28,7 +29,7 @@ func NewPresetManager() *PresetManager {
 	presetsDir := filepath.Join(homeDir, ".s9s", "filters")
 
 	// Create presets directory if it doesn't exist
-	_ = os.MkdirAll(presetsDir, 0755)
+	_ = os.MkdirAll(presetsDir, fileperms.ConfigDir)
 
 	manager := &PresetManager{
 		presetsDir: presetsDir,
@@ -98,7 +99,7 @@ func (m *PresetManager) savePresets() error {
 		return err
 	}
 
-	return os.WriteFile(presetsFile, data, 0644)
+	return os.WriteFile(presetsFile, data, fileperms.ConfigFile)
 }
 
 // createDefaultPresets creates default filter presets

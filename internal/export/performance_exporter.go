@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jontk/s9s/internal/fileperms"
 	"github.com/jontk/s9s/internal/performance"
 	"github.com/jontk/s9s/internal/security"
 )
@@ -28,7 +29,7 @@ func NewPerformanceExporter(defaultPath string) *PerformanceExporter {
 	}
 
 	// Ensure export directory exists
-	_ = os.MkdirAll(defaultPath, 0755)
+	_ = os.MkdirAll(defaultPath, fileperms.DirUserOnly)
 
 	return &PerformanceExporter{
 		defaultPath: defaultPath,
@@ -121,7 +122,7 @@ func (pe *PerformanceExporter) ExportPerformanceReport(profiler *performance.Pro
 
 	// Ensure directory exists
 	dir := filepath.Dir(outputPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, fileperms.DirUserOnly); err != nil{
 		result.Error = fmt.Errorf("failed to create directory %s: %w", dir, err)
 		return result, result.Error
 	}
@@ -562,7 +563,7 @@ func (pe *PerformanceExporter) GetDefaultPath() string {
 // SetDefaultPath sets the default export path
 func (pe *PerformanceExporter) SetDefaultPath(path string) {
 	pe.defaultPath = path
-	_ = os.MkdirAll(path, 0755)
+	_ = os.MkdirAll(path, fileperms.DirUserOnly)
 }
 
 // BatchExportReports exports multiple performance reports in different formats

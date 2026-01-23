@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jontk/s9s/internal/fileperms"
 	"github.com/jontk/s9s/internal/security"
 )
 
@@ -38,7 +39,7 @@ func NewJobOutputExporter(defaultPath string) *JobOutputExporter {
 	}
 
 	// Ensure export directory exists
-	_ = os.MkdirAll(defaultPath, 0755)
+	_ = os.MkdirAll(defaultPath, fileperms.DirUserOnly)
 
 	return &JobOutputExporter{
 		defaultPath: defaultPath,
@@ -124,7 +125,7 @@ func (e *JobOutputExporter) Export(data JobOutputData, format ExportFormat, cust
 
 	// Ensure directory exists
 	dir := filepath.Dir(outputPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, fileperms.DirUserOnly); err != nil {
 		result.Error = fmt.Errorf("failed to create directory %s: %w", dir, err)
 		return result, result.Error
 	}
@@ -328,7 +329,7 @@ func (e *JobOutputExporter) GetDefaultPath() string {
 // SetDefaultPath sets the default export path
 func (e *JobOutputExporter) SetDefaultPath(path string) {
 	e.defaultPath = path
-	_ = os.MkdirAll(path, 0755)
+	_ = os.MkdirAll(path, fileperms.DirUserOnly)
 }
 
 // BatchExport exports multiple job outputs in the specified format

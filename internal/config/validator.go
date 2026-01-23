@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jontk/s9s/internal/debug"
+	"github.com/jontk/s9s/internal/fileperms"
 )
 
 // ConfigValidationResult represents the result of configuration validation
@@ -305,7 +306,7 @@ func (v *ConfigValidator) validatePaths() {
 	configDir := filepath.Join(homeDir, ".s9s")
 	if !v.directoryExists(configDir) {
 		if v.autoFix {
-			if err := os.MkdirAll(configDir, 0755); err != nil {
+			if err := os.MkdirAll(configDir, fileperms.ConfigDir); err != nil {
 				v.addError("paths",
 					fmt.Sprintf("Cannot create config directory: %s", configDir),
 					"Create directory manually with proper permissions", false)
@@ -328,7 +329,7 @@ func (v *ConfigValidator) validatePaths() {
 	// Check cache directory
 	cacheDir := filepath.Join(configDir, "cache")
 	if !v.directoryExists(cacheDir) && v.autoFix {
-		if err := os.MkdirAll(cacheDir, 0755); err == nil {
+		if err := os.MkdirAll(cacheDir, fileperms.DirUserOnly); err == nil {
 			v.result.Fixes = append(v.result.Fixes, ValidationFix{
 				Field:       "paths.cache_dir",
 				Description: "Created cache directory",
@@ -342,7 +343,7 @@ func (v *ConfigValidator) validatePaths() {
 	// Check logs directory
 	logsDir := filepath.Join(configDir, "logs")
 	if !v.directoryExists(logsDir) && v.autoFix {
-		if err := os.MkdirAll(logsDir, 0755); err == nil {
+		if err := os.MkdirAll(logsDir, fileperms.LogDir); err == nil {
 			v.result.Fixes = append(v.result.Fixes, ValidationFix{
 				Field:       "paths.logs_dir",
 				Description: "Created logs directory",
