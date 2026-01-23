@@ -322,37 +322,53 @@ func TestLoad(t *testing.T) {
 	// Save current environment
 	oldSlurmRestURL := os.Getenv("SLURM_REST_URL")
 	oldSlurmJWT := os.Getenv("SLURM_JWT")
-	defer func() {
-		if oldSlurmRestURL != "" {
-			_ = os.Setenv("SLURM_REST_URL", oldSlurmRestURL)
-		} else {
-			_ = os.Unsetenv("SLURM_REST_URL")
-		}
-		if oldSlurmJWT != "" {
-			_ = os.Setenv("SLURM_JWT", oldSlurmJWT)
-		} else {
-			_ = os.Unsetenv("SLURM_JWT")
-		}
-	}()
 
-	// Clear environment
-	_ = os.Unsetenv("SLURM_REST_URL")
-	_ = os.Unsetenv("SLURM_JWT")
+	// Ensure we have environment variables set for this test
+	if oldSlurmRestURL == "" {
+		_ = os.Setenv("SLURM_REST_URL", "http://localhost:6820")
+		defer func() {
+			_ = os.Unsetenv("SLURM_REST_URL")
+		}()
+	}
+	if oldSlurmJWT == "" {
+		_ = os.Setenv("SLURM_JWT", "test-token")
+		defer func() {
+			_ = os.Unsetenv("SLURM_JWT")
+		}()
+	}
 
 	// Test Load() function
 	cfg, err := Load()
 
-	// Should not error even if no config file exists
-	// It will return a config with defaults
+	// Should succeed with environment variables set or config file present
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
 	// Verify some basic defaults are set
 	assert.NotEmpty(t, cfg.RefreshRate)
 	assert.NotZero(t, cfg.MaxRetries)
+	// Verify cluster config is populated
+	assert.NotEmpty(t, cfg.Cluster.Endpoint)
 }
 
 func TestLoadWithEmptyPath(t *testing.T) {
+	// Ensure we have environment variables set for this test
+	oldSlurmRestURL := os.Getenv("SLURM_REST_URL")
+	oldSlurmJWT := os.Getenv("SLURM_JWT")
+
+	if oldSlurmRestURL == "" {
+		_ = os.Setenv("SLURM_REST_URL", "http://localhost:6820")
+		defer func() {
+			_ = os.Unsetenv("SLURM_REST_URL")
+		}()
+	}
+	if oldSlurmJWT == "" {
+		_ = os.Setenv("SLURM_JWT", "test-token")
+		defer func() {
+			_ = os.Unsetenv("SLURM_JWT")
+		}()
+	}
+
 	// Test that LoadWithPath("") works like Load()
 	cfg, err := LoadWithPath("")
 
@@ -362,6 +378,8 @@ func TestLoadWithEmptyPath(t *testing.T) {
 	// Should have some defaults
 	assert.NotEmpty(t, cfg.RefreshRate)
 	assert.NotZero(t, cfg.MaxRetries)
+	// Verify cluster config is populated
+	assert.NotEmpty(t, cfg.Cluster.Endpoint)
 }
 
 func TestLoadWithNonExistentFile(t *testing.T) {
