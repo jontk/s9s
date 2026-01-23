@@ -65,6 +65,9 @@ func (mst *MultiSelectTable) IsMultiSelectMode() bool {
 
 // SetShowCheckboxes controls whether to show selection checkboxes
 func (mst *MultiSelectTable) SetShowCheckboxes(show bool) {
+	mst.mu.Lock()
+	defer mst.mu.Unlock()
+
 	mst.showCheckboxes = show
 	mst.refreshDisplay()
 }
@@ -78,9 +81,13 @@ func (mst *MultiSelectTable) ToggleRow(row int) {
 		return
 	}
 
-	// Adjust for header row
+	// Adjust for header row and check bounds with Table mutex protection
 	dataRow := row - 1
-	if dataRow < 0 || dataRow >= len(mst.filteredData) {
+	mst.Table.mu.RLock()
+	filteredDataLen := len(mst.filteredData)
+	mst.Table.mu.RUnlock()
+
+	if dataRow < 0 || dataRow >= filteredDataLen {
 		return
 	}
 
@@ -96,18 +103,25 @@ func (mst *MultiSelectTable) ToggleRow(row int) {
 	mst.updateSelectAllStateUnsafe()
 	mst.refreshDisplay()
 
-	// Notify callback (call outside of lock to avoid deadlock)
+	// Prepare callback data with Table mutex protection
 	var callRowToggle func()
 	var callSelectionChange func()
 
 	if mst.onRowToggle != nil {
 		selected := mst.selectedRows[dataRow]
-		data := mst.filteredData[dataRow]
+		mst.Table.mu.RLock()
+		var data []string
+		if dataRow < len(mst.filteredData) {
+			data = mst.filteredData[dataRow]
+		}
+		mst.Table.mu.RUnlock()
 		callRowToggle = func() { mst.onRowToggle(dataRow, selected, data) }
 	}
 
 	if mst.onSelectionChange != nil {
+		mst.Table.mu.RLock()
 		allSelected := mst.selectionCount == len(mst.filteredData)
+		mst.Table.mu.RUnlock()
 		selCount := mst.selectionCount
 		callSelectionChange = func() { mst.onSelectionChange(selCount, allSelected) }
 	}
@@ -135,10 +149,14 @@ func (mst *MultiSelectTable) SelectAll() {
 		return
 	}
 
-	for i := range mst.filteredData {
+	mst.Table.mu.RLock()
+	filteredDataLen := len(mst.filteredData)
+	mst.Table.mu.RUnlock()
+
+	for i := 0; i < filteredDataLen; i++ {
 		mst.selectedRows[i] = true
 	}
-	mst.selectionCount = len(mst.filteredData)
+	mst.selectionCount = filteredDataLen
 	mst.selectAllState = 2
 	mst.refreshDisplay()
 
@@ -196,9 +214,13 @@ func (mst *MultiSelectTable) GetSelectedData() []string {
 
 	// In multi-select mode, return the first selected row for compatibility
 	// (existing code expects []string, not [][]string)
+	mst.Table.mu.RLock()
+	filteredData := mst.filteredData
+	mst.Table.mu.RUnlock()
+
 	for row := range mst.selectedRows {
-		if row < len(mst.filteredData) {
-			return mst.filteredData[row]
+		if row < len(filteredData) {
+			return filteredData[row]
 		}
 	}
 
@@ -211,10 +233,14 @@ func (mst *MultiSelectTable) GetAllSelectedData() [][]string {
 	mst.mu.RLock()
 	defer mst.mu.RUnlock()
 
+	mst.Table.mu.RLock()
+	filteredData := mst.filteredData
+	mst.Table.mu.RUnlock()
+
 	var selectedData [][]string
 	for row := range mst.selectedRows {
-		if row < len(mst.filteredData) {
-			selectedData = append(selectedData, mst.filteredData[row])
+		if row < len(filteredData) {
+			selectedData = append(selectedData, filteredData[row])
 		}
 	}
 	return selectedData
@@ -320,8 +346,12 @@ func (mst *MultiSelectTable) InvertSelection() {
 		return
 	}
 
+	mst.Table.mu.RLock()
+	filteredDataLen := len(mst.filteredData)
+	mst.Table.mu.RUnlock()
+
 	newSelection := make(map[int]bool)
-	for i := range mst.filteredData {
+	for i := 0; i < filteredDataLen; i++ {
 		if !mst.selectedRows[i] {
 			newSelection[i] = true
 		}
@@ -333,7 +363,7 @@ func (mst *MultiSelectTable) InvertSelection() {
 	mst.refreshDisplay()
 
 	if mst.onSelectionChange != nil {
-		allSelected := mst.selectionCount == len(mst.filteredData)
+		allSelected := mst.selectionCount == filteredDataLen
 		selCount := mst.selectionCount
 		mst.mu.Unlock()
 		mst.onSelectionChange(selCount, allSelected)
@@ -365,6 +395,10 @@ func (mst *MultiSelectTable) updateSelectAllStateUnsafe() {
 
 // refreshDisplay updates the visual display with selection indicators
 func (mst *MultiSelectTable) refreshDisplay() {
+	// Acquire Table's mutex to protect tview.Table operations
+	mst.Table.mu.Lock()
+	defer mst.Table.mu.Unlock()
+
 	mst.Table.Table.Clear()
 
 	if len(mst.config.Columns) == 0 {
@@ -399,8 +433,11 @@ func (mst *MultiSelectTable) refreshDisplay() {
 		headerRow++
 	}
 
+	// Access filteredData (already protected by Table.mu.Lock above)
+	filteredData := mst.filteredData
+
 	// Add data rows with selection indicators
-	for rowIndex, rowData := range mst.filteredData {
+	for rowIndex, rowData := range filteredData {
 		displayRow := headerRow + rowIndex
 
 		for col, cellData := range rowData {
@@ -469,28 +506,38 @@ func (mst *MultiSelectTable) getSelectAllIcon() string {
 // Override SetData to maintain selections when data changes
 func (mst *MultiSelectTable) SetData(data [][]string) {
 	mst.mu.Lock()
-	defer mst.mu.Unlock()
 
 	// Store current selections by data content (for persistence across refreshes)
 	var selectedDataContent []string
 	if mst.multiSelectMode && len(mst.selectedRows) > 0 {
+		// Get filtered data through the accessor to respect Table's mutex
+		filteredData := mst.Table.GetFilteredData()
 		for row := range mst.selectedRows {
-			if row < len(mst.filteredData) && len(mst.filteredData[row]) > 0 {
+			if row < len(filteredData) && len(filteredData[row]) > 0 {
 				// Use first column (usually ID) as identifier
-				selectedDataContent = append(selectedDataContent, mst.filteredData[row][0])
+				selectedDataContent = append(selectedDataContent, filteredData[row][0])
 			}
 		}
 	}
 
+	// Unlock our mutex before calling Table.SetData which will lock Table's mutex
+	mst.mu.Unlock()
+
 	// Update base table data
 	mst.Table.SetData(data)
+
+	// Relock to update our selection state
+	mst.mu.Lock()
+	defer mst.mu.Unlock()
 
 	// Restore selections if multi-select mode is active
 	if mst.multiSelectMode && len(selectedDataContent) > 0 {
 		newSelectedRows := make(map[int]bool)
 		newSelectionCount := 0
 
-		for rowIndex, rowData := range mst.filteredData {
+		// Get updated filtered data through the accessor
+		filteredData := mst.Table.GetFilteredData()
+		for rowIndex, rowData := range filteredData {
 			if len(rowData) > 0 {
 				for _, selectedID := range selectedDataContent {
 					if rowData[0] == selectedID {

@@ -62,6 +62,11 @@ type S9s struct {
 
 // New creates a new S9s application instance
 func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
+	return NewWithScreen(ctx, cfg, nil)
+}
+
+// NewWithScreen creates a new S9s application instance with an optional screen for testing
+func NewWithScreen(ctx context.Context, cfg *config.Config, screen tcell.Screen) (*S9s, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is required")
 	}
@@ -101,6 +106,11 @@ func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
 
 	// Create tview application
 	app := tview.NewApplication()
+
+	// If a screen is provided (for testing), set it
+	if screen != nil {
+		app.SetScreen(screen)
+	}
 
 	s9s := &S9s{
 		ctx:           appCtx,
@@ -1043,4 +1053,51 @@ func (p *PluginViewAdapter) OnLoseFocus() error {
 func (p *PluginViewAdapter) Stop() error {
 	// Plugin views don't have Stop, so this is a no-op
 	return nil
+}
+
+// GetCurrentViewName returns the name of the current view
+func (s *S9s) GetCurrentViewName() string {
+	if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
+		return currentView.Name()
+	}
+	return ""
+}
+
+// GetViewManager returns the view manager (for testing)
+func (s *S9s) GetViewManager() *views.ViewManager {
+	return s.viewMgr
+}
+
+// GetApp returns the tview application (for testing)
+func (s *S9s) GetApp() *tview.Application {
+	return s.app
+}
+
+// GetPages returns the pages container (for testing)
+func (s *S9s) GetPages() *tview.Pages {
+	return s.pages
+}
+
+// IsModalOpen checks if a modal dialog is open
+func (s *S9s) IsModalOpen() bool {
+	return s.pages.GetPageCount() > 1
+}
+
+// GetModalName returns the name of the currently open modal, if any
+func (s *S9s) GetModalName() string {
+	count := s.pages.GetPageCount()
+	if count <= 1 {
+		return ""
+	}
+	// Get the topmost page name
+	name, _ := s.pages.GetFrontPage()
+	if name == "main" {
+		return ""
+	}
+	return name
+}
+
+// IsCmdVisible returns whether the command line is visible
+func (s *S9s) IsCmdVisible() bool {
+	return s.cmdVisible
 }
