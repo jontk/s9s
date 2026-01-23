@@ -127,6 +127,67 @@ type PluginSettings struct {
 	MaxCPUPercent float64 `mapstructure:"maxCPUPercent"` // CPU limit per plugin
 }
 
+// DefaultConfig returns a configuration with sensible defaults
+func DefaultConfig() *Config {
+	return &Config{
+		RefreshRate:    "5s",
+		MaxRetries:     3,
+		CurrentContext: "default",
+		Contexts:       []ContextConfig{},
+		UI: UIConfig{
+			Skin:        "default",
+			Logoless:    false,
+			Crumbsless:  false,
+			Statusless:  false,
+			Headless:    false,
+			NoIcons:     false,
+			EnableMouse: false,
+		},
+		Views: ViewsConfig{
+			Jobs: JobsViewConfig{
+				Columns:        []string{"id", "name", "user", "account", "state", "partition", "nodes", "time"},
+				ShowOnlyActive: false,
+				DefaultSort:    "id",
+				MaxJobs:        100,
+			},
+			Nodes: NodesViewConfig{
+				GroupBy:          "state",
+				ShowUtilization:  true,
+				MaxNodes:         100,
+			},
+			Partitions: PartitionsViewConfig{
+				ShowQueueDepth: true,
+				ShowWaitTime:   true,
+			},
+		},
+		Features: FeaturesConfig{
+			Streaming: false,
+			Pulseye:   false,
+			Xray:      false,
+		},
+		Shortcuts:      []ShortcutConfig{},
+		Aliases:        make(map[string]string),
+		Plugins:        []PluginConfig{},
+		UseMockClient:  false,
+		PluginSettings: PluginSettings{
+			EnableAll:     false,
+			PluginDir:     "",
+			AutoDiscover:  true,
+			SafeMode:      false,
+			MaxMemoryMB:   512,
+			MaxCPUPercent: 50.0,
+		},
+		Discovery: DiscoveryConfig{
+			Enabled:        false,
+			EnableEndpoint: false,
+			EnableToken:    false,
+			Timeout:        "30s",
+			DefaultPort:    6820,
+			ScontrolPath:   "/usr/bin/scontrol",
+		},
+	}
+}
+
 // Load reads configuration from file and environment
 func Load() (*Config, error) {
 	return LoadWithPath("")

@@ -148,8 +148,8 @@ func (cm *ConfigManager) loadConfiguration() {
 
 	if err != nil {
 		cm.updateStatusBar(fmt.Sprintf("[red]Error loading configuration: %v[white]", err))
-		// Create a default configuration
-		cm.currentConfig = &config.Config{}
+		// Create a default configuration with proper initialization
+		cm.currentConfig = config.DefaultConfig()
 	}
 
 	// Make a copy of the original configuration
@@ -383,12 +383,12 @@ func (cm *ConfigManager) setConfigValue(key string, value interface{}) {
 
 // getNestedValue retrieves a nested value from a struct using reflection-like path traversal
 func (cm *ConfigManager) getNestedValue(obj interface{}, path []string) interface{} {
-	if len(path) == 0 {
-		return obj
+	if obj == nil || len(path) == 0 {
+		return nil
 	}
 
 	cfg, ok := obj.(*config.Config)
-	if !ok {
+	if !ok || cfg == nil {
 		return nil
 	}
 
@@ -460,6 +460,9 @@ func (cm *ConfigManager) setNestedValue(obj interface{}, path []string, value in
 
 // Helper methods for nested struct access
 func (cm *ConfigManager) getUIValue(ui *config.UIConfig, path []string) interface{} {
+	if ui == nil {
+		return nil
+	}
 	if len(path) == 0 {
 		return ui
 	}
@@ -480,7 +483,7 @@ func (cm *ConfigManager) getUIValue(ui *config.UIConfig, path []string) interfac
 }
 
 func (cm *ConfigManager) setUIValue(ui *config.UIConfig, path []string, value interface{}) {
-	if len(path) == 0 {
+	if ui == nil || len(path) == 0 {
 		return
 	}
 
@@ -509,7 +512,7 @@ func (cm *ConfigManager) setUIValue(ui *config.UIConfig, path []string, value in
 }
 
 func (cm *ConfigManager) getViewsValue(views *config.ViewsConfig, path []string) interface{} {
-	if len(path) < 2 {
+	if views == nil || len(path) < 2 {
 		return nil
 	}
 
@@ -523,7 +526,7 @@ func (cm *ConfigManager) getViewsValue(views *config.ViewsConfig, path []string)
 }
 
 func (cm *ConfigManager) setViewsValue(views *config.ViewsConfig, path []string, value interface{}) {
-	if len(path) < 2 {
+	if views == nil || len(path) < 2 {
 		return
 	}
 
@@ -536,6 +539,9 @@ func (cm *ConfigManager) setViewsValue(views *config.ViewsConfig, path []string,
 }
 
 func (cm *ConfigManager) getJobsViewValue(jobs *config.JobsViewConfig, path []string) interface{} {
+	if jobs == nil {
+		return nil
+	}
 	if len(path) == 0 {
 		return jobs
 	}
@@ -554,7 +560,7 @@ func (cm *ConfigManager) getJobsViewValue(jobs *config.JobsViewConfig, path []st
 }
 
 func (cm *ConfigManager) setJobsViewValue(jobs *config.JobsViewConfig, path []string, value interface{}) {
-	if len(path) == 0 {
+	if jobs == nil || len(path) == 0 {
 		return
 	}
 
@@ -579,6 +585,9 @@ func (cm *ConfigManager) setJobsViewValue(jobs *config.JobsViewConfig, path []st
 }
 
 func (cm *ConfigManager) getNodesViewValue(nodes *config.NodesViewConfig, path []string) interface{} {
+	if nodes == nil {
+		return nil
+	}
 	if len(path) == 0 {
 		return nodes
 	}
@@ -593,7 +602,7 @@ func (cm *ConfigManager) getNodesViewValue(nodes *config.NodesViewConfig, path [
 }
 
 func (cm *ConfigManager) setNodesViewValue(nodes *config.NodesViewConfig, path []string, value interface{}) {
-	if len(path) == 0 {
+	if nodes == nil || len(path) == 0 {
 		return
 	}
 
@@ -610,6 +619,9 @@ func (cm *ConfigManager) setNodesViewValue(nodes *config.NodesViewConfig, path [
 }
 
 func (cm *ConfigManager) getFeaturesValue(features *config.FeaturesConfig, path []string) interface{} {
+	if features == nil {
+		return nil
+	}
 	if len(path) == 0 {
 		return features
 	}
@@ -626,7 +638,7 @@ func (cm *ConfigManager) getFeaturesValue(features *config.FeaturesConfig, path 
 }
 
 func (cm *ConfigManager) setFeaturesValue(features *config.FeaturesConfig, path []string, value interface{}) {
-	if len(path) == 0 {
+	if features == nil || len(path) == 0 {
 		return
 	}
 

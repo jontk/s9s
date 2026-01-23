@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/ui/navigation"
@@ -85,6 +86,7 @@ func DefaultTableConfig() *TableConfig {
 // Table is a reusable table component with sorting and filtering
 type Table struct {
 	*tview.Table
+	mu            sync.RWMutex // Protects data, filteredData, and table operations
 	config        *TableConfig
 	data          [][]string
 	filteredData  [][]string
@@ -133,12 +135,18 @@ func NewTable(config *TableConfig) *Table {
 
 // SetColumns sets the table columns
 func (t *Table) SetColumns(columns []Column) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	t.config.Columns = columns
 	t.refresh()
 }
 
 // SetData sets the table data
 func (t *Table) SetData(data [][]string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	t.data = data
 	t.applyFilter()
 	t.applySort()
@@ -147,16 +155,23 @@ func (t *Table) SetData(data [][]string) {
 
 // GetData returns the current table data
 func (t *Table) GetData() [][]string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	return t.data
 }
 
 // GetFilteredData returns the filtered table data
 func (t *Table) GetFilteredData() [][]string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	return t.filteredData
 }
 
 // SetFilter sets the filter string
 func (t *Table) SetFilter(filter string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	t.filter = strings.ToLower(filter)
 	t.applyFilter()
 	t.applySort()
@@ -165,11 +180,16 @@ func (t *Table) SetFilter(filter string) {
 
 // GetFilter returns the current filter
 func (t *Table) GetFilter() string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	return t.filter
 }
 
 // Sort sorts the table by the specified column
 func (t *Table) Sort(column int) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	if column < 0 || column >= len(t.config.Columns) {
 		return
 	}
@@ -204,6 +224,9 @@ func (t *Table) GetSelectedRow() int {
 
 // GetSelectedData returns the data for the currently selected row
 func (t *Table) GetSelectedData() []string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
 	row := t.GetSelectedRow()
 	if row < 0 || row >= len(t.filteredData) {
 		return nil
@@ -228,6 +251,9 @@ func (t *Table) SetOnSort(fn func(col int, ascending bool)) {
 
 // Clear clears the table
 func (t *Table) Clear() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	t.data = [][]string{}
 	t.filteredData = [][]string{}
 	t.Table.Clear()
@@ -393,6 +419,13 @@ func (t *Table) handleInput(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+// Draw overrides the base Table Draw to add mutex protection
+func (t *Table) Draw(screen tcell.Screen) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	t.Table.Draw(screen)
 }
 
 // TableBuilder provides a fluent interface for building tables

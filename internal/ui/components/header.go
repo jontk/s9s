@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jontk/s9s/internal/dao"
@@ -12,6 +13,7 @@ import (
 // Header displays cluster status and navigation information
 type Header struct {
 	*tview.TextView
+	mu            sync.RWMutex // Protects all header fields
 	clusterInfo   *dao.ClusterInfo
 	metrics       *dao.ClusterMetrics
 	currentView   string
@@ -42,12 +44,18 @@ func NewHeader() *Header {
 
 // SetClusterInfo sets the cluster information
 func (h *Header) SetClusterInfo(info *dao.ClusterInfo) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	h.clusterInfo = info
 	h.updateDisplay()
 }
 
 // SetMetrics sets the cluster metrics
 func (h *Header) SetMetrics(metrics *dao.ClusterMetrics) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	h.metrics = metrics
 	h.lastUpdate = time.Now()
 	h.updateDisplay()
@@ -55,12 +63,18 @@ func (h *Header) SetMetrics(metrics *dao.ClusterMetrics) {
 
 // SetCurrentView sets the current active view
 func (h *Header) SetCurrentView(view string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	h.currentView = view
 	h.updateDisplay()
 }
 
 // SetViews sets the available views for navigation display
 func (h *Header) SetViews(views []string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	h.views = views
 	h.updateDisplay()
 }
@@ -81,7 +95,9 @@ func (h *Header) Stop() {
 // updateLoop runs the periodic update loop
 func (h *Header) updateLoop() {
 	for range h.refreshTicker.C {
+		h.mu.Lock()
 		h.updateDisplay()
+		h.mu.Unlock()
 	}
 }
 

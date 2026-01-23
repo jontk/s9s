@@ -167,7 +167,7 @@ func NewJobsView(client dao.SlurmClient) *JobsView {
 	v.container = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(infoBar, 1, 0, false).
-		AddItem(v.table.Table, 0, 1, true)
+		AddItem(v.table, 0, 1, true)
 
 	return v
 }
@@ -237,6 +237,9 @@ func (v *JobsView) refreshInternal() error {
 
 // Stop stops the view
 func (v *JobsView) Stop() error {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	if v.refreshTimer != nil {
 		v.refreshTimer.Stop()
 	}
@@ -530,6 +533,9 @@ func (v *JobsView) updateStatusBar(message string) {
 
 // scheduleRefresh schedules the next refresh
 func (v *JobsView) scheduleRefresh() {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	// Only schedule if auto-refresh is enabled
 	if !v.autoRefresh {
 		return
@@ -1513,7 +1519,7 @@ func (v *JobsView) showAdvancedFilter() {
 	v.container.Clear()
 	v.container.
 		AddItem(v.filterBar, 5, 0, true).
-		AddItem(v.table.Table, 0, 1, false)
+		AddItem(v.table, 0, 1, false)
 
 	v.filterBar.Show()
 	// Note: Advanced filter status removed since individual view status bars are no longer used
@@ -1527,7 +1533,7 @@ func (v *JobsView) closeAdvancedFilter() {
 	v.container.Clear()
 	v.container.
 		AddItem(v.filterInput, 1, 0, false).
-		AddItem(v.table.Table, 0, 1, true)
+		AddItem(v.table, 0, 1, true)
 
 	if v.app != nil {
 		v.app.SetFocus(v.table.Table)
