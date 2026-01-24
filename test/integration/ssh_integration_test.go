@@ -366,6 +366,7 @@ func setupSSHContainer(t *testing.T) (string, error) {
 	}
 
 	// Read public key
+	// nolint:gosec // G304: publicKeyPath is test fixture in known test directory
 	pubKeyData, err := os.ReadFile(publicKeyPath)
 	if err != nil {
 		return "", err

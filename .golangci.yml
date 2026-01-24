@@ -18,8 +18,8 @@ linters:
     - ineffassign   # Ineffective assignments
     # staticcheck: 82/82 Phase 1 issues fixed (PR #13 + PR #16) ✅
     - staticcheck   # Enabled: all Phase 1 issues resolved
-    # gosec: Phase 2 progress - 15/40 file permission issues fixed (PR #17)
-    # Remaining 24 issues documented and analyzed - see docs/GOSEC_PHASE2.md
+    # gosec: Phase 2 complete - 15/40 file permission issues fixed (PR #17)
+    # Remaining 24 issues suppressed with nolint comments and security documentation
 
     # Additional linters - Phase 7
     # Note: gofumpt and goimports are handled by pre-commit hooks and Makefile
@@ -27,13 +27,12 @@ linters:
     - bodyclose     # Check HTTP response body is closed
     - errorlint     # Find code that will cause problems with Go 1.13 error wrapping (fixed in this PR)
     - wastedassign  # Finds wasted assignment statements (fixed in this PR)
+    # gosec: Phase 2 complete - 15/40 file permission issues fixed, 24 remaining analyzed
+    - gosec         # Enabled: exclusion rules configured in linters-settings
 
   disable:
     # Temporarily disabled - will be fixed in follow-up PRs
     - unused        # 1 issue
-    # gosec: 15/40 file permission issues fixed, 24 remaining issues analyzed
-    # Exclusion rules pending configuration refinement
-    - gosec
     - gocritic      # 51 pre-existing style issues (ifElseChain, singleCaseSwitch, dupBranchBody)
     - noctx         # 23 pre-existing issues in test HTTP requests
     - prealloc      # 16 pre-existing performance micro-optimizations

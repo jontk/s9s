@@ -77,6 +77,7 @@ func TestArrowKeyNavigation(t *testing.T) {
 
 	for _, arrow := range arrowKeys {
 		t.Run(arrow.name, func(t *testing.T) {
+			// nolint:gosec // G115: key codes are bounded
 			h.SendKey(tcell.Key(arrow.key), 0, tcell.ModNone)
 			time.Sleep(50 * time.Millisecond)
 
