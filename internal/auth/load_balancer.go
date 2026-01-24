@@ -217,7 +217,7 @@ func (a *AdvancedLoadBalancer) getAllManagedEndpoints() []*ManagedEndpoint {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
 
-	var all []*ManagedEndpoint
+	all := make([]*ManagedEndpoint, 0, len(a.endpoints))
 	for _, managed := range a.endpoints {
 		all = append(all, managed)
 	}

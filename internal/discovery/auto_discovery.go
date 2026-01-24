@@ -278,7 +278,7 @@ type DiscoveryResult struct {
 
 // DiscoverEndpointWithFallback tries multiple discovery methods and returns all results
 func (ad *AutoDiscovery) DiscoverEndpointWithFallback(ctx context.Context) []DiscoveryResult {
-	var results []DiscoveryResult
+	results := make([]DiscoveryResult, 0, 3)
 
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, ad.timeout)
 	defer cancel()

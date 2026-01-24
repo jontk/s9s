@@ -259,7 +259,7 @@ func (etv *EnhancedTerminalView) showNodeSelectionDialog() {
 	username := ""
 
 	// Add node selection dropdown
-	nodeOptions := make([]string, len(etv.nodes))
+	nodeOptions := make([]string, len(etv.nodes), len(etv.nodes)+1)
 	copy(nodeOptions, etv.nodes)
 	nodeOptions = append(nodeOptions, "Custom...")
 

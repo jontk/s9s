@@ -223,7 +223,7 @@ func (m *Manager) ListPlugins() []PluginInfo {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var plugins []PluginInfo
+	plugins := make([]PluginInfo, 0, len(m.plugins))
 	for name, plugin := range m.plugins {
 		info := plugin.GetInfo()
 		state := m.states[name]

@@ -170,6 +170,7 @@ func (f *FileSecureStore) promptForPassword(prompt string) (string, error) {
 	fmt.Print(prompt)
 
 	// Use terminal package for secure password input
+	// nolint:unconvert // Needed for Windows compatibility: syscall.Stdin is Handle on Windows, int on Unix
 	password, err := term.ReadPassword(int(syscall.Stdin))
 	fmt.Println() // Print newline after password input
 

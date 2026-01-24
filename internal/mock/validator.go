@@ -101,6 +101,7 @@ func confirmMockInProduction() bool {
 	fmt.Print("Are you sure you want to continue with mock mode in production? (yes/no): ")
 
 	// Try to read from terminal first
+	// nolint:unconvert // Needed for Windows compatibility: syscall.Stdin is Handle on Windows, int on Unix
 	if term.IsTerminal(int(syscall.Stdin)) {
 		scanner := bufio.NewScanner(os.Stdin)
 		if scanner.Scan() {

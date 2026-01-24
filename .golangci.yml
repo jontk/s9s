@@ -35,9 +35,6 @@ linters:
     - unused        # 1 issue
     - gocritic      # 51 pre-existing style issues (ifElseChain, singleCaseSwitch, dupBranchBody)
     - noctx         # 23 pre-existing issues in test HTTP requests
-    - prealloc      # 16 pre-existing performance micro-optimizations
-    - unconvert     # 8 pre-existing unnecessary type conversions
-    - unparam       # 38 pre-existing unused parameters
 
 linters-settings:
   errcheck:
@@ -150,18 +147,15 @@ issues:
         - gosec
       path: "(internal/auth|internal/config|internal/cli)/"
 
-    # Pre-existing unconvert issues
-    - linters:
-        - unconvert
-
-    # Pre-existing unparam issues (except in files we specifically modified)
-    - linters:
-        - unparam
-      path: "internal/(views|ui|layouts|discovery|monitoring|ssh)/"
-
-    # Pre-existing prealloc suggestions
-    - linters:
-        - prealloc
+    # Phase 3: unconvert, prealloc, and unparam issues to be addressed
+    # Temporarily disabling blanket exclusions to assess scope
+    # - linters:
+    #     - unconvert
+    # - linters:
+    #     - unparam
+    #   path: "internal/(views|ui|layouts|discovery|monitoring|ssh)/"
+    # - linters:
+    #     - prealloc
 
   max-issues-per-linter: 0
   max-same-issues: 0

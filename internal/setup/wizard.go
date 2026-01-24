@@ -383,6 +383,7 @@ func (w *SetupWizard) setupAPIAuth() map[string]interface{} {
 	username := w.prompt("Username", os.Getenv("USER"))
 
 	fmt.Print("   Password: ")
+	// nolint:unconvert // Needed for Windows compatibility: syscall.Stdin is Handle on Windows, int on Unix
 	passwordBytes, err := term.ReadPassword(int(syscall.Stdin))
 	fmt.Println()
 
@@ -423,6 +424,7 @@ func (w *SetupWizard) setupOAuth2Auth() map[string]interface{} {
 	clientID := w.prompt("Client ID", "")
 
 	fmt.Print("   Client Secret: ")
+	// nolint:unconvert // Needed for Windows compatibility: syscall.Stdin is Handle on Windows, int on Unix
 	secretBytes, _ := term.ReadPassword(int(syscall.Stdin))
 	fmt.Println()
 

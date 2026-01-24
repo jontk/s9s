@@ -120,9 +120,10 @@ func (m *Manager) GetAllPlugins() []Plugin {
 
 // GetCommands returns all commands from all plugins
 func (m *Manager) GetCommands() []Command {
-	var commands []Command
+	allPlugins := m.GetAllPlugins()
+	commands := make([]Command, 0, len(allPlugins)*2)
 
-	for _, p := range m.GetAllPlugins() {
+	for _, p := range allPlugins {
 		commands = append(commands, p.GetCommands()...)
 	}
 
@@ -131,9 +132,10 @@ func (m *Manager) GetCommands() []Command {
 
 // GetViews returns all views from all plugins
 func (m *Manager) GetViews() []View {
-	var views []View
+	allPlugins := m.GetAllPlugins()
+	views := make([]View, 0, len(allPlugins)*2)
 
-	for _, p := range m.GetAllPlugins() {
+	for _, p := range allPlugins {
 		views = append(views, p.GetViews()...)
 	}
 
@@ -142,9 +144,10 @@ func (m *Manager) GetViews() []View {
 
 // GetKeyBindings returns all key bindings from all plugins
 func (m *Manager) GetKeyBindings() []KeyBinding {
-	var bindings []KeyBinding
+	allPlugins := m.GetAllPlugins()
+	bindings := make([]KeyBinding, 0, len(allPlugins)*2)
 
-	for _, p := range m.GetAllPlugins() {
+	for _, p := range allPlugins {
 		bindings = append(bindings, p.GetKeyBindings()...)
 	}
 

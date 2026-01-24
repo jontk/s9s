@@ -249,7 +249,7 @@ func (tm *TemplateManager) GetTemplate(name string) (*ConfigTemplate, bool) {
 
 // ListTemplates returns all available templates
 func (tm *TemplateManager) ListTemplates() []*ConfigTemplate {
-	var templates []*ConfigTemplate
+	templates := make([]*ConfigTemplate, 0, len(tm.templates))
 	for _, template := range tm.templates {
 		templates = append(templates, template)
 	}
@@ -321,7 +321,7 @@ func (tm *TemplateManager) GetCategories() []string {
 		categories[template.Category] = true
 	}
 
-	var result []string
+	result := make([]string, 0, len(categories))
 	for category := range categories {
 		result = append(result, category)
 	}

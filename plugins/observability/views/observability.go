@@ -1223,7 +1223,7 @@ func (v *ObservabilityView) renderJobTable() {
 			cpuLimit = int(metrics.CPU.Limit)
 		}
 		if memLimit == 0 && metrics.Memory.Limit > 0 {
-			memLimit = uint64(metrics.Memory.Limit)
+			memLimit = metrics.Memory.Limit
 		}
 
 		v.jobTable.SetCell(row, 4, tview.NewTableCell(

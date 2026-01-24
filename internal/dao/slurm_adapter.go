@@ -630,7 +630,7 @@ func convertNode(node *slurm.Node) *Node {
 		case "idle":
 			allocCPUs = 0
 		case "mixed", "allocated":
-			allocCPUs = int(node.CPUs / 2) // Estimate 50% utilization
+			allocCPUs = node.CPUs / 2 // Estimate 50% utilization
 		case "down", "drain":
 			allocCPUs = 0
 		default:
@@ -660,7 +660,7 @@ func convertNode(node *slurm.Node) *Node {
 	memoryTotalMB := int64(node.Memory)
 
 	// Calculate idle CPUs (total - allocated)
-	idleCPUs := int(node.CPUs) - allocCPUs
+	idleCPUs := node.CPUs - allocCPUs
 	if idleCPUs < 0 {
 		idleCPUs = 0
 	}

@@ -226,7 +226,7 @@ func (km *KeyManager) parseKey(path string) (*SSHKey, error) {
 		if err == nil {
 			fingerprint = ssh.FingerprintSHA256(pubKey)
 			keyType = pubKey.Type()
-			comment = string(commentBytes)
+			comment = commentBytes
 		}
 	}
 

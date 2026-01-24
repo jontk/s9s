@@ -613,7 +613,7 @@ func (cd *ClusterDiscovery) mergeClusters(clusters []*DiscoveredCluster) []*Disc
 		}
 	}
 
-	var result []*DiscoveredCluster
+	result := make([]*DiscoveredCluster, 0, len(clusterMap))
 	for _, cluster := range clusterMap {
 		result = append(result, cluster)
 	}

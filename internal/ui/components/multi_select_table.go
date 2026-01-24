@@ -194,7 +194,7 @@ func (mst *MultiSelectTable) GetSelectedRows() []int {
 	mst.mu.RLock()
 	defer mst.mu.RUnlock()
 
-	var selected []int
+	selected := make([]int, 0, len(mst.selectedRows))
 	for row := range mst.selectedRows {
 		selected = append(selected, row)
 	}

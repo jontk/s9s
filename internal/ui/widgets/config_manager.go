@@ -301,7 +301,7 @@ func (cm *ConfigManager) addFormField(field config.ConfigField) {
 		initialValue := ""
 		if currentValue != nil {
 			if arr, ok := currentValue.([]interface{}); ok {
-				var strArr []string
+				strArr := make([]string, 0, len(arr))
 				for _, v := range arr {
 					strArr = append(strArr, fmt.Sprintf("%v", v))
 				}
@@ -316,7 +316,7 @@ func (cm *ConfigManager) addFormField(field config.ConfigField) {
 				cm.setConfigValue(field.Key, []string{})
 			} else {
 				parts := strings.Split(text, ",")
-				var trimmed []string
+				trimmed := make([]string, 0, len(parts))
 				for _, part := range parts {
 					trimmed = append(trimmed, strings.TrimSpace(part))
 				}

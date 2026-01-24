@@ -91,7 +91,7 @@ func (aa *AgentAuth) Close() error {
 
 // GetKeyFingerprints returns fingerprints of all keys in the agent
 func (aa *AgentAuth) GetKeyFingerprints() []string {
-	var fingerprints []string
+	fingerprints := make([]string, 0, len(aa.signers))
 	for _, signer := range aa.signers {
 		fingerprint := ssh.FingerprintSHA256(signer.PublicKey())
 		fingerprints = append(fingerprints, fingerprint)
@@ -111,7 +111,7 @@ func (aa *AgentAuth) HasKey(fingerprint string) bool {
 
 // GetKeyInfo returns information about keys in the agent
 func (aa *AgentAuth) GetKeyInfo() []map[string]string {
-	var keyInfos []map[string]string
+	keyInfos := make([]map[string]string, 0, len(aa.signers))
 
 	for _, signer := range aa.signers {
 		pubKey := signer.PublicKey()

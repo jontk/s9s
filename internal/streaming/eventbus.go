@@ -161,7 +161,7 @@ func (eb *EventBus) GetSubscriptionInfo() []SubscriptionInfo {
 	eb.mu.RLock()
 	defer eb.mu.RUnlock()
 
-	var info []SubscriptionInfo
+	info := make([]SubscriptionInfo, 0, len(eb.subscribers))
 
 	for key, subscribers := range eb.subscribers {
 		jobID, outputType := eb.parseKey(key)
