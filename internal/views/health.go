@@ -388,11 +388,10 @@ func (v *HealthView) acknowledgeAlert() {
 	for _, alert := range alerts {
 		if !alert.Acknowledged {
 			err := alertManager.AcknowledgeAlert(alert.ID, "user")
-			if err != nil {
-				// Note: Status bar update removed since individual view status bars are no longer used
-			} else {
+			if err == nil {
 				v.updateAlerts()
 			}
+			// Note: Status bar update removed since individual view status bars are no longer used
 			break
 		}
 	}
@@ -405,11 +404,10 @@ func (v *HealthView) resolveAlert() {
 
 	if len(alerts) > 0 {
 		err := alertManager.ResolveAlert(alerts[0].ID)
-		if err != nil {
-			// Note: Status bar update removed since individual view status bars are no longer used
-		} else {
+		if err == nil {
 			v.updateAlerts()
 		}
+		// Note: Status bar update removed since individual view status bars are no longer used
 	}
 }
 

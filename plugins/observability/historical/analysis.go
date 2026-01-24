@@ -451,9 +451,8 @@ func determineTrendDirection(slope, correlation, volatility float64) TrendDirect
 	if absCorr > 0.7 { // Strong correlation
 		if slope > 0 {
 			return TrendIncreasing
-		} else {
-			return TrendDecreasing
 		}
+		return TrendDecreasing
 	}
 
 	return TrendStable

@@ -111,8 +111,8 @@ func (s *SparklineWidget) updateScale() {
 	dataRange := s.max - s.min
 	if dataRange < 0.001 {
 		// Avoid division by zero for constant values
-		s.min -= 1
-		s.max += 1
+		s.min--
+		s.max++
 	} else {
 		padding := dataRange * 0.1
 		s.min -= padding

@@ -61,7 +61,7 @@ func (t *TerminalBellChannel) Notify(alert *components.Alert) error {
 			// Small delay between bells for critical alerts
 			// Note: Using simple loop as sleep would block
 			for j := 0; j < 100000000; j++ {
-				// Busy wait ~100ms
+				_ = j // Busy wait ~100ms
 			}
 		}
 	}
