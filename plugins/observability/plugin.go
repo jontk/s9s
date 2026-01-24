@@ -18,8 +18,8 @@ import (
 	"github.com/jontk/s9s/plugins/observability/views"
 )
 
-// ObservabilityPlugin implements the observability plugin
-type ObservabilityPlugin struct {
+// Plugin implements the observability plugin
+type Plugin struct {
 	config      *config.Config
 	components  *initialization.Components
 	app         *tview.Application
@@ -29,9 +29,12 @@ type ObservabilityPlugin struct {
 	slurmClient interface{} // Store SLURM client for job queries
 }
 
+// ObservabilityPlugin is an alias for backward compatibility
+type ObservabilityPlugin = Plugin
+
 // New creates a new observability plugin instance
-func New() *ObservabilityPlugin {
-	return &ObservabilityPlugin{
+func New() *Plugin {
+	return &Plugin{
 		config: config.DefaultConfig(),
 	}
 }

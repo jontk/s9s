@@ -80,14 +80,17 @@ type SeasonalAnalysis struct {
 	LowTimes       []time.Time        `json:"low_times"`
 }
 
-// HistoricalAnalyzer provides analysis capabilities for historical data
-type HistoricalAnalyzer struct {
-	collector *HistoricalDataCollector
+// Analyzer provides analysis capabilities for historical data
+type Analyzer struct {
+	collector *DataCollector
 }
 
+// HistoricalAnalyzer is an alias for backward compatibility
+type HistoricalAnalyzer = Analyzer
+
 // NewHistoricalAnalyzer creates a new historical data analyzer
-func NewHistoricalAnalyzer(collector *HistoricalDataCollector) *HistoricalAnalyzer {
-	return &HistoricalAnalyzer{
+func NewHistoricalAnalyzer(collector *DataCollector) *Analyzer {
+	return &Analyzer{
 		collector: collector,
 	}
 }

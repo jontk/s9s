@@ -42,8 +42,8 @@ func getHostKeyCallback(config *SSHConfig) ssh.HostKeyCallback {
 	return ssh.InsecureIgnoreHostKey()
 }
 
-// SSHConfig holds SSH connection configuration
-type SSHConfig struct {
+// Config holds SSH connection configuration
+type Config struct {
 	Username     string
 	Port         int
 	KeyFile      string
@@ -55,16 +55,22 @@ type SSHConfig struct {
 	ClientConfig *ssh.ClientConfig // Native SSH client config
 }
 
-// SSHClient handles SSH connections to cluster nodes
-type SSHClient struct {
-	config         *SSHConfig
+// SSHConfig is an alias for backward compatibility
+type SSHConfig = Config
+
+// Client handles SSH connections to cluster nodes
+type Client struct {
+	config         *Config
 	sshCommandPath string // Validated absolute path to ssh command
 }
 
+// SSHClient is an alias for backward compatibility
+type SSHClient = Client
+
 // NewSSHClient creates a new SSH client
-func NewSSHClient(config *SSHConfig) *SSHClient {
+func NewSSHClient(config *Config) *Client {
 	if config == nil {
-		config = &SSHConfig{
+		config = &Config{
 			Port:    22,
 			Timeout: 30 * time.Second,
 			Options: make(map[string]string),
@@ -94,14 +100,14 @@ func NewSSHClient(config *SSHConfig) *SSHClient {
 		sshPath = validated
 	}
 
-	return &SSHClient{
+	return &Client{
 		config:         config,
 		sshCommandPath: sshPath,
 	}
 }
 
 // ConnectToNode opens an SSH connection to a cluster node
-func (c *SSHClient) ConnectToNode(ctx context.Context, hostname string) error {
+func (c *Client) ConnectToNode(ctx context.Context, hostname string) error {
 	// Build SSH command
 	args := c.buildSSHArgs(hostname)
 
@@ -119,7 +125,7 @@ func (c *SSHClient) ConnectToNode(ctx context.Context, hostname string) error {
 }
 
 // ConnectToNodeInTerminal opens SSH in the current terminal
-func (c *SSHClient) ConnectToNodeInTerminal(hostname string) error {
+func (c *Client) ConnectToNodeInTerminal(hostname string) error {
 	// Build SSH command
 	args := c.buildSSHArgs(hostname)
 
@@ -137,7 +143,7 @@ func (c *SSHClient) ConnectToNodeInTerminal(hostname string) error {
 }
 
 // ExecuteCommand executes a command on a remote node via SSH
-func (c *SSHClient) ExecuteCommand(ctx context.Context, hostname, command string) (string, error) {
+func (c *Client) ExecuteCommand(ctx context.Context, hostname, command string) (string, error) {
 	// Build SSH command with remote command
 	args := c.buildSSHArgs(hostname)
 	args = append(args, command)
@@ -152,7 +158,7 @@ func (c *SSHClient) ExecuteCommand(ctx context.Context, hostname, command string
 }
 
 // buildSSHArgs builds SSH command arguments
-func (c *SSHClient) buildSSHArgs(hostname string) []string {
+func (c *Client) buildSSHArgs(hostname string) []string {
 	var args []string
 
 	// Add port if specified
@@ -192,14 +198,14 @@ func (c *SSHClient) buildSSHArgs(hostname string) []string {
 }
 
 // TestConnection tests SSH connectivity to a node
-func (c *SSHClient) TestConnection(ctx context.Context, hostname string) error {
+func (c *Client) TestConnection(ctx context.Context, hostname string) error {
 	// Try to execute a simple command
 	_, err := c.ExecuteCommand(ctx, hostname, "echo 'SSH connection test'")
 	return err
 }
 
 // GetNodeInfo retrieves basic information about a node
-func (c *SSHClient) GetNodeInfo(ctx context.Context, hostname string) (map[string]string, error) {
+func (c *Client) GetNodeInfo(ctx context.Context, hostname string) (map[string]string, error) {
 	info := make(map[string]string)
 
 	// Get hostname

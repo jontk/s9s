@@ -15,21 +15,24 @@ import (
 	"github.com/jontk/s9s/internal/security"
 )
 
-// ExportFormat represents different output export formats
-type ExportFormat string
+// Format represents different output export formats
+type Format string
 
 const (
 	// FormatText is the text export format.
-	FormatText ExportFormat = "txt"
+	FormatText Format = "txt"
 	// FormatJSON is the JSON export format.
-	FormatJSON ExportFormat = "json"
+	FormatJSON Format = "json"
 	// FormatCSV is the CSV export format.
-	FormatCSV ExportFormat = "csv"
+	FormatCSV Format = "csv"
 	// FormatMarkdown is the Markdown export format.
-	FormatMarkdown ExportFormat = "md"
+	FormatMarkdown Format = "md"
 	// FormatHTML is the HTML export format.
-	FormatHTML ExportFormat = "html"
+	FormatHTML Format = "html"
 )
+
+// ExportFormat is an alias for backward compatibility
+type ExportFormat = Format
 
 // JobOutputExporter handles exporting job output to various formats
 type JobOutputExporter struct {
@@ -63,15 +66,18 @@ type JobOutputData struct {
 	ContentSize int       `json:"content_size_bytes"`
 }
 
-// ExportResult contains information about the export operation
-type ExportResult struct {
+// Result contains information about the export operation
+type Result struct {
 	FilePath  string
-	Format    ExportFormat
+	Format    Format
 	Size      int64
 	Success   bool
 	Error     error
 	Timestamp time.Time
 }
+
+// ExportResult is an alias for backward compatibility
+type ExportResult = Result
 
 // ExportJobOutput exports job output to a file in the specified format
 func (e *JobOutputExporter) ExportJobOutput(jobID, jobName, outputType, content string) (string, error) {
@@ -96,7 +102,7 @@ func (e *JobOutputExporter) ExportJobOutput(jobID, jobName, outputType, content 
 
 // Export exports job output to a file in the specified format
 func (e *JobOutputExporter) Export(data JobOutputData, format ExportFormat, customPath string) (*ExportResult, error) {
-	result := &ExportResult{
+	result := &Result{
 		Format:    format,
 		Timestamp: time.Now(),
 	}

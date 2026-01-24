@@ -51,8 +51,8 @@ func (s SessionState) String() string {
 	}
 }
 
-// SSHSession represents an active SSH session
-type SSHSession struct {
+// Session represents an active SSH session
+type Session struct {
 	ID           string
 	Hostname     string
 	Username     string
@@ -63,18 +63,24 @@ type SSHSession struct {
 	Process      *os.Process
 	ErrorMessage string
 	ControlPath  string // For connection multiplexing
-	Tunnels      []SSHTunnel
+	Tunnels      []Tunnel
 	mu           sync.RWMutex
 }
 
-// SSHTunnel represents an SSH port forwarding tunnel
-type SSHTunnel struct {
+// SSHSession is an alias for backward compatibility
+type SSHSession = Session
+
+// Tunnel represents an SSH port forwarding tunnel
+type Tunnel struct {
 	LocalPort  int
 	RemoteHost string
 	RemotePort int
 	Type       string // "local" or "remote"
 	Active     bool
 }
+
+// SSHTunnel is an alias for backward compatibility
+type SSHTunnel = Tunnel
 
 // SessionManager manages SSH sessions with advanced features
 type SessionManager struct {
@@ -119,7 +125,7 @@ func NewSessionManager(config *SSHConfig) (*SessionManager, error) {
 	}
 
 	sm := &SessionManager{
-		sessions:       make(map[string]*SSHSession),
+		sessions:       make(map[string]*Session),
 		config:         config,
 		controlDir:     controlDir,
 		cleanupDone:    make(chan struct{}),

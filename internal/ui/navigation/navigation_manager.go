@@ -10,22 +10,25 @@ import (
 	"github.com/rivo/tview"
 )
 
-// NavigationMode defines different navigation modes
-type NavigationMode string
+// Mode defines different navigation modes
+type Mode string
 
 const (
 	// NavigationModeNormal is the normal navigation mode.
-	NavigationModeNormal NavigationMode = "normal"
+	NavigationModeNormal Mode = "normal"
 	// NavigationModeQuick is the quick access navigation mode.
-	NavigationModeQuick NavigationMode = "quick"
+	NavigationModeQuick Mode = "quick"
 	// NavigationModeCommand is the command palette navigation mode.
-	NavigationModeCommand NavigationMode = "command"
+	NavigationModeCommand Mode = "command"
 	// NavigationModeSearch is the search navigation mode.
-	NavigationModeSearch NavigationMode = "search"
+	NavigationModeSearch Mode = "search"
 )
 
-// NavigationTarget represents a navigable target
-type NavigationTarget struct {
+// NavigationMode is an alias for backward compatibility
+type NavigationMode = Mode
+
+// Target represents a navigable target
+type Target struct {
 	ID           string
 	Name         string
 	Description  string
@@ -39,22 +42,28 @@ type NavigationTarget struct {
 	OnDeactivate func()
 }
 
-// NavigationHistory tracks navigation history
-type NavigationHistory struct {
+// NavigationTarget is an alias for backward compatibility
+type NavigationTarget = Target
+
+// History tracks navigation history
+type History struct {
 	items   []string
 	current int
 	maxSize int
 }
 
-// NavigationManager handles advanced navigation throughout the application
-type NavigationManager struct {
+// NavigationHistory is an alias for backward compatibility
+type NavigationHistory = History
+
+// Manager handles advanced navigation throughout the application
+type Manager struct {
 	mu             sync.RWMutex
 	app            *tview.Application
-	targets        map[string]*NavigationTarget
+	targets        map[string]*Target
 	targetOrder    []string
 	currentTarget  string
-	mode           NavigationMode
-	history        *NavigationHistory
+	mode           Mode
+	history        *History
 	quickAccessMap map[rune]string
 	keyBindings    map[tcell.Key]string
 
@@ -83,9 +92,9 @@ type NavigationManager struct {
 	maxHistorySize   int
 }
 
-// NewNavigationManager creates a new navigation manager
-func NewNavigationManager(app *tview.Application) *NavigationManager {
-	nm := &NavigationManager{
+// NewManager creates a new navigation manager
+func NewManager(app *tview.Application) *Manager {
+	nm := &Manager{
 		app:              app,
 		targets:          make(map[string]*NavigationTarget),
 		targetOrder:      make([]string, 0),
@@ -98,7 +107,7 @@ func NewNavigationManager(app *tview.Application) *NavigationManager {
 		maxHistorySize:   50,
 	}
 
-	nm.history = &NavigationHistory{
+	nm.history = &History{
 		items:   make([]string, 0),
 		current: -1,
 		maxSize: nm.maxHistorySize,
@@ -110,8 +119,13 @@ func NewNavigationManager(app *tview.Application) *NavigationManager {
 	return nm
 }
 
+// NewNavigationManager is an alias for backward compatibility
+func NewNavigationManager(app *tview.Application) *Manager {
+	return NewManager(app)
+}
+
 // initializeUI sets up the navigation UI components
-func (nm *NavigationManager) initializeUI() {
+func (nm *Manager) initializeUI() {
 	// Breadcrumb navigation
 	nm.breadcrumb = tview.NewTextView()
 	nm.breadcrumb.SetDynamicColors(true)
@@ -136,7 +150,7 @@ func (nm *NavigationManager) initializeUI() {
 }
 
 // setupDefaultBindings sets up default key bindings
-func (nm *NavigationManager) setupDefaultBindings() {
+func (nm *Manager) setupDefaultBindings() {
 	// Function key bindings
 	nm.keyBindings[tcell.KeyF1] = "help"
 	nm.keyBindings[tcell.KeyF2] = "search"
@@ -157,7 +171,7 @@ func (nm *NavigationManager) setupDefaultBindings() {
 }
 
 // RegisterTarget registers a navigation target
-func (nm *NavigationManager) RegisterTarget(target *NavigationTarget) error {
+func (nm *Manager) RegisterTarget(target *NavigationTarget) error {
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
 
@@ -203,7 +217,7 @@ func (nm *NavigationManager) RegisterTarget(target *NavigationTarget) error {
 }
 
 // UnregisterTarget removes a navigation target
-func (nm *NavigationManager) UnregisterTarget(id string) error {
+func (nm *Manager) UnregisterTarget(id string) error {
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
 
@@ -247,12 +261,12 @@ func (nm *NavigationManager) UnregisterTarget(id string) error {
 }
 
 // NavigateTo navigates to a specific target
-func (nm *NavigationManager) NavigateTo(targetID string) error {
+func (nm *Manager) NavigateTo(targetID string) error {
 	return nm.navigateToTarget(targetID, true)
 }
 
 // navigateToTarget performs the actual navigation (acquires lock)
-func (nm *NavigationManager) navigateToTarget(targetID string, addToHistory bool) error {
+func (nm *Manager) navigateToTarget(targetID string, addToHistory bool) error {
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
 
@@ -260,7 +274,7 @@ func (nm *NavigationManager) navigateToTarget(targetID string, addToHistory bool
 }
 
 // navigateToTargetLocked performs navigation assuming lock is already held
-func (nm *NavigationManager) navigateToTargetLocked(targetID string, addToHistory bool) error {
+func (nm *Manager) navigateToTargetLocked(targetID string, addToHistory bool) error {
 	target, exists := nm.targets[targetID]
 	if !exists {
 		return fmt.Errorf("target %s not found", targetID)
@@ -302,7 +316,7 @@ func (nm *NavigationManager) navigateToTargetLocked(targetID string, addToHistor
 }
 
 // HandleInput processes navigation input
-func (nm *NavigationManager) HandleInput(event *tcell.EventKey) *tcell.EventKey {
+func (nm *Manager) HandleInput(event *tcell.EventKey) *tcell.EventKey {
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
 
@@ -335,7 +349,7 @@ func (nm *NavigationManager) HandleInput(event *tcell.EventKey) *tcell.EventKey 
 }
 
 // handleCommandInput handles input in command mode
-func (nm *NavigationManager) handleCommandInput(event *tcell.EventKey) *tcell.EventKey {
+func (nm *Manager) handleCommandInput(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Key() {
 	case tcell.KeyEsc:
 		nm.ExitCommandMode()
@@ -352,7 +366,7 @@ func (nm *NavigationManager) handleCommandInput(event *tcell.EventKey) *tcell.Ev
 
 // handleSearchInput handles input in search mode
 // Assumes lock is already held by caller (HandleInput)
-func (nm *NavigationManager) handleSearchInput(event *tcell.EventKey) *tcell.EventKey {
+func (nm *Manager) handleSearchInput(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Key() {
 	case tcell.KeyEsc:
 		nm.ExitSearchMode()
@@ -380,7 +394,7 @@ func (nm *NavigationManager) handleSearchInput(event *tcell.EventKey) *tcell.Eve
 
 // handleQuickInput handles input in quick navigation mode
 // Assumes lock is already held by caller (HandleInput)
-func (nm *NavigationManager) handleQuickInput(event *tcell.EventKey) *tcell.EventKey {
+func (nm *Manager) handleQuickInput(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Key() {
 	case tcell.KeyEsc:
 		nm.ExitQuickMode()
@@ -397,7 +411,7 @@ func (nm *NavigationManager) handleQuickInput(event *tcell.EventKey) *tcell.Even
 }
 
 // handleSpecialCommand handles special navigation commands
-func (nm *NavigationManager) handleSpecialCommand(command string) {
+func (nm *Manager) handleSpecialCommand(command string) {
 	switch command {
 	case "help":
 		nm.ShowHelp()
@@ -419,7 +433,7 @@ func (nm *NavigationManager) handleSpecialCommand(command string) {
 }
 
 // EnterQuickMode enters quick navigation mode
-func (nm *NavigationManager) EnterQuickMode() {
+func (nm *Manager) EnterQuickMode() {
 	nm.mode = NavigationModeQuick
 	nm.quickModeActive = true
 
@@ -431,7 +445,7 @@ func (nm *NavigationManager) EnterQuickMode() {
 }
 
 // ExitQuickMode exits quick navigation mode
-func (nm *NavigationManager) ExitQuickMode() {
+func (nm *Manager) ExitQuickMode() {
 	nm.mode = NavigationModeNormal
 	nm.quickModeActive = false
 
@@ -443,7 +457,7 @@ func (nm *NavigationManager) ExitQuickMode() {
 }
 
 // EnterCommandMode enters command palette mode
-func (nm *NavigationManager) EnterCommandMode() {
+func (nm *Manager) EnterCommandMode() {
 	nm.mode = NavigationModeCommand
 	nm.commandMode = true
 
@@ -455,7 +469,7 @@ func (nm *NavigationManager) EnterCommandMode() {
 }
 
 // ExitCommandMode exits command palette mode
-func (nm *NavigationManager) ExitCommandMode() {
+func (nm *Manager) ExitCommandMode() {
 	nm.mode = NavigationModeNormal
 	nm.commandMode = false
 
@@ -465,7 +479,7 @@ func (nm *NavigationManager) ExitCommandMode() {
 }
 
 // EnterSearchMode enters search mode
-func (nm *NavigationManager) EnterSearchMode() {
+func (nm *Manager) EnterSearchMode() {
 	nm.mode = NavigationModeSearch
 	nm.searchMode = true
 	nm.searchQuery = ""
@@ -479,7 +493,7 @@ func (nm *NavigationManager) EnterSearchMode() {
 }
 
 // ExitSearchMode exits search mode
-func (nm *NavigationManager) ExitSearchMode() {
+func (nm *Manager) ExitSearchMode() {
 	nm.mode = NavigationModeNormal
 	nm.searchMode = false
 	nm.searchQuery = ""
@@ -491,7 +505,7 @@ func (nm *NavigationManager) ExitSearchMode() {
 }
 
 // performSearch performs a search and updates results
-func (nm *NavigationManager) performSearch() {
+func (nm *Manager) performSearch() {
 	if nm.onSearch != nil {
 		nm.searchResults = nm.onSearch(nm.searchQuery)
 	} else {
@@ -503,7 +517,7 @@ func (nm *NavigationManager) performSearch() {
 }
 
 // defaultSearch provides default search functionality
-func (nm *NavigationManager) defaultSearch(query string) []string {
+func (nm *Manager) defaultSearch(query string) []string {
 	var results []string
 
 	query = strings.ToLower(query)
@@ -526,7 +540,7 @@ func (nm *NavigationManager) defaultSearch(query string) []string {
 
 // executeCommand executes a command from the command palette
 // Assumes lock is already held by caller (via handleCommandInput from HandleInput)
-func (nm *NavigationManager) executeCommand(command string) {
+func (nm *Manager) executeCommand(command string) {
 	// Parse and execute command
 	parts := strings.Fields(command)
 	if len(parts) == 0 {
@@ -561,7 +575,7 @@ func (nm *NavigationManager) executeCommand(command string) {
 }
 
 // findTargetByName finds a target by name
-func (nm *NavigationManager) findTargetByName(name string) string {
+func (nm *Manager) findTargetByName(name string) string {
 	name = strings.ToLower(name)
 
 	for targetID, target := range nm.targets {
@@ -574,7 +588,7 @@ func (nm *NavigationManager) findTargetByName(name string) string {
 }
 
 // GoBack navigates back in history
-func (nm *NavigationManager) GoBack() {
+func (nm *Manager) GoBack() {
 	if nm.history.current > 0 {
 		nm.history.current--
 		targetID := nm.history.items[nm.history.current]
@@ -583,7 +597,7 @@ func (nm *NavigationManager) GoBack() {
 }
 
 // GoForward navigates forward in history
-func (nm *NavigationManager) GoForward() {
+func (nm *Manager) GoForward() {
 	if nm.history.current < len(nm.history.items)-1 {
 		nm.history.current++
 		targetID := nm.history.items[nm.history.current]
@@ -592,7 +606,7 @@ func (nm *NavigationManager) GoForward() {
 }
 
 // addToHistory adds a target to navigation history
-func (nm *NavigationManager) addToHistory(targetID string) {
+func (nm *Manager) addToHistory(targetID string) {
 	// Remove items after current position
 	nm.history.items = nm.history.items[:nm.history.current+1]
 
@@ -608,17 +622,17 @@ func (nm *NavigationManager) addToHistory(targetID string) {
 }
 
 // ShowHelp displays navigation help
-func (nm *NavigationManager) ShowHelp() {
+func (nm *Manager) ShowHelp() {
 	// This would show a help modal with navigation instructions
 }
 
 // ShowHistory displays navigation history
-func (nm *NavigationManager) ShowHistory() {
+func (nm *Manager) ShowHistory() {
 	// This would show a history modal
 }
 
 // RefreshCurrentTarget refreshes the current target
-func (nm *NavigationManager) RefreshCurrentTarget() {
+func (nm *Manager) RefreshCurrentTarget() {
 	if nm.currentTarget != "" {
 		if target := nm.targets[nm.currentTarget]; target != nil && target.OnActivate != nil {
 			target.OnActivate()
@@ -627,7 +641,7 @@ func (nm *NavigationManager) RefreshCurrentTarget() {
 }
 
 // updateBreadcrumb updates the breadcrumb navigation
-func (nm *NavigationManager) updateBreadcrumb() {
+func (nm *Manager) updateBreadcrumb() {
 	if !nm.enableBreadcrumb {
 		return
 	}
@@ -646,7 +660,7 @@ func (nm *NavigationManager) updateBreadcrumb() {
 }
 
 // updateQuickHelp updates the quick help display
-func (nm *NavigationManager) updateQuickHelp() {
+func (nm *Manager) updateQuickHelp() {
 	if !nm.enableQuickHelp {
 		return
 	}
@@ -655,7 +669,7 @@ func (nm *NavigationManager) updateQuickHelp() {
 }
 
 // getQuickHelpText returns the quick help text based on current mode
-func (nm *NavigationManager) getQuickHelpText() string {
+func (nm *Manager) getQuickHelpText() string {
 	switch nm.mode {
 	case NavigationModeQuick:
 		return "[yellow]QUICK MODE[white] - Press shortcut key or Esc to cancel"
@@ -683,7 +697,7 @@ func (nm *NavigationManager) getQuickHelpText() string {
 }
 
 // updateSearchOverlay updates the search overlay
-func (nm *NavigationManager) updateSearchOverlay() {
+func (nm *Manager) updateSearchOverlay() {
 	if !nm.searchMode {
 		return
 	}
@@ -709,55 +723,55 @@ func (nm *NavigationManager) updateSearchOverlay() {
 }
 
 // GetBreadcrumb returns the breadcrumb component
-func (nm *NavigationManager) GetBreadcrumb() *tview.TextView {
+func (nm *Manager) GetBreadcrumb() *tview.TextView {
 	return nm.breadcrumb
 }
 
 // GetQuickHelpBar returns the quick help bar component
-func (nm *NavigationManager) GetQuickHelpBar() *tview.TextView {
+func (nm *Manager) GetQuickHelpBar() *tview.TextView {
 	return nm.quickHelpBar
 }
 
 // GetCommandPalette returns the command palette component
-func (nm *NavigationManager) GetCommandPalette() *tview.InputField {
+func (nm *Manager) GetCommandPalette() *tview.InputField {
 	return nm.commandPalette
 }
 
 // GetSearchOverlay returns the search overlay component
-func (nm *NavigationManager) GetSearchOverlay() *tview.TextView {
+func (nm *Manager) GetSearchOverlay() *tview.TextView {
 	return nm.searchOverlay
 }
 
 // GetCurrentTarget returns the current target ID
-func (nm *NavigationManager) GetCurrentTarget() string {
+func (nm *Manager) GetCurrentTarget() string {
 	nm.mu.RLock()
 	defer nm.mu.RUnlock()
 	return nm.currentTarget
 }
 
 // GetMode returns the current navigation mode
-func (nm *NavigationManager) GetMode() NavigationMode {
+func (nm *Manager) GetMode() NavigationMode {
 	nm.mu.RLock()
 	defer nm.mu.RUnlock()
 	return nm.mode
 }
 
 // SetOnNavigate sets the navigation callback
-func (nm *NavigationManager) SetOnNavigate(callback func(from, to string)) {
+func (nm *Manager) SetOnNavigate(callback func(from, to string)) {
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
 	nm.onNavigate = callback
 }
 
 // SetOnModeChange sets the mode change callback
-func (nm *NavigationManager) SetOnModeChange(callback func(NavigationMode)) {
+func (nm *Manager) SetOnModeChange(callback func(NavigationMode)) {
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
 	nm.onModeChange = callback
 }
 
 // SetOnSearch sets the search callback
-func (nm *NavigationManager) SetOnSearch(callback func(string) []string) {
+func (nm *Manager) SetOnSearch(callback func(string) []string) {
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
 	nm.onSearch = callback

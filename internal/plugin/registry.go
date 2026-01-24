@@ -16,8 +16,8 @@ type Registry struct {
 	requires map[string][]string // plugin -> required plugins
 }
 
-// PluginMetadata contains additional metadata about a plugin
-type PluginMetadata struct {
+// Metadata contains additional metadata about a plugin
+type Metadata struct {
 	RegistrationTime int64
 	LoadOrder        int
 	Source           string // "builtin", "external", "dynamic"
@@ -25,11 +25,14 @@ type PluginMetadata struct {
 	Checksum         string // For verification
 }
 
+// PluginMetadata is an alias for backward compatibility
+type PluginMetadata = Metadata
+
 // NewRegistry creates a new plugin registry
 func NewRegistry() *Registry {
 	return &Registry{
 		plugins:  make(map[string]Plugin),
-		metadata: make(map[string]PluginMetadata),
+		metadata: make(map[string]Metadata),
 		provides: make(map[string][]string),
 		requires: make(map[string][]string),
 	}
@@ -56,7 +59,7 @@ func (r *Registry) Register(plugin Plugin) error {
 	r.plugins[info.Name] = plugin
 
 	// Store metadata
-	r.metadata[info.Name] = PluginMetadata{
+	r.metadata[info.Name] = Metadata{
 		RegistrationTime: getCurrentTimestamp(),
 		LoadOrder:        len(r.plugins),
 		Source:           "builtin", // Default, can be overridden
@@ -243,7 +246,7 @@ func (r *Registry) GetMetadata(name string) (PluginMetadata, error) {
 
 	metadata, exists := r.metadata[name]
 	if !exists {
-		return PluginMetadata{}, fmt.Errorf("plugin %s not found", name)
+		return Metadata{}, fmt.Errorf("plugin %s not found", name)
 	}
 
 	return metadata, nil

@@ -21,8 +21,8 @@ type Manager struct {
 	healthCheckTime time.Duration
 }
 
-// PluginState represents the current state of a plugin
-type PluginState struct {
+// State represents the current state of a plugin
+type State struct {
 	Enabled      bool
 	Running      bool
 	Health       HealthStatus
@@ -31,6 +31,9 @@ type PluginState struct {
 	RestartCount int
 }
 
+// PluginState is an alias for backward compatibility
+type PluginState = State
+
 // NewManager creates a new plugin manager
 func NewManager() *Manager {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -38,7 +41,7 @@ func NewManager() *Manager {
 	return &Manager{
 		registry:        NewRegistry(),
 		plugins:         make(map[string]Plugin),
-		states:          make(map[string]PluginState),
+		states:          make(map[string]State),
 		config:          make(map[string]map[string]interface{}),
 		ctx:             ctx,
 		cancel:          cancel,
@@ -451,7 +454,7 @@ func (m *Manager) Stop() error {
 // PluginInfo combines plugin info with runtime state
 type PluginInfo struct {
 	Info    Info
-	State   PluginState
+	State   State
 	Enabled bool
 	Running bool
 }

@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// AuthProvider defines the interface for authentication providers
-type AuthProvider interface {
+// Provider defines the interface for authentication providers
+type Provider interface {
 	// Authenticate performs authentication and returns a token
 	Authenticate(ctx context.Context, username, password string) (*Token, error)
 
@@ -20,6 +20,9 @@ type AuthProvider interface {
 	// Logout invalidates a token
 	Logout(ctx context.Context, token *Token) error
 }
+
+// AuthProvider is an alias for backward compatibility
+type AuthProvider = Provider
 
 // SlurmAuthProvider implements authentication against SLURM REST API
 type SlurmAuthProvider struct {

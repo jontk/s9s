@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// ConfigField represents a configuration field with metadata
-type ConfigField struct {
+// Field represents a configuration field with metadata
+type Field struct {
 	Key         string       `json:"key"`
 	Label       string       `json:"label"`
 	Description string       `json:"description"`
@@ -27,6 +27,9 @@ type ConfigField struct {
 	Depends     []Dependency `json:"depends,omitempty"`  // Conditional fields
 	Examples    []string     `json:"examples,omitempty"` // Usage examples
 }
+
+// ConfigField is an alias for backward compatibility
+type ConfigField = Field
 
 // FieldType represents the type of a configuration field
 type FieldType string
@@ -64,21 +67,24 @@ type Dependency struct {
 	Value interface{} `json:"value"`
 }
 
-// ValidationResult represents the result of field validation
-type ValidationResult struct {
+// FieldValidationResult represents the result of field validation
+type FieldValidationResult struct {
 	Valid    bool     `json:"valid"`
 	Errors   []string `json:"errors,omitempty"`
 	Warnings []string `json:"warnings,omitempty"`
 }
 
-// ConfigSchema defines the complete configuration schema
-type ConfigSchema struct {
-	Groups []ConfigGroup `json:"groups"`
-	Fields []ConfigField `json:"fields"`
+// Schema defines the complete configuration schema
+type Schema struct {
+	Groups []Group `json:"groups"`
+	Fields []Field `json:"fields"`
 }
 
-// ConfigGroup represents a group of related configuration fields
-type ConfigGroup struct {
+// ConfigSchema is an alias for backward compatibility
+type ConfigSchema = Schema
+
+// Group represents a group of related configuration fields
+type Group struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -86,10 +92,13 @@ type ConfigGroup struct {
 	Order       int    `json:"order"`
 }
 
+// ConfigGroup is an alias for backward compatibility
+type ConfigGroup = Group
+
 // GetConfigSchema returns the complete configuration schema
-func GetConfigSchema() *ConfigSchema {
-	return &ConfigSchema{
-		Groups: []ConfigGroup{
+func GetConfigSchema() *Schema {
+	return &Schema{
+		Groups: []Group{
 			{ID: "general", Name: "General", Description: "Basic application settings", Icon: "⚙️", Order: 1},
 			{ID: "ui", Name: "User Interface", Description: "UI appearance and behavior", Icon: "🎨", Order: 2},
 			{ID: "cluster", Name: "Cluster Contexts", Description: "SLURM cluster connections", Icon: "🔗", Order: 3},
@@ -104,8 +113,8 @@ func GetConfigSchema() *ConfigSchema {
 }
 
 // getConfigFields returns all configuration fields with metadata
-func getConfigFields() []ConfigField {
-	return []ConfigField{
+func getConfigFields() []Field {
+	return []Field{
 		// General settings
 		{
 			Key:         "refreshRate",
@@ -344,8 +353,8 @@ func getConfigFields() []ConfigField {
 }
 
 // ValidateField validates a single configuration field value
-func (cf *ConfigField) ValidateField(value interface{}) ValidationResult {
-	result := ValidationResult{Valid: true}
+func (cf *Field) ValidateField(value interface{}) FieldValidationResult {
+	result := FieldValidationResult{Valid: true}
 
 	// Check if required field is present
 	if cf.Required && (value == nil || value == "") {
@@ -402,7 +411,7 @@ func (cf *ConfigField) ValidateField(value interface{}) ValidationResult {
 }
 
 // validateString validates string field values
-func (cf *ConfigField) validateString(value interface{}) error {
+func (cf *Field) validateString(value interface{}) error {
 	str, ok := value.(string)
 	if !ok {
 		return fmt.Errorf("%s must be a string", cf.Label)
@@ -423,7 +432,7 @@ func (cf *ConfigField) validateString(value interface{}) error {
 }
 
 // validateInt validates integer field values
-func (cf *ConfigField) validateInt(value interface{}) error {
+func (cf *Field) validateInt(value interface{}) error {
 	var num int64
 
 	switch v := value.(type) {
@@ -455,7 +464,7 @@ func (cf *ConfigField) validateInt(value interface{}) error {
 }
 
 // validateFloat validates float field values
-func (cf *ConfigField) validateFloat(value interface{}) error {
+func (cf *Field) validateFloat(value interface{}) error {
 	var num float64
 
 	switch v := value.(type) {
@@ -487,7 +496,7 @@ func (cf *ConfigField) validateFloat(value interface{}) error {
 }
 
 // validateBool validates boolean field values
-func (cf *ConfigField) validateBool(value interface{}) error {
+func (cf *Field) validateBool(value interface{}) error {
 	switch v := value.(type) {
 	case bool:
 		return nil
@@ -503,7 +512,7 @@ func (cf *ConfigField) validateBool(value interface{}) error {
 }
 
 // validateDuration validates duration field values
-func (cf *ConfigField) validateDuration(value interface{}) error {
+func (cf *Field) validateDuration(value interface{}) error {
 	str, ok := value.(string)
 	if !ok {
 		return fmt.Errorf("%s must be a duration string (e.g., '5s', '2m')", cf.Label)
@@ -518,7 +527,7 @@ func (cf *ConfigField) validateDuration(value interface{}) error {
 }
 
 // validateSelect validates select field values
-func (cf *ConfigField) validateSelect(value interface{}) error {
+func (cf *Field) validateSelect(value interface{}) error {
 	str, ok := value.(string)
 	if !ok {
 		return fmt.Errorf("%s must be a string", cf.Label)
@@ -535,7 +544,7 @@ func (cf *ConfigField) validateSelect(value interface{}) error {
 }
 
 // validateArray validates array field values
-func (cf *ConfigField) validateArray(value interface{}) error {
+func (cf *Field) validateArray(value interface{}) error {
 	// Use reflection to check if value is a slice
 	rv := reflect.ValueOf(value)
 	if rv.Kind() != reflect.Slice {
@@ -568,7 +577,7 @@ func (cf *ConfigField) validateArray(value interface{}) error {
 }
 
 // GetFieldByKey finds a configuration field by its key
-func (cs *ConfigSchema) GetFieldByKey(key string) *ConfigField {
+func (cs *Schema) GetFieldByKey(key string) *Field {
 	for _, field := range cs.Fields {
 		if field.Key == key {
 			return &field
@@ -578,8 +587,8 @@ func (cs *ConfigSchema) GetFieldByKey(key string) *ConfigField {
 }
 
 // GetFieldsByGroup returns all fields in a specific group
-func (cs *ConfigSchema) GetFieldsByGroup(groupID string) []ConfigField {
-	var fields []ConfigField
+func (cs *Schema) GetFieldsByGroup(groupID string) []Field {
+	var fields []Field
 	for _, field := range cs.Fields {
 		if field.Group == groupID {
 			fields = append(fields, field)
@@ -589,8 +598,8 @@ func (cs *ConfigSchema) GetFieldsByGroup(groupID string) []ConfigField {
 }
 
 // ValidateConfig validates an entire configuration against the schema
-func (cs *ConfigSchema) ValidateConfig(config *Config) map[string]ValidationResult {
-	results := make(map[string]ValidationResult)
+func (cs *Schema) ValidateConfig(config *Config) map[string]FieldValidationResult {
+	results := make(map[string]FieldValidationResult)
 
 	// Use reflection to validate all fields
 	configValue := reflect.ValueOf(config).Elem()
@@ -600,7 +609,7 @@ func (cs *ConfigSchema) ValidateConfig(config *Config) map[string]ValidationResu
 }
 
 // validateStruct recursively validates a struct using reflection
-func (cs *ConfigSchema) validateStruct(structValue reflect.Value, prefix string, results map[string]ValidationResult) {
+func (cs *Schema) validateStruct(structValue reflect.Value, prefix string, results map[string]FieldValidationResult) {
 	structType := structValue.Type()
 
 	for i := 0; i < structValue.NumField(); i++ {

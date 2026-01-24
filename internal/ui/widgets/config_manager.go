@@ -32,7 +32,7 @@ type ConfigManager struct {
 	selectedGroup    string
 	configPath       string
 	hasChanges       bool
-	validationErrors map[string]config.ValidationResult
+	validationErrors map[string]config.FieldValidationResult
 
 	// Callbacks
 	onSave   func(*config.Config) error
@@ -47,7 +47,7 @@ func NewConfigManager(app *tview.Application, configPath string) *ConfigManager 
 		app:              app,
 		schema:           config.GetConfigSchema(),
 		configPath:       configPath,
-		validationErrors: make(map[string]config.ValidationResult),
+		validationErrors: make(map[string]config.FieldValidationResult),
 	}
 
 	cm.initializeUI()

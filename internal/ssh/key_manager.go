@@ -22,8 +22,8 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-// SSHKey represents an SSH key pair
-type SSHKey struct {
+// Key represents an SSH key pair
+type Key struct {
 	Name        string
 	Path        string
 	PublicPath  string
@@ -35,12 +35,18 @@ type SSHKey struct {
 	LastUsed    time.Time
 }
 
-// SSHAgent represents an SSH agent connection
-type SSHAgent struct {
+// SSHKey is an alias for backward compatibility
+type SSHKey = Key
+
+// Agent represents an SSH agent connection
+type Agent struct {
 	conn   net.Conn
 	client agent.Agent
 	mu     sync.RWMutex
 }
+
+// SSHAgent is an alias for backward compatibility
+type SSHAgent = Agent
 
 // KeyManager manages SSH keys and agent integration
 type KeyManager struct {

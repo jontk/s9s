@@ -33,16 +33,16 @@ func (t *Token) ExpiresIn() time.Duration {
 	return time.Until(t.ExpiresAt)
 }
 
-// AuthConfig holds configuration for authenticators
-type AuthConfig map[string]interface{}
+// Config holds configuration for authenticators
+type Config map[string]interface{}
 
 // Get retrieves a configuration value by key
-func (c AuthConfig) Get(key string) interface{} {
+func (c Config) Get(key string) interface{} {
 	return c[key]
 }
 
 // GetString retrieves a string configuration value
-func (c AuthConfig) GetString(key string) string {
+func (c Config) GetString(key string) string {
 	if val, ok := c[key].(string); ok {
 		return val
 	}
@@ -50,7 +50,7 @@ func (c AuthConfig) GetString(key string) string {
 }
 
 // GetInt retrieves an integer configuration value
-func (c AuthConfig) GetInt(key string) int {
+func (c Config) GetInt(key string) int {
 	if val, ok := c[key].(int); ok {
 		return val
 	}
@@ -58,12 +58,15 @@ func (c AuthConfig) GetInt(key string) int {
 }
 
 // GetBool retrieves a boolean configuration value
-func (c AuthConfig) GetBool(key string) bool {
+func (c Config) GetBool(key string) bool {
 	if val, ok := c[key].(bool); ok {
 		return val
 	}
 	return false
 }
+
+// AuthConfig is an alias for backward compatibility
+type AuthConfig = Config
 
 // AuthenticatorInfo contains metadata about an authenticator
 type AuthenticatorInfo struct {

@@ -17,8 +17,8 @@ import (
 	"time"
 )
 
-// PrometheusClientInterface defines the interface for Prometheus clients
-type PrometheusClientInterface interface {
+// ClientInterface defines the interface for Prometheus clients
+type ClientInterface interface {
 	TestConnection(ctx context.Context) error
 	Query(ctx context.Context, query string, time time.Time) (*QueryResult, error)
 	QueryRange(ctx context.Context, query string, start, end time.Time, step time.Duration) (*QueryResult, error)
@@ -26,6 +26,9 @@ type PrometheusClientInterface interface {
 	Series(ctx context.Context, matches []string, start, end time.Time) ([]map[string]string, error)
 	Labels(ctx context.Context) ([]string, error)
 }
+
+// PrometheusClientInterface is an alias for backward compatibility
+type PrometheusClientInterface = ClientInterface
 
 // Client represents a Prometheus API client
 type Client struct {

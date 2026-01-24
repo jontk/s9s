@@ -9,8 +9,8 @@ import (
 	"github.com/jontk/s9s/internal/fileperms"
 )
 
-// ConfigTemplate represents a configuration template
-type ConfigTemplate struct {
+// Template represents a configuration template
+type Template struct {
 	Name        string
 	Description string
 	Category    string
@@ -18,9 +18,12 @@ type ConfigTemplate struct {
 	Variables   map[string]string
 }
 
+// ConfigTemplate is an alias for backward compatibility
+type ConfigTemplate = Template
+
 // TemplateManager manages configuration templates
 type TemplateManager struct {
-	templates map[string]*ConfigTemplate
+	templates map[string]*Template
 }
 
 // NewTemplateManager creates a new template manager
@@ -35,7 +38,7 @@ func NewTemplateManager() *TemplateManager {
 // loadBuiltinTemplates loads built-in configuration templates
 func (tm *TemplateManager) loadBuiltinTemplates() {
 	// Local development template
-	tm.templates["local-dev"] = &ConfigTemplate{
+	tm.templates["local-dev"] = &Template{
 		Name:        "local-dev",
 		Description: "Local development with SLURM tokens",
 		Category:    "development",
@@ -63,7 +66,7 @@ useMockClient: false
 	}
 
 	// Enterprise OAuth2 template
-	tm.templates["enterprise-oauth2"] = &ConfigTemplate{
+	tm.templates["enterprise-oauth2"] = &Template{
 		Name:        "enterprise-oauth2",
 		Description: "Enterprise setup with OAuth2 and DNS discovery",
 		Category:    "enterprise",
@@ -92,7 +95,7 @@ useMockClient: false
 	}
 
 	// Multi-cluster template
-	tm.templates["multi-cluster"] = &ConfigTemplate{
+	tm.templates["multi-cluster"] = &Template{
 		Name:        "multi-cluster",
 		Description: "Multiple cluster configuration",
 		Category:    "production",
@@ -132,7 +135,7 @@ contexts:
 	}
 
 	// HPC Center template
-	tm.templates["hpc-center"] = &ConfigTemplate{
+	tm.templates["hpc-center"] = &Template{
 		Name:        "hpc-center",
 		Description: "Large HPC center with multiple partitions",
 		Category:    "hpc",
@@ -163,7 +166,7 @@ useMockClient: false
 	}
 
 	// Cloud template
-	tm.templates["cloud"] = &ConfigTemplate{
+	tm.templates["cloud"] = &Template{
 		Name:        "cloud",
 		Description: "Cloud-based SLURM with auto-scaling",
 		Category:    "cloud",
@@ -190,7 +193,7 @@ useMockClient: false
 	}
 
 	// Docker/Container template
-	tm.templates["docker"] = &ConfigTemplate{
+	tm.templates["docker"] = &Template{
 		Name:        "docker",
 		Description: "Containerized SLURM setup",
 		Category:    "development",
@@ -217,7 +220,7 @@ useMockClient: false
 	}
 
 	// Minimal template
-	tm.templates["minimal"] = &ConfigTemplate{
+	tm.templates["minimal"] = &Template{
 		Name:        "minimal",
 		Description: "Minimal configuration for quick setup",
 		Category:    "basic",
@@ -242,14 +245,14 @@ useMockClient: false
 }
 
 // GetTemplate returns a template by name
-func (tm *TemplateManager) GetTemplate(name string) (*ConfigTemplate, bool) {
+func (tm *TemplateManager) GetTemplate(name string) (*Template, bool) {
 	template, exists := tm.templates[name]
 	return template, exists
 }
 
 // ListTemplates returns all available templates
-func (tm *TemplateManager) ListTemplates() []*ConfigTemplate {
-	templates := make([]*ConfigTemplate, 0, len(tm.templates))
+func (tm *TemplateManager) ListTemplates() []*Template {
+	templates := make([]*Template, 0, len(tm.templates))
 	for _, template := range tm.templates {
 		templates = append(templates, template)
 	}
@@ -257,8 +260,8 @@ func (tm *TemplateManager) ListTemplates() []*ConfigTemplate {
 }
 
 // ListTemplatesByCategory returns templates filtered by category
-func (tm *TemplateManager) ListTemplatesByCategory(category string) []*ConfigTemplate {
-	var templates []*ConfigTemplate
+func (tm *TemplateManager) ListTemplatesByCategory(category string) []*Template {
+	var templates []*Template
 	for _, template := range tm.templates {
 		if template.Category == category {
 			templates = append(templates, template)
@@ -356,7 +359,7 @@ func (tm *TemplateManager) CreateQuickStartConfig(clusterHost string, clusterNam
 }
 
 // ValidateTemplate validates a template for correctness
-func (tm *TemplateManager) ValidateTemplate(template *ConfigTemplate) []string {
+func (tm *TemplateManager) ValidateTemplate(template *Template) []string {
 	var errors []string
 
 	if template.Name == "" {

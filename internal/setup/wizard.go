@@ -19,30 +19,33 @@ import (
 	"github.com/jontk/s9s/internal/fileperms"
 )
 
-// SetupWizard guides users through initial s9s configuration
-type SetupWizard struct {
+// Wizard guides users through initial s9s configuration
+type Wizard struct {
 	scanner *bufio.Scanner
 	config  *config.Config
 }
+
+// SetupWizard is an alias for backward compatibility
+type SetupWizard = Wizard
 
 // WizardStep represents a step in the setup process
 type WizardStep struct {
 	Name        string
 	Description string
-	Handler     func(*SetupWizard) error
+	Handler     func(*Wizard) error
 	Required    bool
 }
 
 // NewSetupWizard creates a new setup wizard
-func NewSetupWizard() *SetupWizard {
-	return &SetupWizard{
+func NewSetupWizard() *Wizard {
+	return &Wizard{
 		scanner: bufio.NewScanner(os.Stdin),
 		config:  &config.Config{},
 	}
 }
 
 // Run executes the complete setup wizard
-func (w *SetupWizard) Run() error {
+func (w *Wizard) Run() error {
 	w.printWelcome()
 
 	// Check if configuration already exists
@@ -123,7 +126,7 @@ func (w *SetupWizard) Run() error {
 }
 
 // printWelcome displays the welcome message
-func (w *SetupWizard) printWelcome() {
+func (w *Wizard) printWelcome() {
 	fmt.Printf(`
 ╔══════════════════════════════════════════════════════════════╗
 ║                     🚀 Welcome to s9s! 🚀                    ║
@@ -142,7 +145,7 @@ func (w *SetupWizard) printWelcome() {
 }
 
 // setupBasics configures basic s9s settings
-func (w *SetupWizard) setupBasics() error {
+func (w *Wizard) setupBasics() error {
 	fmt.Println("📋 Basic Configuration")
 	fmt.Println("   Let's start with some basic information about your setup.")
 
@@ -176,7 +179,7 @@ func (w *SetupWizard) setupBasics() error {
 }
 
 // setupCluster guides cluster configuration
-func (w *SetupWizard) setupCluster() error {
+func (w *Wizard) setupCluster() error {
 	fmt.Println("🏢 Cluster Configuration")
 	fmt.Println("   Let's connect to your SLURM cluster.")
 
@@ -211,7 +214,7 @@ func (w *SetupWizard) setupCluster() error {
 }
 
 // autoDetectCluster attempts to automatically detect SLURM cluster
-func (w *SetupWizard) autoDetectCluster() *config.ClusterConfig {
+func (w *Wizard) autoDetectCluster() *config.ClusterConfig {
 	// Check for SLURM environment variables
 	slurmctlHost := os.Getenv("SLURM_CONTROLLER_HOST")
 	slurmConfDir := os.Getenv("SLURM_CONF_DIR")
@@ -273,7 +276,7 @@ func (w *SetupWizard) autoDetectCluster() *config.ClusterConfig {
 }
 
 // manualClusterConfig guides manual cluster configuration
-func (w *SetupWizard) manualClusterConfig() config.ClusterConfig {
+func (w *Wizard) manualClusterConfig() config.ClusterConfig {
 	_ = w.prompt("Cluster name", "my-cluster") // Store in context name instead
 
 	// Choose configuration method
@@ -310,7 +313,7 @@ func (w *SetupWizard) manualClusterConfig() config.ClusterConfig {
 }
 
 // setupAuthentication configures authentication
-func (w *SetupWizard) setupAuthentication() error {
+func (w *Wizard) setupAuthentication() error {
 	fmt.Println("🔐 Authentication Setup")
 	fmt.Println("   Choose how you'll authenticate with your SLURM cluster.")
 
@@ -353,7 +356,7 @@ func (w *SetupWizard) setupAuthentication() error {
 }
 
 // setupSlurmTokenAuth configures SLURM token authentication
-func (w *SetupWizard) setupSlurmTokenAuth() map[string]interface{} {
+func (w *Wizard) setupSlurmTokenAuth() map[string]interface{} {
 	fmt.Println("   🎫 Configuring SLURM Token Authentication")
 
 	username := w.prompt("SLURM username", os.Getenv("USER"))
@@ -377,7 +380,7 @@ func (w *SetupWizard) setupSlurmTokenAuth() map[string]interface{} {
 }
 
 // setupAPIAuth configures API authentication
-func (w *SetupWizard) setupAPIAuth() map[string]interface{} {
+func (w *Wizard) setupAPIAuth() map[string]interface{} {
 	fmt.Println("   🌐 Configuring API Authentication")
 
 	endpoint := w.prompt("Authentication API endpoint", "https://auth.cluster.edu/api/v1/token")
@@ -403,7 +406,7 @@ func (w *SetupWizard) setupAPIAuth() map[string]interface{} {
 }
 
 // setupOAuth2Auth configures OAuth2 authentication
-func (w *SetupWizard) setupOAuth2Auth() map[string]interface{} {
+func (w *Wizard) setupOAuth2Auth() map[string]interface{} {
 	fmt.Println("   🔒 Configuring OAuth2 Authentication")
 
 	fmt.Println("\n   Supported providers:")
@@ -447,7 +450,7 @@ func (w *SetupWizard) setupOAuth2Auth() map[string]interface{} {
 }
 
 // setupStorage configures secure storage options
-func (w *SetupWizard) setupStorage() error {
+func (w *Wizard) setupStorage() error {
 	fmt.Println("🔒 Storage Configuration")
 	fmt.Println("   Configure secure storage for authentication tokens.")
 
@@ -470,7 +473,7 @@ func (w *SetupWizard) setupStorage() error {
 }
 
 // setupAdvanced configures advanced options
-func (w *SetupWizard) setupAdvanced() error {
+func (w *Wizard) setupAdvanced() error {
 	fmt.Println("⚙️ Advanced Configuration")
 	fmt.Println("   Configure advanced features and performance options.")
 
@@ -511,7 +514,7 @@ func (w *SetupWizard) setupAdvanced() error {
 // Helper methods
 
 // prompt asks for user input with a default value
-func (w *SetupWizard) prompt(question, defaultValue string) string {
+func (w *Wizard) prompt(question, defaultValue string) string {
 	if defaultValue != "" {
 		fmt.Printf("   %s [%s]: ", question, defaultValue)
 	} else {
@@ -528,7 +531,7 @@ func (w *SetupWizard) prompt(question, defaultValue string) string {
 }
 
 // promptChoice prompts for a choice from a list of options
-func (w *SetupWizard) promptChoice(question string, choices []string, defaultChoice string) string {
+func (w *Wizard) promptChoice(question string, choices []string, defaultChoice string) string {
 	for {
 		choice := w.prompt(question, defaultChoice)
 		for _, valid := range choices {
@@ -541,7 +544,7 @@ func (w *SetupWizard) promptChoice(question string, choices []string, defaultCho
 }
 
 // confirm asks for yes/no confirmation
-func (w *SetupWizard) confirm(question string, defaultYes bool) bool {
+func (w *Wizard) confirm(question string, defaultYes bool) bool {
 	defaultStr := "y/N"
 	if defaultYes {
 		defaultStr = "Y/n"
@@ -558,19 +561,19 @@ func (w *SetupWizard) confirm(question string, defaultYes bool) bool {
 }
 
 // validateURL validates a URL format
-func (w *SetupWizard) validateURL(urlStr string) bool {
+func (w *Wizard) validateURL(urlStr string) bool {
 	_, err := url.Parse(urlStr)
 	return err == nil
 }
 
 // validateDuration validates a duration string
-func (w *SetupWizard) validateDuration(duration string) bool {
+func (w *Wizard) validateDuration(duration string) bool {
 	match, _ := regexp.MatchString(`^\d+[smhd]$`, duration)
 	return match
 }
 
 // configExists checks if configuration already exists
-func (w *SetupWizard) configExists() bool {
+func (w *Wizard) configExists() bool {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return false
@@ -582,7 +585,7 @@ func (w *SetupWizard) configExists() bool {
 }
 
 // confirmOverwrite asks user to confirm overwriting existing config
-func (w *SetupWizard) confirmOverwrite() bool {
+func (w *Wizard) confirmOverwrite() bool {
 	fmt.Println("⚠️  Existing configuration found.")
 	return w.confirm("Would you like to overwrite it?", false)
 }
@@ -591,7 +594,7 @@ func (w *SetupWizard) confirmOverwrite() bool {
 TODO(lint): Review unused code - func (*SetupWizard).extractClusterName is unused
 
 extractClusterName extracts cluster name from slurm.conf
-func (w *SetupWizard) extractClusterName(configPath string) string {
+func (w *Wizard) extractClusterName(configPath string) string {
 	if configPath == "" {
 		return "cluster"
 	}
@@ -616,14 +619,14 @@ func (w *SetupWizard) extractClusterName(configPath string) string {
 */
 
 // testEndpoint tests if an endpoint is accessible
-func (w *SetupWizard) testEndpoint(endpoint string) bool {
+func (w *Wizard) testEndpoint(endpoint string) bool {
 	// Simple check - in production would do actual HTTP request
 	debug.Logger.Printf("Testing endpoint: %s", endpoint)
 	return false // Placeholder - would implement actual test
 }
 
 // testConnection tests connection to configured cluster
-func (w *SetupWizard) testConnection() {
+func (w *Wizard) testConnection() {
 	fmt.Println("\n🧪 Testing cluster connection...")
 
 	// Placeholder for connection test
@@ -634,7 +637,7 @@ func (w *SetupWizard) testConnection() {
 }
 
 // saveConfiguration saves the configuration to file
-func (w *SetupWizard) saveConfiguration() error {
+func (w *Wizard) saveConfiguration() error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("failed to get home directory: %w", err)
@@ -662,7 +665,7 @@ func (w *SetupWizard) saveConfiguration() error {
 }
 
 // printCompletion displays the completion message
-func (w *SetupWizard) printCompletion() {
+func (w *Wizard) printCompletion() {
 	fmt.Printf(`
 ╔══════════════════════════════════════════════════════════════╗
 ║                    🎉 Setup Complete! 🎉                     ║
@@ -687,7 +690,7 @@ func (w *SetupWizard) printCompletion() {
 }
 
 // getStepIcon returns an icon for each setup step
-func (w *SetupWizard) getStepIcon(step int) string {
+func (w *Wizard) getStepIcon(step int) string {
 	icons := []string{"📋", "🏢", "🔐", "🔒", "⚙️"}
 	if step > 0 && step <= len(icons) {
 		return icons[step-1]
@@ -696,7 +699,7 @@ func (w *SetupWizard) getStepIcon(step int) string {
 }
 
 // getRequiredIndicator returns indicator for required/optional steps
-func (w *SetupWizard) getRequiredIndicator(required bool) string {
+func (w *Wizard) getRequiredIndicator(required bool) string {
 	if required {
 		return "(required)"
 	}

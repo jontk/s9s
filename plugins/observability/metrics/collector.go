@@ -254,20 +254,23 @@ func (ic *InstrumentedClient) BatchQuery(ctx context.Context, queries map[string
 	return result, err
 }
 
-// MetricsExporter provides methods to export metrics in various formats
-type MetricsExporter struct {
+// Exporter provides methods to export metrics in various formats
+type Exporter struct {
 	metrics *PluginMetrics
 }
 
+// MetricsExporter is an alias for backward compatibility
+type MetricsExporter = Exporter
+
 // NewMetricsExporter creates a new metrics exporter
-func NewMetricsExporter(metrics *PluginMetrics) *MetricsExporter {
-	return &MetricsExporter{
+func NewMetricsExporter(metrics *PluginMetrics) *Exporter {
+	return &Exporter{
 		metrics: metrics,
 	}
 }
 
 // ExportPrometheusFormat exports metrics in Prometheus exposition format
-func (me *MetricsExporter) ExportPrometheusFormat() string {
+func (me *Exporter) ExportPrometheusFormat() string {
 	stats := me.metrics.GetAllStats()
 
 	var output string

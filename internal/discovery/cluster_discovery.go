@@ -37,12 +37,15 @@ type DiscoveredCluster struct {
 	Metadata         map[string]string
 }
 
-// DiscoveryMethod represents a cluster discovery method
-type DiscoveryMethod interface {
+// Method represents a cluster discovery method
+type Method interface {
 	Name() string
 	Discover(ctx context.Context) ([]*DiscoveredCluster, error)
 	Priority() int
 }
+
+// DiscoveryMethod is an alias for backward compatibility
+type DiscoveryMethod = Method
 
 // NewClusterDiscovery creates a new cluster discovery instance
 func NewClusterDiscovery() *ClusterDiscovery {

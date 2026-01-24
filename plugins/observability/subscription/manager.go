@@ -14,8 +14,8 @@ import (
 	"github.com/jontk/s9s/plugins/observability/prometheus"
 )
 
-// SubscriptionManager manages data subscriptions for the observability plugin
-type SubscriptionManager struct {
+// Manager manages data subscriptions for the observability plugin
+type Manager struct {
 	client        *prometheus.CachedClient
 	subscriptions map[string]*Subscription
 	callbacks     map[string]plugin.DataCallback
@@ -23,6 +23,9 @@ type SubscriptionManager struct {
 	running       bool
 	stopChan      chan struct{}
 }
+
+// SubscriptionManager is an alias for backward compatibility
+type SubscriptionManager = Manager
 
 // Subscription represents an active data subscription
 type Subscription struct {
@@ -50,7 +53,7 @@ func NewSubscriptionManager(client *prometheus.CachedClient) *SubscriptionManage
 }
 
 // Start starts the subscription manager
-func (sm *SubscriptionManager) Start(ctx context.Context) error {
+func (sm *Manager) Start(ctx context.Context) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
@@ -68,7 +71,7 @@ func (sm *SubscriptionManager) Start(ctx context.Context) error {
 }
 
 // Stop stops the subscription manager
-func (sm *SubscriptionManager) Stop() error {
+func (sm *Manager) Stop() error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
@@ -83,7 +86,7 @@ func (sm *SubscriptionManager) Stop() error {
 }
 
 // Subscribe creates a new data subscription
-func (sm *SubscriptionManager) Subscribe(providerID string, params map[string]interface{}, callback plugin.DataCallback) (plugin.SubscriptionID, error) {
+func (sm *Manager) Subscribe(providerID string, params map[string]interface{}, callback plugin.DataCallback) (plugin.SubscriptionID, error) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
@@ -126,7 +129,7 @@ func (sm *SubscriptionManager) Subscribe(providerID string, params map[string]in
 }
 
 // Unsubscribe removes a data subscription
-func (sm *SubscriptionManager) Unsubscribe(subscriptionID plugin.SubscriptionID) error {
+func (sm *Manager) Unsubscribe(subscriptionID plugin.SubscriptionID) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
@@ -142,7 +145,7 @@ func (sm *SubscriptionManager) Unsubscribe(subscriptionID plugin.SubscriptionID)
 }
 
 // GetSubscription returns subscription details
-func (sm *SubscriptionManager) GetSubscription(subscriptionID plugin.SubscriptionID) (*Subscription, error) {
+func (sm *Manager) GetSubscription(subscriptionID plugin.SubscriptionID) (*Subscription, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 
@@ -159,7 +162,7 @@ func (sm *SubscriptionManager) GetSubscription(subscriptionID plugin.Subscriptio
 }
 
 // ListSubscriptions returns all active subscriptions
-func (sm *SubscriptionManager) ListSubscriptions() map[string]*Subscription {
+func (sm *Manager) ListSubscriptions() map[string]*Subscription {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 
@@ -174,7 +177,7 @@ func (sm *SubscriptionManager) ListSubscriptions() map[string]*Subscription {
 }
 
 // GetStats returns subscription manager statistics
-func (sm *SubscriptionManager) GetStats() map[string]interface{} {
+func (sm *Manager) GetStats() map[string]interface{} {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 
@@ -205,7 +208,7 @@ func (sm *SubscriptionManager) GetStats() map[string]interface{} {
 }
 
 // updateLoop runs the subscription update process
-func (sm *SubscriptionManager) updateLoop(ctx context.Context) {
+func (sm *Manager) updateLoop(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Second) // Check every second
 	defer ticker.Stop()
 
@@ -222,7 +225,7 @@ func (sm *SubscriptionManager) updateLoop(ctx context.Context) {
 }
 
 // processUpdates processes subscription updates
-func (sm *SubscriptionManager) processUpdates(ctx context.Context) {
+func (sm *Manager) processUpdates(ctx context.Context) {
 	sm.mu.RLock()
 	subscriptions := make([]*Subscription, 0, len(sm.subscriptions))
 	for _, sub := range sm.subscriptions {
@@ -241,7 +244,7 @@ func (sm *SubscriptionManager) processUpdates(ctx context.Context) {
 }
 
 // updateSubscription updates a specific subscription
-func (sm *SubscriptionManager) updateSubscription(ctx context.Context, subscription *Subscription) {
+func (sm *Manager) updateSubscription(ctx context.Context, subscription *Subscription) {
 	defer func() {
 		if r := recover(); r != nil {
 			sm.incrementErrorCount(subscription.ID, fmt.Sprintf("panic: %v", r))
@@ -276,12 +279,12 @@ func (sm *SubscriptionManager) updateSubscription(ctx context.Context, subscript
 }
 
 // GetData retrieves data for a subscription (public method)
-func (sm *SubscriptionManager) GetData(ctx context.Context, providerID string, params map[string]interface{}) (interface{}, error) {
+func (sm *Manager) GetData(ctx context.Context, providerID string, params map[string]interface{}) (interface{}, error) {
 	return sm.getData(ctx, providerID, params)
 }
 
 // getData retrieves data for a subscription (internal method)
-func (sm *SubscriptionManager) getData(ctx context.Context, providerID string, params map[string]interface{}) (interface{}, error) {
+func (sm *Manager) getData(ctx context.Context, providerID string, params map[string]interface{}) (interface{}, error) {
 	switch providerID {
 	case "prometheus-metrics":
 		return sm.getPrometheusMetrics(ctx, params)
@@ -297,7 +300,7 @@ func (sm *SubscriptionManager) getData(ctx context.Context, providerID string, p
 }
 
 // getPrometheusMetrics retrieves metrics from Prometheus
-func (sm *SubscriptionManager) getPrometheusMetrics(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+func (sm *Manager) getPrometheusMetrics(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 	if sm.client == nil {
 		return nil, fmt.Errorf("prometheus client not available")
 	}
@@ -318,7 +321,7 @@ func (sm *SubscriptionManager) getPrometheusMetrics(ctx context.Context, params 
 }
 
 // getAlerts retrieves active alerts
-func (sm *SubscriptionManager) getAlerts(_ context.Context, _ map[string]interface{}) (interface{}, error) {
+func (sm *Manager) getAlerts(_ context.Context, _ map[string]interface{}) (interface{}, error) {
 	// For now, return mock alert data
 	// TODO: Implement actual alert retrieval from Prometheus Alertmanager
 	return map[string]interface{}{
@@ -338,7 +341,7 @@ func (sm *SubscriptionManager) getAlerts(_ context.Context, _ map[string]interfa
 }
 
 // getNodeMetrics retrieves node-specific metrics
-func (sm *SubscriptionManager) getNodeMetrics(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+func (sm *Manager) getNodeMetrics(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 	if sm.client == nil {
 		return nil, fmt.Errorf("prometheus client not available")
 	}
@@ -369,7 +372,7 @@ func (sm *SubscriptionManager) getNodeMetrics(ctx context.Context, params map[st
 }
 
 // getJobMetrics retrieves job-specific metrics
-func (sm *SubscriptionManager) getJobMetrics(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+func (sm *Manager) getJobMetrics(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 	if sm.client == nil {
 		return nil, fmt.Errorf("prometheus client not available")
 	}
@@ -399,7 +402,7 @@ func (sm *SubscriptionManager) getJobMetrics(ctx context.Context, params map[str
 }
 
 // validateProviderID validates a provider ID
-func (sm *SubscriptionManager) validateProviderID(providerID string) error {
+func (sm *Manager) validateProviderID(providerID string) error {
 	validProviders := []string{
 		"prometheus-metrics",
 		"alerts",
@@ -417,7 +420,7 @@ func (sm *SubscriptionManager) validateProviderID(providerID string) error {
 }
 
 // incrementErrorCount increments the error count for a subscription
-func (sm *SubscriptionManager) incrementErrorCount(subscriptionID, errorMsg string) {
+func (sm *Manager) incrementErrorCount(subscriptionID, errorMsg string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 

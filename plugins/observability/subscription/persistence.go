@@ -24,15 +24,18 @@ type PersistentSubscription struct {
 	Metadata       map[string]interface{} `json:"metadata"`
 }
 
-// SubscriptionPersistence handles subscription persistence and recovery
-type SubscriptionPersistence struct {
+// Persistence handles subscription persistence and recovery
+type Persistence struct {
 	dataDir         string
-	subscriptionMgr *SubscriptionManager
+	subscriptionMgr *Manager
 	mu              sync.RWMutex
 	autoSave        bool
 	saveInterval    time.Duration
 	stopChan        chan struct{}
 }
+
+// SubscriptionPersistence is an alias for backward compatibility
+type SubscriptionPersistence = Persistence
 
 // PersistenceConfig configuration for subscription persistence
 type PersistenceConfig struct {
@@ -42,7 +45,7 @@ type PersistenceConfig struct {
 }
 
 // NewSubscriptionPersistence creates a new subscription persistence manager
-func NewSubscriptionPersistence(config PersistenceConfig, subscriptionMgr *SubscriptionManager) (*SubscriptionPersistence, error) {
+func NewSubscriptionPersistence(config PersistenceConfig, subscriptionMgr *Manager) (*Persistence, error) {
 	if config.DataDir == "" {
 		config.DataDir = "./data/subscriptions"
 	}
@@ -56,7 +59,7 @@ func NewSubscriptionPersistence(config PersistenceConfig, subscriptionMgr *Subsc
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
-	sp := &SubscriptionPersistence{
+	sp := &Persistence{
 		dataDir:         config.DataDir,
 		subscriptionMgr: subscriptionMgr,
 		autoSave:        config.AutoSave,
@@ -72,7 +75,7 @@ func NewSubscriptionPersistence(config PersistenceConfig, subscriptionMgr *Subsc
 }
 
 // SaveSubscriptions saves all current subscriptions to disk
-func (sp *SubscriptionPersistence) SaveSubscriptions() error {
+func (sp *Persistence) SaveSubscriptions() error {
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
 
@@ -118,7 +121,7 @@ func (sp *SubscriptionPersistence) SaveSubscriptions() error {
 }
 
 // LoadSubscriptions loads subscriptions from disk
-func (sp *SubscriptionPersistence) LoadSubscriptions() error {
+func (sp *Persistence) LoadSubscriptions() error {
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
 
@@ -169,7 +172,7 @@ func (sp *SubscriptionPersistence) LoadSubscriptions() error {
 }
 
 // SaveSubscription saves a single subscription
-func (sp *SubscriptionPersistence) SaveSubscription(subscriptionID string) error {
+func (sp *Persistence) SaveSubscription(subscriptionID string) error {
 	subscription, err := sp.subscriptionMgr.GetSubscription(plugin.SubscriptionID(subscriptionID))
 	if err != nil {
 		return fmt.Errorf("failed to get subscription: %w", err)
@@ -205,7 +208,7 @@ func (sp *SubscriptionPersistence) SaveSubscription(subscriptionID string) error
 }
 
 // DeleteSubscription removes a persisted subscription
-func (sp *SubscriptionPersistence) DeleteSubscription(subscriptionID string) error {
+func (sp *Persistence) DeleteSubscription(subscriptionID string) error {
 	filename := filepath.Join(sp.dataDir, fmt.Sprintf("subscription_%s.json", subscriptionID))
 
 	if err := os.Remove(filename); err != nil && !os.IsNotExist(err) {
@@ -216,7 +219,7 @@ func (sp *SubscriptionPersistence) DeleteSubscription(subscriptionID string) err
 }
 
 // BackupSubscriptions creates a backup of all subscriptions
-func (sp *SubscriptionPersistence) BackupSubscriptions() (string, error) {
+func (sp *Persistence) BackupSubscriptions() (string, error) {
 	sp.mu.RLock()
 	defer sp.mu.RUnlock()
 
@@ -243,7 +246,7 @@ func (sp *SubscriptionPersistence) BackupSubscriptions() (string, error) {
 }
 
 // RestoreFromBackup restores subscriptions from a backup file
-func (sp *SubscriptionPersistence) RestoreFromBackup(backupFile string) error {
+func (sp *Persistence) RestoreFromBackup(backupFile string) error {
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
 
@@ -288,7 +291,7 @@ func (sp *SubscriptionPersistence) RestoreFromBackup(backupFile string) error {
 }
 
 // GetBackupList returns a list of available backup files
-func (sp *SubscriptionPersistence) GetBackupList() ([]string, error) {
+func (sp *Persistence) GetBackupList() ([]string, error) {
 	backupDir := filepath.Join(sp.dataDir, "backups")
 
 	if _, err := os.Stat(backupDir); os.IsNotExist(err) {
@@ -304,7 +307,7 @@ func (sp *SubscriptionPersistence) GetBackupList() ([]string, error) {
 }
 
 // CleanupOldBackups removes backup files older than the specified duration
-func (sp *SubscriptionPersistence) CleanupOldBackups(maxAge time.Duration) error {
+func (sp *Persistence) CleanupOldBackups(maxAge time.Duration) error {
 	backupFiles, err := sp.GetBackupList()
 	if err != nil {
 		return err
@@ -332,7 +335,7 @@ func (sp *SubscriptionPersistence) CleanupOldBackups(maxAge time.Duration) error
 }
 
 // GetPersistenceStats returns statistics about persistence operations
-func (sp *SubscriptionPersistence) GetPersistenceStats() map[string]interface{} {
+func (sp *Persistence) GetPersistenceStats() map[string]interface{} {
 	backupFiles, _ := sp.GetBackupList()
 
 	stats := map[string]interface{}{
@@ -352,12 +355,12 @@ func (sp *SubscriptionPersistence) GetPersistenceStats() map[string]interface{} 
 }
 
 // Stop stops the auto-save loop
-func (sp *SubscriptionPersistence) Stop() {
+func (sp *Persistence) Stop() {
 	close(sp.stopChan)
 }
 
 // autoSaveLoop runs the automatic save process
-func (sp *SubscriptionPersistence) autoSaveLoop() {
+func (sp *Persistence) autoSaveLoop() {
 	ticker := time.NewTicker(sp.saveInterval)
 	defer ticker.Stop()
 
@@ -372,17 +375,20 @@ func (sp *SubscriptionPersistence) autoSaveLoop() {
 	}
 }
 
-// SubscriptionRecovery handles recovery of failed subscriptions
-type SubscriptionRecovery struct {
-	subscriptionMgr *SubscriptionManager
-	persistence     *SubscriptionPersistence
+// Recovery handles recovery of failed subscriptions
+type Recovery struct {
+	subscriptionMgr *Manager
+	persistence     *Persistence
 	maxRetries      int
 	retryDelay      time.Duration
 }
 
+// SubscriptionRecovery is an alias for backward compatibility
+type SubscriptionRecovery = Recovery
+
 // NewSubscriptionRecovery creates a new subscription recovery manager
-func NewSubscriptionRecovery(subscriptionMgr *SubscriptionManager, persistence *SubscriptionPersistence) *SubscriptionRecovery {
-	return &SubscriptionRecovery{
+func NewSubscriptionRecovery(subscriptionMgr *Manager, persistence *Persistence) *Recovery {
+	return &Recovery{
 		subscriptionMgr: subscriptionMgr,
 		persistence:     persistence,
 		maxRetries:      3,
@@ -391,7 +397,7 @@ func NewSubscriptionRecovery(subscriptionMgr *SubscriptionManager, persistence *
 }
 
 // RecoverFailedSubscriptions attempts to recover failed subscriptions
-func (sr *SubscriptionRecovery) RecoverFailedSubscriptions(ctx context.Context) error {
+func (sr *Recovery) RecoverFailedSubscriptions(ctx context.Context) error {
 	subscriptions := sr.subscriptionMgr.ListSubscriptions()
 
 	for _, sub := range subscriptions {
@@ -408,7 +414,7 @@ func (sr *SubscriptionRecovery) RecoverFailedSubscriptions(ctx context.Context) 
 }
 
 // recoverSubscription attempts to recover a single subscription
-func (sr *SubscriptionRecovery) recoverSubscription(ctx context.Context, subscriptionID string) error {
+func (sr *Recovery) recoverSubscription(ctx context.Context, subscriptionID string) error {
 	subscription, err := sr.subscriptionMgr.GetSubscription(plugin.SubscriptionID(subscriptionID))
 	if err != nil {
 		return fmt.Errorf("failed to get subscription: %w", err)

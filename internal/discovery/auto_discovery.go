@@ -270,23 +270,26 @@ func (ad *AutoDiscovery) GetCachedEndpoint() *DiscoveredEndpoint {
 	return nil
 }
 
-// DiscoveryResult represents the result of endpoint discovery with source information
-type DiscoveryResult struct {
+// Result represents the result of endpoint discovery with source information
+type Result struct {
 	Endpoint *DiscoveredEndpoint
 	Source   string
 	Error    error
 }
 
+// DiscoveryResult is an alias for backward compatibility
+type DiscoveryResult = Result
+
 // DiscoverEndpointWithFallback tries multiple discovery methods and returns all results
-func (ad *AutoDiscovery) DiscoverEndpointWithFallback(ctx context.Context) []DiscoveryResult {
-	results := make([]DiscoveryResult, 0, 3)
+func (ad *AutoDiscovery) DiscoverEndpointWithFallback(ctx context.Context) []Result {
+	results := make([]Result, 0, 3)
 
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, ad.timeout)
 	defer cancel()
 
 	// Try SRV _slurmrestd._tcp
 	endpoint, err := ad.discoverViaSRV(ctxWithTimeout, "_slurmrestd._tcp")
-	results = append(results, DiscoveryResult{
+	results = append(results, Result{
 		Endpoint: endpoint,
 		Source:   "srv-_slurmrestd._tcp",
 		Error:    err,
@@ -298,7 +301,7 @@ func (ad *AutoDiscovery) DiscoverEndpointWithFallback(ctx context.Context) []Dis
 		endpoint.Port = ad.defaultPort
 		endpoint.URL = fmt.Sprintf("http://%s:%d", endpoint.Host, endpoint.Port)
 	}
-	results = append(results, DiscoveryResult{
+	results = append(results, Result{
 		Endpoint: endpoint,
 		Source:   "srv-_slurmctld._tcp",
 		Error:    err,
@@ -306,7 +309,7 @@ func (ad *AutoDiscovery) DiscoverEndpointWithFallback(ctx context.Context) []Dis
 
 	// Try scontrol ping
 	endpoint, err = ad.discoverViaScontrol(ctxWithTimeout)
-	results = append(results, DiscoveryResult{
+	results = append(results, Result{
 		Endpoint: endpoint,
 		Source:   "scontrol",
 		Error:    err,

@@ -12,13 +12,6 @@ import (
 	"github.com/jontk/s9s/internal/fileperms"
 )
 
-// ConfigValidationResult represents the result of configuration validation
-type ConfigValidationResult struct {
-	Valid    bool
-	Errors   []ValidationError
-	Warnings []ValidationWarning
-	Fixes    []ValidationFix
-}
 
 // ValidationError represents a configuration error
 type ValidationError struct {
@@ -45,6 +38,17 @@ type ValidationFix struct {
 	Applied     bool
 }
 
+// ValidationResult represents the result of configuration validation
+type ValidationResult struct {
+	Valid    bool
+	Errors   []ValidationError
+	Warnings []ValidationWarning
+	Fixes    []ValidationFix
+}
+
+// ConfigValidationResult is an alias for backward compatibility
+type ConfigValidationResult = ValidationResult
+
 // ValidationSeverity represents the severity of a validation issue
 type ValidationSeverity int
 
@@ -57,21 +61,24 @@ const (
 	SeverityInfo
 )
 
-// ConfigValidator validates and fixes s9s configuration
-type ConfigValidator struct {
+// Validator validates and fixes s9s configuration
+type Validator struct {
 	config  *Config
-	result  *ConfigValidationResult
+	result  *ValidationResult
 	autoFix bool
 	// TODO(lint): Review unused code - field strict is unused
 	// strict    bool
 }
 
+// ConfigValidator is an alias for backward compatibility
+type ConfigValidator = Validator
+
 // NewConfigValidator creates a new configuration validator
-func NewConfigValidator(config *Config, autoFix bool) *ConfigValidator {
-	return &ConfigValidator{
+func NewConfigValidator(config *Config, autoFix bool) *Validator {
+	return &Validator{
 		config:  config,
 		autoFix: autoFix,
-		result: &ConfigValidationResult{
+		result: &ValidationResult{
 			Valid:    true,
 			Errors:   []ValidationError{},
 			Warnings: []ValidationWarning{},
@@ -81,7 +88,7 @@ func NewConfigValidator(config *Config, autoFix bool) *ConfigValidator {
 }
 
 // Validate performs comprehensive configuration validation
-func (v *ConfigValidator) Validate() *ConfigValidationResult {
+func (v *Validator) Validate() *ValidationResult {
 	debug.Logger.Printf("Starting configuration validation (autoFix: %v)", v.autoFix)
 
 	// Basic structure validation
@@ -118,7 +125,7 @@ func (v *ConfigValidator) Validate() *ConfigValidationResult {
 }
 
 // validateBasicStructure validates basic configuration structure
-func (v *ConfigValidator) validateBasicStructure() {
+func (v *Validator) validateBasicStructure() {
 	if v.config == nil {
 		v.addError("config", "Configuration is nil", "Initialize configuration", true)
 		return
@@ -144,7 +151,7 @@ func (v *ConfigValidator) validateBasicStructure() {
 }
 
 // validateContexts validates all contexts
-func (v *ConfigValidator) validateContexts() {
+func (v *Validator) validateContexts() {
 	if len(v.config.Contexts) == 0 {
 		v.addError("contexts", "No contexts defined", "Add at least one cluster context", false)
 		return
@@ -190,14 +197,14 @@ func (v *ConfigValidator) validateContexts() {
 }
 
 // validateClusters validates cluster configurations
-func (v *ConfigValidator) validateClusters() {
+func (v *Validator) validateClusters() {
 	for i, context := range v.config.Contexts {
 		v.validateCluster(context.Cluster, fmt.Sprintf("contexts[%d].cluster", i))
 	}
 }
 
 // validateCluster validates a single cluster configuration
-func (v *ConfigValidator) validateCluster(cluster ClusterConfig, basePath string) {
+func (v *Validator) validateCluster(cluster ClusterConfig, basePath string) {
 	// Endpoint validation (main connection method)
 	if cluster.Endpoint == "" {
 		v.addError(fmt.Sprintf("%s.endpoint", basePath),
@@ -228,12 +235,12 @@ func (v *ConfigValidator) validateCluster(cluster ClusterConfig, basePath string
 }
 
 // validateClusterInContext validates cluster within a context
-func (v *ConfigValidator) validateClusterInContext(context ContextConfig, contextPath string) {
+func (v *Validator) validateClusterInContext(context ContextConfig, contextPath string) {
 	v.validateCluster(context.Cluster, fmt.Sprintf("%s.cluster", contextPath))
 }
 
 // validateAuthentication validates authentication settings
-func (v *ConfigValidator) validateAuthentication() {
+func (v *Validator) validateAuthentication() {
 	// This would validate auth configurations if they were part of the main config
 	// For now, we'll add basic validation for auth-related metadata
 
@@ -252,7 +259,7 @@ func (v *ConfigValidator) validateAuthentication() {
 }
 
 // validatePerformanceSettings validates performance-related settings
-func (v *ConfigValidator) validatePerformanceSettings() {
+func (v *Validator) validatePerformanceSettings() {
 	// Refresh rate validation
 	if v.config.RefreshRate != "" {
 		if duration, err := time.ParseDuration(v.config.RefreshRate); err != nil {
@@ -277,7 +284,7 @@ func (v *ConfigValidator) validatePerformanceSettings() {
 }
 
 // validateSecurity validates security settings
-func (v *ConfigValidator) validateSecurity() {
+func (v *Validator) validateSecurity() {
 	for i, context := range v.config.Contexts {
 		cluster := context.Cluster
 
@@ -298,7 +305,7 @@ func (v *ConfigValidator) validateSecurity() {
 }
 
 // validatePaths validates file and directory paths
-func (v *ConfigValidator) validatePaths() {
+func (v *Validator) validatePaths() {
 	// Check if config directory exists and is writable
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -359,7 +366,7 @@ func (v *ConfigValidator) validatePaths() {
 }
 
 // validateEnvironmentVariables validates environment variable references
-func (v *ConfigValidator) validateEnvironmentVariables() {
+func (v *Validator) validateEnvironmentVariables() {
 	// Check for common environment variables that should be set
 	requiredEnvVars := []string{"USER", "HOME"}
 	for _, envVar := range requiredEnvVars {
@@ -390,7 +397,7 @@ func (v *ConfigValidator) validateEnvironmentVariables() {
 // Helper methods
 
 // addError adds a validation error
-func (v *ConfigValidator) addError(field, message, suggestion string, autoFixable bool) {
+func (v *Validator) addError(field, message, suggestion string, autoFixable bool) {
 	v.result.Errors = append(v.result.Errors, ValidationError{
 		Field:       field,
 		Message:     message,
@@ -401,7 +408,7 @@ func (v *ConfigValidator) addError(field, message, suggestion string, autoFixabl
 }
 
 // addWarning adds a validation warning
-func (v *ConfigValidator) addWarning(field, message, impact string) {
+func (v *Validator) addWarning(field, message, impact string) {
 	v.result.Warnings = append(v.result.Warnings, ValidationWarning{
 		Field:   field,
 		Message: message,
@@ -410,7 +417,7 @@ func (v *ConfigValidator) addWarning(field, message, impact string) {
 }
 
 // fix applies an automatic fix if autoFix is enabled
-func (v *ConfigValidator) fix(field, description string, oldValue, newValue interface{}) {
+func (v *Validator) fix(field, description string, oldValue, newValue interface{}) {
 	fix := ValidationFix{
 		Field:       field,
 		Description: description,
@@ -442,13 +449,13 @@ func (v *ConfigValidator) applyFix(field string, newValue interface{}) {
 // Validation helper methods
 
 // isValidDuration checks if a string is a valid duration
-func (v *ConfigValidator) isValidDuration(duration string) bool {
+func (v *Validator) isValidDuration(duration string) bool {
 	_, err := time.ParseDuration(duration)
 	return err == nil
 }
 
 // isValidURL checks if a string is a valid URL
-func (v *ConfigValidator) isValidURL(urlStr string) bool {
+func (v *Validator) isValidURL(urlStr string) bool {
 	u, err := url.Parse(urlStr)
 	return err == nil && u.Scheme != "" && u.Host != ""
 }
@@ -464,7 +471,7 @@ func (v *ConfigValidator) fileExists(path string) bool {
 */
 
 // directoryExists checks if a directory exists
-func (v *ConfigValidator) directoryExists(path string) bool {
+func (v *Validator) directoryExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.IsDir()
 }
@@ -484,13 +491,13 @@ func (v *ConfigValidator) contains(slice []string, item string) bool {
 */
 
 // ValidateAndFix validates configuration and optionally applies fixes
-func ValidateAndFix(config *Config, autoFix bool) *ConfigValidationResult {
+func ValidateAndFix(config *Config, autoFix bool) *ValidationResult {
 	validator := NewConfigValidator(config, autoFix)
 	return validator.Validate()
 }
 
 // PrintValidationResult prints a formatted validation result
-func PrintValidationResult(result *ConfigValidationResult, verbose bool) {
+func PrintValidationResult(result *ValidationResult, verbose bool) {
 	if result.Valid {
 		fmt.Printf("✅ Configuration is valid\n")
 	} else {

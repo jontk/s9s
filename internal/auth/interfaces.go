@@ -8,7 +8,7 @@ import (
 // Authenticator defines the interface for all authentication plugins
 type Authenticator interface {
 	// Core authentication methods
-	Authenticate(ctx context.Context, config AuthConfig) (*Token, error)
+	Authenticate(ctx context.Context, config Config) (*Token, error)
 	RefreshToken(ctx context.Context, token *Token) (*Token, error)
 	ValidateToken(ctx context.Context, token *Token) error
 	RevokeToken(ctx context.Context, token *Token) error
@@ -18,7 +18,7 @@ type Authenticator interface {
 	GetConfigSchema() ConfigSchema
 
 	// Lifecycle management
-	Initialize(ctx context.Context, config AuthConfig) error
+	Initialize(ctx context.Context, config Config) error
 	Cleanup() error
 }
 
@@ -74,10 +74,10 @@ type SecureStore interface {
 	Cleanup() error
 }
 
-// AuthManager manages authentication across multiple clusters
-type AuthManager interface {
+// Manager manages authentication across multiple clusters
+type Manager interface {
 	// ConfigureCluster sets up authentication for a cluster
-	ConfigureCluster(clusterID string, authType string, config AuthConfig) error
+	ConfigureCluster(clusterID string, authType string, config Config) error
 
 	// Authenticate authenticates against a specific cluster
 	Authenticate(ctx context.Context, clusterID string) (*Token, error)
@@ -98,8 +98,11 @@ type AuthManager interface {
 	GetClusterInfo(clusterID string) (*ClusterAuthInfo, error)
 
 	// ValidateConfiguration validates auth configuration
-	ValidateConfiguration(authType string, config AuthConfig) error
+	ValidateConfiguration(authType string, config Config) error
 }
+
+// AuthManager is an alias for backward compatibility
+type AuthManager = Manager
 
 // ClusterAuthInfo contains information about a cluster's authentication setup
 type ClusterAuthInfo struct {

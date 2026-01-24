@@ -26,7 +26,7 @@ type EnhancedTerminalView struct {
 
 	// UI Components
 	paneManager *components.MultiPaneManager
-	navManager  *navigation.NavigationManager
+	navManager  *navigation.Manager
 	container   *tview.Flex
 
 	// Terminal Panes
@@ -76,7 +76,7 @@ func (etv *EnhancedTerminalView) Init(ctx context.Context) error {
 
 	// Initialize UI components
 	etv.paneManager = components.NewMultiPaneManager(etv.app)
-	etv.navManager = navigation.NewNavigationManager(etv.app)
+	etv.navManager = navigation.NewManager(etv.app)
 
 	// Setup callbacks
 	etv.setupCallbacks()

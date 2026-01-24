@@ -35,8 +35,8 @@ type MetricSeries struct {
 	UpdatedAt  time.Time         `json:"updated_at"`
 }
 
-// HistoricalDataCollector collects and stores historical metric data
-type HistoricalDataCollector struct {
+// DataCollector collects and stores historical metric data
+type DataCollector struct {
 	client          *prometheus.CachedClient
 	dataDir         string
 	retention       time.Duration
@@ -49,6 +49,9 @@ type HistoricalDataCollector struct {
 	running  bool
 	stopChan chan struct{}
 }
+
+// HistoricalDataCollector is an alias for backward compatibility
+type HistoricalDataCollector = DataCollector
 
 // CollectorConfig configuration for historical data collector
 type CollectorConfig struct {

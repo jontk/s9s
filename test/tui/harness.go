@@ -13,8 +13,8 @@ import (
 	"github.com/jontk/s9s/internal/config"
 )
 
-// TUITestHarness provides a test harness for TUI testing using SimulationScreen
-type TUITestHarness struct {
+// TestHarness provides a test harness for TUI testing using SimulationScreen
+type TestHarness struct {
 	t      *testing.T
 	screen tcell.SimulationScreen
 	app    *app.S9s
@@ -26,8 +26,11 @@ type TUITestHarness struct {
 	height int
 }
 
+// TUITestHarness is an alias for backward compatibility
+type TUITestHarness = TestHarness
+
 // NewTUITestHarness creates a new TUI test harness with a simulated screen
-func NewTUITestHarness(t *testing.T) *TUITestHarness {
+func NewTUITestHarness(t *testing.T) *TestHarness {
 	return NewTUITestHarnessWithSize(t, 120, 40)
 }
 
@@ -96,7 +99,7 @@ func NewTUITestHarnessWithSize(t *testing.T, width, height int) *TUITestHarness 
 }
 
 // Start starts the application in a goroutine
-func (h *TUITestHarness) Start() {
+func (h *TestHarness) Start() {
 	h.wg.Add(1)
 	go func() {
 		defer h.wg.Done()
@@ -110,7 +113,7 @@ func (h *TUITestHarness) Start() {
 }
 
 // Cleanup stops the application and cleans up resources
-func (h *TUITestHarness) Cleanup() {
+func (h *TestHarness) Cleanup() {
 	// Cancel context first
 	h.cancel()
 
@@ -127,7 +130,7 @@ func (h *TUITestHarness) Cleanup() {
 }
 
 // SendKey sends a key event to the application
-func (h *TUITestHarness) SendKey(key tcell.Key, r rune, mod tcell.ModMask) {
+func (h *TestHarness) SendKey(key tcell.Key, r rune, mod tcell.ModMask) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -142,37 +145,37 @@ func (h *TUITestHarness) SendKey(key tcell.Key, r rune, mod tcell.ModMask) {
 }
 
 // SendRune sends a rune (character) to the application
-func (h *TUITestHarness) SendRune(r rune) {
+func (h *TestHarness) SendRune(r rune) {
 	h.SendKey(tcell.KeyRune, r, tcell.ModNone)
 }
 
 // SendEnter sends the Enter key
-func (h *TUITestHarness) SendEnter() {
+func (h *TestHarness) SendEnter() {
 	h.SendKey(tcell.KeyEnter, 0, tcell.ModNone)
 }
 
 // SendEsc sends the Escape key
-func (h *TUITestHarness) SendEsc() {
+func (h *TestHarness) SendEsc() {
 	h.SendKey(tcell.KeyEsc, 0, tcell.ModNone)
 }
 
 // SendTab sends the Tab key
-func (h *TUITestHarness) SendTab() {
+func (h *TestHarness) SendTab() {
 	h.SendKey(tcell.KeyTab, 0, tcell.ModNone)
 }
 
 // SendBacktab sends the Shift+Tab key
-func (h *TUITestHarness) SendBacktab() {
+func (h *TestHarness) SendBacktab() {
 	h.SendKey(tcell.KeyBacktab, 0, tcell.ModNone)
 }
 
 // SendCtrlC sends Ctrl+C
-func (h *TUITestHarness) SendCtrlC() {
+func (h *TestHarness) SendCtrlC() {
 	h.SendKey(tcell.KeyCtrlC, 0, tcell.ModCtrl)
 }
 
 // GetScreenText returns all text on the screen as a single string
-func (h *TUITestHarness) GetScreenText() string {
+func (h *TestHarness) GetScreenText() string {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -195,25 +198,25 @@ func (h *TUITestHarness) GetScreenText() string {
 }
 
 // GetScreenLines returns the screen content as a slice of lines
-func (h *TUITestHarness) GetScreenLines() []string {
+func (h *TestHarness) GetScreenLines() []string {
 	text := h.GetScreenText()
 	return strings.Split(text, "\n")
 }
 
 // ContainsText checks if the screen contains the specified text
-func (h *TUITestHarness) ContainsText(expected string) bool {
+func (h *TestHarness) ContainsText(expected string) bool {
 	screenText := h.GetScreenText()
 	return strings.Contains(screenText, expected)
 }
 
 // ContainsTextCaseInsensitive checks if the screen contains the text (case-insensitive)
-func (h *TUITestHarness) ContainsTextCaseInsensitive(expected string) bool {
+func (h *TestHarness) ContainsTextCaseInsensitive(expected string) bool {
 	screenText := strings.ToLower(h.GetScreenText())
 	return strings.Contains(screenText, strings.ToLower(expected))
 }
 
 // GetCellAt returns the character and style at the specified position
-func (h *TUITestHarness) GetCellAt(x, y int) (rune, tcell.Style) {
+func (h *TestHarness) GetCellAt(x, y int) (rune, tcell.Style) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -222,7 +225,7 @@ func (h *TUITestHarness) GetCellAt(x, y int) (rune, tcell.Style) {
 }
 
 // WaitForText waits for the specified text to appear on screen, with a timeout
-func (h *TUITestHarness) WaitForText(text string, timeout time.Duration) bool {
+func (h *TestHarness) WaitForText(text string, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		if h.ContainsText(text) {
@@ -234,7 +237,7 @@ func (h *TUITestHarness) WaitForText(text string, timeout time.Duration) bool {
 }
 
 // WaitForTextToDisappear waits for text to disappear from screen, with a timeout
-func (h *TUITestHarness) WaitForTextToDisappear(text string, timeout time.Duration) bool {
+func (h *TestHarness) WaitForTextToDisappear(text string, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		if !h.ContainsText(text) {
@@ -246,7 +249,7 @@ func (h *TUITestHarness) WaitForTextToDisappear(text string, timeout time.Durati
 }
 
 // DumpScreen dumps the screen contents to the test log for debugging
-func (h *TUITestHarness) DumpScreen() {
+func (h *TestHarness) DumpScreen() {
 	h.t.Log("=== Screen Dump ===")
 	lines := h.GetScreenLines()
 	for i, line := range lines {
@@ -256,27 +259,27 @@ func (h *TUITestHarness) DumpScreen() {
 }
 
 // GetCurrentView returns the name of the current view
-func (h *TUITestHarness) GetCurrentView() string {
+func (h *TestHarness) GetCurrentView() string {
 	return h.app.GetCurrentViewName()
 }
 
 // IsModalOpen checks if a modal is currently open
-func (h *TUITestHarness) IsModalOpen() bool {
+func (h *TestHarness) IsModalOpen() bool {
 	return h.app.IsModalOpen()
 }
 
 // GetModalName returns the name of the currently open modal
-func (h *TUITestHarness) GetModalName() string {
+func (h *TestHarness) GetModalName() string {
 	return h.app.GetModalName()
 }
 
 // IsCmdVisible checks if the command line is visible
-func (h *TUITestHarness) IsCmdVisible() bool {
+func (h *TestHarness) IsCmdVisible() bool {
 	return h.app.IsCmdVisible()
 }
 
 // AssertContainsText asserts that the screen contains the specified text
-func (h *TUITestHarness) AssertContainsText(expected string) {
+func (h *TestHarness) AssertContainsText(expected string) {
 	if !h.ContainsText(expected) {
 		h.DumpScreen()
 		h.t.Errorf("Expected screen to contain %q, but it was not found", expected)
@@ -284,7 +287,7 @@ func (h *TUITestHarness) AssertContainsText(expected string) {
 }
 
 // AssertNotContainsText asserts that the screen does not contain the specified text
-func (h *TUITestHarness) AssertNotContainsText(expected string) {
+func (h *TestHarness) AssertNotContainsText(expected string) {
 	if h.ContainsText(expected) {
 		h.DumpScreen()
 		h.t.Errorf("Expected screen to NOT contain %q, but it was found", expected)
@@ -292,7 +295,7 @@ func (h *TUITestHarness) AssertNotContainsText(expected string) {
 }
 
 // AssertCurrentView asserts that the current view matches the expected view name
-func (h *TUITestHarness) AssertCurrentView(expected string) {
+func (h *TestHarness) AssertCurrentView(expected string) {
 	actual := h.GetCurrentView()
 	if actual != expected {
 		h.DumpScreen()
@@ -301,7 +304,7 @@ func (h *TUITestHarness) AssertCurrentView(expected string) {
 }
 
 // AssertModalOpen asserts that a modal is open
-func (h *TUITestHarness) AssertModalOpen() {
+func (h *TestHarness) AssertModalOpen() {
 	if !h.IsModalOpen() {
 		h.DumpScreen()
 		h.t.Error("Expected modal to be open, but no modal was found")
@@ -309,7 +312,7 @@ func (h *TUITestHarness) AssertModalOpen() {
 }
 
 // AssertModalClosed asserts that no modal is open
-func (h *TUITestHarness) AssertModalClosed() {
+func (h *TestHarness) AssertModalClosed() {
 	if h.IsModalOpen() {
 		h.DumpScreen()
 		h.t.Errorf("Expected no modal to be open, but found: %s", h.GetModalName())
@@ -317,7 +320,7 @@ func (h *TUITestHarness) AssertModalClosed() {
 }
 
 // AssertWaitForText asserts that text appears within the timeout
-func (h *TUITestHarness) AssertWaitForText(text string, timeout time.Duration) {
+func (h *TestHarness) AssertWaitForText(text string, timeout time.Duration) {
 	if !h.WaitForText(text, timeout) {
 		h.DumpScreen()
 		h.t.Errorf("Timeout waiting for text %q to appear", text)
@@ -325,17 +328,17 @@ func (h *TUITestHarness) AssertWaitForText(text string, timeout time.Duration) {
 }
 
 // GetApp returns the underlying app instance for advanced testing
-func (h *TUITestHarness) GetApp() *app.S9s {
+func (h *TestHarness) GetApp() *app.S9s {
 	return h.app
 }
 
 // GetScreen returns the simulation screen for low-level testing
-func (h *TUITestHarness) GetScreen() tcell.SimulationScreen {
+func (h *TestHarness) GetScreen() tcell.SimulationScreen {
 	return h.screen
 }
 
 // String provides a string representation useful for debugging
-func (h *TUITestHarness) String() string {
+func (h *TestHarness) String() string {
 	return fmt.Sprintf("TUITestHarness{size=%dx%d, view=%s, modal=%s}",
 		h.width, h.height, h.GetCurrentView(), h.GetModalName())
 }
