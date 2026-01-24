@@ -176,7 +176,7 @@ func testSessionManagerIntegration(t *testing.T, testHost, testUser string) {
 	})
 }
 
-func testTerminalManagerIntegration(t *testing.T, testHost, testUser string) {
+func testTerminalManagerIntegration(t *testing.T, _, _ string) {
 	// Skip terminal manager tests for now since they require tview integration
 	t.Skip("Terminal manager integration tests require GUI components")
 }
@@ -348,7 +348,7 @@ func isDockerAvailable() bool {
 	return err == nil
 }
 
-func setupSSHContainer(t *testing.T) (string, error) {
+func setupSSHContainer(_ *testing.T) (string, error) {
 	// Create a temporary directory for SSH keys
 	keyDir, err := os.MkdirTemp("", "ssh_test_keys_*")
 	if err != nil {
@@ -416,7 +416,7 @@ CMD ["/usr/sbin/sshd", "-D"]
 	return containerID, nil
 }
 
-func cleanupSSHContainer(t *testing.T, containerID string) {
+func cleanupSSHContainer(_ *testing.T, containerID string) {
 	// Stop and remove container
 	_ = exec.Command("docker", "stop", containerID).Run()
 	_ = exec.Command("docker", "rm", containerID).Run()
