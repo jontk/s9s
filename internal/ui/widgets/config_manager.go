@@ -823,15 +823,11 @@ func (cm *ConfigManager) copyConfig(original *config.Config) *config.Config {
 
 	// Copy contexts slice
 	copied.Contexts = make([]config.ContextConfig, len(original.Contexts))
-	for i, ctx := range original.Contexts {
-		copied.Contexts[i] = ctx
-	}
+	copy(copied.Contexts, original.Contexts)
 
 	// Copy shortcuts slice
 	copied.Shortcuts = make([]config.ShortcutConfig, len(original.Shortcuts))
-	for i, shortcut := range original.Shortcuts {
-		copied.Shortcuts[i] = shortcut
-	}
+	copy(copied.Shortcuts, original.Shortcuts)
 
 	// Copy aliases map
 	if original.Aliases != nil {
@@ -843,9 +839,7 @@ func (cm *ConfigManager) copyConfig(original *config.Config) *config.Config {
 
 	// Copy plugins slice
 	copied.Plugins = make([]config.PluginConfig, len(original.Plugins))
-	for i, plugin := range original.Plugins {
-		copied.Plugins[i] = plugin
-	}
+	copy(copied.Plugins, original.Plugins)
 
 	return copied
 }
