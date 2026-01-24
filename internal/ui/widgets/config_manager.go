@@ -810,7 +810,7 @@ func (cm *ConfigManager) copyConfig(original *config.Config) *config.Config {
 	}
 
 	// Create a new config and copy values
-	copy := &config.Config{
+	copied := &config.Config{
 		RefreshRate:    original.RefreshRate,
 		MaxRetries:     original.MaxRetries,
 		CurrentContext: original.CurrentContext,
@@ -822,32 +822,32 @@ func (cm *ConfigManager) copyConfig(original *config.Config) *config.Config {
 	}
 
 	// Copy contexts slice
-	copy.Contexts = make([]config.ContextConfig, len(original.Contexts))
+	copied.Contexts = make([]config.ContextConfig, len(original.Contexts))
 	for i, ctx := range original.Contexts {
-		copy.Contexts[i] = ctx
+		copied.Contexts[i] = ctx
 	}
 
 	// Copy shortcuts slice
-	copy.Shortcuts = make([]config.ShortcutConfig, len(original.Shortcuts))
+	copied.Shortcuts = make([]config.ShortcutConfig, len(original.Shortcuts))
 	for i, shortcut := range original.Shortcuts {
-		copy.Shortcuts[i] = shortcut
+		copied.Shortcuts[i] = shortcut
 	}
 
 	// Copy aliases map
 	if original.Aliases != nil {
-		copy.Aliases = make(map[string]string)
+		copied.Aliases = make(map[string]string)
 		for k, v := range original.Aliases {
-			copy.Aliases[k] = v
+			copied.Aliases[k] = v
 		}
 	}
 
 	// Copy plugins slice
-	copy.Plugins = make([]config.PluginConfig, len(original.Plugins))
+	copied.Plugins = make([]config.PluginConfig, len(original.Plugins))
 	for i, plugin := range original.Plugins {
-		copy.Plugins[i] = plugin
+		copied.Plugins[i] = plugin
 	}
 
-	return copy
+	return copied
 }
 
 // updateStatusBar updates the status bar text

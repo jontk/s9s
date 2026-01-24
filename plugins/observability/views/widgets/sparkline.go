@@ -73,9 +73,9 @@ func (s *SparklineWidget) SetValues(values []float64) {
 }
 
 // SetScale sets manual scale
-func (s *SparklineWidget) SetScale(min, max float64) {
-	s.min = min
-	s.max = max
+func (s *SparklineWidget) SetScale(minVal, maxVal float64) {
+	s.min = minVal
+	s.max = maxVal
 	s.autoScale = false
 }
 

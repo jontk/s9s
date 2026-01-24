@@ -437,7 +437,7 @@ func (pd *PerformanceDashboard) generateASCIIChart(data []float64, name, unit st
 	// Get current and summary values
 	current := data[len(data)-1]
 	avg := pd.calculateAverage(data)
-	max := pd.calculateMax(data)
+	maxVal := pd.calculateMax(data)
 
 	// Determine color based on thresholds
 	color := "green"
@@ -450,7 +450,7 @@ func (pd *PerformanceDashboard) generateASCIIChart(data []float64, name, unit st
 	// Create simple bar chart
 	chart := fmt.Sprintf("[%s]Current: %.1f%s[white]\n", color, current, unit)
 	chart += fmt.Sprintf("Average: %.1f%s\n", avg, unit)
-	chart += fmt.Sprintf("Peak: %.1f%s\n\n", max, unit)
+	chart += fmt.Sprintf("Peak: %.1f%s\n\n", maxVal, unit)
 
 	// Add simple trend line
 	trend := pd.generateTrendLine(data, 20)
@@ -465,9 +465,9 @@ func (pd *PerformanceDashboard) generateTrendLine(data []float64, width int) str
 		return "[gray]Insufficient data[white]"
 	}
 
-	max := pd.calculateMax(data)
-	if max == 0 {
-		max = 1
+	maxVal := pd.calculateMax(data)
+	if maxVal == 0 {
+		maxVal = 1
 	}
 
 	line := ""
@@ -478,7 +478,7 @@ func (pd *PerformanceDashboard) generateTrendLine(data []float64, width int) str
 
 	for i := 0; i < len(data); i += step {
 		value := data[i]
-		height := int((value / max) * 8)
+		height := int((value / maxVal) * 8)
 
 		switch height {
 		case 0:
@@ -529,14 +529,14 @@ func (pd *PerformanceDashboard) calculateMax(data []float64) float64 {
 		return 0
 	}
 
-	max := data[0]
+	maxVal := data[0]
 	for _, v := range data {
-		if v > max {
-			max = v
+		if v > maxVal {
+			maxVal = v
 		}
 	}
 
-	return max
+	return maxVal
 }
 
 // updateMetricsTable updates the detailed metrics table

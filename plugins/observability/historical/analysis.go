@@ -358,8 +358,8 @@ func (ha *HistoricalAnalyzer) CompareMetrics(metricNames []string, duration time
 			"metric":   metricName,
 			"count":    len(values),
 			"mean":     average(values),
-			"min":      min(values),
-			"max":      max(values),
+			"min":      minimum(values),
+			"max":      maximum(values),
 			"std_dev":  standardDeviation(values),
 			"variance": variance(values),
 		}
@@ -503,7 +503,7 @@ func average(values []float64) float64 {
 	return sum(values) / float64(len(values))
 }
 
-func min(values []float64) float64 {
+func minimum(values []float64) float64 {
 	if len(values) == 0 {
 		return 0
 	}
@@ -517,7 +517,7 @@ func min(values []float64) float64 {
 	return minVal
 }
 
-func max(values []float64) float64 {
+func maximum(values []float64) float64 {
 	if len(values) == 0 {
 		return 0
 	}

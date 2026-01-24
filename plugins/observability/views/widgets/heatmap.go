@@ -90,9 +90,9 @@ func (h *HeatmapWidget) SetData(data map[string]map[string]float64) {
 }
 
 // SetScale sets manual scale
-func (h *HeatmapWidget) SetScale(min, max float64) {
-	h.min = min
-	h.max = max
+func (h *HeatmapWidget) SetScale(minVal, maxVal float64) {
+	h.min = minVal
+	h.max = maxVal
 	h.autoScale = false
 }
 
@@ -279,9 +279,9 @@ func formatHeatmapValue(value float64) string {
 }
 
 // defaultHeatmapColorFunc returns colors based on value range
-func defaultHeatmapColorFunc(value, min, max float64) tcell.Color {
+func defaultHeatmapColorFunc(value, minVal, maxVal float64) tcell.Color {
 	// Normalize to 0-1
-	normalized := (value - min) / (max - min)
+	normalized := (value - minVal) / (maxVal - minVal)
 	if math.IsNaN(normalized) || math.IsInf(normalized, 0) {
 		normalized = 0
 	}

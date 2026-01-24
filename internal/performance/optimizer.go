@@ -329,19 +329,19 @@ func (o *Optimizer) TuneForInteractive() {
 
 // ObjectPool provides a generic object pool for reducing allocations
 type ObjectPool[T any] struct {
-	pool sync.Pool
-	new  func() T
+	pool    sync.Pool
+	factory func() T
 }
 
 // NewObjectPool creates a new object pool
-func NewObjectPool[T any](new func() T) *ObjectPool[T] {
+func NewObjectPool[T any](factory func() T) *ObjectPool[T] {
 	return &ObjectPool[T]{
 		pool: sync.Pool{
 			New: func() interface{} {
-				return new()
+				return factory()
 			},
 		},
-		new: new,
+		factory: factory,
 	}
 }
 

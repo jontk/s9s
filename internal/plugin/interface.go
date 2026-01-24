@@ -233,7 +233,7 @@ type DataProviderInfo struct {
 }
 
 // DataCallback is called when subscribed data updates
-type DataCallback func(data interface{}, error error)
+type DataCallback func(data interface{}, err error)
 
 // SubscriptionID represents a data subscription
 type SubscriptionID string

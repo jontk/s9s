@@ -224,10 +224,10 @@ func (a *AdvancedLoadBalancer) getAllManagedEndpoints() []*ManagedEndpoint {
 	return all
 }
 
-// secureRandInt generates a cryptographically secure random integer in the range [0, max)
+// secureRandInt generates a cryptographically secure random integer in the range [0, maxVal)
 // This prevents prediction attacks on load balancer server selection
-func secureRandInt(max int) int {
-	if max <= 0 {
+func secureRandInt(maxVal int) int {
+	if maxVal <= 0 {
 		return 0
 	}
 
@@ -236,13 +236,13 @@ func secureRandInt(max int) int {
 	if _, err := rand.Read(buf[:]); err != nil {
 		// Fallback to time-based selection if crypto/rand fails
 		// This should never happen in practice
-		return int(time.Now().UnixNano()) % max
+		return int(time.Now().UnixNano()) % maxVal
 	}
 
 	// Convert bytes to uint64 and take modulo
 	randomValue := binary.BigEndian.Uint64(buf[:])
-	result := randomValue % uint64(max)
-	// Safe conversion: result is guaranteed to be < max, so if max fits in int, result will too
+	result := randomValue % uint64(maxVal)
+	// Safe conversion: result is guaranteed to be < maxVal, so if maxVal fits in int, result will too
 	return mathutil.Uint64ToInt(result)
 }
 

@@ -79,13 +79,13 @@ func (ts *TimeSeries) Min() float64 {
 		return 0
 	}
 
-	min := ts.Values[0].Value
+	minVal := ts.Values[0].Value
 	for _, v := range ts.Values[1:] {
-		if v.Value < min {
-			min = v.Value
+		if v.Value < minVal {
+			minVal = v.Value
 		}
 	}
-	return min
+	return minVal
 }
 
 // Max returns the maximum value in the time series
@@ -94,13 +94,13 @@ func (ts *TimeSeries) Max() float64 {
 		return 0
 	}
 
-	max := ts.Values[0].Value
+	maxVal := ts.Values[0].Value
 	for _, v := range ts.Values[1:] {
-		if v.Value > max {
-			max = v.Value
+		if v.Value > maxVal {
+			maxVal = v.Value
 		}
 	}
-	return max
+	return maxVal
 }
 
 // MetricCollection represents a collection of related metrics
@@ -208,25 +208,25 @@ var CommonAggregations = map[string]AggregationFunc{
 		if len(values) == 0 {
 			return 0
 		}
-		min := values[0]
+		minVal := values[0]
 		for _, v := range values[1:] {
-			if v < min {
-				min = v
+			if v < minVal {
+				minVal = v
 			}
 		}
-		return min
+		return minVal
 	},
 	"max": func(values []float64) float64 {
 		if len(values) == 0 {
 			return 0
 		}
-		max := values[0]
+		maxVal := values[0]
 		for _, v := range values[1:] {
-			if v > max {
-				max = v
+			if v > maxVal {
+				maxVal = v
 			}
 		}
-		return max
+		return maxVal
 	},
 	"sum": func(values []float64) float64 {
 		sum := 0.0

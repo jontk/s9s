@@ -26,12 +26,12 @@ type GaugeWidget struct {
 }
 
 // NewGaugeWidget creates a new gauge widget
-func NewGaugeWidget(title string, min, max float64, unit string) *GaugeWidget {
+func NewGaugeWidget(title string, minVal, maxVal float64, unit string) *GaugeWidget {
 	g := &GaugeWidget{
 		Box:            tview.NewBox(),
 		title:          title,
-		min:            min,
-		max:            max,
+		min:            minVal,
+		max:            maxVal,
 		unit:           unit,
 		showValue:      true,
 		showPercentage: true,
@@ -164,8 +164,8 @@ func NewGaugeGroup(direction int) *GaugeGroup {
 }
 
 // AddGauge adds a gauge to the group
-func (gg *GaugeGroup) AddGauge(title string, min, max float64, unit string) *GaugeWidget {
-	gauge := NewGaugeWidget(title, min, max, unit)
+func (gg *GaugeGroup) AddGauge(title string, minVal, maxVal float64, unit string) *GaugeWidget {
+	gauge := NewGaugeWidget(title, minVal, maxVal, unit)
 	gg.gauges = append(gg.gauges, gauge)
 	gg.AddItem(gauge, 3, 1, false) // Height of 3 for border + gauge + padding
 	return gauge

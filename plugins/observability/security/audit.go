@@ -335,7 +335,7 @@ func (al *AuditLogger) extractUserID(authHeader string) string {
 	if strings.HasPrefix(authHeader, "Bearer ") {
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 		// In practice, you'd decode the JWT or look up the token
-		return fmt.Sprintf("token:%s", token[:min(8, len(token))])
+		return fmt.Sprintf("token:%s", token[:minimum(8, len(token))])
 	}
 	return "unknown"
 }
@@ -415,7 +415,7 @@ func (al *AuditLogger) rotateFiles() error {
 	return os.Rename(baseName, baseName+".1")
 }
 
-func min(a, b int) int {
+func minimum(a, b int) int {
 	if a < b {
 		return a
 	}

@@ -51,10 +51,10 @@ func NewTerminalManager(app *tview.Application) *TerminalManager {
 }
 
 // SetMaxTerminals sets the maximum number of terminals
-func (tm *TerminalManager) SetMaxTerminals(max int) {
+func (tm *TerminalManager) SetMaxTerminals(maxVal int) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
-	tm.maxTerminals = max
+	tm.maxTerminals = maxVal
 }
 
 // SetOnSwitch sets the callback for terminal switching
