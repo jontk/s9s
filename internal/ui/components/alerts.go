@@ -477,10 +477,8 @@ func (av *AlertsView) SetKeyHandler() {
 				return nil
 			case 's', 'S':
 				// Show notification settings
-				if av.pages != nil && av.notificationMgr != nil {
-					// Import cycle prevented - notification settings moved to separate package
-					// The parent component (app.go) will handle showing notification settings
-				}
+				// Import cycle prevented - notification settings moved to separate package
+				// The parent component (app.go) will handle showing notification settings
 				return nil
 			}
 		case tcell.KeyTab:

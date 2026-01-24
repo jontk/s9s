@@ -113,9 +113,8 @@ func (nm *NotificationManager) SendNotification(notification Notification) {
 	for _, callback := range callbacks {
 		go func(cb NotificationCallback, notif Notification) {
 			defer func() {
-				if r := recover(); r != nil {
-					// Log callback panic but don't fail
-				}
+				// Log callback panic but don't fail
+				_ = recover()
 			}()
 			cb(notif)
 		}(callback, notification)

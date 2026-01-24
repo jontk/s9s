@@ -502,12 +502,8 @@ func (v *JobsView) showSaveTemplateFormFromSubmission(jobSub *dao.JobSubmission)
 			JobSubmission: jobSub,
 		}
 
-		err := v.templateManager.addTemplate(template)
-		if err != nil {
-			// Note: Status bar update removed since individual view status bars are no longer used
-		} else {
-			// Note: Status bar update removed since individual view status bars are no longer used
-		}
+		// Note: Status bar updates removed since individual view status bars are no longer used
+		_ = v.templateManager.addTemplate(template)
 
 		if v.pages != nil {
 			v.pages.RemovePage("save-template")

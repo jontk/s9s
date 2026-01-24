@@ -511,7 +511,7 @@ func (mst *MultiSelectTable) SetData(data [][]string) {
 	var selectedDataContent []string
 	if mst.multiSelectMode && len(mst.selectedRows) > 0 {
 		// Get filtered data through the accessor to respect Table's mutex
-		filteredData := mst.Table.GetFilteredData()
+		filteredData := mst.GetFilteredData()
 		for row := range mst.selectedRows {
 			if row < len(filteredData) && len(filteredData[row]) > 0 {
 				// Use first column (usually ID) as identifier
@@ -536,7 +536,7 @@ func (mst *MultiSelectTable) SetData(data [][]string) {
 		newSelectionCount := 0
 
 		// Get updated filtered data through the accessor
-		filteredData := mst.Table.GetFilteredData()
+		filteredData := mst.GetFilteredData()
 		for rowIndex, rowData := range filteredData {
 			if len(rowData) > 0 {
 				for _, selectedID := range selectedDataContent {

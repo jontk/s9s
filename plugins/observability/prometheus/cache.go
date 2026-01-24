@@ -402,9 +402,7 @@ func (cc *CachedClient) Labels(ctx context.Context) ([]string, error) {
 	if result, found := cc.cache.Get(cacheKey); found {
 		// Extract labels from cached result - this is a simplified approach
 		// In practice, you'd want to cache the actual labels slice
-		if result.Data.Result != nil {
-			// For now, delegate to client and cache result
-		}
+		_ = result
 	}
 
 	// Execute labels query

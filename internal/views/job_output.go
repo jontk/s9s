@@ -576,11 +576,8 @@ func (v *JobOutputView) stopStreaming() {
 		return
 	}
 
-	// Stop the stream
-	err := v.streamManager.StopStream(v.jobID, v.outputType)
-	if err != nil {
-		// Log error but continue cleanup
-	}
+	// Stop the stream (log error but continue cleanup)
+	_ = v.streamManager.StopStream(v.jobID, v.outputType)
 
 	// Unsubscribe from events
 	if v.streamChannel != nil {

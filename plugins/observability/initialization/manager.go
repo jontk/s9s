@@ -361,10 +361,7 @@ func (m *Manager) initExternalAPI(components *Components) error {
 func (c *Components) Stop() error {
 	var errors []error
 
-	// Stop external API
-	if c.ExternalAPI != nil {
-		// Note: ExternalAPI.Stop needs a context, we'll handle this in the main plugin
-	}
+	// Note: ExternalAPI.Stop needs a context, we'll handle this in the main plugin
 
 	// Stop historical collector
 	if c.HistoricalCollector != nil {

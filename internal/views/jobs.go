@@ -1547,11 +1547,7 @@ func (v *JobsView) onAdvancedFilterChange(filter *filters.Filter) {
 	v.advancedFilter = filter
 	v.updateTable()
 
-	if filter != nil && len(filter.Expressions) > 0 {
-		// Note: Status bar update removed since individual view status bars are no longer used
-	} else {
-		// Note: Status bar update removed since individual view status bars are no longer used
-	}
+	// Note: Status bar updates removed since individual view status bars are no longer used
 }
 
 // applyAdvancedFilter applies the advanced filter to jobs

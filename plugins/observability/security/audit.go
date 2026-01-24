@@ -147,11 +147,9 @@ func (al *AuditLogger) LogEvent(event AuditEvent) {
 	al.mu.Lock()
 	defer al.mu.Unlock()
 
-	// Check file size and rotate if needed
+	// Check file size and rotate if needed (log rotation errors but continue)
 	if al.file != nil {
-		if err := al.rotateIfNeeded(); err != nil {
-			// Log rotation failed, continue with current file
-		}
+		_ = al.rotateIfNeeded()
 	}
 
 	// Serialize and write event
@@ -189,12 +187,7 @@ func (al *AuditLogger) LogAPIRequest(r *http.Request, statusCode int, duration t
 	}
 
 	// Include request body for sensitive operations if configured
-	if al.config.IncludeBodies && event.Sensitive {
-		if r.Body != nil {
-			// Note: This would require buffering the body
-			// In practice, you'd use middleware to capture this
-		}
-	}
+	// Note: This would require buffering the body via middleware to capture this
 
 	al.LogEvent(event)
 }

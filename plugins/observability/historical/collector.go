@@ -114,10 +114,8 @@ func NewHistoricalDataCollector(client *prometheus.CachedClient, config Collecto
 		stopChan:        make(chan struct{}),
 	}
 
-	// Load existing data
-	if err := collector.loadHistoricalData(); err != nil {
-		// Log error but continue
-	}
+	// Load existing data (log error but continue initialization)
+	_ = collector.loadHistoricalData()
 
 	return collector, nil
 }
