@@ -305,7 +305,15 @@ Invalid reasons:
 
 #### Proper Nolint Usage
 
-Always include specific linter names and justification:
+**Philosophy**: Use explicit `//nolint` directives at violation points with justification comments. This is better than project-wide exclusions because:
+- Reviewers see the reasoning inline, not buried in config
+- Each suppression is intentional and documented
+- Easy to track and incrementally fix issues
+- Enables nolintlint validation to prevent accumulating technical debt
+
+Always include:
+1. Specific linter name(s)
+2. Justification comment explaining WHY the violation is acceptable
 
 ```go
 // Bad - suppress all linters, no explanation
@@ -314,18 +322,48 @@ Always include specific linter names and justification:
 // Bad - suppress all linters for this line, no explanation
 var globalState int // nolint
 
-// Good - specific linter, with comment
+// Good - specific linter with justification
 var globalState int // nolint:gochecknoglobals // state needed for initialization
 
-// Good - specific linter in directive
-// nolint:noctx // context not needed for test setup
-result := doSomething()
+// Good - security issue with validation explanation
+//nolint:gosec // G304: path is application-controlled (from cacheDir config), not user input
+data, err := os.ReadFile(cachePath)
+
+// Good - command with validated arguments
+//nolint:gosec // G204: ssh-keygen is a well-known system command, args are controlled
+cmd := exec.CommandContext(ctx, "ssh-keygen", args...)
 ```
 
-The **`nolintlint`** linter validates these directives:
-- Must specify which linter(s) to suppress
-- Must not suppress unnecessary linters
-- Must not have leading spaces
+#### Nolint Validation
+
+The **`nolintlint`** linter enforces:
+- Specific rule names required (no blanket `//nolint`)
+- Explanations required (comments documenting the reason)
+- No unused directives (prevents accumulated technical debt)
+
+This ensures suppressions remain intentional and justified.
+
+## Global Exclusions vs. Nolint Directives
+
+We use a **hybrid approach**:
+
+### Project-wide Exclusions (Minimal)
+
+Only used for genuine false positives that apply everywhere:
+- **G204 (gosec)**: exec.Command flagged as unsafe when args are separated properly
+  - Our code validates command paths and passes args as separate strings
+  - This is a known false positive in gosec
+  - Single global exclusion prevents noise while still allowing nolint elsewhere
+
+### Nolint Directives (Primary)
+
+Security and linter violations are suppressed with explicit `//nolint` comments:
+- **G304 (gosec)**: File path operations - suppressed when paths are app-controlled
+- **G404 (gosec)**: Weak randomness - suppressed in specific contexts
+- **G101 (gosec)**: Hardcoded credentials - suppressed for test RSA keys
+- **Other rules**: Documented inline with justification
+
+**Advantage**: Code reviewers see the reasoning at the violation point, not hidden in config. Each suppression is intentional and can be tracked for removal.
 
 ## Pre-commit Hooks
 
