@@ -31,10 +31,11 @@ linters:
     - gosec         # Enabled: exclusion rules configured in linters-settings
     # gocritic: Phase 3d - style and code pattern checks
     - gocritic      # Enabled: disabled checks configured in linters-settings
+    # unused: Phase 3e - unused variables and code
+    - unused        # Enabled: final phase to remove dead code
 
   disable:
     # Temporarily disabled - will be fixed in follow-up PRs
-    - unused        # 1 issue
     - noctx         # 7 issues - all in test/integration files where context is not required
     # TODO(Phase3c): Re-enable noctx after fixing test file exclusion rule patterns
 
