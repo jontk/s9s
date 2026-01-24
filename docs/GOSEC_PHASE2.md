@@ -185,18 +185,32 @@ linters-settings:
 - ✅ **All test code** uses bounded operations
 - ✅ **Hardcoded credentials** limited to test fixtures
 
-### Remaining Work
+### Re-enablement Status
+
+**Current Limitation** (golangci-lint 2.8.0):
+- `linters-settings.gosec.excludes` configuration is not recognized by golangci-lint
+- `issues.exclude-rules` with text matching also does not apply to gosec
+- This appears to be a version-specific limitation
+
+**Pending Resolution**:
+1. **Test with alternative approaches**:
+   - Try newer golangci-lint version if available
+   - Check if different configuration syntax is supported
+   - Investigate if native gosec configuration works differently
+
+2. **Once exclusion mechanism works**:
+   - Uncomment gosec in `.golangci.yml` linters.enable section
+   - Verify `make lint` passes with 0 issues (all exclusions working)
+   - Add gosec to CI/CD pipeline
+
+3. **Fallback approach**:
+   - Add `// nolint:gosec` suppression comments in specific files if needed
+   - Less maintainable than global rules but ensures linter compliance
 
 **Phase 2c - Not Yet Started**:
 - G404: Weak random number generation (in auth/config packages)
   - Determine if weak random is acceptable for non-security operations
   - Consider crypto/rand migration if needed
-
-**Re-enablement**:
-1. Validate exclusion rules work correctly
-2. Run `golangci-lint run --enable=gosec` - should show 0 issues
-3. Merge PR to re-enable gosec in CI/CD
-4. Monitor CI for any new gosec findings
 
 ---
 
