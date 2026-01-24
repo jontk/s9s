@@ -16,9 +16,10 @@ linters:
     - errcheck      # Unchecked errors are critical
     - govet         # Suspicious constructs
     - ineffassign   # Ineffective assignments
-    # staticcheck: 50 issues fixed in PR #13, 32 remaining to be addressed in Phase 1
+    # staticcheck: 82/82 Phase 1 issues fixed (PR #13 + PR #16) ✅
+    - staticcheck   # Enabled: all Phase 1 issues resolved
     # gosec: 105 issues fixed in PR #12, remaining issues in auth/config packages
-    # Will be re-enabled as Phase 1 & 2 issues are resolved
+    # Will be re-enabled as Phase 2 & 3 issues are resolved
 
     # Additional linters - Phase 7
     # Note: gofumpt and goimports are handled by pre-commit hooks and Makefile
@@ -30,10 +31,6 @@ linters:
   disable:
     # Temporarily disabled - will be fixed in follow-up PRs
     - unused        # 1 issue
-    # staticcheck: Progress - 50/71 issues fixed (Phase 2 PR #13)
-    # Remaining 32 issues: SA9003 (27), QF1008 (2), QF1003 (1), other (2)
-    # Phase 1 work: s9s-w3f (SA9003), s9s-0tx (QF1008/QF1003)
-    - staticcheck
     # gosec: Progress - 105/145 issues fixed (Phase 1 PR #12)
     # Remaining issues are in auth/config packages, see exclude rules below
     - gosec
@@ -142,23 +139,6 @@ issues:
     - linters:
         - noctx
       path: "(test|_test)\\.go"
-
-    # Pre-existing staticcheck issues - Phase 1 work items
-    # SA9003: empty branch (27 instances) - task s9s-w3f
-    # QF1008: could remove embedded field (2 instances) - task s9s-0tx
-    # QF1003: could use tagged switch (1 instance) - task s9s-0tx
-    # These will be fixed when staticcheck is re-enabled
-    - text: "SA9003: empty branch"
-      linters:
-        - staticcheck
-
-    - text: "QF1008: could remove embedded field"
-      linters:
-        - staticcheck
-
-    - text: "QF1003: could use tagged switch"
-      linters:
-        - staticcheck
 
     # Pre-existing gosec issues in auth and config packages
     - text: "G404: Use of weak random"
