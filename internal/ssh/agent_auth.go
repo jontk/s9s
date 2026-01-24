@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -22,7 +23,7 @@ func NewAgentAuth() (*AgentAuth, error) {
 		return nil, fmt.Errorf("SSH_AUTH_SOCK not set - no SSH agent available")
 	}
 
-	conn, err := net.Dial("unix", authSock)
+	conn, err := (&net.Dialer{}).DialContext(context.Background(), "unix", authSock)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to SSH agent: %w", err)
 	}
@@ -63,7 +64,7 @@ func (aa *AgentAuth) RefreshSigners() error {
 	}
 
 	// Reconnect
-	conn, err := net.Dial("unix", authSock)
+	conn, err := (&net.Dialer{}).DialContext(context.Background(), "unix", authSock)
 	if err != nil {
 		return fmt.Errorf("failed to reconnect to SSH agent: %w", err)
 	}
@@ -143,7 +144,7 @@ func IsAgentAvailable() bool {
 		return false
 	}
 
-	conn, err := net.Dial("unix", authSock)
+	conn, err := (&net.Dialer{}).DialContext(context.Background(), "unix", authSock)
 	if err != nil {
 		return false
 	}
@@ -165,7 +166,7 @@ func GetAgentKeyCount() (int, error) {
 		return 0, fmt.Errorf("SSH_AUTH_SOCK not set")
 	}
 
-	conn, err := net.Dial("unix", authSock)
+	conn, err := (&net.Dialer{}).DialContext(context.Background(), "unix", authSock)
 	if err != nil {
 		return 0, fmt.Errorf("failed to connect to SSH agent: %w", err)
 	}
@@ -187,7 +188,7 @@ func TestAgentConnection() error {
 		return fmt.Errorf("SSH_AUTH_SOCK not set")
 	}
 
-	conn, err := net.Dial("unix", authSock)
+	conn, err := (&net.Dialer{}).DialContext(context.Background(), "unix", authSock)
 	if err != nil {
 		return fmt.Errorf("failed to connect to SSH agent: %w", err)
 	}

@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"bufio"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -86,7 +87,7 @@ func (km *KeyManager) ConnectToAgent() error {
 		return fmt.Errorf("SSH_AUTH_SOCK not set")
 	}
 
-	conn, err := net.Dial("unix", authSock)
+	conn, err := (&net.Dialer{}).DialContext(context.Background(), "unix", authSock)
 	if err != nil {
 		return fmt.Errorf("failed to connect to SSH agent: %w", err)
 	}
@@ -392,7 +393,7 @@ func (km *KeyManager) generateEd25519Key(keyPath, _pubPath, comment string) erro
 	}
 
 	// nolint:gosec // G204: ssh-keygen is a well-known system command, args are controlled and validated
-	cmd := exec.Command("ssh-keygen", args...)
+	cmd := exec.CommandContext(context.Background(), "ssh-keygen", args...)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to generate Ed25519 key: %w", err)
 	}
@@ -726,7 +727,7 @@ func (km *KeyManager) StartAgent() error {
 	}
 
 	// Try to start ssh-agent
-	cmd := exec.Command("ssh-agent", "-s")
+	cmd := exec.CommandContext(context.Background(), "ssh-agent", "-s")
 	output, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("failed to start SSH agent: %w", err)
@@ -771,7 +772,7 @@ func (km *KeyManager) StopAgent() error {
 		pid, err := strconv.Atoi(pidStr)
 		if err == nil {
 			// nolint:gosec // G204: kill command with validated numeric PID from SSH_AGENT_PID
-			cmd := exec.Command("kill", strconv.Itoa(pid))
+			cmd := exec.CommandContext(context.Background(), "kill", strconv.Itoa(pid))
 			_ = cmd.Run() // Ignore errors
 		}
 	}

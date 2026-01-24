@@ -455,7 +455,8 @@ func (dd *DNSDiscovery) Discover(ctx context.Context) ([]*DiscoveredCluster, err
 	for _, srvName := range srvNames {
 		fullSrvName := srvName + "." + domain
 
-		_, srvRecords, err := net.LookupSRV("", "", fullSrvName)
+		resolver := &net.Resolver{}
+		_, srvRecords, err := resolver.LookupSRV(context.Background(), "", "", fullSrvName)
 		if err != nil {
 			continue
 		}

@@ -125,7 +125,7 @@ func (c *SSHClient) ConnectToNodeInTerminal(hostname string) error {
 
 	// Create SSH command
 	// nolint:gosec // G204: Command path validated at initialization, arguments from application config
-	cmd := exec.Command(c.sshCommandPath, args...)
+	cmd := exec.CommandContext(context.Background(), c.sshCommandPath, args...)
 
 	// Connect to current terminal
 	cmd.Stdin = os.Stdin

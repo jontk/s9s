@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -104,7 +105,7 @@ func runConfigEdit(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Opening %s in %s...\n", configPath, filepath.Base(validatedEditor))
 
 	// nolint:gosec // G204: Command path is validated via security.ValidateAndResolveCommand
-	execCmd := exec.Command(validatedEditor, configPath)
+	execCmd := exec.CommandContext(context.Background(), validatedEditor, configPath)
 	execCmd.Stdin = os.Stdin
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr

@@ -1,6 +1,7 @@
 package views
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -543,7 +544,7 @@ func (v *SSHTerminalView) fallbackSSHConnection(hostname string) {
 
 	// Use basic SSH connection
 	go func() {
-		cmd := exec.Command("ssh", hostname)
+		cmd := exec.CommandContext(context.Background(), "ssh", hostname)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

@@ -34,7 +34,8 @@ linters:
     # Temporarily disabled - will be fixed in follow-up PRs
     - unused        # 1 issue
     - gocritic      # 51 pre-existing style issues (ifElseChain, singleCaseSwitch, dupBranchBody)
-    - noctx         # 23 pre-existing issues in test HTTP requests
+    - noctx         # 7 issues - all in test/integration files where context is not required
+    # TODO(Phase3c): Re-enable noctx after fixing test file exclusion rule patterns
 
 linters-settings:
   errcheck:
@@ -130,11 +131,6 @@ issues:
         - prealloc
         - gocritic
       path: ".*_test\\.go"
-
-    # noctx: Test HTTP requests don't need context
-    - linters:
-        - noctx
-      path: "(test|_test)\\.go"
 
     # Pre-existing gosec issues in auth and config packages
     - text: "G404: Use of weak random"

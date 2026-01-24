@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -110,7 +111,7 @@ func (w *WebhookChannel) Notify(alert *components.Alert) error {
 
 // sendRequest sends the actual HTTP request
 func (w *WebhookChannel) sendRequest(jsonData []byte) error {
-	req, err := http.NewRequest("POST", w.config.URL, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", w.config.URL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -183,7 +184,7 @@ func (sm *SessionManager) ConnectSession(sessionID string) error {
 
 	// Test connection first
 	// nolint:gosec // G204: Command path validated at initialization, arguments from application config
-	testCmd := exec.Command(sm.sshCommandPath, args...)
+	testCmd := exec.CommandContext(context.Background(), sm.sshCommandPath, args...)
 	testCmd.Args = append(testCmd.Args, "echo", "connection_test")
 
 	if err := testCmd.Run(); err != nil {
@@ -225,7 +226,7 @@ func (sm *SessionManager) StartInteractiveSession(sessionID string) error {
 
 	// Create SSH command with proper terminal allocation
 	// nolint:gosec // G204: Command path validated at initialization, arguments from application config
-	cmd := exec.Command(sm.sshCommandPath, args...)
+	cmd := exec.CommandContext(context.Background(), sm.sshCommandPath, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -275,7 +276,7 @@ func (sm *SessionManager) ExecuteCommand(sessionID, command string) (string, err
 
 	// Execute command
 	// nolint:gosec // G204: Command path validated at initialization, arguments from application config
-	cmd := exec.Command(sm.sshCommandPath, args...)
+	cmd := exec.CommandContext(context.Background(), sm.sshCommandPath, args...)
 	output, err := cmd.CombinedOutput()
 
 	session.LastActivity = time.Now()
@@ -325,7 +326,7 @@ func (sm *SessionManager) CreateTunnel(sessionID string, localPort int, remoteHo
 
 	// Start tunnel
 	// nolint:gosec // G204: Command path validated at initialization, arguments from application config
-	cmd := exec.Command(sm.sshCommandPath, args...)
+	cmd := exec.CommandContext(context.Background(), sm.sshCommandPath, args...)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start tunnel: %w", err)
 	}
@@ -393,7 +394,7 @@ func (sm *SessionManager) CloseSession(sessionID string) error {
 	if session.ControlPath != "" {
 		args := []string{"-O", "exit", "-S", session.ControlPath, session.Hostname}
 		// nolint:gosec // G204: Command path validated at initialization, arguments from application config
-		_ = exec.Command(sm.sshCommandPath, args...).Run() // Ignore errors
+		_ = exec.CommandContext(context.Background(), sm.sshCommandPath, args...).Run() // Ignore errors
 	}
 
 	session.State = SessionDisconnected
@@ -418,7 +419,7 @@ func (sm *SessionManager) CloseAllSessions() {
 		if session.ControlPath != "" {
 			args := []string{"-O", "exit", "-S", session.ControlPath, session.Hostname}
 			// nolint:gosec // G204: Command path validated at initialization, arguments from application config
-			_ = exec.Command(sm.sshCommandPath, args...).Run()
+			_ = exec.CommandContext(context.Background(), sm.sshCommandPath, args...).Run()
 		}
 
 		session.mu.Unlock()
@@ -672,7 +673,7 @@ func (sm *SessionManager) loadPersistentSessions() {
 			// Try to verify the connection is still alive
 			args := []string{"-O", "check", "-S", ps.ControlPath, ps.Hostname}
 			// nolint:gosec // G204: Command path validated at initialization, arguments from application config
-			if err := exec.Command(sm.sshCommandPath, args...).Run(); err == nil {
+			if err := exec.CommandContext(context.Background(), sm.sshCommandPath, args...).Run(); err == nil {
 				// Connection is still alive, restore session
 				session := &SSHSession{
 					ID:           ps.ID,

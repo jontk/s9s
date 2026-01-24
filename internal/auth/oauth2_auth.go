@@ -257,7 +257,7 @@ func (o *OAuth2Authenticator) getOAuth2Endpoints(config AuthConfig) (string, str
 func (o *OAuth2Authenticator) discoverEndpoints(discoveryURL string) (string, string, error) {
 	debug.Logger.Printf("Discovering OAuth2 endpoints from: %s", discoveryURL)
 
-	req, err := http.NewRequest("GET", discoveryURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", discoveryURL, nil)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create discovery request: %w", err)
 	}
@@ -433,7 +433,7 @@ func (o *OAuth2Authenticator) exchangeCodeForToken(tokenEndpoint, code, codeVeri
 	data.Set("client_secret", config.GetString("client_secret"))
 	data.Set("code_verifier", codeVerifier)
 
-	req, err := http.NewRequest("POST", tokenEndpoint, strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", tokenEndpoint, strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create token request: %w", err)
 	}
@@ -534,7 +534,7 @@ func (o *OAuth2Authenticator) RefreshToken(ctx context.Context, token *Token) (*
 	data.Set("client_id", o.config.GetString("client_id"))
 	data.Set("client_secret", o.config.GetString("client_secret"))
 
-	req, err := http.NewRequest("POST", tokenEndpoint, strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", tokenEndpoint, strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create refresh request: %w", err)
 	}
@@ -647,7 +647,7 @@ func (o *OAuth2Authenticator) RevokeToken(ctx context.Context, token *Token) err
 	data.Set("client_id", o.config.GetString("client_id"))
 	data.Set("client_secret", o.config.GetString("client_secret"))
 
-	req, err := http.NewRequest("POST", revocationEndpoint, strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", revocationEndpoint, strings.NewReader(data.Encode()))
 	if err != nil {
 		return fmt.Errorf("failed to create revocation request: %w", err)
 	}
@@ -671,7 +671,7 @@ func (o *OAuth2Authenticator) RevokeToken(ctx context.Context, token *Token) err
 
 // getDiscoveryDocument fetches and parses OIDC discovery document
 func (o *OAuth2Authenticator) getDiscoveryDocument(discoveryURL string) (*oidcDiscovery, error) {
-	req, err := http.NewRequest("GET", discoveryURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", discoveryURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -726,11 +726,11 @@ func (o *OAuth2Authenticator) openBrowser(url string) error {
 
 	switch runtime.GOOS {
 	case "linux":
-		cmd = exec.Command("xdg-open", url)
+		cmd = exec.CommandContext(context.Background(), "xdg-open", url)
 	case "darwin":
-		cmd = exec.Command("open", url)
+		cmd = exec.CommandContext(context.Background(), "open", url)
 	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+		cmd = exec.CommandContext(context.Background(), "rundll32", "url.dll,FileProtocolHandler", url)
 	default:
 		return fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
 	}

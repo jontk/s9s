@@ -1,6 +1,7 @@
 package notifications
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"runtime"
@@ -112,7 +113,7 @@ func (d *DesktopNotifyChannel) notifyLinux(alert *components.Alert, icon string)
 	)
 
 	// nolint:gosec // G204: notify-send is a well-known system command, args are controlled
-	cmd := exec.Command("notify-send", args...)
+	cmd := exec.CommandContext(context.Background(), "notify-send", args...)
 	return cmd.Run()
 }
 
@@ -122,7 +123,7 @@ func (d *DesktopNotifyChannel) notifyMacOS(alert *components.Alert) error {
 		alert.Message, alert.Title)
 
 	// nolint:gosec // G204: osascript is a well-known macOS system command, args are controlled
-	cmd := exec.Command("osascript", "-e", script)
+	cmd := exec.CommandContext(context.Background(), "osascript", "-e", script)
 	return cmd.Run()
 }
 

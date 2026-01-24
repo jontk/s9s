@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -73,7 +74,7 @@ func NewSSHTerminal(nodeID, hostname, username string, config *SSHConfig) (*SSHT
 	// Build SSH command
 	args := buildSSHArgs(config, hostname, username)
 	// nolint:gosec // G204: Command path validated before use, arguments from application config
-	terminal.cmd = exec.Command(terminal.sshCommandPath, args...)
+	terminal.cmd = exec.CommandContext(context.Background(), terminal.sshCommandPath, args...)
 
 	// Create pipes
 	stdin, err := terminal.cmd.StdinPipe()
