@@ -170,6 +170,7 @@ func TestViewFiltersAreIndependent(t *testing.T) {
 		screenText := h.GetScreenText()
 		if len(screenText) < 10 {
 			h.DumpScreen()
+			// nolint:gosec // G602: loop range guarantees valid index
 			t.Errorf("View %s appears empty", expected[i])
 		}
 	}

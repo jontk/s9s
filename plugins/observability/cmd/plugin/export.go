@@ -216,6 +216,7 @@ func loadS9sConfig() (map[string]interface{}, error) {
 	}
 
 	// Read the config file
+	// nolint:gosec // G304: configPath constructed from app config, not user input
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read config file %s: %w", configPath, err)

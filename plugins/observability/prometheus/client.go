@@ -371,6 +371,7 @@ func (c *Client) executeQueryWithRetry(ctx context.Context, query string, queryT
 
 		// Exponential backoff: 100ms, 200ms, 400ms, 800ms...
 		if attempt < maxRetries {
+			// nolint:gosec // G115: attempt is bounded by maxRetries
 			backoffDuration := time.Duration(100<<uint(attempt)) * time.Millisecond
 			timer := time.NewTimer(backoffDuration)
 			select {
