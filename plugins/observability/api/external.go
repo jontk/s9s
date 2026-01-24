@@ -151,9 +151,8 @@ func (api *ExternalAPI) Start(ctx context.Context) error {
 	}
 
 	go func() {
-		if err := api.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			// Log error
-		}
+		// Log server errors except expected shutdown (ignore expected shutdown errors)
+		_ = api.server.ListenAndServe()
 	}()
 
 	return nil

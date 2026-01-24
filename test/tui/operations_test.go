@@ -299,11 +299,12 @@ func TestSequentialOperations(t *testing.T) {
 		case rune:
 			h.SendRune(v)
 		case string:
-			if v == "esc" {
+			switch v {
+			case "esc":
 				h.SendEsc()
-			} else if v == "f5" {
+			case "f5":
 				h.SendKey(tcell.KeyF5, 0, tcell.ModNone)
-			} else if v == "f2" {
+			case "f2":
 				h.SendKey(tcell.KeyF2, 0, tcell.ModNone)
 			}
 		}

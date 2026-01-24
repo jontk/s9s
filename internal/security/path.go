@@ -27,11 +27,8 @@ func ValidatePath(path string) (string, error) {
 	// Clean the path (removes .., ., etc.)
 	cleanPath := filepath.Clean(path)
 
-	// Check if cleaning removed traversal attempts
-	if strings.Contains(path, "..") && !strings.Contains(cleanPath, "..") {
-		// This indicates a traversal attempt was cleaned
-		// We allow this but return the cleaned path
-	}
+	// Note: cleaning may remove traversal attempts (e.g., "../" becomes "")
+	// We allow this and return the cleaned path
 
 	return cleanPath, nil
 }

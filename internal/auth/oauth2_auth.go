@@ -412,9 +412,8 @@ func (o *OAuth2Authenticator) buildAuthorizationURL(authEndpoint string, config 
 		params.Set("response_mode", "query")
 	case "azure-ad":
 		params.Set("response_mode", "query")
-		if tenant := config.GetString("tenant"); tenant != "" {
-			// Azure AD specific handling could go here
-		}
+		// Azure AD specific handling could be added here
+		_ = config.GetString("tenant")
 	}
 
 	u.RawQuery = params.Encode()

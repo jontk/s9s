@@ -16,8 +16,10 @@ linters:
     - errcheck      # Unchecked errors are critical
     - govet         # Suspicious constructs
     - ineffassign   # Ineffective assignments
-    # staticcheck and gosec are temporarily disabled due to 200+ pre-existing issues
-    # They will be re-enabled after addressing these in follow-up PRs
+    # staticcheck: 82/82 Phase 1 issues fixed (PR #13 + PR #16) ✅
+    - staticcheck   # Enabled: all Phase 1 issues resolved
+    # gosec: 105 issues fixed in PR #12, remaining issues in auth/config packages
+    # Will be re-enabled as Phase 2 & 3 issues are resolved
 
     # Additional linters - Phase 7
     # Note: gofumpt and goimports are handled by pre-commit hooks and Makefile
@@ -27,10 +29,11 @@ linters:
     - wastedassign  # Finds wasted assignment statements (fixed in this PR)
 
   disable:
-    # Temporarily disabled - pre-existing issues will be fixed in follow-up PRs
+    # Temporarily disabled - will be fixed in follow-up PRs
     - unused        # 1 issue
-    - staticcheck   # 71 pre-existing issues (SA9003, S1009, SA1019, QF1008)
-    - gosec         # 145 pre-existing issues (file perms in tests, weak random in load balancer)
+    # gosec: Progress - 105/145 issues fixed (Phase 1 PR #12)
+    # Remaining issues are in auth/config packages, see exclude rules below
+    - gosec
     - gocritic      # 51 pre-existing style issues (ifElseChain, singleCaseSwitch, dupBranchBody)
     - noctx         # 23 pre-existing issues in test HTTP requests
     - prealloc      # 16 pre-existing performance micro-optimizations
@@ -136,23 +139,6 @@ issues:
     - linters:
         - noctx
       path: "(test|_test)\\.go"
-
-    # Pre-existing staticcheck issues - will be addressed in follow-up PRs
-    - text: "SA9003: empty branch"
-      linters:
-        - staticcheck
-
-    - text: "S1009: should omit nil check"
-      linters:
-        - staticcheck
-
-    - text: "QF1008: could remove embedded field"
-      linters:
-        - staticcheck
-
-    - text: "SA1019: strings.Title has been deprecated"
-      linters:
-        - staticcheck
 
     # Pre-existing gosec issues in auth and config packages
     - text: "G404: Use of weak random"

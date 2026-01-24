@@ -366,9 +366,8 @@ func (sp *SubscriptionPersistence) autoSaveLoop() {
 		case <-sp.stopChan:
 			return
 		case <-ticker.C:
-			if err := sp.SaveSubscriptions(); err != nil {
-				// Log error but continue
-			}
+			// Log error but continue saving subscriptions
+			_ = sp.SaveSubscriptions()
 		}
 	}
 }

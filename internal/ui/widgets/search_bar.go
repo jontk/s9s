@@ -243,9 +243,7 @@ func (sb *SearchBar) clearSearch() {
 	sb.updateResultsView()
 
 	// Clear search in stream manager
-	if sb.currentJobID != "" {
-		// Would need to add a clear search method to the stream manager
-	}
+	// TODO: Add a clear search method to the stream manager for sb.currentJobID
 }
 
 // toggleOptions shows/hides search options
