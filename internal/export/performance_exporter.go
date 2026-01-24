@@ -161,7 +161,6 @@ func (pe *PerformanceExporter) ExportPerformanceReport(profiler *performance.Pro
 
 // exportText exports performance report as plain text
 func (pe *PerformanceExporter) exportText(data PerformanceReportData, outputPath string) error {
-	// nolint:gosec // G304: outputPath validated in ExportPerformanceReport() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -255,7 +254,6 @@ func (pe *PerformanceExporter) exportText(data PerformanceReportData, outputPath
 
 // exportJSON exports performance report as JSON
 func (pe *PerformanceExporter) exportJSON(data PerformanceReportData, outputPath string) error {
-	// nolint:gosec // G304: outputPath validated in ExportPerformanceReport() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -274,7 +272,6 @@ func (pe *PerformanceExporter) exportJSON(data PerformanceReportData, outputPath
 
 // exportCSV exports performance report as CSV
 func (pe *PerformanceExporter) exportCSV(data PerformanceReportData, outputPath string) error {
-	// nolint:gosec // G304: outputPath validated in ExportPerformanceReport() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -350,7 +347,6 @@ func (pe *PerformanceExporter) exportCSV(data PerformanceReportData, outputPath 
 
 // exportMarkdown exports performance report as Markdown
 func (pe *PerformanceExporter) exportMarkdown(data PerformanceReportData, outputPath string) error {
-	// nolint:gosec // G304: outputPath validated in ExportPerformanceReport() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -440,7 +436,6 @@ func (pe *PerformanceExporter) exportMarkdown(data PerformanceReportData, output
 
 // exportHTML exports performance report as HTML
 func (pe *PerformanceExporter) exportHTML(data PerformanceReportData, outputPath string) error {
-	// nolint:gosec // G304: outputPath validated in ExportPerformanceReport() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)

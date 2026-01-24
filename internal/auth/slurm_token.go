@@ -107,7 +107,6 @@ func (s *SlurmTokenAuthenticator) Authenticate(ctx context.Context, config AuthC
 	}
 
 	// Execute scontrol token command with validated path
-	// nolint:gosec // G204: Command path is validated via security.ValidateAndResolveCommand
 	cmd := exec.CommandContext(ctx, validatedPath, "token", fmt.Sprintf("username=%s", s.user), fmt.Sprintf("lifespan=%d", tokenLifetime))
 
 	output, err := cmd.Output()

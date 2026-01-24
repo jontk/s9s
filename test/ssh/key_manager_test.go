@@ -382,7 +382,6 @@ func BenchmarkKeyDiscovery(b *testing.B) {
 
 	// Create some dummy key files
 	for i := 0; i < 5; i++ {
-		// nolint:gosec // G101: test RSA key only, non-production
 		keyContent := `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA1234567...
 -----END RSA PRIVATE KEY-----`

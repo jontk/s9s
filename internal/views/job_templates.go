@@ -61,7 +61,6 @@ func (m *JobTemplateManager) loadTemplates() {
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".json") {
 			templatePath := filepath.Join(m.templatesDir, file.Name())
-			// nolint:gosec // G304: templatePath from ReadDir() listing of templatesDir, application-controlled
 			data, err := os.ReadFile(templatePath)
 			if err != nil {
 				continue

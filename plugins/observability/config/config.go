@@ -385,12 +385,29 @@ func DefaultConfig() *Config {
 
 // Validate validates the configuration
 func (c *Config) Validate() error {
-	// Validate Prometheus endpoint
+	if err := c.validatePrometheus(); err != nil {
+		return err
+	}
+	if err := c.validateDisplay(); err != nil {
+		return err
+	}
+	if err := c.validateAlerts(); err != nil {
+		return err
+	}
+	if err := c.validateCache(); err != nil {
+		return err
+	}
+	if err := c.validateMetrics(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Config) validatePrometheus() error {
 	if c.Prometheus.Endpoint == "" {
 		return fmt.Errorf("prometheus endpoint is required")
 	}
 
-	// Parse and validate URL
 	u, err := url.Parse(c.Prometheus.Endpoint)
 	if err != nil {
 		return fmt.Errorf("invalid prometheus endpoint URL: %w", err)
@@ -400,15 +417,29 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("prometheus endpoint must use http or https scheme")
 	}
 
-	// Validate timeouts
 	if c.Prometheus.Timeout <= 0 {
 		return fmt.Errorf("prometheus timeout must be positive")
 	}
 
-	// Validate auth configuration
+	if err := c.validatePrometheusAuth(); err != nil {
+		return err
+	}
+
+	if err := c.validateTLS(); err != nil {
+		return err
+	}
+
+	if err := c.validateRetry(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Config) validatePrometheusAuth() error {
 	switch c.Prometheus.Auth.Type {
 	case "none":
-		// No validation needed
+		return nil
 	case "basic":
 		hasDirectAuth := c.Prometheus.Auth.Username != "" && c.Prometheus.Auth.Password != ""
 		hasSecretRef := c.Prometheus.Auth.PasswordSecretRef != ""
@@ -424,26 +455,34 @@ func (c *Config) Validate() error {
 	default:
 		return fmt.Errorf("invalid auth type: %s", c.Prometheus.Auth.Type)
 	}
+	return nil
+}
 
-	// Validate TLS configuration
-	if c.Prometheus.TLS.Enabled {
-		if c.Prometheus.TLS.CertFile != "" && c.Prometheus.TLS.KeyFile == "" {
-			return fmt.Errorf("TLS cert file requires key file")
-		}
-		if c.Prometheus.TLS.KeyFile != "" && c.Prometheus.TLS.CertFile == "" {
-			return fmt.Errorf("TLS key file requires cert file")
-		}
+func (c *Config) validateTLS() error {
+	if !c.Prometheus.TLS.Enabled {
+		return nil
 	}
 
-	// Validate retry configuration
+	if c.Prometheus.TLS.CertFile != "" && c.Prometheus.TLS.KeyFile == "" {
+		return fmt.Errorf("TLS cert file requires key file")
+	}
+	if c.Prometheus.TLS.KeyFile != "" && c.Prometheus.TLS.CertFile == "" {
+		return fmt.Errorf("TLS key file requires cert file")
+	}
+	return nil
+}
+
+func (c *Config) validateRetry() error {
 	if c.Prometheus.Retry.MaxRetries < 0 {
 		return fmt.Errorf("max retries must be non-negative")
 	}
 	if c.Prometheus.Retry.Multiplier <= 0 {
 		return fmt.Errorf("retry multiplier must be positive")
 	}
+	return nil
+}
 
-	// Validate display configuration
+func (c *Config) validateDisplay() error {
 	if c.Display.RefreshInterval <= 0 {
 		return fmt.Errorf("refresh interval must be positive")
 	}
@@ -454,7 +493,6 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("decimal precision must be non-negative")
 	}
 
-	// Validate color scheme
 	validColorSchemes := map[string]bool{
 		"default":    true,
 		"colorblind": true,
@@ -463,58 +501,72 @@ func (c *Config) Validate() error {
 	if !validColorSchemes[c.Display.ColorScheme] {
 		return fmt.Errorf("invalid color scheme: %s", c.Display.ColorScheme)
 	}
+	return nil
+}
 
-	// Validate alert configuration
-	if c.Alerts.Enabled {
-		if c.Alerts.CheckInterval <= 0 {
-			return fmt.Errorf("alert check interval must be positive")
-		}
-
-		// Validate alert rules
-		for i, rule := range c.Alerts.Rules {
-			if rule.Name == "" {
-				return fmt.Errorf("alert rule %d: name is required", i)
-			}
-			if rule.Metric == "" {
-				return fmt.Errorf("alert rule %s: metric is required", rule.Name)
-			}
-
-			// Validate operator
-			validOperators := map[string]bool{
-				">": true, "<": true, ">=": true, "<=": true, "==": true, "!=": true,
-			}
-			if !validOperators[rule.Operator] {
-				return fmt.Errorf("alert rule %s: invalid operator %s", rule.Name, rule.Operator)
-			}
-
-			// Validate severity
-			validSeverities := map[string]bool{
-				"info": true, "warning": true, "critical": true,
-			}
-			if !validSeverities[rule.Severity] {
-				return fmt.Errorf("alert rule %s: invalid severity %s", rule.Name, rule.Severity)
-			}
-
-			if rule.Duration <= 0 {
-				return fmt.Errorf("alert rule %s: duration must be positive", rule.Name)
-			}
-		}
+func (c *Config) validateAlerts() error {
+	if !c.Alerts.Enabled {
+		return nil
 	}
 
-	// Validate cache configuration
-	if c.Cache.Enabled {
-		if c.Cache.DefaultTTL <= 0 {
-			return fmt.Errorf("cache default TTL must be positive")
-		}
-		if c.Cache.MaxSize <= 0 {
-			return fmt.Errorf("cache max size must be positive")
-		}
-		if c.Cache.CleanupInterval <= 0 {
-			return fmt.Errorf("cache cleanup interval must be positive")
-		}
+	if c.Alerts.CheckInterval <= 0 {
+		return fmt.Errorf("alert check interval must be positive")
 	}
 
-	// Validate metrics configuration
+	for i, rule := range c.Alerts.Rules {
+		if err := c.validateAlertRule(i, rule); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Config) validateAlertRule(index int, rule AlertRule) error {
+	if rule.Name == "" {
+		return fmt.Errorf("alert rule %d: name is required", index)
+	}
+	if rule.Metric == "" {
+		return fmt.Errorf("alert rule %s: metric is required", rule.Name)
+	}
+
+	validOperators := map[string]bool{
+		">": true, "<": true, ">=": true, "<=": true, "==": true, "!=": true,
+	}
+	if !validOperators[rule.Operator] {
+		return fmt.Errorf("alert rule %s: invalid operator %s", rule.Name, rule.Operator)
+	}
+
+	validSeverities := map[string]bool{
+		"info": true, "warning": true, "critical": true,
+	}
+	if !validSeverities[rule.Severity] {
+		return fmt.Errorf("alert rule %s: invalid severity %s", rule.Name, rule.Severity)
+	}
+
+	if rule.Duration <= 0 {
+		return fmt.Errorf("alert rule %s: duration must be positive", rule.Name)
+	}
+	return nil
+}
+
+func (c *Config) validateCache() error {
+	if !c.Cache.Enabled {
+		return nil
+	}
+
+	if c.Cache.DefaultTTL <= 0 {
+		return fmt.Errorf("cache default TTL must be positive")
+	}
+	if c.Cache.MaxSize <= 0 {
+		return fmt.Errorf("cache max size must be positive")
+	}
+	if c.Cache.CleanupInterval <= 0 {
+		return fmt.Errorf("cache cleanup interval must be positive")
+	}
+	return nil
+}
+
+func (c *Config) validateMetrics() error {
 	if c.Metrics.Node.NodeLabel == "" {
 		return fmt.Errorf("node label is required")
 	}
@@ -522,9 +574,7 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("node rate range is required")
 	}
 
-	// Validate rate range format
 	if _, err := time.ParseDuration(c.Metrics.Node.RateRange); err != nil {
-		// Try Prometheus format (e.g., "5m")
 		if len(c.Metrics.Node.RateRange) < 2 {
 			return fmt.Errorf("invalid rate range format: %s", c.Metrics.Node.RateRange)
 		}
@@ -533,7 +583,6 @@ func (c *Config) Validate() error {
 	if c.Metrics.Job.Enabled && c.Metrics.Job.CgroupPattern == "" {
 		return fmt.Errorf("job cgroup pattern is required when job metrics are enabled")
 	}
-
 	return nil
 }
 

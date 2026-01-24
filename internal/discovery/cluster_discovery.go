@@ -171,7 +171,6 @@ func (ed *EnvironmentDiscovery) Discover(ctx context.Context) ([]*DiscoveredClus
 }
 
 func (ed *EnvironmentDiscovery) parseConfigFile(path string) *DiscoveredCluster {
-	// nolint:gosec // G304: path from environment variables (SLURM_CONF) or system config paths, not user input
 	file, err := os.Open(path)
 	if err != nil {
 		return nil
@@ -566,7 +565,6 @@ func (pd *ProcessDiscovery) isProcessRunning(processName string) bool {
 
 		// Read command line
 		cmdlinePath := filepath.Join("/proc", entry.Name(), "cmdline")
-		// nolint:gosec // G304: Reading from Linux procfs (/proc/[pid]/cmdline), kernel-controlled filesystem
 		if cmdlineData, err := os.ReadFile(cmdlinePath); err == nil {
 			cmdline := string(cmdlineData)
 			if strings.Contains(cmdline, processName) {

@@ -163,7 +163,6 @@ func (e *JobOutputExporter) Export(data JobOutputData, format ExportFormat, cust
 
 // exportText exports job output as plain text
 func (e *JobOutputExporter) exportText(data JobOutputData, outputPath string) error {
-	// nolint:gosec // G304: outputPath validated in Export() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -199,7 +198,6 @@ func (e *JobOutputExporter) exportText(data JobOutputData, outputPath string) er
 
 // exportJSON exports job output as JSON
 func (e *JobOutputExporter) exportJSON(data JobOutputData, outputPath string) error {
-	// nolint:gosec // G304: outputPath validated in Export() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -218,7 +216,6 @@ func (e *JobOutputExporter) exportJSON(data JobOutputData, outputPath string) er
 
 // exportCSV exports job output as CSV (useful for tabular data or logs)
 func (e *JobOutputExporter) exportCSV(data JobOutputData, outputPath string) error {
-	// nolint:gosec // G304: outputPath validated in Export() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -275,7 +272,6 @@ func (e *JobOutputExporter) exportCSV(data JobOutputData, outputPath string) err
 
 // exportMarkdown exports job output as Markdown
 func (e *JobOutputExporter) exportMarkdown(data JobOutputData, outputPath string) error {
-	// nolint:gosec // G304: outputPath validated in Export() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -415,7 +411,6 @@ func (e *JobOutputExporter) ExportSummary(results []*ExportResult) string {
 
 // exportHTML exports job output as HTML
 func (e *JobOutputExporter) exportHTML(data JobOutputData, outputPath string) error {
-	// nolint:gosec // G304: outputPath validated in Export() via security.ValidatePathWithinBase
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)

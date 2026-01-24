@@ -38,7 +38,7 @@ func getHostKeyCallback(config *SSHConfig) ssh.HostKeyCallback {
 	}
 
 	// Default: Insecure mode for cluster environments
-	// nolint:gosec // G106: Intentionally insecure for cluster environments where nodes are frequently rebuilt
+	//nolint:gosec // G106: Intentionally insecure for cluster environments where nodes are frequently rebuilt
 	return ssh.InsecureIgnoreHostKey()
 }
 
@@ -106,7 +106,6 @@ func (c *SSHClient) ConnectToNode(ctx context.Context, hostname string) error {
 	args := c.buildSSHArgs(hostname)
 
 	// Create SSH command
-	// nolint:gosec // G204: Command path validated at initialization, arguments from application config
 	cmd := exec.CommandContext(ctx, c.sshCommandPath, args...)
 
 	// Connect stdin/stdout/stderr to current terminal
@@ -124,7 +123,6 @@ func (c *SSHClient) ConnectToNodeInTerminal(hostname string) error {
 	args := c.buildSSHArgs(hostname)
 
 	// Create SSH command
-	// nolint:gosec // G204: Command path validated at initialization, arguments from application config
 	cmd := exec.CommandContext(context.Background(), c.sshCommandPath, args...)
 
 	// Connect to current terminal
@@ -143,7 +141,6 @@ func (c *SSHClient) ExecuteCommand(ctx context.Context, hostname, command string
 	args = append(args, command)
 
 	// Create command
-	// nolint:gosec // G204: Command path validated at initialization, arguments from application config
 	cmd := exec.CommandContext(ctx, c.sshCommandPath, args...)
 
 	// Execute and capture output
@@ -382,7 +379,6 @@ func (c *SSHConfig) getKeyManagerAuth() ([]ssh.AuthMethod, error) {
 
 // getKeyFileAuthFromPath creates authentication from a specific key path
 func (c *SSHConfig) getKeyFileAuthFromPath(keyPath string) (ssh.AuthMethod, error) {
-	// nolint:gosec // G304: keyPath from KeyManager.GetKeys(), paths from user's ~/.ssh directory
 	keyData, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read key file: %w", err)

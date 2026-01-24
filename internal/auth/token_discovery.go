@@ -133,7 +133,6 @@ func (td *TokenDiscovery) generateToken(ctx context.Context) (*DiscoveredToken, 
 	defer cancel()
 
 	// Build the scontrol token command
-	// nolint:gosec // G204: Command path is validated during initialization via security.ValidateAndResolveCommand
 	cmd := exec.CommandContext(ctxWithTimeout, td.scontrolPath, "token",
 		fmt.Sprintf("username=%s", username),
 		fmt.Sprintf("lifespan=%d", td.tokenLifespan))

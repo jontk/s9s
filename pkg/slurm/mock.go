@@ -1,4 +1,3 @@
-// nolint:gosec // G404: Mock data generation intentionally uses math/rand for deterministic testing
 package slurm
 
 import (

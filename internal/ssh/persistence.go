@@ -93,7 +93,6 @@ func (sp *SessionPersistence) LoadSessions() ([]PersistentSession, error) {
 		return []PersistentSession{}, nil
 	}
 
-	// nolint:gosec // G304: filePath is application-controlled (dataDir + "sessions.json"), not user input
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read sessions file: %w", err)
@@ -143,7 +142,6 @@ func (sp *SessionPersistence) LoadSessionTags(sessionID string) (map[string]stri
 		return make(map[string]string), nil
 	}
 
-	// nolint:gosec // G304: filePath is application-controlled (dataDir + "tags.json"), not user input
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read tags file: %w", err)

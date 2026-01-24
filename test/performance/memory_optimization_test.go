@@ -118,19 +118,13 @@ func testBatchExportMemory(t *testing.T, useOptimized bool) {
 
 	t.Logf("%s Batch Export Memory Usage:", optimizationType)
 	t.Logf("  Jobs Processed: %d", jobCount)
-	// nolint:gosec // G115: memory metrics are bounded
 	t.Logf("  Total Allocated: %s", formatBytes(int64(allocatedMemory)))
-	// nolint:gosec // G115: memory metrics are bounded
 	t.Logf("  Heap Allocated: %s", formatBytes(int64(heapMemory)))
-	// nolint:gosec // G115: memory metrics are bounded
 	t.Logf("  Peak Heap Size: %s", formatBytes(int64(peakHeapMemory)))
-	// nolint:gosec // G115: memory metrics are bounded
 	t.Logf("  Memory per Job: %s", formatBytes(int64(allocatedMemory)/int64(jobCount)))
-	// nolint:gosec // G115: memory metrics are bounded
 	t.Logf("  Successful Exports: %d", successful)
 
 	// Performance assertions
-	// nolint:gosec // G115: memory metrics are bounded
 	memoryPerJob := allocatedMemory / uint64(jobCount)
 
 	if useOptimized {
@@ -138,7 +132,6 @@ func testBatchExportMemory(t *testing.T, useOptimized bool) {
 		maxMemoryPerJobOptimized := uint64(50 * 1024) // 50KB per job max
 		if memoryPerJob > maxMemoryPerJobOptimized {
 			t.Errorf("Optimized export uses too much memory per job: %s (max: %s)",
-				// nolint:gosec // G115: memory metrics are bounded
 				formatBytes(int64(memoryPerJob)), formatBytes(int64(maxMemoryPerJobOptimized)))
 		}
 	} else if memoryPerJob < 100*1024 { // Less than 100KB seems too low for legacy

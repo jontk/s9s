@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestMain(t *testing.T) {
+func TestMain(_ *testing.T) {
 	// Test version flag
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()

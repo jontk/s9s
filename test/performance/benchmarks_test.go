@@ -240,7 +240,6 @@ func BenchmarkMemoryUsage(b *testing.B) {
 			testData[i] = []string{
 				fmt.Sprintf("job%d", i),
 				fmt.Sprintf("user%d", i%100),
-				// nolint:gosec // G602: modulo 4 guarantees safe index
 				[]string{"RUNNING", "PENDING", "COMPLETED", "FAILED"}[i%4],
 				fmt.Sprintf("node%d", i%500),
 				fmt.Sprintf("%d", (i%64)+1),
@@ -297,7 +296,6 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 			testData[i] = []string{
 				fmt.Sprintf("job%d", i),
 				fmt.Sprintf("user%d", i%10),
-				// nolint:gosec // G602: modulo 4 guarantees safe index
 				[]string{"RUNNING", "PENDING", "COMPLETED", "FAILED"}[i%4],
 				fmt.Sprintf("node%d", i%20),
 			}

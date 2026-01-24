@@ -51,7 +51,6 @@ func NewPresetManager() *PresetManager {
 func (m *PresetManager) loadPresets() error {
 	presetsFile := filepath.Join(m.presetsDir, "presets.json")
 
-	// nolint:gosec // G304: presetsFile is application-controlled (presetsDir + "presets.json"), not user input
 	data, err := os.ReadFile(presetsFile)
 	if err != nil {
 		if os.IsNotExist(err) {

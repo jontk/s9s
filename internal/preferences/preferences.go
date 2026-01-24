@@ -568,7 +568,6 @@ func (up *UserPreferences) Export(path string) error {
 
 // Import imports preferences from a file
 func (up *UserPreferences) Import(path string) error {
-	// nolint:gosec // G304: path parameter should be validated by caller before use
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err

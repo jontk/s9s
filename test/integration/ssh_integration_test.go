@@ -176,7 +176,7 @@ func testSessionManagerIntegration(t *testing.T, testHost, testUser string) {
 	})
 }
 
-func testTerminalManagerIntegration(t *testing.T, testHost, testUser string) {
+func testTerminalManagerIntegration(t *testing.T, _, _ string) {
 	// Skip terminal manager tests for now since they require tview integration
 	t.Skip("Terminal manager integration tests require GUI components")
 }
@@ -348,7 +348,7 @@ func isDockerAvailable() bool {
 	return err == nil
 }
 
-func setupSSHContainer(t *testing.T) (string, error) {
+func setupSSHContainer(_ *testing.T) (string, error) {
 	// Create a temporary directory for SSH keys
 	keyDir, err := os.MkdirTemp("", "ssh_test_keys_*")
 	if err != nil {
@@ -359,14 +359,12 @@ func setupSSHContainer(t *testing.T) (string, error) {
 	privateKeyPath := filepath.Join(keyDir, "test_key")
 	publicKeyPath := filepath.Join(keyDir, "test_key.pub")
 
-	// nolint:gosec // G204: Test code with controlled arguments
 	cmd := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-f", privateKeyPath, "-N", "")
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to generate SSH key: %w", err)
 	}
 
 	// Read public key
-	// nolint:gosec // G304: publicKeyPath is test fixture in known test directory
 	pubKeyData, err := os.ReadFile(publicKeyPath)
 	if err != nil {
 		return "", err
@@ -395,7 +393,6 @@ CMD ["/usr/sbin/sshd", "-D"]
 	}
 
 	// Build Docker image
-	// nolint:gosec // G204: Test code with controlled arguments
 	buildCmd := exec.Command("docker", "build", "-t", "ssh-test-server", keyDir)
 	if err := buildCmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to build Docker image: %w", err)
@@ -416,7 +413,7 @@ CMD ["/usr/sbin/sshd", "-D"]
 	return containerID, nil
 }
 
-func cleanupSSHContainer(t *testing.T, containerID string) {
+func cleanupSSHContainer(_ *testing.T, containerID string) {
 	// Stop and remove container
 	_ = exec.Command("docker", "stop", containerID).Run()
 	_ = exec.Command("docker", "rm", containerID).Run()

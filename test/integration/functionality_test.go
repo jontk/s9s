@@ -307,9 +307,7 @@ func TestPerformanceWithLargeDataset(t *testing.T) {
 		largeData[i] = []string{
 			fmt.Sprintf("job%04d", i),
 			fmt.Sprintf("user%d", i%20),
-			// nolint:gosec // G602: modulo 3 guarantees safe index
 			[]string{"cpu", "gpu", "mem"}[i%3],
-			// nolint:gosec // G602: modulo 4 guarantees safe index
 			[]string{"RUNNING", "PENDING", "COMPLETED", "FAILED"}[i%4],
 			fmt.Sprintf("%d", (i%16)+1),
 			fmt.Sprintf("%dG", (i%64)+4),

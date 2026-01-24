@@ -151,7 +151,6 @@ func SafeOpenFile(path string, baseDir string) (*os.File, error) {
 		return nil, err
 	}
 
-	// nolint:gosec // G304: validPath already validated via ValidatePathWithinBase above
 	file, err := os.Open(validPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)

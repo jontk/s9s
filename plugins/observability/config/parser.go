@@ -63,7 +63,7 @@ func (p *Parser) ParseConfig() (*Config, error) {
 }
 
 // parsePrometheusConfig parses Prometheus-specific configuration
-// nolint:unparam // Designed for future extensibility; currently always returns nil
+	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parsePrometheusConfig(config *PrometheusConfig) error {
 	if val, ok := p.getValue("prometheus.endpoint"); ok {
 		if str, ok := val.(string); ok {
@@ -162,7 +162,7 @@ func (p *Parser) parsePrometheusConfig(config *PrometheusConfig) error {
 }
 
 // parseDisplayConfig parses Display-specific configuration
-// nolint:unparam // Designed for future extensibility; currently always returns nil
+	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseDisplayConfig(config *DisplayConfig) error {
 	if val, ok := p.getValue("display.refreshInterval"); ok {
 		if duration, err := p.parseDuration(val); err == nil {
@@ -204,7 +204,7 @@ func (p *Parser) parseDisplayConfig(config *DisplayConfig) error {
 }
 
 // parseAlertsConfig parses Alerts-specific configuration
-// nolint:unparam // Designed for future extensibility; currently always returns nil
+	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseAlertsConfig(config *AlertConfig) error {
 	if val, ok := p.getValue("alerts.enabled"); ok {
 		if b, err := p.parseBool(val); err == nil {
@@ -234,7 +234,7 @@ func (p *Parser) parseAlertsConfig(config *AlertConfig) error {
 }
 
 // parseCacheConfig parses Cache-specific configuration
-// nolint:unparam // Designed for future extensibility; currently always returns nil
+	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseCacheConfig(config *CacheConfig) error {
 	if val, ok := p.getValue("cache.enabled"); ok {
 		if b, err := p.parseBool(val); err == nil {
@@ -264,7 +264,7 @@ func (p *Parser) parseCacheConfig(config *CacheConfig) error {
 }
 
 // parseMetricsConfig parses Metrics-specific configuration
-// nolint:unparam // Designed for future extensibility; currently always returns nil
+	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseMetricsConfig(config *MetricsConfig) error {
 	if val, ok := p.getValue("metrics.node.nodeLabel"); ok {
 		if str, ok := val.(string); ok {
@@ -306,7 +306,7 @@ func (p *Parser) parseMetricsConfig(config *MetricsConfig) error {
 }
 
 // parseSecurityConfig parses Security-specific configuration
-// nolint:unparam // Designed for future extensibility; currently always returns nil
+	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseSecurityConfig(config *SecurityConfig) error {
 	// Parse secrets configuration
 	if val, ok := p.getValue("security.secrets.storageDir"); ok {
@@ -389,7 +389,7 @@ func (p *Parser) parseSecurityConfig(config *SecurityConfig) error {
 }
 
 // parseExternalAPIConfig parses ExternalAPI-specific configuration
-// nolint:unparam // Designed for future extensibility; currently always returns nil
+	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseExternalAPIConfig(config *api.Config) error {
 	if val, ok := p.getValue("externalAPI.enabled"); ok {
 		if b, err := p.parseBool(val); err == nil {

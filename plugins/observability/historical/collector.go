@@ -474,7 +474,6 @@ func (hdc *HistoricalDataCollector) loadHistoricalData() error {
 	}
 
 	for _, file := range files {
-		// nolint:gosec // G304: file from filepath.Glob of internal data directory
 		data, err := os.ReadFile(file)
 		if err != nil {
 			continue

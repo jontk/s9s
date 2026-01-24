@@ -119,7 +119,6 @@ func (f *FileSecureStore) loadMasterKey(keyFile string) error {
 	debug.Logger.Printf("Loading existing master key")
 
 	// Read key file
-	// nolint:gosec // G304: keyFile path is application-controlled (storePath + ".key"), not user input
 	keyDataBytes, err := os.ReadFile(keyFile)
 	if err != nil {
 		return fmt.Errorf("failed to read key file: %w", err)
@@ -170,7 +169,6 @@ func (f *FileSecureStore) promptForPassword(prompt string) (string, error) {
 	fmt.Print(prompt)
 
 	// Use terminal package for secure password input
-	// nolint:unconvert // Needed for Windows compatibility: syscall.Stdin is Handle on Windows, int on Unix
 	password, err := term.ReadPassword(int(syscall.Stdin))
 	fmt.Println() // Print newline after password input
 

@@ -110,14 +110,12 @@ func (c *Collector) updateSystemMetrics() {
 	runtime.ReadMemStats(&m)
 
 	// Goroutine count
-	// nolint:gosec // G115: NumGoroutine() fits safely in int32
 	goroutines := int32(runtime.NumGoroutine())
 
 	// CPU usage would typically be calculated from system calls
 	// For now, we'll estimate based on goroutine activity
 	cpuUsage := c.estimateCPUUsage(goroutines)
 
-	// nolint:gosec // G115: memory metrics bounded by system RAM
 	c.metrics.UpdateResourceUsage(int64(m.Alloc), cpuUsage, goroutines)
 }
 

@@ -190,48 +190,13 @@ func (v *ObservabilityView) initializeLayout() {
 func (v *ObservabilityView) setupKeyboardShortcuts() {
 	// Global shortcuts for the view
 	v.root.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyTab:
-			// Cycle through focusable elements
-			v.cycleFocus(false)
-			return nil
-		case tcell.KeyBacktab:
-			// Reverse cycle
-			v.cycleFocus(true)
-			return nil
-		case tcell.KeyCtrlR:
-			// Force refresh
-			go func() { _ = v.refresh(context.Background()) }()
-			return nil
-		case tcell.KeyEsc, tcell.KeyCtrlC:
-			// Return to previous view
-			return nil
+		handled, returnNil := v.processKeyEvent(event)
+		if handled {
+			if returnNil {
+				return nil
+			}
+			return event
 		}
-
-		// Handle specific shortcuts
-		switch event.Rune() {
-		case 'n', 'N':
-			// Focus node table
-			v.app.SetFocus(v.nodeTable)
-			return nil
-		case 'j', 'J':
-			// Focus job table
-			v.app.SetFocus(v.jobTable)
-			return nil
-		case 'a', 'A':
-			// Focus alerts
-			v.app.SetFocus(v.alertsPanel.GetPrimitive())
-			return nil
-		case 'r', 'R':
-			// Refresh data
-			go func() { _ = v.refresh(context.Background()) }()
-			return nil
-		case 'h', 'H', '?':
-			// Show help
-			v.showHelp()
-			return nil
-		}
-
 		return event
 	})
 
@@ -577,7 +542,7 @@ func (v *ObservabilityView) fetchNodeMetrics(ctx context.Context) error {
 }
 
 // fetchJobMetrics fetches job metrics from Prometheus
-// nolint:unparam // Designed for future extensibility; currently always returns nil
+	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (v *ObservabilityView) fetchJobMetrics(ctx context.Context) error {
 	// Get list of running jobs from Prometheus discovery
 	jobs := v.getJobList(ctx)
@@ -1373,25 +1338,28 @@ Display:
   c/C           : Cycle color schemes`
 }
 
-// HandleKey processes keyboard input
-func (v *ObservabilityView) HandleKey(event *tcell.EventKey) bool {
+// processKeyEvent handles common keyboard input for all views
+// Returns (handled bool, shouldReturnNil bool) where:
+// - handled indicates if the event was processed
+// - shouldReturnNil indicates if nil should be returned (vs returning the event)
+func (v *ObservabilityView) processKeyEvent(event *tcell.EventKey) (bool, bool) {
 	// Handle global shortcuts
 	switch event.Key() {
 	case tcell.KeyTab:
 		// Cycle through focusable elements
 		v.cycleFocus(false)
-		return true
+		return true, true
 	case tcell.KeyBacktab:
 		// Reverse cycle
 		v.cycleFocus(true)
-		return true
+		return true, true
 	case tcell.KeyCtrlR:
 		// Force refresh
 		go func() { _ = v.refresh(context.Background()) }()
-		return true
+		return true, true
 	case tcell.KeyEsc, tcell.KeyCtrlC:
 		// Return to previous view
-		return false
+		return true, false
 	}
 
 	// Handle specific shortcuts
@@ -1399,26 +1367,32 @@ func (v *ObservabilityView) HandleKey(event *tcell.EventKey) bool {
 	case 'n', 'N':
 		// Focus node table
 		v.app.SetFocus(v.nodeTable)
-		return true
+		return true, true
 	case 'j', 'J':
 		// Focus job table
 		v.app.SetFocus(v.jobTable)
-		return true
+		return true, true
 	case 'a', 'A':
 		// Focus alerts
 		v.app.SetFocus(v.alertsPanel.GetPrimitive())
-		return true
+		return true, true
 	case 'r', 'R':
 		// Refresh data
 		go func() { _ = v.refresh(context.Background()) }()
-		return true
+		return true, true
 	case 'h', 'H', '?':
 		// Show help
 		v.showHelp()
-		return true
+		return true, true
 	}
 
-	return false
+	return false, false
+}
+
+// HandleKey processes keyboard input
+func (v *ObservabilityView) HandleKey(event *tcell.EventKey) bool {
+	handled, _ := v.processKeyEvent(event)
+	return handled
 }
 
 // SetFocus sets focus to this view

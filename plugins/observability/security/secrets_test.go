@@ -361,7 +361,6 @@ func TestSecretEncryption(t *testing.T) {
 
 	// Verify the stored file is actually encrypted
 	secretPath := filepath.Join(tempDir, "encrypted-secret.secret")
-	// nolint:gosec // G304: secretPath is test fixture path in temp directory
 	data, err := os.ReadFile(secretPath)
 	if err != nil {
 		t.Fatalf("Failed to read secret file: %v", err)

@@ -242,7 +242,7 @@ func (c *Client) Close() {
 }
 
 // doRequest performs an HTTP request with authentication
-// nolint:unparam // Method parameter allows for future extensibility beyond GET-only requests
+	//nolint:unparam // Method parameter allows for future extensibility beyond GET-only requests
 func (c *Client) doRequest(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
 	fullURL := c.endpoint + path
 
@@ -372,7 +372,6 @@ func (c *Client) executeQueryWithRetry(ctx context.Context, query string, queryT
 
 		// Exponential backoff: 100ms, 200ms, 400ms, 800ms...
 		if attempt < maxRetries {
-			// nolint:gosec // G115: attempt is bounded by maxRetries
 			backoffDuration := time.Duration(100<<uint(attempt)) * time.Millisecond
 			timer := time.NewTimer(backoffDuration)
 			select {
@@ -396,7 +395,7 @@ func (c *Client) executeQueryWithRetry(ctx context.Context, query string, queryT
 // via TLSCAFile configuration instead.
 func createTLSConfig(config ClientConfig) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: config.TLSSkipVerify, // nolint:gosec // G402: User-configurable, with security warning in docs
+		InsecureSkipVerify: config.TLSSkipVerify, //nolint:gosec // G402: User-configurable, with security warning in docs
 		MinVersion:         tls.VersionTLS12,     // Enforce minimum TLS 1.2
 	}
 

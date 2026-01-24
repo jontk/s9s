@@ -569,7 +569,7 @@ func (e *Engine) SetResolvedCallback(fn func(Alert)) {
 }
 
 // loadRules loads alert rules from configuration
-// nolint:unparam // Designed for future extensibility; currently always returns nil
+	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (e *Engine) loadRules() error {
 	// Start with predefined rules (if enabled in config)
 	if e.config.LoadPredefinedRules {

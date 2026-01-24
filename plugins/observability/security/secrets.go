@@ -621,7 +621,6 @@ func (sm *SecretsManager) loadSecrets() error {
 
 // Utility methods for JSON storage
 func (sm *SecretsManager) saveJSON(path string, data interface{}) error {
-	// nolint:gosec // G304: path constructed from app config, not user input
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
@@ -634,7 +633,6 @@ func (sm *SecretsManager) saveJSON(path string, data interface{}) error {
 }
 
 func (sm *SecretsManager) loadJSON(path string, data interface{}) error {
-	// nolint:gosec // G304: path constructed from app config, not user input
 	file, err := os.Open(path)
 	if err != nil {
 		return err

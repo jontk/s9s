@@ -130,7 +130,6 @@ func (sp *SubscriptionPersistence) LoadSubscriptions() error {
 		return nil
 	}
 
-	// nolint:gosec // G304: filename constructed from app storage directory
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("failed to read subscriptions file: %w", err)
@@ -248,7 +247,6 @@ func (sp *SubscriptionPersistence) RestoreFromBackup(backupFile string) error {
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
 
-	// nolint:gosec // G304: backupFile constructed from app storage directory
 	data, err := os.ReadFile(backupFile)
 	if err != nil {
 		return fmt.Errorf("failed to read backup file: %w", err)

@@ -362,6 +362,28 @@ func (api *ExternalAPI) handleHistoricalData(w http.ResponseWriter, r *http.Requ
 	})
 }
 
+// parseMetricAndDuration is a helper that parses metric name and duration from query parameters.
+// Returns empty metricName if validation fails (error already written to w).
+func (api *ExternalAPI) parseMetricAndDuration(w http.ResponseWriter, r *http.Request, defaultDuration string) (string, time.Duration, bool) {
+	metricName := r.URL.Query().Get("metric")
+	if metricName == "" {
+		api.writeError(w, http.StatusBadRequest, "Metric parameter is required")
+		return "", 0, false
+	}
+
+	durationStr := r.URL.Query().Get("duration")
+	if durationStr == "" {
+		durationStr = defaultDuration
+	}
+	duration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		api.writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid duration: %v", err))
+		return "", 0, false
+	}
+
+	return metricName, duration, true
+}
+
 // handleHistoricalStatistics handles historical statistics requests
 func (api *ExternalAPI) handleHistoricalStatistics(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -369,19 +391,8 @@ func (api *ExternalAPI) handleHistoricalStatistics(w http.ResponseWriter, r *htt
 		return
 	}
 
-	metricName := r.URL.Query().Get("metric")
-	if metricName == "" {
-		api.writeError(w, http.StatusBadRequest, "Metric parameter is required")
-		return
-	}
-
-	durationStr := r.URL.Query().Get("duration")
-	if durationStr == "" {
-		durationStr = "24h"
-	}
-	duration, err := time.ParseDuration(durationStr)
-	if err != nil {
-		api.writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid duration: %v", err))
+	metricName, duration, ok := api.parseMetricAndDuration(w, r, "24h")
+	if !ok {
 		return
 	}
 
@@ -404,19 +415,8 @@ func (api *ExternalAPI) handleTrendAnalysis(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	metricName := r.URL.Query().Get("metric")
-	if metricName == "" {
-		api.writeError(w, http.StatusBadRequest, "Metric parameter is required")
-		return
-	}
-
-	durationStr := r.URL.Query().Get("duration")
-	if durationStr == "" {
-		durationStr = "24h"
-	}
-	duration, err := time.ParseDuration(durationStr)
-	if err != nil {
-		api.writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid duration: %v", err))
+	metricName, duration, ok := api.parseMetricAndDuration(w, r, "24h")
+	if !ok {
 		return
 	}
 
@@ -482,19 +482,8 @@ func (api *ExternalAPI) handleSeasonalAnalysis(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	metricName := r.URL.Query().Get("metric")
-	if metricName == "" {
-		api.writeError(w, http.StatusBadRequest, "Metric parameter is required")
-		return
-	}
-
-	durationStr := r.URL.Query().Get("duration")
-	if durationStr == "" {
-		durationStr = "168h" // 1 week
-	}
-	duration, err := time.ParseDuration(durationStr)
-	if err != nil {
-		api.writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid duration: %v", err))
+	metricName, duration, ok := api.parseMetricAndDuration(w, r, "168h") // 1 week
+	if !ok {
 		return
 	}
 

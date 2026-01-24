@@ -8,6 +8,9 @@ import (
 	"github.com/rivo/tview"
 )
 
+// initUI initializes the UI components
+// Returns error for extensibility, currently always returns nil
+//nolint:unparam
 func (s *S9s) initUI() error {
 	// Create alerts manager
 	s.alertsManager = components.NewAlertsManager(100) // Keep last 100 alerts

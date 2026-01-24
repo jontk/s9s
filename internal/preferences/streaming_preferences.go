@@ -177,7 +177,7 @@ func (m *StreamingPreferencesManager) UpdatePreferences(update func(*StreamingPr
 }
 
 // validatePreferences validates preference values
-// nolint:unparam // Designed for future extensibility; currently always returns nil
+	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (m *StreamingPreferencesManager) validatePreferences(prefs *StreamingPreferences) error {
 	// Validate numeric ranges
 	if prefs.MaxConcurrentStreams < 1 || prefs.MaxConcurrentStreams > 16 {
