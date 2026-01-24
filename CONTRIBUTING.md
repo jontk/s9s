@@ -207,6 +207,93 @@ refactor: simplify job filtering logic
    - Ensure readability on dark and light terminals
    - Use colors consistently across views
 
+## 🔍 Linting and Code Quality
+
+We use **golangci-lint** with 15 enabled linters to maintain code quality and consistency throughout the project.
+
+### Quick Start
+
+```bash
+# Run linter
+make lint
+
+# Fix formatting issues
+make fmt
+
+# Install pre-commit hooks (recommended)
+pre-commit install
+```
+
+### Enabled Linters
+
+The linters are organized by category:
+
+- **Core**: errcheck, govet, ineffassign, staticcheck
+  - Catch critical errors that shouldn't be ignored
+  - Detect suspicious constructs and bad patterns
+
+- **Quality**: misspell, bodyclose, errorlint, wastedassign
+  - Improve code quality and catch common mistakes
+  - Ensure HTTP resources are properly closed
+
+- **Security**: gosec (configured with exclusions)
+  - Security-focused static analysis
+  - Detects vulnerabilities and unsafe patterns
+
+- **Style & Patterns**: gocritic, unused, nolintlint
+  - Code style and pattern checks
+  - Identifies dead code and unused suppressions
+
+- **Advanced**: gocognit, dupl
+  - Cognitive complexity checking (threshold: 30)
+  - Code duplication detection
+
+See [docs/LINTING.md](docs/LINTING.md) for complete linting standards, configuration details, and best practices.
+
+### Pre-commit Hooks
+
+Install pre-commit hooks to automatically check code before committing:
+
+```bash
+# Install hooks (one-time setup)
+pre-commit install
+
+# Run manually on all files
+pre-commit run --all-files
+
+# Hooks will automatically run before git commit
+git commit -m "feat: add amazing feature"
+```
+
+The hooks automatically:
+- Remove trailing whitespace
+- Ensure files end with newline
+- Format code with gofumpt
+- Organize imports with goimports
+- Run golangci-lint to check for violations
+
+### CI Requirements
+
+All pull requests must:
+- ✅ Pass `golangci-lint run` with no new warnings
+- ✅ Have code formatted with `gofumpt`
+- ✅ Have imports organized with `goimports`
+- ✅ Have go.mod tidied with `go mod tidy`
+
+These checks are enforced in GitHub Actions and must pass before merge.
+
+### Fixing Lint Issues
+
+1. **Auto-fixable issues**: Use `make fmt` to fix formatting
+2. **Manual fixes**: Review linter messages and fix code
+3. **Suppressions**: Only use `//nolint` when absolutely necessary, with justification
+
+Example of proper suppression:
+```go
+// nolint:gochecknoglobals // needed for initialization
+var globalState int
+```
+
 ## 🧪 Testing
 
 ### Test Organization
