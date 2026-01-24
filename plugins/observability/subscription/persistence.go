@@ -51,8 +51,8 @@ func NewSubscriptionPersistence(config PersistenceConfig, subscriptionMgr *Subsc
 		config.SaveInterval = 5 * time.Minute
 	}
 
-	// Ensure data directory exists
-	if err := os.MkdirAll(config.DataDir, 0755); err != nil {
+	// Ensure data directory exists (subscription data is sensitive - use 0700)
+	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
@@ -104,9 +104,9 @@ func (sp *SubscriptionPersistence) SaveSubscriptions() error {
 		return fmt.Errorf("failed to marshal subscriptions: %w", err)
 	}
 
-	// Write to temporary file first, then rename for atomicity
+	// Write to temporary file first, then rename for atomicity (subscription data is sensitive)
 	tempFile := filename + ".tmp"
-	if err := os.WriteFile(tempFile, data, 0644); err != nil {
+	if err := os.WriteFile(tempFile, data, 0600); err != nil {
 		return fmt.Errorf("failed to write temporary file: %w", err)
 	}
 
@@ -197,7 +197,7 @@ func (sp *SubscriptionPersistence) SaveSubscription(subscriptionID string) error
 		return fmt.Errorf("failed to marshal subscription: %w", err)
 	}
 
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, 0600); err != nil {
 		return fmt.Errorf("failed to write subscription file: %w", err)
 	}
 
@@ -223,7 +223,7 @@ func (sp *SubscriptionPersistence) BackupSubscriptions() (string, error) {
 	timestamp := time.Now().Format("20060102_150405")
 	backupDir := filepath.Join(sp.dataDir, "backups")
 
-	if err := os.MkdirAll(backupDir, 0755); err != nil {
+	if err := os.MkdirAll(backupDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create backup directory: %w", err)
 	}
 
@@ -235,7 +235,7 @@ func (sp *SubscriptionPersistence) BackupSubscriptions() (string, error) {
 		return "", fmt.Errorf("failed to marshal backup data: %w", err)
 	}
 
-	if err := os.WriteFile(backupFile, data, 0644); err != nil {
+	if err := os.WriteFile(backupFile, data, 0600); err != nil {
 		return "", fmt.Errorf("failed to write backup file: %w", err)
 	}
 

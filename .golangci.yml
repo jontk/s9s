@@ -18,8 +18,6 @@ linters:
     - ineffassign   # Ineffective assignments
     # staticcheck: 82/82 Phase 1 issues fixed (PR #13 + PR #16) ✅
     - staticcheck   # Enabled: all Phase 1 issues resolved
-    # gosec: 105 issues fixed in PR #12, remaining issues in auth/config packages
-    # Will be re-enabled as Phase 2 & 3 issues are resolved
 
     # Additional linters - Phase 7
     # Note: gofumpt and goimports are handled by pre-commit hooks and Makefile
@@ -31,8 +29,8 @@ linters:
   disable:
     # Temporarily disabled - will be fixed in follow-up PRs
     - unused        # 1 issue
-    # gosec: Progress - 105/145 issues fixed (Phase 1 PR #12)
-    # Remaining issues are in auth/config packages, see exclude rules below
+    # gosec: Phase 2 progress - 15/40 file permission issues fixed
+    # Remaining 24 issues: G304 (8), G115 (10), G602 (5), G101 (1)
     - gosec
     - gocritic      # 51 pre-existing style issues (ifElseChain, singleCaseSwitch, dupBranchBody)
     - noctx         # 23 pre-existing issues in test HTTP requests
@@ -102,18 +100,30 @@ issues:
         - govet
 
     # G304: File inclusion via variable is acceptable for application-controlled paths
-    # These are not user-supplied paths but application configuration
+    # These files manage application configuration and persistent data (not user-supplied)
     - text: "G304:"
       linters:
         - gosec
-      path: "(export|filters|preferences|config)/"
+      path: "plugins/observability/(cmd/plugin/export|historical|security/secrets|subscription/persistence)"
 
-    # G301/G306: Allow standard file permissions in specific contexts
-    # Test files, setup wizards, and exports may use standard Unix permissions
+    # G304 in tests (test data files are application-controlled)
+    - text: "G304:"
+      linters:
+        - gosec
+      path: "test/(integration/ssh_integration|performance|security.*_test)\\.go"
+
+    # Test files: G115 (integer overflow), G602 (slice index), G101 (hardcoded credentials)
+    # These are acceptable in test code (type conversions, test keys, modulo operations)
+    - text: "(G115|G602|G101):"
+      linters:
+        - gosec
+      path: "_test\\.go"
+
+    # G301/G306: Allow standard file permissions in test and setup contexts
     - text: "(G301|G306):"
       linters:
         - gosec
-      path: "(test|setup|export|filters)/"
+      path: "test/"
 
     # unparam: Unused parameters in tests are acceptable
     - text: "- .* is unused"
@@ -133,6 +143,7 @@ issues:
         - unparam
         - prealloc
         - gocritic
+        - gosec  # G115, G602, G101 acceptable in tests
       path: "_test\\.go"
 
     # noctx: Test HTTP requests don't need context
@@ -150,6 +161,13 @@ issues:
       linters:
         - gosec
       path: "(internal/auth|internal/config|internal/cli)/"
+
+    # G115: Integer overflow conversions in observability plugins are acceptable
+    # (NumGoroutine fits in int32, memory metrics conversions are safe)
+    - text: "G115:"
+      linters:
+        - gosec
+      path: "(metrics|prometheus)"
 
     # Pre-existing unconvert issues
     - linters:

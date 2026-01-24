@@ -99,7 +99,7 @@ plugins:
       verbose: true
 `
 
-	err := os.WriteFile(configPath, []byte(yamlContent), 0644)
+	err := os.WriteFile(configPath, []byte(yamlContent), 0600) // test config files
 	require.NoError(t, err)
 
 	cfg, err := LoadWithPath(configPath)
@@ -413,7 +413,7 @@ contexts:
       token: dev-token
 `
 
-	err := os.WriteFile(configPath, []byte(yamlContent), 0644)
+	err := os.WriteFile(configPath, []byte(yamlContent), 0600) // test config files
 	require.NoError(t, err)
 
 	cfg, err := LoadWithPath(configPath)
@@ -465,7 +465,7 @@ discovery:
   scontrolPath: /opt/slurm/bin/scontrol
 `
 
-	err := os.WriteFile(configPath, []byte(yamlContent), 0644)
+	err := os.WriteFile(configPath, []byte(yamlContent), 0600) // test config files
 	require.NoError(t, err)
 
 	cfg, err := LoadWithPath(configPath)
@@ -511,7 +511,7 @@ plugins:
       refreshInterval: 10s
 `
 
-	err := os.WriteFile(configPath, []byte(yamlContent), 0644)
+	err := os.WriteFile(configPath, []byte(yamlContent), 0600) // test config files
 	require.NoError(t, err)
 
 	cfg, err := LoadWithPath(configPath)

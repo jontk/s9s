@@ -111,13 +111,13 @@ func NewAuditLogger(config AuditConfig) (*AuditLogger, error) {
 	if config.LogFile == "" {
 		logger.writer = os.Stdout
 	} else {
-		// Ensure log directory exists
+		// Ensure log directory exists (audit logs are sensitive - use 0700)
 		logDir := filepath.Dir(config.LogFile)
-		if err := os.MkdirAll(logDir, 0755); err != nil {
+		if err := os.MkdirAll(logDir, 0700); err != nil {
 			return nil, fmt.Errorf("failed to create log directory: %w", err)
 		}
 
-		file, err := os.OpenFile(config.LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		file, err := os.OpenFile(config.LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open audit log file: %w", err)
 		}
@@ -386,8 +386,8 @@ func (al *AuditLogger) rotateIfNeeded() error {
 		return err
 	}
 
-	// Open new file
-	file, err := os.OpenFile(al.config.LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	// Open new file (use 0600 for sensitive audit logs)
+	file, err := os.OpenFile(al.config.LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		return err
 	}

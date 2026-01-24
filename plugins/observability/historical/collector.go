@@ -98,8 +98,8 @@ func NewHistoricalDataCollector(client *prometheus.CachedClient, config Collecto
 		config.Queries = DefaultCollectorConfig().Queries
 	}
 
-	// Ensure data directory exists
-	if err := os.MkdirAll(config.DataDir, 0755); err != nil {
+	// Ensure data directory exists (historical data is sensitive - use 0700)
+	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
@@ -457,7 +457,7 @@ func (hdc *HistoricalDataCollector) saveHistoricalDataLocked() {
 
 		// Write to temporary file first
 		tempFile := filename + ".tmp"
-		if err := os.WriteFile(tempFile, data, 0644); err != nil {
+		if err := os.WriteFile(tempFile, data, 0600); err != nil { // historical data is sensitive
 			continue
 		}
 

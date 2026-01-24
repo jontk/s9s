@@ -389,7 +389,7 @@ CMD ["/usr/sbin/sshd", "-D"]
 
 	// Write Dockerfile
 	dockerfilePath := filepath.Join(keyDir, "Dockerfile")
-	if err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0644); err != nil {
+	if err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0600); err != nil {
 		return "", err
 	}
 

@@ -88,14 +88,14 @@ func NewLogger(config Config) (*Logger, error) {
 		level = INFO
 	}
 
-	// Create log directory if it doesn't exist
+	// Create log directory if it doesn't exist (use 0750 for restricted read access)
 	logDir := filepath.Dir(config.LogFile)
-	if err := os.MkdirAll(logDir, 0755); err != nil {
+	if err := os.MkdirAll(logDir, 0750); err != nil {
 		return nil, fmt.Errorf("failed to create log directory: %w", err)
 	}
 
-	// Open log file
-	file, err := os.OpenFile(config.LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	// Open log file (use 0600 for private log access)
+	file, err := os.OpenFile(config.LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open log file: %w", err)
 	}
