@@ -204,9 +204,6 @@ func (cm *ConfigManager) buildForm() {
 
 // addFormField adds a single field to the form
 func (cm *ConfigManager) addFormField(field config.ConfigField) {
-	currentValue := cm.getConfigValue(field.Key)
-
-	// Create field label with description
 	label := field.Label
 	if field.Required {
 		label += "*"
@@ -214,152 +211,170 @@ func (cm *ConfigManager) addFormField(field config.ConfigField) {
 
 	switch field.Type {
 	case config.FieldTypeString:
-		initialValue := ""
-		if currentValue != nil {
-			initialValue = fmt.Sprintf("%v", currentValue)
-		}
-
-		if field.Sensitive {
-			cm.form.AddPasswordField(label, initialValue, 0, '*', func(text string) {
-				cm.setConfigValue(field.Key, text)
-				cm.validateField(field, text)
-			})
-		} else {
-			cm.form.AddInputField(label, initialValue, 0, nil, func(text string) {
-				cm.setConfigValue(field.Key, text)
-				cm.validateField(field, text)
-			})
-		}
-
-		// Add field description as a tooltip-like behavior
-		if field.Description != "" {
-			cm.addFieldDescription(field.Description)
-		}
-
+		cm.addStringField(label, field)
 	case config.FieldTypeInt:
-		initialValue := ""
-		if currentValue != nil {
-			initialValue = fmt.Sprintf("%v", currentValue)
-		}
-
-		cm.form.AddInputField(label, initialValue, 0, func(textToCheck string, lastChar rune) bool {
-			// Only allow digits and minus sign
-			return lastChar >= '0' && lastChar <= '9' || lastChar == '-'
-		}, func(text string) {
-			if text != "" {
-				if val, err := strconv.Atoi(text); err == nil {
-					cm.setConfigValue(field.Key, val)
-					cm.validateField(field, val)
-				}
-			}
-		})
-
-		if field.Description != "" {
-			cm.addFieldDescription(field.Description)
-		}
-
+		cm.addIntField(label, field)
 	case config.FieldTypeBool:
-		initialValue := false
-		if currentValue != nil {
-			if val, ok := currentValue.(bool); ok {
-				initialValue = val
-			}
-		}
-
-		cm.form.AddCheckbox(label, initialValue, func(checked bool) {
-			cm.setConfigValue(field.Key, checked)
-			cm.validateField(field, checked)
-		})
-
-		if field.Description != "" {
-			cm.addFieldDescription(field.Description)
-		}
-
+		cm.addBoolField(label, field)
 	case config.FieldTypeSelect:
-		currentIndex := 0
-		var currentStr string
-		if currentValue != nil {
-			currentStr = fmt.Sprintf("%v", currentValue)
-			for i, option := range field.Options {
-				if option == currentStr {
-					currentIndex = i
-					break
-				}
-			}
-		}
-
-		cm.form.AddDropDown(label, field.Options, currentIndex, func(text string, index int) {
-			cm.setConfigValue(field.Key, text)
-			cm.validateField(field, text)
-		})
-
-		if field.Description != "" {
-			cm.addFieldDescription(field.Description)
-		}
-
+		cm.addSelectField(label, field)
 	case config.FieldTypeArray:
-		initialValue := ""
-		if currentValue != nil {
-			if arr, ok := currentValue.([]interface{}); ok {
-				strArr := make([]string, 0, len(arr))
-				for _, v := range arr {
-					strArr = append(strArr, fmt.Sprintf("%v", v))
-				}
-				initialValue = strings.Join(strArr, ", ")
-			} else if arr, ok := currentValue.([]string); ok {
-				initialValue = strings.Join(arr, ", ")
-			}
-		}
-
-		cm.form.AddInputField(label, initialValue, 0, nil, func(text string) {
-			if text == "" {
-				cm.setConfigValue(field.Key, []string{})
-			} else {
-				parts := strings.Split(text, ",")
-				trimmed := make([]string, 0, len(parts))
-				for _, part := range parts {
-					trimmed = append(trimmed, strings.TrimSpace(part))
-				}
-				cm.setConfigValue(field.Key, trimmed)
-				cm.validateField(field, trimmed)
-			}
-		})
-
-		description := field.Description
-		if len(field.Options) > 0 {
-			description += fmt.Sprintf(" (Options: %s)", strings.Join(field.Options, ", "))
-		}
-		cm.addFieldDescription(description + " - Separate multiple values with commas")
-
+		cm.addArrayField(label, field)
 	case config.FieldTypeDuration:
-		initialValue := ""
-		if currentValue != nil {
-			initialValue = fmt.Sprintf("%v", currentValue)
-		}
-
-		cm.form.AddInputField(label, initialValue, 0, nil, func(text string) {
-			cm.setConfigValue(field.Key, text)
-			cm.validateField(field, text)
-		})
-
-		description := field.Description + " (e.g., 1s, 5m, 1h30m)"
-		if len(field.Examples) > 0 {
-			description += fmt.Sprintf(" Examples: %s", strings.Join(field.Examples, ", "))
-		}
-		cm.addFieldDescription(description)
-
+		cm.addDurationField(label, field)
 	case config.FieldTypeContext:
 		cm.addContextField(field)
-
 	case config.FieldTypeShortcut:
 		cm.addShortcutField(field)
-
 	case config.FieldTypeAlias:
 		cm.addAliasField(field)
-
 	case config.FieldTypePlugin:
 		cm.addPluginField(field)
 	}
+}
+
+func (cm *ConfigManager) addStringField(label string, field config.ConfigField) {
+	currentValue := cm.getConfigValue(field.Key)
+	initialValue := ""
+	if currentValue != nil {
+		initialValue = fmt.Sprintf("%v", currentValue)
+	}
+
+	if field.Sensitive {
+		cm.form.AddPasswordField(label, initialValue, 0, '*', func(text string) {
+			cm.setConfigValue(field.Key, text)
+			cm.validateField(field, text)
+		})
+	} else {
+		cm.form.AddInputField(label, initialValue, 0, nil, func(text string) {
+			cm.setConfigValue(field.Key, text)
+			cm.validateField(field, text)
+		})
+	}
+
+	if field.Description != "" {
+		cm.addFieldDescription(field.Description)
+	}
+}
+
+func (cm *ConfigManager) addIntField(label string, field config.ConfigField) {
+	currentValue := cm.getConfigValue(field.Key)
+	initialValue := ""
+	if currentValue != nil {
+		initialValue = fmt.Sprintf("%v", currentValue)
+	}
+
+	cm.form.AddInputField(label, initialValue, 0, func(textToCheck string, lastChar rune) bool {
+		return lastChar >= '0' && lastChar <= '9' || lastChar == '-'
+	}, func(text string) {
+		if text != "" {
+			if val, err := strconv.Atoi(text); err == nil {
+				cm.setConfigValue(field.Key, val)
+				cm.validateField(field, val)
+			}
+		}
+	})
+
+	if field.Description != "" {
+		cm.addFieldDescription(field.Description)
+	}
+}
+
+func (cm *ConfigManager) addBoolField(label string, field config.ConfigField) {
+	currentValue := cm.getConfigValue(field.Key)
+	initialValue := false
+	if currentValue != nil {
+		if val, ok := currentValue.(bool); ok {
+			initialValue = val
+		}
+	}
+
+	cm.form.AddCheckbox(label, initialValue, func(checked bool) {
+		cm.setConfigValue(field.Key, checked)
+		cm.validateField(field, checked)
+	})
+
+	if field.Description != "" {
+		cm.addFieldDescription(field.Description)
+	}
+}
+
+func (cm *ConfigManager) addSelectField(label string, field config.ConfigField) {
+	currentValue := cm.getConfigValue(field.Key)
+	currentIndex := 0
+	if currentValue != nil {
+		currentStr := fmt.Sprintf("%v", currentValue)
+		for i, option := range field.Options {
+			if option == currentStr {
+				currentIndex = i
+				break
+			}
+		}
+	}
+
+	cm.form.AddDropDown(label, field.Options, currentIndex, func(text string, index int) {
+		cm.setConfigValue(field.Key, text)
+		cm.validateField(field, text)
+	})
+
+	if field.Description != "" {
+		cm.addFieldDescription(field.Description)
+	}
+}
+
+func (cm *ConfigManager) addArrayField(label string, field config.ConfigField) {
+	currentValue := cm.getConfigValue(field.Key)
+	initialValue := ""
+	if currentValue != nil {
+		if arr, ok := currentValue.([]interface{}); ok {
+			strArr := make([]string, 0, len(arr))
+			for _, v := range arr {
+				strArr = append(strArr, fmt.Sprintf("%v", v))
+			}
+			initialValue = strings.Join(strArr, ", ")
+		} else if arr, ok := currentValue.([]string); ok {
+			initialValue = strings.Join(arr, ", ")
+		}
+	}
+
+	cm.form.AddInputField(label, initialValue, 0, nil, func(text string) {
+		if text == "" {
+			cm.setConfigValue(field.Key, []string{})
+		} else {
+			parts := strings.Split(text, ",")
+			trimmed := make([]string, 0, len(parts))
+			for _, part := range parts {
+				trimmed = append(trimmed, strings.TrimSpace(part))
+			}
+			cm.setConfigValue(field.Key, trimmed)
+			cm.validateField(field, trimmed)
+		}
+	})
+
+	description := field.Description
+	if len(field.Options) > 0 {
+		description += fmt.Sprintf(" (Options: %s)", strings.Join(field.Options, ", "))
+	}
+	cm.addFieldDescription(description + " - Separate multiple values with commas")
+}
+
+func (cm *ConfigManager) addDurationField(label string, field config.ConfigField) {
+	currentValue := cm.getConfigValue(field.Key)
+	initialValue := ""
+	if currentValue != nil {
+		initialValue = fmt.Sprintf("%v", currentValue)
+	}
+
+	cm.form.AddInputField(label, initialValue, 0, nil, func(text string) {
+		cm.setConfigValue(field.Key, text)
+		cm.validateField(field, text)
+	})
+
+	description := field.Description + " (e.g., 1s, 5m, 1h30m)"
+	if len(field.Examples) > 0 {
+		description += fmt.Sprintf(" Examples: %s", strings.Join(field.Examples, ", "))
+	}
+	cm.addFieldDescription(description)
 }
 
 // addFieldDescription adds a description text view after a field
