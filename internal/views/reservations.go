@@ -411,7 +411,7 @@ func (v *ReservationsView) scheduleRefresh() {
 // onReservationSelect handles reservation selection
 func (v *ReservationsView) onReservationSelect(row, col int) {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -453,7 +453,7 @@ func (v *ReservationsView) toggleFutureFilter() {
 // showReservationDetails shows detailed information for the selected reservation
 func (v *ReservationsView) showReservationDetails() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 

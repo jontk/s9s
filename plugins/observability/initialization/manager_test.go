@@ -176,8 +176,8 @@ func TestManagerInitCachingWithoutClient(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error when initializing cache without client")
 	}
-	if err != nil && err.Error() != "Prometheus client not initialized" {
-		t.Errorf("Expected 'Prometheus client not initialized' error, got: %s", err.Error())
+	if err != nil && err.Error() != "prometheus client not initialized" {
+		t.Errorf("Expected 'prometheus client not initialized' error, got: %s", err.Error())
 	}
 }
 

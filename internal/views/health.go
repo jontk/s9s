@@ -10,6 +10,8 @@ import (
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/monitoring"
 	"github.com/rivo/tview"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // HealthView displays cluster health monitoring information
@@ -306,7 +308,7 @@ func (v *HealthView) updateHealthChecks() {
 		icon := v.getStatusIcon(check.Status)
 
 		checksText.WriteString(fmt.Sprintf("[%s]%s %s[white]\n",
-			statusColor, icon, strings.Title(name)))
+			statusColor, icon, cases.Title(language.English).String(name)))
 		checksText.WriteString(fmt.Sprintf("   %s\n", check.Message))
 		checksText.WriteString(fmt.Sprintf("   [gray]Last Check: %s | Count: %d[white]\n\n",
 			check.LastCheck.Format("15:04:05"), check.CheckCount))
@@ -482,7 +484,7 @@ func (v *HealthView) showHealthDetails() {
 	for name, check := range health.Checks {
 		statusColor := v.getStatusColor(check.Status)
 		details.WriteString(fmt.Sprintf("[%s]%s %s[white]\n",
-			statusColor, v.getStatusIcon(check.Status), strings.Title(name)))
+			statusColor, v.getStatusIcon(check.Status), cases.Title(language.English).String(name)))
 		details.WriteString(fmt.Sprintf("Description: %s\n", check.Description))
 		details.WriteString(fmt.Sprintf("Status: %s\n", check.Status))
 		details.WriteString(fmt.Sprintf("Message: %s\n", check.Message))

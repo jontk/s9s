@@ -364,7 +364,7 @@ func (v *AccountsView) scheduleRefresh() {
 // onAccountSelect handles account selection
 func (v *AccountsView) onAccountSelect(row, col int) {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -504,7 +504,7 @@ func (v *AccountsView) buildAccountSubtree(tree *strings.Builder, account *dao.A
 // showAccountDetails shows detailed information for the selected account
 func (v *AccountsView) showAccountDetails() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 

@@ -167,7 +167,7 @@ func (p *ObservabilityPlugin) Start(ctx context.Context) error {
 	p.logger.Debug("plugin", "Testing Prometheus connection to %s", p.config.Prometheus.Endpoint)
 	if err := p.components.Client.TestConnection(ctx); err != nil {
 		p.logger.Error("plugin", "Prometheus health check failed: %v", err)
-		return fmt.Errorf("Prometheus health check failed: %w", err)
+		return fmt.Errorf("prometheus health check failed: %w", err)
 	}
 	p.logger.Info("plugin", "Prometheus connection test successful")
 

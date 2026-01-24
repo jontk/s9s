@@ -36,7 +36,7 @@ func NewNodeMetricsCollector(nodeLabel string) *NodeMetricsCollector {
 // UpdateFromPrometheus updates node metrics from Prometheus data
 func (nmc *NodeMetricsCollector) UpdateFromPrometheus(nodeName string, metrics map[string]*TimeSeries) {
 	// Add logging to debug the issue
-	if metrics == nil || len(metrics) == 0 {
+	if len(metrics) == 0 {
 		return
 	}
 

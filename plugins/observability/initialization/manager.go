@@ -179,7 +179,7 @@ func (m *Manager) initPrometheusClient(components *Components) error {
 // initCaching initializes the caching layer
 func (m *Manager) initCaching(components *Components) error {
 	if components.Client == nil {
-		return fmt.Errorf("Prometheus client not initialized")
+		return fmt.Errorf("prometheus client not initialized")
 	}
 
 	// Optionally wrap with circuit breaker

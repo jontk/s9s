@@ -8,6 +8,8 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/preferences"
 	"github.com/rivo/tview"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // PreferencesView displays the preferences interface
@@ -355,7 +357,7 @@ func (pv *PreferencesView) showViewSettings(viewName string) {
 		AddInputField("Page Size", strconv.Itoa(settings.PageSize), 10, nil, nil).
 		AddInputField("Group By", settings.GroupBy, 20, nil, nil)
 
-	pv.form.SetTitle(fmt.Sprintf(" %s View Settings ", strings.Title(viewName)))
+	pv.form.SetTitle(fmt.Sprintf(" %s View Settings ", cases.Title(language.English).String(viewName)))
 }
 
 // save saves the preferences

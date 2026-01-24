@@ -365,7 +365,7 @@ func (v *UsersView) scheduleRefresh() {
 // onUserSelect handles user selection
 func (v *UsersView) onUserSelect(row, col int) {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -401,7 +401,7 @@ func (v *UsersView) toggleAdminFilter() {
 // showUserDetails shows detailed information for the selected user
 func (v *UsersView) showUserDetails() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 

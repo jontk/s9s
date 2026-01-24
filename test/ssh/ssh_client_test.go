@@ -138,10 +138,10 @@ func TestSSHClientEdgeCases(t *testing.T) {
 			}
 		}()
 
-		// Using nil context is generally bad practice but test behavior
-		err := client.TestConnection(nil, "test-host") //nolint:staticcheck
+		// Using context.TODO() when unsure about which context to use
+		err := client.TestConnection(context.TODO(), "test-host")
 		if err == nil {
-			t.Error("Expected error with nil context")
+			t.Error("Expected error from test connection")
 		}
 	})
 

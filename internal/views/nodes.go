@@ -14,6 +14,8 @@ import (
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
 	"github.com/rivo/tview"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // NodesView displays the nodes list with resource utilization
@@ -599,7 +601,7 @@ func (v *NodesView) scheduleRefresh() {
 // onNodeSelect handles node selection
 func (v *NodesView) onNodeSelect(row, col int) {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -630,7 +632,7 @@ func (v *NodesView) onFilterDone(key tcell.Key) {
 func (v *NodesView) drainSelectedNode() {
 	debug.Logger.Printf("drainSelectedNode() called")
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		debug.Logger.Printf("drainSelectedNode() - no data selected")
 		return
 	}
@@ -706,7 +708,7 @@ func (v *NodesView) performDrainNode(nodeName, reason string) {
 func (v *NodesView) resumeSelectedNode() {
 	debug.Logger.Printf("resumeSelectedNode() called")
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		debug.Logger.Printf("resumeSelectedNode() - no data selected")
 		return
 	}
@@ -811,7 +813,7 @@ func (v *NodesView) performResumeNode(nodeName string) {
 // showNodeDetails shows detailed information for the selected node
 func (v *NodesView) showNodeDetails() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -955,7 +957,7 @@ func (v *NodesView) formatNodeDetails(node *dao.Node) string {
 // sshToNode opens SSH connection to the selected node
 func (v *NodesView) sshToNode() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -1290,7 +1292,7 @@ func (v *NodesView) promptGroupBy() {
 		SetTitleAlign(tview.AlignCenter)
 
 	for i, option := range options {
-		text := strings.Title(option)
+		text := cases.Title(language.English).String(option)
 		if option == v.groupBy {
 			text = fmt.Sprintf("[yellow]● %s[white]", text)
 		} else {
@@ -1351,7 +1353,7 @@ func (v *NodesView) toggleGroupExpansion() {
 	}
 
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 

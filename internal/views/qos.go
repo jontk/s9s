@@ -379,7 +379,7 @@ func (v *QoSView) scheduleRefresh() {
 // onQoSSelect handles QoS selection
 func (v *QoSView) onQoSSelect(row, col int) {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
@@ -409,7 +409,7 @@ func (v *QoSView) onFilterDone(key tcell.Key) {
 // showQoSDetails shows detailed information for the selected QoS
 func (v *QoSView) showQoSDetails() {
 	data := v.table.GetSelectedData()
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return
 	}
 
