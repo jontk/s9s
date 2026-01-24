@@ -110,8 +110,8 @@ linters-settings:
     # Check validity of nolint directives
     allow-unused: false     # Disallow unused nolint directives
     allow-leading-space: false  # Require //nolint without space
-    require-explanation: false  # Don't require explanation (too verbose)
-    require-specific: false  # Allow //nolint without specific rule name
+    require-explanation: true   # Require explanation for suppressed violations
+    require-specific: true      # Require specific rule names (avoid blanket //nolint)
 
   dupl:
     # Detect duplicated code blocks
@@ -159,16 +159,9 @@ issues:
         - containedctx
       path: ".*_test\\.go"
 
-    # Pre-existing gosec issues in auth and config packages
-    - text: "G404: Use of weak random"
-      linters:
-        - gosec
-      path: "internal/auth/"
-
-    - text: "(G301|G304|G306):"
-      linters:
-        - gosec
-      path: "(internal/auth|internal/config|internal/cli)/"
+    # Note: gosec issues (G304, G404, etc.) are documented with nolint directives
+    # at violation points with specific justifications (file paths are app-controlled, etc.)
+    # This allows code reviewers to see the reasoning inline rather than hidden in config
 
     # Phase 4: containedctx - Pre-existing patterns in main app structures
     - text: "found a struct"
@@ -205,36 +198,13 @@ issues:
     - linters:
         - gocognit
 
-    # Phase 4: nolintlint - unused nolint directives
-    # Some directives reference rules excluded globally in gosec configuration
-    - text: "directive.*is unused"
-      linters:
-        - nolintlint
-        - gosec
 
-    # Phase 4: gosec - Global security rule exclusions
-    # These rules have pre-existing instances that are documented as safe
+    # Phase 4: gosec - Targeted security rule exclusions
+    # Only exclude rules that produce false positives everywhere, documented with nolint directives elsewhere
+    # G204: exec.Command with string args is flagged, but our code separates args properly
+    #       This is a common false positive when using exec.Command(cmd, arg1, arg2, ...)
+    #       We validate command paths and pass args as separate strings, not user input
     - text: "G204:"
-      linters:
-        - gosec
-
-    - text: "G304:"
-      linters:
-        - gosec
-
-    - text: "G115:"
-      linters:
-        - gosec
-
-    - text: "G602:"
-      linters:
-        - gosec
-
-    - text: "G101:"
-      linters:
-        - gosec
-
-    - text: "G404:"
       linters:
         - gosec
 

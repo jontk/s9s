@@ -118,13 +118,15 @@ This guide covers everything you need to know to develop s9s, from setting up yo
    ```bash
    # Edit files
    vim internal/views/jobs.go
-   
+
    # Format code
    make fmt
-   
+
    # Run linter
    make lint
    ```
+
+   For detailed linting standards and configuration, see [Linting Standards](LINTING.md).
 
 4. **Test Changes**
    ```bash
