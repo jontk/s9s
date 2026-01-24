@@ -32,12 +32,18 @@ Relates to #(issue)
 ## Screenshots (if applicable)
 Add screenshots to help explain your changes.
 
+## Code Quality
+- [ ] Code passes golangci-lint checks (`make lint`)
+- [ ] Code is formatted with gofumpt (`make fmt`)
+- [ ] No new linter warnings introduced
+- [ ] Pre-commit hooks pass (if installed locally)
+- [ ] Nolint directives include justification comments (if used)
+
 ## Checklist
-- [ ] My code follows the code style of this project
+- [ ] My code follows the code style of this project and passes all linters
 - [ ] I have performed a self-review of my own code
 - [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
 - [ ] Any dependent changes have been merged and published in downstream modules
 
 ## Breaking Changes
