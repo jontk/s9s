@@ -3,11 +3,11 @@ package ssh
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"time"
 
+	"github.com/jontk/s9s/internal/logging"
 	"github.com/jontk/s9s/internal/security"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -29,7 +29,7 @@ func getHostKeyCallback(config *SSHConfig) ssh.HostKeyCallback {
 			if knownHostsFile, ok := config.Options["UserKnownHostsFile"]; ok {
 				callback, err := knownhosts.New(knownHostsFile)
 				if err != nil {
-					log.Printf("Warning: Failed to load known_hosts from %s: %v. Falling back to insecure mode.", knownHostsFile, err)
+					logging.Warnf("Failed to load known_hosts from %s: %v. Falling back to insecure mode.", knownHostsFile, err)
 					return ssh.InsecureIgnoreHostKey() // #nosec G106 -- fallback when known_hosts cannot be loaded
 				}
 				return callback

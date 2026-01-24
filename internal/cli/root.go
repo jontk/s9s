@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,6 +12,7 @@ import (
 	"github.com/jontk/s9s/internal/auth"
 	"github.com/jontk/s9s/internal/config"
 	"github.com/jontk/s9s/internal/discovery"
+	"github.com/jontk/s9s/internal/logging"
 	"github.com/jontk/s9s/internal/mock"
 	"github.com/jontk/s9s/internal/version"
 	"github.com/spf13/cobra"
@@ -80,8 +80,7 @@ func init() {
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	if debugMode {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Println("Debug mode enabled")
+		logging.Info("Debug mode enabled")
 	}
 }
 
@@ -94,8 +93,8 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Setup logging
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	// Initialize logging
+	logging.Init(logging.DefaultConfig())
 
 	// Create root context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -181,7 +180,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	// Wait for shutdown signal or error
 	select {
 	case sig := <-sigChan:
-		log.Printf("Received signal: %v. Starting graceful shutdown...", sig)
+		logging.Infof("Received signal: %v. Starting graceful shutdown...", sig)
 
 		// Create shutdown context with timeout
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -189,7 +188,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 
 		// Gracefully stop the application
 		if err := s9sApp.Stop(); err != nil {
-			log.Printf("Error during shutdown: %v", err)
+			logging.Errorf("Error during shutdown: %v", err)
 		}
 
 		// Cancel the main context
@@ -207,7 +206,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		cancel()
 	}
 
-	log.Println("S9S shutdown complete")
+	logging.Info("S9S shutdown complete")
 	return nil
 }
 
@@ -220,7 +219,7 @@ func applyAutoDiscovery(ctx context.Context, cfg *config.Config) *config.Config 
 		if cfg.Cluster.Token == "" && cfg.Discovery.EnableToken {
 			if token := discoverToken(ctx, cfg); token != "" {
 				cfg.Cluster.Token = token
-				log.Printf("Auto-discovered SLURM token")
+				logging.Info("Auto-discovered SLURM token")
 			}
 		}
 		return cfg
@@ -231,7 +230,7 @@ func applyAutoDiscovery(ctx context.Context, cfg *config.Config) *config.Config 
 		endpoint := discoverEndpoint(ctx, cfg)
 		if endpoint != nil {
 			cfg.Cluster.Endpoint = endpoint.URL
-			log.Printf("Auto-discovered slurmrestd endpoint: %s (source: %s)", endpoint.URL, endpoint.Source)
+			logging.Infof("Auto-discovered slurmrestd endpoint: %s (source: %s)", endpoint.URL, endpoint.Source)
 
 			// Set API version if not already set
 			if cfg.Cluster.APIVersion == "" {
@@ -253,7 +252,7 @@ func applyAutoDiscovery(ctx context.Context, cfg *config.Config) *config.Config 
 	if cfg.Cluster.Token == "" && cfg.Discovery.EnableToken {
 		if token := discoverToken(ctx, cfg); token != "" {
 			cfg.Cluster.Token = token
-			log.Printf("Auto-discovered SLURM token")
+			logging.Info("Auto-discovered SLURM token")
 		}
 	}
 
@@ -281,7 +280,7 @@ func discoverEndpoint(ctx context.Context, cfg *config.Config) *discovery.Discov
 	endpoint, err := ad.DiscoverEndpoint(ctx)
 	if err != nil {
 		if debugMode {
-			log.Printf("Auto-discovery failed: %v", err)
+			logging.Errorf("Auto-discovery failed: %v", err)
 		}
 		return nil
 	}
@@ -308,7 +307,7 @@ func discoverToken(ctx context.Context, cfg *config.Config) string {
 	token, err := td.DiscoverToken(ctx, cfg.CurrentContext)
 	if err != nil {
 		if debugMode {
-			log.Printf("Token discovery failed: %v", err)
+			logging.Errorf("Token discovery failed: %v", err)
 		}
 		return ""
 	}

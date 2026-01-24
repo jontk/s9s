@@ -3,13 +3,13 @@ package widgets
 import (
 	"context"
 	"fmt"
-	"log"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/jontk/s9s/internal/logging"
 	"github.com/jontk/s9s/internal/performance"
 	"github.com/rivo/tview"
 )
@@ -675,17 +675,17 @@ func (pd *PerformanceDashboard) performAutoOptimization(cpuUsage, memUsage, _net
 	// Apply optimizations based on current metrics
 	if cpuUsage >= pd.thresholds.CPUWarning {
 		pd.optimizer.TuneForInteractive()
-		log.Printf("Auto-optimization: Applied interactive tuning due to high CPU usage")
+		logging.Info("Auto-optimization: Applied interactive tuning due to high CPU usage")
 	}
 
 	if memUsage >= pd.thresholds.MemoryWarning {
 		pd.optimizer.EnableAutoTune(true)
-		log.Printf("Auto-optimization: Enabled auto-tuning due to high memory usage")
+		logging.Info("Auto-optimization: Enabled auto-tuning due to high memory usage")
 	}
 
 	if opsRate >= pd.thresholds.OpsWarning {
 		pd.optimizer.TuneForBatchOperations()
-		log.Printf("Auto-optimization: Applied batch tuning due to high operation rate")
+		logging.Info("Auto-optimization: Applied batch tuning due to high operation rate")
 	}
 }
 
@@ -720,7 +720,7 @@ func (pd *PerformanceDashboard) toggleAutoOptimize() {
 	if pd.autoOptimize {
 		status = "enabled"
 	}
-	log.Printf("Auto-optimization %s", status)
+	logging.Infof("Auto-optimization %s", status)
 }
 
 // toggleAlerts toggles alert monitoring

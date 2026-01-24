@@ -3,13 +3,13 @@ package views
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/logging"
 	"github.com/jontk/s9s/internal/ssh"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/navigation"
@@ -64,7 +64,7 @@ func NewEnhancedTerminalView(client dao.SlurmClient) *EnhancedTerminalView {
 	var err error
 	etv.sessionManager, err = ssh.NewSessionManager(sshConfig)
 	if err != nil {
-		log.Printf("Warning: Failed to initialize SSH session manager: %v", err)
+		logging.Warnf("Failed to initialize SSH session manager: %v", err)
 	}
 
 	return etv
@@ -202,7 +202,7 @@ func (etv *EnhancedTerminalView) registerNavigationTargets() {
 
 	for _, target := range targets {
 		if err := etv.navManager.RegisterTarget(target); err != nil {
-			log.Printf("Warning: Failed to register navigation target %s: %v", target.ID, err)
+			logging.Warnf("Failed to register navigation target %s: %v", target.ID, err)
 		}
 	}
 }
@@ -347,7 +347,7 @@ func (etv *EnhancedTerminalView) createTerminalPane(hostname, username string) {
 
 	// Add to pane manager
 	if err := etv.paneManager.AddPane(pane); err != nil {
-		log.Printf("Error adding terminal pane: %v", err)
+		logging.Errorf("Error adding terminal pane: %v", err)
 		return
 	}
 
@@ -407,28 +407,28 @@ func (etv *EnhancedTerminalView) switchToGridLayout() {
 // Event handlers
 func (etv *EnhancedTerminalView) onPaneSwitch(oldPane, newPane string) {
 	// Handle pane switching logic
-	log.Printf("Switched from pane %s to %s", oldPane, newPane)
+	logging.Infof("Switched from pane %s to %s", oldPane, newPane)
 }
 
 func (etv *EnhancedTerminalView) onLayoutChange(layout components.PaneLayout) {
 	// Handle layout changes
-	log.Printf("Layout changed to %s", layout)
+	logging.Infof("Layout changed to %s", layout)
 }
 
 func (etv *EnhancedTerminalView) onNavigate(from, to string) {
 	// Handle navigation
-	log.Printf("Navigation from %s to %s", from, to)
+	logging.Infof("Navigation from %s to %s", from, to)
 }
 
 func (etv *EnhancedTerminalView) onModeChange(mode navigation.NavigationMode) {
 	// Handle navigation mode changes
-	log.Printf("Navigation mode changed to %s", mode)
+	logging.Infof("Navigation mode changed to %s", mode)
 }
 
 func (etv *EnhancedTerminalView) onTerminalActivate(paneID string) {
 	// Handle terminal activation
 	if terminalPane, exists := etv.terminalPanes[paneID]; exists {
-		log.Printf("Terminal %s (%s@%s) activated",
+		logging.Infof("Terminal %s (%s@%s) activated",
 			paneID, terminalPane.GetUsername(), terminalPane.GetHostname())
 	}
 }

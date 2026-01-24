@@ -3,12 +3,12 @@ package views
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/export"
+	"github.com/jontk/s9s/internal/logging"
 	"github.com/jontk/s9s/internal/performance"
 	"github.com/jontk/s9s/internal/ui/widgets"
 	"github.com/rivo/tview"
@@ -154,7 +154,7 @@ func (pv *PerformanceView) toggleMonitoring() {
 
 	if pv.monitoringEnabled {
 		if err := pv.dashboard.Start(); err != nil {
-			log.Printf("Error starting monitoring: %v", err)
+			logging.Errorf("Error starting monitoring: %v", err)
 		}
 	} else {
 		pv.dashboard.Stop()
@@ -371,7 +371,7 @@ func (pv *PerformanceView) OnFocus() error {
 	// Start monitoring when the view becomes active
 	if pv.monitoringEnabled && pv.dashboard != nil {
 		if err := pv.dashboard.Start(); err != nil {
-			log.Printf("Warning: Failed to start performance monitoring: %v", err)
+			logging.Warnf("Failed to start performance monitoring: %v", err)
 		}
 	}
 	return nil

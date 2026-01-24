@@ -3,13 +3,13 @@ package notifications
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/jontk/s9s/internal/fileperms"
+	"github.com/jontk/s9s/internal/logging"
 	"github.com/jontk/s9s/internal/ui/components"
 )
 
@@ -89,7 +89,7 @@ func (nm *NotificationManager) Notify(alert *components.Alert) {
 
 	// Log the alert first
 	if err := nm.alertLog.LogAlert(alert); err != nil {
-		log.Printf("Failed to log alert: %v", err)
+		logging.Errorf("Failed to log alert: %v", err)
 	}
 
 	// Send through all enabled channels
@@ -100,7 +100,7 @@ func (nm *NotificationManager) Notify(alert *components.Alert) {
 			go func(ch NotificationChannel, chName string) {
 				defer wg.Done()
 				if err := ch.Notify(alert); err != nil {
-					log.Printf("Failed to send notification via %s: %v", chName, err)
+					logging.Errorf("Failed to send notification via %s: %v", chName, err)
 				}
 			}(channel, name)
 		}
