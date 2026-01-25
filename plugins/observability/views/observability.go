@@ -560,78 +560,84 @@ func (v *ObservabilityView) updateNodeCollector(nodeName string, metrics map[str
 // fetchJobMetrics fetches job metrics from Prometheus
 	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (v *ObservabilityView) fetchJobMetrics(ctx context.Context) error {
-	// Get list of running jobs from Prometheus discovery
 	jobs := v.getJobList(ctx)
 	logging.Info("observability-view", "Fetching metrics for %d jobs: %v", len(jobs), jobs)
 
-	// Try to get job details from SLURM if client is available
 	jobDetails := v.getJobDetailsFromSlurm(ctx, jobs)
 
 	for _, jobID := range jobs {
-		// Build queries for this job
-		queries, err := v.queryBuilder.GetJobQueries(jobID)
-		if err != nil {
-			logging.Error("observability-view", "Failed to build queries for job %s: %v", jobID, err)
+		v.processSingleJobMetrics(ctx, jobID, jobDetails)
+	}
+
+	v.jobMetrics = v.jobCollector.GetAllJobs()
+	return nil
+}
+
+func (v *ObservabilityView) processSingleJobMetrics(ctx context.Context, jobID string, jobDetails map[string]models.JobInfo) {
+	queries, err := v.queryBuilder.GetJobQueries(jobID)
+	if err != nil {
+		logging.Error("observability-view", "Failed to build queries for job %s: %v", jobID, err)
+		return
+	}
+
+	v.logJobQueries(jobID, queries)
+
+	results, err := v.client.BatchQuery(ctx, queries, time.Now())
+	if err != nil {
+		logging.Error("observability-view", "Failed to execute queries for job %s: %v", jobID, err)
+		return
+	}
+
+	metrics := v.processQueryResults(jobID, queries, results)
+	v.jobCollector.UpdateFromPrometheus(jobID, metrics)
+
+	if details, ok := jobDetails[jobID]; ok {
+		v.jobCollector.UpdateJobInfo(jobID, details)
+	}
+}
+
+func (v *ObservabilityView) logJobQueries(jobID string, queries map[string]string) {
+	for queryName, query := range queries {
+		logging.Debug("observability-view", "Job %s query %s: %s", jobID, queryName, query)
+	}
+}
+
+func (v *ObservabilityView) processQueryResults(jobID string, queries map[string]string, results map[string]*prometheus.QueryResult) map[string]*models.TimeSeries {
+	metrics := make(map[string]*models.TimeSeries)
+	foundMetrics := 0
+
+	for queryName, result := range results {
+		if len(result.Data.Result) == 0 {
+			logging.Debug("observability-view", "Job %s query %s returned no results", jobID, queryName)
 			continue
 		}
 
-		// Log the actual queries being made
-		for queryName, query := range queries {
-			logging.Debug("observability-view", "Job %s query %s: %s", jobID, queryName, query)
-		}
+		logging.Debug("observability-view", "Job %s query %s returned %d results", jobID, queryName, len(result.Data.Result))
+		v.logResultSamples(jobID, queryName, result)
 
-		// Execute queries in batch
-		results, err := v.client.BatchQuery(ctx, queries, time.Now())
-		if err != nil {
-			logging.Error("observability-view", "Failed to execute queries for job %s: %v", jobID, err)
-			continue
-		}
-
-		// Convert results to TimeSeries
-		metrics := make(map[string]*models.TimeSeries)
-		foundMetrics := 0
-		for queryName, result := range results {
-			if len(result.Data.Result) > 0 {
-				logging.Debug("observability-view", "Job %s query %s returned %d results", jobID, queryName, len(result.Data.Result))
-
-				// Log the actual result for debugging
-				if vec, err := result.GetVector(); err == nil && len(vec) > 0 {
-					for i, sample := range vec {
-						if i < 2 { // Log first 2 samples
-							logging.Debug("observability-view", "Job %s query %s sample %d: value=%f, metric=%v",
-								jobID, queryName, i, sample.Value.Value(), sample.Metric)
-						}
-					}
-				}
-
-				ts := v.convertToTimeSeries(queryName, result)
-				if ts != nil {
-					metrics[queryName] = ts
-					foundMetrics++
-					logging.Debug("observability-view", "Job %s query %s successfully converted to TimeSeries", jobID, queryName)
-				} else {
-					logging.Warn("observability-view", "Job %s query %s failed to convert to TimeSeries", jobID, queryName)
-				}
-			} else {
-				logging.Debug("observability-view", "Job %s query %s returned no results", jobID, queryName)
-			}
-		}
-
-		logging.Info("observability-view", "Job %s: found %d metrics from %d queries", jobID, foundMetrics, len(queries))
-
-		// Update job collector with Prometheus metrics
-		v.jobCollector.UpdateFromPrometheus(jobID, metrics)
-
-		// Update with SLURM info if available
-		if details, ok := jobDetails[jobID]; ok {
-			v.jobCollector.UpdateJobInfo(jobID, details)
+		ts := v.convertToTimeSeries(queryName, result)
+		if ts != nil {
+			metrics[queryName] = ts
+			foundMetrics++
+			logging.Debug("observability-view", "Job %s query %s successfully converted to TimeSeries", jobID, queryName)
+		} else {
+			logging.Warn("observability-view", "Job %s query %s failed to convert to TimeSeries", jobID, queryName)
 		}
 	}
 
-	// Update local cache
-	v.jobMetrics = v.jobCollector.GetAllJobs()
+	logging.Info("observability-view", "Job %s: found %d metrics from %d queries", jobID, foundMetrics, len(queries))
+	return metrics
+}
 
-	return nil
+func (v *ObservabilityView) logResultSamples(jobID, queryName string, result *prometheus.QueryResult) {
+	if vec, err := result.GetVector(); err == nil && len(vec) > 0 {
+		for i, sample := range vec {
+			if i < 2 {
+				logging.Debug("observability-view", "Job %s query %s sample %d: value=%f, metric=%v",
+					jobID, queryName, i, sample.Value.Value(), sample.Metric)
+			}
+		}
+	}
 }
 
 // convertToTimeSeries converts Prometheus query result to TimeSeries
