@@ -33,7 +33,7 @@ type PrometheusClientInterface = ClientInterface
 type Client struct {
 	endpoint   string
 	httpClient *http.Client
-	config     ClientConfig
+	config     *ClientConfig
 }
 
 // ClientConfig contains configuration for the Prometheus client
@@ -50,7 +50,7 @@ type ClientConfig struct {
 }
 
 // NewClient creates a new Prometheus client
-func NewClient(config ClientConfig) (*Client, error) {
+func NewClient(config *ClientConfig) (*Client, error) {
 	if config.Endpoint == "" {
 		return nil, fmt.Errorf("endpoint is required")
 	}
@@ -395,7 +395,7 @@ func (c *Client) executeQueryWithRetry(ctx context.Context, query string, queryT
 // This should only be used in development/testing environments or when using self-signed
 // certificates in trusted networks. For production use, provide proper CA certificates
 // via TLSCAFile configuration instead.
-func createTLSConfig(config ClientConfig) (*tls.Config, error) {
+func createTLSConfig(config *ClientConfig) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: config.TLSSkipVerify, //nolint:gosec // G402: User-configurable, with security warning in docs
 		MinVersion:         tls.VersionTLS12,     // Enforce minimum TLS 1.2

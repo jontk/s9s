@@ -143,7 +143,7 @@ func (m *Manager) initPrometheusClient(components *Components) error {
 		clientConfig.BearerToken = token
 	}
 
-	client, err := prometheus.NewClient(clientConfig)
+	client, err := prometheus.NewClient(&clientConfig)
 	if err != nil {
 		return err
 	}
