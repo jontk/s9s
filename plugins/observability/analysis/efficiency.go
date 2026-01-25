@@ -358,58 +358,61 @@ func (rea *ResourceEfficiencyAnalyzer) calculateUtilizationStats(dataPoints []hi
 
 // calculateEfficiencyScore calculates an overall efficiency score (0-100)
 func (rea *ResourceEfficiencyAnalyzer) calculateEfficiencyScore(stats *UtilizationStats, resourceType ResourceType) float64 {
-	// Base score from utilization (optimal range: 70-85%)
-	var utilizationScore float64
-	switch {
-	case stats.Average < 20:
-		utilizationScore = stats.Average * 2 // Heavily penalize low utilization
-	case stats.Average < 70:
-		utilizationScore = 40 + (stats.Average-20)*1.2 // Gradual penalty
-	case stats.Average <= 85:
-		utilizationScore = 100 // Optimal range
-	default:
-		utilizationScore = 100 - (stats.Average-85)*2 // Penalize over-utilization
-	}
-
-	// Stability score (lower standard deviation is better)
-	stabilityScore := 100.0
-	if stats.StandardDeviation > 30 {
-		stabilityScore = 50 // High variability is bad
-	} else if stats.StandardDeviation > 15 {
-		stabilityScore = 70 + (30-stats.StandardDeviation)*2
-	}
-
-	// Waste penalty
+	utilizationScore := rea.calculateUtilizationScore(stats.Average)
+	stabilityScore := rea.calculateStabilityScore(stats.StandardDeviation)
 	wasteScore := 100 - stats.WastePercentage
+	resourceMultiplier := rea.getResourceMultiplier(resourceType)
 
-	// Resource-specific adjustments
-	var resourceMultiplier = 1.0
+	overallScore := (utilizationScore*0.5 + stabilityScore*0.3 + wasteScore*0.2) * resourceMultiplier
+	return rea.boundScore(overallScore)
+}
+
+func (rea *ResourceEfficiencyAnalyzer) calculateUtilizationScore(average float64) float64 {
+	switch {
+	case average < 20:
+		return average * 2 // Heavily penalize low utilization
+	case average < 70:
+		return 40 + (average-20)*1.2 // Gradual penalty
+	case average <= 85:
+		return 100 // Optimal range
+	default:
+		return 100 - (average-85)*2 // Penalize over-utilization
+	}
+}
+
+func (rea *ResourceEfficiencyAnalyzer) calculateStabilityScore(stdDev float64) float64 {
+	if stdDev > 30 {
+		return 50 // High variability is bad
+	}
+	if stdDev > 15 {
+		return 70 + (30-stdDev)*2
+	}
+	return 100.0
+}
+
+func (rea *ResourceEfficiencyAnalyzer) getResourceMultiplier(resourceType ResourceType) float64 {
 	switch resourceType {
 	case ResourceCPU:
-		// CPU efficiency is critical for performance
-		resourceMultiplier = 1.1
+		return 1.1 // CPU efficiency is critical for performance
 	case ResourceMemory:
-		// Memory efficiency affects stability
-		resourceMultiplier = 1.05
+		return 1.05 // Memory efficiency affects stability
 	case ResourceStorage:
-		// Storage efficiency affects cost
-		resourceMultiplier = 1.0
+		return 1.0 // Storage efficiency affects cost
 	case ResourceNetwork:
-		// Network efficiency affects throughput
-		resourceMultiplier = 0.95
+		return 0.95 // Network efficiency affects throughput
+	default:
+		return 1.0
 	}
+}
 
-	// Combine scores with weights
-	overallScore := (utilizationScore*0.5 + stabilityScore*0.3 + wasteScore*0.2) * resourceMultiplier
-
-	// Ensure score is between 0 and 100
-	if overallScore > 100 {
-		overallScore = 100
-	} else if overallScore < 0 {
-		overallScore = 0
+func (rea *ResourceEfficiencyAnalyzer) boundScore(score float64) float64 {
+	if score > 100 {
+		return 100
 	}
-
-	return overallScore
+	if score < 0 {
+		return 0
+	}
+	return score
 }
 
 // calculateEfficiencyLevel determines efficiency level from score

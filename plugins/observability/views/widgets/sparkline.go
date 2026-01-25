@@ -151,63 +151,73 @@ func (s *SparklineWidget) drawSparkline(screen tcell.Screen, x, y, width, height
 		return
 	}
 
-	// Calculate how many values to display
+	valuesToShow, startIdx := s.calculateDrawValues(width)
+	dataRange := s.calculateDataRange()
+
+	for i := 0; i < valuesToShow; i++ {
+		value := s.values[startIdx+i]
+		normalized := s.normalizeValue(value, dataRange)
+		color := s.colorFunc(value)
+
+		if height == 1 {
+			s.drawSingleLinePoint(screen, x+i, y, normalized)
+		} else {
+			s.drawMultiLineBar(screen, x+i, y, height, normalized, color)
+		}
+	}
+}
+
+func (s *SparklineWidget) calculateDrawValues(width int) (int, int) {
 	valuesToShow := len(s.values)
 	if valuesToShow > width {
 		valuesToShow = width
 	}
-
-	// Start position for values
 	startIdx := len(s.values) - valuesToShow
+	return valuesToShow, startIdx
+}
 
-	// Sparkline characters (from lowest to highest)
-	sparkChars := []rune{'▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'}
-
-	// Calculate scale
+func (s *SparklineWidget) calculateDataRange() float64 {
 	dataRange := s.max - s.min
 	if dataRange < 0.001 {
-		dataRange = 1 // Avoid division by zero
+		return 1
+	}
+	return dataRange
+}
+
+func (s *SparklineWidget) normalizeValue(value, dataRange float64) float64 {
+	normalized := (value - s.min) / dataRange
+	return math.Max(0, math.Min(1, normalized))
+}
+
+func (s *SparklineWidget) drawSingleLinePoint(screen tcell.Screen, x, y int, normalized float64) {
+	sparkChars := []rune{'▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'}
+	charIdx := int(normalized * float64(len(sparkChars)-1))
+	color := tcell.StyleDefault.Foreground(s.colorFunc(s.values[len(s.values)-1]))
+	screen.SetContent(x, y, sparkChars[charIdx], nil, color)
+}
+
+func (s *SparklineWidget) drawMultiLineBar(screen tcell.Screen, x, y, height int, normalized float64, color tcell.Color) {
+	barHeight := int(normalized * float64(height))
+	if barHeight == 0 && normalized > 0 {
+		barHeight = 1
 	}
 
-	// Draw each point
-	for i := 0; i < valuesToShow; i++ {
-		value := s.values[startIdx+i]
-
-		// Normalize value to 0-1
-		normalized := (value - s.min) / dataRange
-		normalized = math.Max(0, math.Min(1, normalized))
-
-		// Get color
-		color := s.colorFunc(value)
-
-		if height == 1 {
-			// Single line sparkline
-			charIdx := int(normalized * float64(len(sparkChars)-1))
-			screen.SetContent(x+i, y, sparkChars[charIdx], nil,
+	sparkChars := []rune{'▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'}
+	for j := 0; j < height; j++ {
+		if j < barHeight {
+			screen.SetContent(x, y+height-1-j, '█', nil,
 				tcell.StyleDefault.Foreground(color))
-		} else {
-			// Multi-line sparkline
-			barHeight := int(normalized * float64(height))
-			if barHeight == 0 && normalized > 0 {
-				barHeight = 1
-			}
-
-			// Draw vertical bar
-			for j := 0; j < height; j++ {
-				if j < barHeight {
-					// Fill from bottom up
-					screen.SetContent(x+i, y+height-1-j, '█', nil,
-						tcell.StyleDefault.Foreground(color))
-				} else if j == barHeight && barHeight < height {
-					// Top of bar with partial block
-					partialIdx := int((normalized*float64(height) - float64(barHeight)) * 8)
-					if partialIdx > 0 && partialIdx < len(sparkChars) {
-						screen.SetContent(x+i, y+height-1-j, sparkChars[partialIdx-1], nil,
-							tcell.StyleDefault.Foreground(color))
-					}
-				}
-			}
+		} else if j == barHeight && barHeight < height {
+			s.drawPartialBar(screen, x, y, height, j, normalized, sparkChars, color)
 		}
+	}
+}
+
+func (s *SparklineWidget) drawPartialBar(screen tcell.Screen, x, y, height, j int, normalized float64, sparkChars []rune, color tcell.Color) {
+	partialIdx := int((normalized*float64(height) - float64(int(normalized*float64(height)))) * 8)
+	if partialIdx > 0 && partialIdx < len(sparkChars) {
+		screen.SetContent(x, y+height-1-j, sparkChars[partialIdx-1], nil,
+			tcell.StyleDefault.Foreground(color))
 	}
 }
 
