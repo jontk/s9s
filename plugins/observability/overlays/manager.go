@@ -148,6 +148,10 @@ func (om *OverlayManager) Start(ctx context.Context) error {
 
 // Stop stops the overlay manager
 func (om *OverlayManager) Stop() error {
+	if om == nil {
+		return nil
+	}
+
 	om.mu.Lock()
 	if !om.running {
 		om.mu.Unlock()

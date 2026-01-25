@@ -71,6 +71,10 @@ func (sm *Manager) Start(ctx context.Context) error {
 
 // Stop stops the subscription manager
 func (sm *Manager) Stop() error {
+	if sm == nil {
+		return nil
+	}
+
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 

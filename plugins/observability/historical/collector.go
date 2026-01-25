@@ -145,6 +145,10 @@ func (hdc *HistoricalDataCollector) Start(ctx context.Context) error {
 
 // Stop stops the historical data collection
 func (hdc *HistoricalDataCollector) Stop() error {
+	if hdc == nil {
+		return nil
+	}
+
 	hdc.mu.Lock()
 	defer hdc.mu.Unlock()
 

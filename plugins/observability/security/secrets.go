@@ -733,6 +733,9 @@ func (sm *SecretsManager) checkAndRotateSecrets() {
 
 // Stop gracefully stops the secrets manager
 func (sm *SecretsManager) Stop() error {
+	if sm == nil {
+		return nil
+	}
 	if sm.cancel != nil {
 		sm.cancel()
 	}

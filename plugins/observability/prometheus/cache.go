@@ -299,6 +299,9 @@ func (cc *CachedClient) TestConnection(ctx context.Context) error {
 
 // Stop gracefully shuts down the cached client
 func (cc *CachedClient) Stop() {
+	if cc == nil {
+		return
+	}
 	if cc.cache != nil {
 		cc.cache.Stop()
 	}

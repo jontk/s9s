@@ -355,6 +355,9 @@ func (sp *Persistence) GetPersistenceStats() map[string]interface{} {
 
 // Stop stops the auto-save loop
 func (sp *Persistence) Stop() {
+	if sp == nil {
+		return
+	}
 	close(sp.stopChan)
 }
 
