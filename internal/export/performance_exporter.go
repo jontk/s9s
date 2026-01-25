@@ -133,7 +133,39 @@ func (pe *PerformanceExporter) ExportPerformanceReport(profiler *performance.Pro
 		Timestamp: time.Now(),
 	}
 
-	// Collect performance data
+	// Collect and build report data
+	data := pe.buildPerformanceReportData(profiler, optimizer)
+
+	// Determine and validate output path
+	outputPath, err := pe.determineAndValidateOutputPath(format, customPath)
+	if err != nil {
+		result.Error = err
+		return result, err
+	}
+	result.FilePath = outputPath
+
+	// Ensure directory exists
+	if err := pe.ensureExportDirectory(outputPath); err != nil {
+		result.Error = err
+		return result, err
+	}
+
+	// Export based on format
+	if err := pe.exportByFormat(data, outputPath, format); err != nil {
+		result.Error = err
+		return result, err
+	}
+
+	// Get file size and mark success
+	if stat, err := os.Stat(outputPath); err == nil {
+		result.Size = stat.Size()
+	}
+
+	result.Success = true
+	return result, nil
+}
+
+func (pe *PerformanceExporter) buildPerformanceReportData(profiler *performance.Profiler, optimizer *performance.Optimizer) PerformanceReportData {
 	memStats := profiler.CaptureMemoryStats()
 	opStatsMap := profiler.GetOperationStats()
 
@@ -156,27 +188,25 @@ func (pe *PerformanceExporter) ExportPerformanceReport(profiler *performance.Pro
 	// Get optimization recommendations
 	recommendations := optimizer.Analyze()
 
-	data := PerformanceReportData{
+	return PerformanceReportData{
 		GeneratedAt:      time.Now(),
-		ReportPeriod:     "Last 24 hours", // This could be configurable
+		ReportPeriod:     "Last 24 hours",
 		SystemMetrics:    systemMetrics,
 		OperationStats:   opStats,
 		OptimizationTips: recommendations,
 	}
+}
 
-	// Generate filename
-	filename := pe.generateFilename(format)
-
-	// Determine output path
+func (pe *PerformanceExporter) determineAndValidateOutputPath(format ExportFormat, customPath string) (string, error) {
+	// Determine base path
 	var outputPath string
 	if customPath != "" {
 		outputPath = customPath
 	} else {
-		outputPath = filepath.Join(pe.defaultPath, filename)
+		outputPath = filepath.Join(pe.defaultPath, pe.generateFilename(format))
 	}
 
 	// Validate output path is within safe directory
-	// Allow writes within defaultPath or user's home directory
 	homeDir, _ := os.UserHomeDir()
 	validPath, validationErr := security.ValidatePathWithinBase(outputPath, pe.defaultPath)
 	if validationErr != nil && homeDir != "" {
@@ -184,49 +214,35 @@ func (pe *PerformanceExporter) ExportPerformanceReport(profiler *performance.Pro
 		validPath, validationErr = security.ValidatePathWithinBase(outputPath, homeDir)
 	}
 	if validationErr != nil {
-		result.Error = fmt.Errorf("invalid export path %q: %w", outputPath, validationErr)
-		return result, result.Error
+		return "", fmt.Errorf("invalid export path %q: %w", outputPath, validationErr)
 	}
-	outputPath = validPath
 
-	result.FilePath = outputPath
+	return validPath, nil
+}
 
-	// Ensure directory exists
+func (pe *PerformanceExporter) ensureExportDirectory(outputPath string) error {
 	dir := filepath.Dir(outputPath)
-	if err := os.MkdirAll(dir, fileperms.DirUserOnly); err != nil{
-		result.Error = fmt.Errorf("failed to create directory %s: %w", dir, err)
-		return result, result.Error
+	if err := os.MkdirAll(dir, fileperms.DirUserOnly); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
+	return nil
+}
 
-	// Export based on format
-	var err error
+func (pe *PerformanceExporter) exportByFormat(data PerformanceReportData, outputPath string, format ExportFormat) error {
 	switch format {
 	case FormatText:
-		err = pe.exportText(data, outputPath)
+		return pe.exportText(data, outputPath)
 	case FormatJSON:
-		err = pe.exportJSON(data, outputPath)
+		return pe.exportJSON(data, outputPath)
 	case FormatCSV:
-		err = pe.exportCSV(data, outputPath)
+		return pe.exportCSV(data, outputPath)
 	case FormatMarkdown:
-		err = pe.exportMarkdown(data, outputPath)
+		return pe.exportMarkdown(data, outputPath)
 	case FormatHTML:
-		err = pe.exportHTML(data, outputPath)
+		return pe.exportHTML(data, outputPath)
 	default:
-		err = fmt.Errorf("unsupported export format: %s", format)
+		return fmt.Errorf("unsupported export format: %s", format)
 	}
-
-	if err != nil {
-		result.Error = err
-		return result, err
-	}
-
-	// Get file size
-	if stat, err := os.Stat(outputPath); err == nil {
-		result.Size = stat.Size()
-	}
-
-	result.Success = true
-	return result, nil
 }
 
 // exportText exports performance report as plain text

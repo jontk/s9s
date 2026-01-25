@@ -248,11 +248,40 @@ func (ha *HistoricalAnalyzer) AnalyzeSeasonality(metricName string, duration tim
 		return nil, fmt.Errorf("insufficient data points for seasonality analysis")
 	}
 
-	// Group data by hour of day
+	// Group data by hour
+	hourlyData, allValues := ha.groupDataByHour(series.DataPoints)
+
+	if len(allValues) < 50 {
+		return nil, fmt.Errorf("insufficient numeric data for seasonality analysis")
+	}
+
+	// Analyze hourly patterns
+	hourlyAverages, peakHours, lowHours, maxAvg, minAvg := ha.analyzeHourlyAverages(hourlyData)
+
+	// Calculate seasonality strength
+	overallMean := average(allValues)
+	seasonalVariance := (maxAvg - minAvg) / overallMean
+	hasSeasonality := seasonalVariance > 0.1 // 10% variation threshold
+
+	// Convert hours to timestamps
+	peakTimes := ha.convertHoursToTimestamps(peakHours)
+	lowTimes := ha.convertHoursToTimestamps(lowHours)
+
+	return &SeasonalAnalysis{
+		HasSeasonality: hasSeasonality,
+		Period:         24 * time.Hour, // Daily period
+		Strength:       seasonalVariance,
+		Patterns:       hourlyAverages,
+		PeakTimes:      peakTimes,
+		LowTimes:       lowTimes,
+	}, nil
+}
+
+func (ha *HistoricalAnalyzer) groupDataByHour(dataPoints []DataPoint) (map[int][]float64, []float64) {
 	hourlyData := make(map[int][]float64)
 	var allValues []float64
 
-	for _, dp := range series.DataPoints {
+	for _, dp := range dataPoints {
 		if val, ok := convertToFloat64(dp.Value); ok {
 			hour := dp.Timestamp.Hour()
 			hourlyData[hour] = append(hourlyData[hour], val)
@@ -260,16 +289,13 @@ func (ha *HistoricalAnalyzer) AnalyzeSeasonality(metricName string, duration tim
 		}
 	}
 
-	if len(allValues) < 50 {
-		return nil, fmt.Errorf("insufficient numeric data for seasonality analysis")
-	}
+	return hourlyData, allValues
+}
 
-	// Calculate hourly averages
+func (ha *HistoricalAnalyzer) analyzeHourlyAverages(hourlyData map[int][]float64) (map[string]float64, []int, []int, float64, float64) {
 	hourlyAverages := make(map[string]float64)
-	overallMean := average(allValues)
-
-	var maxAvg, minAvg float64
 	var peakHours, lowHours []int
+	var maxAvg, minAvg float64
 	first := true
 
 	for hour := 0; hour < 24; hour++ {
@@ -283,46 +309,42 @@ func (ha *HistoricalAnalyzer) AnalyzeSeasonality(metricName string, duration tim
 				first = false
 			}
 
-			if avg > maxAvg {
-				maxAvg = avg
-				peakHours = []int{hour}
-			} else if avg == maxAvg {
-				peakHours = append(peakHours, hour)
-			}
-
-			if avg < minAvg {
-				minAvg = avg
-				lowHours = []int{hour}
-			} else if avg == minAvg {
-				lowHours = append(lowHours, hour)
-			}
+			// Track peak and low hours
+			ha.updatePeakHours(&peakHours, hour, avg, &maxAvg)
+			ha.updateLowHours(&lowHours, hour, avg, &minAvg)
 		}
 	}
 
-	// Calculate seasonality strength
-	seasonalVariance := (maxAvg - minAvg) / overallMean
-	hasSeasonality := seasonalVariance > 0.1 // 10% variation threshold
+	return hourlyAverages, peakHours, lowHours, maxAvg, minAvg
+}
 
-	// Convert hours to timestamps (using today as base)
+func (ha *HistoricalAnalyzer) updatePeakHours(peakHours *[]int, hour int, avg float64, maxAvg *float64) {
+	if avg > *maxAvg {
+		*maxAvg = avg
+		*peakHours = []int{hour}
+	} else if avg == *maxAvg {
+		*peakHours = append(*peakHours, hour)
+	}
+}
+
+func (ha *HistoricalAnalyzer) updateLowHours(lowHours *[]int, hour int, avg float64, minAvg *float64) {
+	if avg < *minAvg {
+		*minAvg = avg
+		*lowHours = []int{hour}
+	} else if avg == *minAvg {
+		*lowHours = append(*lowHours, hour)
+	}
+}
+
+func (ha *HistoricalAnalyzer) convertHoursToTimestamps(hours []int) []time.Time {
 	today := time.Now().Truncate(24 * time.Hour)
-	var peakTimes, lowTimes []time.Time
+	times := make([]time.Time, 0, len(hours))
 
-	for _, hour := range peakHours {
-		peakTimes = append(peakTimes, today.Add(time.Duration(hour)*time.Hour))
+	for _, hour := range hours {
+		times = append(times, today.Add(time.Duration(hour)*time.Hour))
 	}
 
-	for _, hour := range lowHours {
-		lowTimes = append(lowTimes, today.Add(time.Duration(hour)*time.Hour))
-	}
-
-	return &SeasonalAnalysis{
-		HasSeasonality: hasSeasonality,
-		Period:         24 * time.Hour, // Daily period
-		Strength:       seasonalVariance,
-		Patterns:       hourlyAverages,
-		PeakTimes:      peakTimes,
-		LowTimes:       lowTimes,
-	}, nil
+	return times
 }
 
 // CompareMetrics compares multiple metrics over a time period
