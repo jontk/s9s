@@ -368,46 +368,31 @@ func (cf *Field) ValidateField(value interface{}) FieldValidationResult {
 		return result
 	}
 
-	// Type-specific validation
-	switch cf.Type {
-	case FieldTypeString:
-		if err := cf.validateString(value); err != nil {
-			result.Valid = false
-			result.Errors = append(result.Errors, err.Error())
-		}
-	case FieldTypeInt:
-		if err := cf.validateInt(value); err != nil {
-			result.Valid = false
-			result.Errors = append(result.Errors, err.Error())
-		}
-	case FieldTypeFloat:
-		if err := cf.validateFloat(value); err != nil {
-			result.Valid = false
-			result.Errors = append(result.Errors, err.Error())
-		}
-	case FieldTypeBool:
-		if err := cf.validateBool(value); err != nil {
-			result.Valid = false
-			result.Errors = append(result.Errors, err.Error())
-		}
-	case FieldTypeDuration:
-		if err := cf.validateDuration(value); err != nil {
-			result.Valid = false
-			result.Errors = append(result.Errors, err.Error())
-		}
-	case FieldTypeSelect:
-		if err := cf.validateSelect(value); err != nil {
-			result.Valid = false
-			result.Errors = append(result.Errors, err.Error())
-		}
-	case FieldTypeArray:
-		if err := cf.validateArray(value); err != nil {
+	// Get type-specific validator and apply it
+	if validator, ok := cf.getValidator(cf.Type); ok {
+		if err := validator(value); err != nil {
 			result.Valid = false
 			result.Errors = append(result.Errors, err.Error())
 		}
 	}
 
 	return result
+}
+
+// getValidator returns the appropriate validation function for a field type
+func (cf *Field) getValidator(fieldType FieldType) (func(interface{}) error, bool) {
+	validators := map[FieldType]func(interface{}) error{
+		FieldTypeString:   cf.validateString,
+		FieldTypeInt:      cf.validateInt,
+		FieldTypeFloat:    cf.validateFloat,
+		FieldTypeBool:     cf.validateBool,
+		FieldTypeDuration: cf.validateDuration,
+		FieldTypeSelect:   cf.validateSelect,
+		FieldTypeArray:    cf.validateArray,
+	}
+
+	validator, exists := validators[fieldType]
+	return validator, exists
 }
 
 // validateString validates string field values
