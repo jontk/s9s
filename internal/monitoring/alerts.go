@@ -3,6 +3,7 @@ package monitoring
 
 import (
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 )
@@ -315,45 +316,18 @@ func (am *AlertManager) findSimilarAlert(newAlert *Alert) string {
 // matchesFilter checks if an alert matches the given filter
 func (am *AlertManager) matchesFilter(alert *Alert, filter AlertFilter) bool {
 	// Check types
-	if len(filter.Types) > 0 {
-		found := false
-		for _, t := range filter.Types {
-			if alert.Type == t {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
+	if len(filter.Types) > 0 && !slices.Contains(filter.Types, alert.Type) {
+		return false
 	}
 
 	// Check severities
-	if len(filter.Severities) > 0 {
-		found := false
-		for _, s := range filter.Severities {
-			if alert.Severity == s {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
+	if len(filter.Severities) > 0 && !slices.Contains(filter.Severities, alert.Severity) {
+		return false
 	}
 
 	// Check components
-	if len(filter.Components) > 0 {
-		found := false
-		for _, c := range filter.Components {
-			if alert.Component == c {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
+	if len(filter.Components) > 0 && !slices.Contains(filter.Components, alert.Component) {
+		return false
 	}
 
 	// Check acknowledged status
