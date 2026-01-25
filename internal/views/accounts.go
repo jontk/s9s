@@ -211,44 +211,43 @@ func (v *AccountsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	// Dispatch by key type
-	switch event.Key() {
-	case tcell.KeyF3:
-		v.showAdvancedFilter()
+	if handler, ok := v.accountsKeyHandlers()[event.Key()]; ok {
+		handler()
 		return nil
-	case tcell.KeyCtrlF:
-		v.showGlobalSearch()
-		return nil
-	case tcell.KeyRune:
-		if handled := v.handleAccountsRune(event.Rune()); handled {
+	}
+
+	if event.Key() == tcell.KeyRune {
+		if handler, ok := v.accountsRuneHandlers()[event.Rune()]; ok {
+			handler()
 			return nil
 		}
-	case tcell.KeyEnter:
-		v.showAccountDetails()
+	}
+
+	if event.Key() == tcell.KeyEsc && v.filterInput.HasFocus() {
+		v.app.SetFocus(v.table.Table)
 		return nil
-	case tcell.KeyEsc:
-		if v.filterInput.HasFocus() {
-			v.app.SetFocus(v.table.Table)
-			return nil
-		}
 	}
 
 	return event
 }
 
-func (v *AccountsView) handleAccountsRune(r rune) bool {
-	switch r {
-	case 'R':
-		go func() { _ = v.Refresh() }()
-		return true
-	case '/':
-		v.app.SetFocus(v.filterInput)
-		return true
-	case 'h', 'H':
-		v.showAccountHierarchy()
-		return true
+// accountsKeyHandlers returns a map of function key handlers
+func (v *AccountsView) accountsKeyHandlers() map[tcell.Key]func() {
+	return map[tcell.Key]func(){
+		tcell.KeyF3:    v.showAdvancedFilter,
+		tcell.KeyCtrlF: v.showGlobalSearch,
+		tcell.KeyEnter: v.showAccountDetails,
 	}
-	return false
+}
+
+// accountsRuneHandlers returns a map of rune handlers
+func (v *AccountsView) accountsRuneHandlers() map[rune]func() {
+	return map[rune]func(){
+		'R': func() { go func() { _ = v.Refresh() }() },
+		'/': func() { v.app.SetFocus(v.filterInput) },
+		'h': v.showAccountHierarchy,
+		'H': v.showAccountHierarchy,
+	}
 }
 
 // OnFocus handles focus events
