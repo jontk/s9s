@@ -4,13 +4,8 @@ version: "2"
 run:
   timeout: 10m
   tests: true
-  skip-dirs:
-    - vendor
-    - .git
-    - .github
 
 linters:
-  disable-all: true
   enable:
     # Core linters - focusing on critical issues only
     - errcheck      # Unchecked errors are critical
@@ -86,8 +81,6 @@ linters:
     # All 7 integration test violations fixed by using context-aware versions
     - noctx
 
-  disable:
-
   # Settings for enabled linters (v2 format: linters.settings)
   settings:
     errcheck:
@@ -150,12 +143,10 @@ linters:
       # Set to 50 to accommodate pre-existing test and config complexity
       # Phase 5 task: refactor functions with complexity > 50
       min-complexity: 50
-      skip-tests: true
 
     nolintlint:
       # Check validity of nolint directives
       allow-unused: false     # Disallow unused nolint directives
-      allow-leading-space: false  # Require //nolint without space
       require-explanation: true   # Require explanation for suppressed violations
       require-specific: true      # Require specific rule names (avoid blanket //nolint)
 
@@ -165,11 +156,6 @@ linters:
     dupl:
       # Detect duplicated code blocks
       threshold: 150  # Minimum lines to consider as duplication
-
-    containedctx:
-      # Prevent storing context.Context in struct fields
-      # Context should be passed as function parameter
-      skip-tests: true  # Allow in test helpers
 
     cyclop:
       # The maximal code complexity to report
@@ -183,140 +169,72 @@ linters:
       # Default: 0.0
       package-average: 0.0
 
-      # Should ignore tests
-      # Excludes all *_test.go files from cyclomatic complexity analysis
-      # Default: false
-      skip-tests: true
-
   # Exclusion rules for linters (v2 format)
   exclusions:
+    # Exclude directories from all linters
+    paths:
+      - vendor
+      - .git
+      - .github
+      - third_party
+      - testdata
+    # Exclude specific violations by pattern and linter
     rules:
       # Exclude cyclop violations from test files
       - path: '(.+)_test\.go'
         linters:
           - cyclop
+      # Exclude unparam from test files
+      - path: '(.+)_test\.go'
+        linters:
+          - unparam
+          - prealloc
+          - gocritic
+          - containedctx
+      # Exclude duplicated code from test and view/layout files (intentional UI patterns)
+      - path: '(.+)_test\.go$'
+        linters:
+          - dupl
+      - path: '.*/views/.*'
+        linters:
+          - dupl
+      - path: '.*/layouts/.*'
+        linters:
+          - dupl
+      # Exclude revive empty-block from tests
+      - path: '(.+)_test\.go'
+        text: 'empty-block: this block is empty, you can remove it'
+        linters:
+          - revive
+      # Exclude revive type-alias stuttering from type alias files
+      - text: 'exported: type name will be used as .* by other packages, and that stutters'
+        linters:
+          - revive
+      # Exclude gosec false positives for exec.Command with controlled args
+      - text: 'G204:'
+        linters:
+          - gosec
+      # Exclude govet shadow warnings for err variable
+      - text: 'shadow: declaration of \"err\"'
+        linters:
+          - govet
+      # Exclude unparam for functions returning errors by design
+      - path: 'internal/app/app.*\.go'
+        text: 'result .* \(error\) is always nil'
+        linters:
+          - unparam
+      # Exclude unparam for unused function parameters
+      - text: '- .* is unused'
+        path: '(.+)_test\.go'
+        linters:
+          - unparam
+      # Exclude containedctx from main app structures
+      - text: 'found a struct'
+        linters:
+          - containedctx
 
 issues:
-  exclude-files:
-    - ".*\\.pb\\.go$"
-    - ".*\\.gen\\.go$"
-
-  exclude-dirs:
-    - vendor
-    - third_party
-    - testdata
-
-  exclude-rules:
-    # Exclude shadow warnings for common err pattern
-    - text: "shadow: declaration of \"err\""
-      linters:
-        - govet
-
-    # unparam: Unused parameters in tests are acceptable
-    - text: "- .* is unused"
-      linters:
-        - unparam
-      path: "_test\\.go"
-
-    # unparam: Functions that always return nil are acceptable if designed for future errors
-    # These functions are intentionally designed to return errors for extensibility
-    - text: "result .* \\(error\\) is always nil"
-      linters:
-        - unparam
-      path: "internal/app/app.*\\.go"
-
-    # Exclude certain linters from test files - tests have different patterns
-    - linters:
-        - unparam
-        - prealloc
-        - gocritic
-        - containedctx
-      path: ".*_test\\.go"
-
-    # Note: gosec issues (G304, G404, etc.) are documented with nolint directives
-    # at violation points with specific justifications (file paths are app-controlled, etc.)
-    # This allows code reviewers to see the reasoning inline rather than hidden in config
-
-    # Phase 4: containedctx - Pre-existing patterns in main app structures
-    - text: "found a struct"
-      linters:
-        - containedctx
-
-    # Phase 3: unconvert, prealloc, and unparam issues to be addressed
-    # Temporarily disabling blanket exclusions to assess scope
-    # - linters:
-    #     - unconvert
-    # - linters:
-    #     - unparam
-    #   path: "internal/(views|ui|layouts|discovery|monitoring|ssh)/"
-    # - linters:
-    #     - prealloc
-
-    # Phase 4b: dupl - code duplication (threshold: 150 lines)
-    # Exclude dupl from test and view/layout files (intentional duplication in UI patterns)
-    # UI views have similar patterns for different types of data (jobs, nodes, partitions, etc.)
-    # This is acceptable duplication given the complexity of refactoring UI code
-    - linters:
-        - dupl
-      path: ".*_test\\.go$"
-
-    - linters:
-        - dupl
-      path: ".*/views/.*"
-
-    - linters:
-        - dupl
-      path: ".*/layouts/.*"
-
-    # Phase 4: gocognit - cognitive complexity (pre-existing functions > 30)
-    # These functions have legitimate high complexity (config parsing, UI updates, test suites)
-    # Phase 5 task: Refactor functions with complexity > 40
-    - linters:
-        - gocognit
-
-    # Phase 7: revive - Backward compatibility and package naming exceptions (PR #29)
-
-    # Type aliases for backward compatibility
-    # Type aliases like "type AuthProvider = Provider" are necessary for backward compatibility
-    # The new short names (Provider, Config, etc.) are the idiomatic public API
-    # Type aliases show as "stuttering" in revive but are intentional for API migration
-    - linters:
-        - revive
-      text: "exported: type name will be used as .* by other packages, and that stutters"
-
-    # Type aliases for backward compatibility
-    # Type aliases like "type AuthProvider = Provider" are necessary for backward compatibility
-    # The new short names (Provider, Config, etc.) are the idiomatic public API
-    # Type aliases show as "stuttering" in revive but are intentional for API migration
-    - linters:
-        - revive
-      text: "exported: type name will be used as .* by other packages, and that stutters"
-
-    # Intentional package names (api, errors)
-    # Some packages have names that are intentionally generic (e.g., "api" for API endpoints)
-    # These are not meaningless - they represent the package's primary responsibility
-    # Note: Package-level revive violations cannot be suppressed with nolint directives
-    # since Go doesn't allow comments to modify the package statement itself.
-    # Known limitation: golangci-lint exclude-rules do not match package-level violations
-    # Accepting 2 minor violations in internal/errors/errors_test.go and plugins/observability/api/external.go
-    # These are legitimate package names that should not be changed
-    # TODO(Phase 5): Investigate alternative solutions for suppressing package-level violations
-
-    # Empty blocks in generated or test code
-    # Empty blocks are used in tests and setup code where they're intentional
-    - linters:
-        - revive
-      path: "_test\\.go"
-      text: "empty-block: this block is empty, you can remove it"
-
-    # Phase 4: gosec - Targeted security rule exclusions
-    # Only exclude rules that produce false positives everywhere, documented with nolint directives elsewhere
-    # G204: exec.Command with string args is flagged, but our code separates args properly
-    #       This is a common false positive when using exec.Command(cmd, arg1, arg2, ...)
-    #       We validate command paths and pass args as separate strings, not user input
-    - text: "G204:"
-      linters:
-        - gosec
-
+  # Max issues per linter (0 = unlimited)
   max-issues-per-linter: 0
+  # Max duplicate issues (0 = unlimited)
   max-same-issues: 0
