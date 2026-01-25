@@ -29,7 +29,7 @@ type Plugin struct {
 	slurmClient interface{} // Store SLURM client for job queries
 }
 
-// ObservabilityPlugin is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type ObservabilityPlugin = Plugin
 
 // New creates a new observability plugin instance

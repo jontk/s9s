@@ -24,7 +24,7 @@ type Manager struct {
 	stopChan      chan struct{}
 }
 
-// SubscriptionManager is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type SubscriptionManager = Manager
 
 // Subscription represents an active data subscription

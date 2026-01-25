@@ -66,6 +66,7 @@ func BenchmarkEventBus(b *testing.B) {
 
 				// Drain channel in background
 				go func(c chan streaming.StreamEvent) {
+					//nolint:revive // intentional empty block to consume benchmark iterations
 					for range c {
 						// Just consume
 					}

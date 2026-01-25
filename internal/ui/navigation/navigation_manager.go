@@ -24,7 +24,7 @@ const (
 	NavigationModeSearch Mode = "search"
 )
 
-// NavigationMode is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type NavigationMode = Mode
 
 // Target represents a navigable target
@@ -42,7 +42,7 @@ type Target struct {
 	OnDeactivate func()
 }
 
-// NavigationTarget is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type NavigationTarget = Target
 
 // History tracks navigation history
@@ -52,7 +52,7 @@ type History struct {
 	maxSize int
 }
 
-// NavigationHistory is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type NavigationHistory = History
 
 // Manager handles advanced navigation throughout the application

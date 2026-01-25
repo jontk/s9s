@@ -114,7 +114,7 @@ type Stats struct {
 	LastErrorTime time.Time     `json:"last_error_time,omitempty"`
 }
 
-// StreamingStats is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type StreamingStats = Stats
 
 // FileWatcher handles individual file watching operations

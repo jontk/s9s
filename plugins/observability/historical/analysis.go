@@ -85,7 +85,7 @@ type Analyzer struct {
 	collector *DataCollector
 }
 
-// HistoricalAnalyzer is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type HistoricalAnalyzer = Analyzer
 
 // NewHistoricalAnalyzer creates a new historical data analyzer

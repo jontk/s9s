@@ -31,7 +31,7 @@ const (
 	FormatHTML Format = "html"
 )
 
-// ExportFormat is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type ExportFormat = Format
 
 // JobOutputExporter handles exporting job output to various formats
@@ -76,7 +76,7 @@ type Result struct {
 	Timestamp time.Time
 }
 
-// ExportResult is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type ExportResult = Result
 
 // ExportJobOutput exports job output to a file in the specified format

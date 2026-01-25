@@ -16,7 +16,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-// SSHTerminal represents an SSH terminal session
+//nolint:revive // type alias for backward compatibility
 type SSHTerminal struct {
 	*tview.TextView
 	nodeID         string

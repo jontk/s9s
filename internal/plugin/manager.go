@@ -31,7 +31,7 @@ type State struct {
 	RestartCount int
 }
 
-// PluginState is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type PluginState = State
 
 // NewManager creates a new plugin manager
@@ -451,6 +451,7 @@ func (m *Manager) Stop() error {
 	return nil
 }
 
+//nolint:revive // type alias for backward compatibility
 // PluginInfo combines plugin info with runtime state
 type PluginInfo struct {
 	Info    Info

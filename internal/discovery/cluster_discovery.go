@@ -44,7 +44,7 @@ type Method interface {
 	Priority() int
 }
 
-// DiscoveryMethod is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type DiscoveryMethod = Method
 
 // NewClusterDiscovery creates a new cluster discovery instance

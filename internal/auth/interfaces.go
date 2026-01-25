@@ -101,7 +101,7 @@ type Manager interface {
 	ValidateConfiguration(authType string, config Config) error
 }
 
-// AuthManager is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type AuthManager = Manager
 
 // ClusterAuthInfo contains information about a cluster's authentication setup

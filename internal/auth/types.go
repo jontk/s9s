@@ -65,7 +65,7 @@ func (c Config) GetBool(key string) bool {
 	return false
 }
 
-// AuthConfig is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type AuthConfig = Config
 
 // AuthenticatorInfo contains metadata about an authenticator

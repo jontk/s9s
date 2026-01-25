@@ -46,7 +46,7 @@ type ValidationResult struct {
 	Fixes    []ValidationFix
 }
 
-// ConfigValidationResult is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type ConfigValidationResult = ValidationResult
 
 // ValidationSeverity represents the severity of a validation issue
@@ -70,7 +70,7 @@ type Validator struct {
 	// strict    bool
 }
 
-// ConfigValidator is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type ConfigValidator = Validator
 
 // NewConfigValidator creates a new configuration validator

@@ -277,7 +277,7 @@ type Result struct {
 	Error    error
 }
 
-// DiscoveryResult is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type DiscoveryResult = Result
 
 // DiscoverEndpointWithFallback tries multiple discovery methods and returns all results

@@ -67,7 +67,7 @@ type Session struct {
 	mu           sync.RWMutex
 }
 
-// SSHSession is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type SSHSession = Session
 
 // Tunnel represents an SSH port forwarding tunnel
@@ -79,7 +79,7 @@ type Tunnel struct {
 	Active     bool
 }
 
-// SSHTunnel is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type SSHTunnel = Tunnel
 
 // SessionManager manages SSH sessions with advanced features

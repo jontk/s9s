@@ -55,7 +55,7 @@ type Config struct {
 	ClientConfig *ssh.ClientConfig // Native SSH client config
 }
 
-// SSHConfig is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type SSHConfig = Config
 
 // Client handles SSH connections to cluster nodes
@@ -64,7 +64,7 @@ type Client struct {
 	sshCommandPath string // Validated absolute path to ssh command
 }
 
-// SSHClient is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type SSHClient = Client
 
 // NewSSHClient creates a new SSH client

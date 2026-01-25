@@ -27,7 +27,7 @@ type ClientInterface interface {
 	Labels(ctx context.Context) ([]string, error)
 }
 
-// PrometheusClientInterface is an alias for backward compatibility
+//nolint:revive // type alias for backward compatibility
 type PrometheusClientInterface = ClientInterface
 
 // Client represents a Prometheus API client
