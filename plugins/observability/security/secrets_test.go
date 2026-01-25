@@ -28,7 +28,7 @@ func TestNewSecretsManager(t *testing.T) {
 	_ = os.Setenv("TEST_MASTER_KEY", "dGVzdC1tYXN0ZXIta2V5LTEyMzQ1Njc4OTBhYmNkZWY=") // base64 encoded 32-byte key
 	defer func() { _ = os.Unsetenv("TEST_MASTER_KEY") }()
 
-	sm, err := NewSecretsManager(ctx, config)
+	sm, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create secrets manager: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestStoreAndRetrieveSecret(t *testing.T) {
 	_ = os.Setenv("TEST_MASTER_KEY", "dGVzdC1tYXN0ZXIta2V5LTEyMzQ1Njc4OTBhYmNkZWY=")
 	defer func() { _ = os.Unsetenv("TEST_MASTER_KEY") }()
 
-	sm, err := NewSecretsManager(ctx, config)
+	sm, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create secrets manager: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestGetSecretValue(t *testing.T) {
 		AllowInlineSecrets: true,
 	}
 
-	sm, err := NewSecretsManager(ctx, config)
+	sm, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create secrets manager: %v", err)
 	}
@@ -156,7 +156,7 @@ func TestDeleteSecret(t *testing.T) {
 		AllowInlineSecrets: true,
 	}
 
-	sm, err := NewSecretsManager(ctx, config)
+	sm, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create secrets manager: %v", err)
 	}
@@ -204,7 +204,7 @@ func TestListSecrets(t *testing.T) {
 		AllowInlineSecrets: true,
 	}
 
-	sm, err := NewSecretsManager(ctx, config)
+	sm, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create secrets manager: %v", err)
 	}
@@ -268,7 +268,7 @@ func TestSecretRotation(t *testing.T) {
 		AllowInlineSecrets: true,
 	}
 
-	sm, err := NewSecretsManager(ctx, config)
+	sm, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create secrets manager: %v", err)
 	}
@@ -331,7 +331,7 @@ func TestSecretEncryption(t *testing.T) {
 	_ = os.Setenv("TEST_MASTER_KEY", "dGVzdC1tYXN0ZXIta2V5LTEyMzQ1Njc4OTBhYmNkZWY=")
 	defer func() { _ = os.Unsetenv("TEST_MASTER_KEY") }()
 
-	sm, err := NewSecretsManager(ctx, config)
+	sm, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create secrets manager: %v", err)
 	}
@@ -383,7 +383,7 @@ func TestSecretValidation(t *testing.T) {
 		AllowInlineSecrets: true,
 	}
 
-	sm, err := NewSecretsManager(ctx, config)
+	sm, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create secrets manager: %v", err)
 	}
@@ -436,7 +436,7 @@ func TestSecretExpiration(t *testing.T) {
 		AllowInlineSecrets: true,
 	}
 
-	sm, err := NewSecretsManager(ctx, config)
+	sm, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create secrets manager: %v", err)
 	}
@@ -479,7 +479,7 @@ func TestAuditLogging(t *testing.T) {
 		AllowInlineSecrets: true,
 	}
 
-	sm, err := NewSecretsManager(ctx, config)
+	sm, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create secrets manager: %v", err)
 	}
@@ -548,7 +548,7 @@ func TestSecretsManagerHealth(t *testing.T) {
 	_ = os.Setenv("TEST_MASTER_KEY", "dGVzdC1tYXN0ZXIta2V5LTEyMzQ1Njc4OTBhYmNkZWY=")
 	defer func() { _ = os.Unsetenv("TEST_MASTER_KEY") }()
 
-	sm, err := NewSecretsManager(ctx, config)
+	sm, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create secrets manager: %v", err)
 	}
@@ -606,7 +606,7 @@ func TestInlineSecretsDisabled(t *testing.T) {
 		AllowInlineSecrets: false, // Disable inline secrets
 	}
 
-	sm, err := NewSecretsManager(ctx, config)
+	sm, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create secrets manager: %v", err)
 	}
@@ -646,7 +646,7 @@ func TestPersistenceAndReload(t *testing.T) {
 	defer func() { _ = os.Unsetenv("TEST_MASTER_KEY") }()
 
 	// Create first manager and store secrets
-	sm1, err := NewSecretsManager(ctx, config)
+	sm1, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create first secrets manager: %v", err)
 	}
@@ -661,7 +661,7 @@ func TestPersistenceAndReload(t *testing.T) {
 	_ = sm1.Stop()
 
 	// Create second manager with same config - should reload secrets
-	sm2, err := NewSecretsManager(ctx, config)
+	sm2, err := NewSecretsManager(ctx, &config)
 	if err != nil {
 		t.Fatalf("Failed to create second secrets manager: %v", err)
 	}

@@ -125,7 +125,7 @@ type SecretReference struct {
 }
 
 // NewSecretsManager creates a new secrets manager
-func NewSecretsManager(ctx context.Context, config SecretConfig) (*SecretsManager, error) {
+func NewSecretsManager(ctx context.Context, config *SecretConfig) (*SecretsManager, error) {
 	if config.StorageDir == "" {
 		config.StorageDir = "./data/secrets"
 	}
@@ -141,7 +141,7 @@ func NewSecretsManager(ctx context.Context, config SecretConfig) (*SecretsManage
 	managerCtx, cancel := context.WithCancel(ctx)
 
 	sm := &SecretsManager{
-		config:    config,
+		config:    *config,
 		secrets:   make(map[string]*Secret),
 		accessLog: make([]SecretAccess, 0),
 		ctx:       managerCtx,
