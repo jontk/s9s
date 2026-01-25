@@ -512,28 +512,13 @@ func (api *ExternalAPI) handleResourceEfficiency(w http.ResponseWriter, r *http.
 		return
 	}
 
-	var resType analysis.ResourceType
-	switch resourceType {
-	case "cpu":
-		resType = analysis.ResourceCPU
-	case "memory":
-		resType = analysis.ResourceMemory
-	case "storage":
-		resType = analysis.ResourceStorage
-	case "network":
-		resType = analysis.ResourceNetwork
-	case "gpu":
-		resType = analysis.ResourceGPU
-	default:
+	resType, ok := api.parseResourceType(resourceType)
+	if !ok {
 		api.writeError(w, http.StatusBadRequest, "Invalid resource type")
 		return
 	}
 
-	durationStr := r.URL.Query().Get("duration")
-	if durationStr == "" {
-		durationStr = "168h" // 1 week
-	}
-	duration, err := time.ParseDuration(durationStr)
+	duration, err := api.parseDurationParameter(r, "168h")
 	if err != nil {
 		api.writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid duration: %v", err))
 		return
@@ -552,6 +537,26 @@ func (api *ExternalAPI) handleResourceEfficiency(w http.ResponseWriter, r *http.
 		"status": "success",
 		"data":   analysis,
 	})
+}
+
+func (api *ExternalAPI) parseResourceType(resourceType string) (analysis.ResourceType, bool) {
+	typeMap := map[string]analysis.ResourceType{
+		"cpu":     analysis.ResourceCPU,
+		"memory":  analysis.ResourceMemory,
+		"storage": analysis.ResourceStorage,
+		"network": analysis.ResourceNetwork,
+		"gpu":     analysis.ResourceGPU,
+	}
+	resType, ok := typeMap[resourceType]
+	return resType, ok
+}
+
+func (api *ExternalAPI) parseDurationParameter(r *http.Request, defaultDuration string) (time.Duration, error) {
+	durationStr := r.URL.Query().Get("duration")
+	if durationStr == "" {
+		durationStr = defaultDuration
+	}
+	return time.ParseDuration(durationStr)
 }
 
 // handleClusterEfficiency handles cluster efficiency analysis requests
