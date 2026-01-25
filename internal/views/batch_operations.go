@@ -416,35 +416,41 @@ func (v *BatchOperationsView) executeSingleOperation(operation BatchOperation, j
 		return fmt.Errorf("job manager not available")
 	}
 
-	switch operation {
-	case BatchCancel:
-		return jobMgr.Cancel(jobID)
-	case BatchHold:
-		return jobMgr.Hold(jobID)
-	case BatchRelease:
-		return jobMgr.Release(jobID)
-	case BatchRequeue:
-		_, err := jobMgr.Requeue(jobID)
-		return err
-	case BatchDelete:
-		// For mock client, treat as cancel
-		if _, ok := v.client.(*slurm.MockClient); ok {
+	handlers := v.batchOperationHandlers(jobMgr, jobID, parameter)
+	if handler, ok := handlers[operation]; ok {
+		return handler()
+	}
+	return fmt.Errorf("unknown operation: %s", operation)
+}
+
+// batchOperationHandlers returns a map of operation handlers
+func (v *BatchOperationsView) batchOperationHandlers(jobMgr dao.JobManager, jobID, parameter string) map[BatchOperation]func() error {
+	return map[BatchOperation]func() error{
+		BatchCancel: func() error {
 			return jobMgr.Cancel(jobID)
-		}
-		return jobMgr.Cancel(jobID)
-	case BatchPriority:
-		// For mock client, this would be a no-op
-		if _, ok := v.client.(*slurm.MockClient); ok {
-			return nil // Mock success
-		}
-		// Real implementation would set priority
-		return fmt.Errorf("priority setting not implemented for real client")
-	case BatchExport:
-		// Export is handled differently - parameter contains the format
-		// For batch export, we use streaming to minimize memory usage
-		return v.exportJobOutputStreaming(jobID, parameter)
-	default:
-		return fmt.Errorf("unknown operation: %s", operation)
+		},
+		BatchHold: func() error {
+			return jobMgr.Hold(jobID)
+		},
+		BatchRelease: func() error {
+			return jobMgr.Release(jobID)
+		},
+		BatchRequeue: func() error {
+			_, err := jobMgr.Requeue(jobID)
+			return err
+		},
+		BatchDelete: func() error {
+			return jobMgr.Cancel(jobID)
+		},
+		BatchPriority: func() error {
+			if _, ok := v.client.(*slurm.MockClient); ok {
+				return nil // Mock success
+			}
+			return fmt.Errorf("priority setting not implemented for real client")
+		},
+		BatchExport: func() error {
+			return v.exportJobOutputStreaming(jobID, parameter)
+		},
 	}
 }
 

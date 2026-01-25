@@ -553,45 +553,66 @@ func (v *DashboardView) calculateHealthStatus() string {
 func (v *DashboardView) calculateHealthScore() float64 {
 	score := 100.0
 
-	// Deduct for down nodes
-	if len(v.nodes) > 0 {
-		downNodes := 0
-		for _, node := range v.nodes {
-			if node.State == dao.NodeStateDown {
-				downNodes++
-			}
-		}
-		downPercent := float64(downNodes) * 100.0 / float64(len(v.nodes))
-		score -= downPercent * 2 // Each down node % costs 2 points
-	}
-
-	// Deduct for failed jobs
-	if len(v.jobs) > 0 {
-		failedJobs := 0
-		for _, job := range v.jobs {
-			if job.State == dao.JobStateFailed {
-				failedJobs++
-			}
-		}
-		failedPercent := float64(failedJobs) * 100.0 / float64(len(v.jobs))
-		score -= failedPercent // Each failed job % costs 1 point
-	}
-
-	// Deduct for high resource utilization
-	if v.clusterMetrics != nil {
-		if v.clusterMetrics.CPUUsage > 95 {
-			score -= 10
-		}
-		if v.clusterMetrics.MemoryUsage > 95 {
-			score -= 10
-		}
-	}
+	score -= v.calculateNodeHealthDeduction()
+	score -= v.calculateJobHealthDeduction()
+	score -= v.calculateResourceHealthDeduction()
 
 	if score < 0 {
 		score = 0
 	}
 
 	return score
+}
+
+// calculateNodeHealthDeduction calculates health score deduction for down nodes
+func (v *DashboardView) calculateNodeHealthDeduction() float64 {
+	if len(v.nodes) == 0 {
+		return 0
+	}
+
+	downNodes := 0
+	for _, node := range v.nodes {
+		if node.State == dao.NodeStateDown {
+			downNodes++
+		}
+	}
+
+	downPercent := float64(downNodes) * 100.0 / float64(len(v.nodes))
+	return downPercent * 2 // Each down node % costs 2 points
+}
+
+// calculateJobHealthDeduction calculates health score deduction for failed jobs
+func (v *DashboardView) calculateJobHealthDeduction() float64 {
+	if len(v.jobs) == 0 {
+		return 0
+	}
+
+	failedJobs := 0
+	for _, job := range v.jobs {
+		if job.State == dao.JobStateFailed {
+			failedJobs++
+		}
+	}
+
+	failedPercent := float64(failedJobs) * 100.0 / float64(len(v.jobs))
+	return failedPercent // Each failed job % costs 1 point
+}
+
+// calculateResourceHealthDeduction calculates health score deduction for high resource utilization
+func (v *DashboardView) calculateResourceHealthDeduction() float64 {
+	if v.clusterMetrics == nil {
+		return 0
+	}
+
+	deduction := 0.0
+	if v.clusterMetrics.CPUUsage > 95 {
+		deduction += 10
+	}
+	if v.clusterMetrics.MemoryUsage > 95 {
+		deduction += 10
+	}
+
+	return deduction
 }
 
 func (v *DashboardView) getHealthColor(status string) string {
