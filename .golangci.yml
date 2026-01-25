@@ -43,7 +43,7 @@ linters:
     # - dupl          # Detect duplicated code - 16 pre-existing issues, exclude rules not working
     # - wsl_v5      # Whitespace linting - too many pre-existing issues (2600+), disabled for now
     # - containedctx # Prevent context.Context in struct fields - 22 pre-existing instances, requires architectural refactor
-    # - revive      # Too many issues (460+), disabled to focus on complexity/duplication
+    # - revive        # Phase 7: Fixed 460+ violations (PR #29), ready to enable in future PR with proper exclude rules
 
   disable:
     # Temporarily disabled - will be fixed in follow-up PRs
@@ -198,6 +198,22 @@ issues:
     - linters:
         - gocognit
 
+    # Phase 7: revive - Backward compatibility and package naming exceptions (PR #29)
+
+    # Type aliases for backward compatibility
+    # Type aliases like "type AuthProvider = Provider" are necessary for backward compatibility
+    # The new short names (Provider, Config, etc.) are the idiomatic public API
+    # Type aliases show as "stuttering" in revive but are intentional for API migration
+    - text: "type name will be used as .* by other packages, and that stutters"
+      linters:
+        - revive
+
+    # Intentional package names (api, errors)
+    # Some packages have names that are intentionally generic (e.g., "api" for API endpoints)
+    # These are not meaningless - they represent the package's primary responsibility
+    - text: "avoid meaningless package names"
+      linters:
+        - revive
 
     # Phase 4: gosec - Targeted security rule exclusions
     # Only exclude rules that produce false positives everywhere, documented with nolint directives elsewhere
