@@ -615,7 +615,7 @@ func (pd *PerformanceDashboard) updateAlerts(cpuUsage, memUsage, netUsage, opsRa
 }
 
 // checkMetricAlert evaluates a metric against thresholds and updates alerts
-func (pd *PerformanceDashboard) checkMetricAlert(metric string, value, critical, warning float64, unit string, criticalRecs []string, alerts *[]string, recommendations *[]string) {
+func (pd *PerformanceDashboard) checkMetricAlert(metric string, value, critical, warning float64, unit string, criticalRecs []string, alerts, recommendations *[]string) {
 	if value >= critical {
 		*alerts = append(*alerts, fmt.Sprintf("[red]🚨 CRITICAL: %s at %.1f%s[white]", metric, value, unit))
 		*recommendations = append(*recommendations, criticalRecs...)

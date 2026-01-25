@@ -290,7 +290,7 @@ func (o *OAuth2Authenticator) getOAuth2Endpoints(config AuthConfig) (string, str
 func (o *OAuth2Authenticator) discoverEndpoints(discoveryURL string) (string, string, error) {
 	debug.Logger.Printf("Discovering OAuth2 endpoints from: %s", discoveryURL)
 
-	req, err := http.NewRequestWithContext(context.Background(), "GET", discoveryURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", discoveryURL, http.NoBody)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create discovery request: %w", err)
 	}
@@ -778,7 +778,7 @@ func (o *OAuth2Authenticator) RevokeToken(_ context.Context, token *Token) error
 
 // getDiscoveryDocument fetches and parses OIDC discovery document
 func (o *OAuth2Authenticator) getDiscoveryDocument(discoveryURL string) (*oidcDiscovery, error) {
-	req, err := http.NewRequestWithContext(context.Background(), "GET", discoveryURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", discoveryURL, http.NoBody)
 	if err != nil {
 		return nil, err
 	}

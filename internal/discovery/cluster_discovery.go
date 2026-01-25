@@ -358,7 +358,7 @@ func (nd *NetworkDiscovery) testEndpoint(ctx context.Context, endpoint string) b
 	// Test if SLURM REST API is available at endpoint
 	testURL := endpoint + "/slurm/v0.0.40/ping"
 
-	req, err := http.NewRequestWithContext(ctx, "GET", testURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", testURL, http.NoBody)
 	if err != nil {
 		return false
 	}

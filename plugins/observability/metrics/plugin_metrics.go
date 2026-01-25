@@ -195,7 +195,7 @@ func (pm *PluginMetrics) UpdateCacheHitRate(hitRate float64) {
 // Component Metrics
 
 // UpdateComponentStatus updates the status of a component
-func (pm *PluginMetrics) UpdateComponentStatus(component string, status string, details string) {
+func (pm *PluginMetrics) UpdateComponentStatus(component, status, details string) {
 	pm.mu.Lock()
 	pm.ComponentStatus[component] = ComponentState{
 		Status:      status,

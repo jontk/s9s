@@ -642,7 +642,6 @@ func (w *Wizard) testConnection() {
 
 	// Placeholder for connection test
 	fmt.Println("   ⏳ Connecting to cluster...")
-	// time.Sleep(2 * time.Second) // Simulate connection test
 	fmt.Println("   ✅ Connection test successful!")
 	fmt.Println("   📊 Found 42 nodes, 1,337 jobs in queue")
 }

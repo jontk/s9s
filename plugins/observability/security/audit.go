@@ -234,7 +234,7 @@ func (al *AuditLogger) LogAuthenticationAttempt(clientIP, userID string, success
 }
 
 // LogRateLimit logs rate limiting events
-func (al *AuditLogger) LogRateLimit(clientIP, userID string, rateLimitType string) {
+func (al *AuditLogger) LogRateLimit(clientIP, userID, rateLimitType string) {
 	event := AuditEvent{
 		Timestamp: time.Now(),
 		EventType: EventTypeRateLimit,

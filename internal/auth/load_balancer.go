@@ -544,7 +544,7 @@ func (h *HealthChecker) checkEndpointHealth(ctx context.Context, endpoint *Endpo
 	healthURL := endpoint.URL + h.config.HealthCheckPath
 
 	start := time.Now()
-	req, err := http.NewRequestWithContext(ctx, "GET", healthURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", healthURL, http.NoBody)
 	if err != nil {
 		debug.Logger.Printf("Health check request creation failed for %s: %v", endpoint.URL, err)
 		h.balancer.UpdateEndpointHealth(endpoint, false)

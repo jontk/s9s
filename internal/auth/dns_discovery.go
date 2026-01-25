@@ -300,7 +300,7 @@ func (d *DNSEndpointDiscoverer) HealthCheck(ctx context.Context, endpoint Endpoi
 	client := d.getHTTPClient()
 
 	// Create health check request
-	req, err := http.NewRequestWithContext(ctx, "GET", healthURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", healthURL, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("failed to create health check request: %w", err)
 	}

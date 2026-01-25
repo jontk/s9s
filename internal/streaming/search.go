@@ -136,7 +136,7 @@ func (ss *StreamSearcher) SearchPrevious(startLine int) (*SearchResult, error) {
 }
 
 // GetHighlightedLine returns a line with search matches highlighted
-func (ss *StreamSearcher) GetHighlightedLine(line string, highlightColor string) string {
+func (ss *StreamSearcher) GetHighlightedLine(line, highlightColor string) string {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 
@@ -275,7 +275,7 @@ func (ss *StreamSearcher) getContext(lineNum int, allLines []string) []string {
 }
 
 // GetStats returns search statistics
-func (ss *StreamSearcher) GetStats() (totalMatches int, matchedLines int) {
+func (ss *StreamSearcher) GetStats() (totalMatches, matchedLines int) {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 

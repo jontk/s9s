@@ -323,7 +323,7 @@ func (km *KeyManager) GetKey(name string) (*SSHKey, error) {
 }
 
 // GenerateKey generates a new SSH key pair
-func (km *KeyManager) GenerateKey(name, comment string, keyType string, bits int) error {
+func (km *KeyManager) GenerateKey(name, comment, keyType string, bits int) error {
 	if keyType == "" {
 		keyType = "rsa"
 	}

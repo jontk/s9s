@@ -279,7 +279,7 @@ func (tm *TerminalManager) CloseAll() {
 }
 
 // SendCommand sends a command to a specific terminal
-func (tm *TerminalManager) SendCommand(nodeID string, command string) error {
+func (tm *TerminalManager) SendCommand(nodeID, command string) error {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 

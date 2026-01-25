@@ -408,7 +408,7 @@ func (j *jobManager) addCancelledOutput() string {
 	return "Job was cancelled by user.\n"
 }
 
-func (j *jobManager) Notify(id string, message string) error {
+func (j *jobManager) Notify(id, message string) error {
 	return j.client.Notify(j.ctx, id, message)
 }
 
@@ -451,7 +451,7 @@ func (n *nodeManager) Get(name string) (*Node, error) {
 	return convertNode(node), nil
 }
 
-func (n *nodeManager) Drain(name string, reason string) error {
+func (n *nodeManager) Drain(name, reason string) error {
 	debug.Logger.Printf("Drain node %s with reason: %s", name, reason)
 	err := n.client.Drain(n.ctx, name, reason)
 	if err != nil {
@@ -473,7 +473,7 @@ func (n *nodeManager) Resume(name string) error {
 	return err
 }
 
-func (n *nodeManager) SetState(_ string, _ string) error {
+func (n *nodeManager) SetState(_, _ string) error {
 	// Note: May need to implement if slurm-client supports it
 	return errs.Internal("set state operation not supported by slurm-client")
 }

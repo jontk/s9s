@@ -9,7 +9,7 @@ import (
 
 // initViews initializes all the views
 func (s *S9s) initViews() error {
-	views := []struct {
+	viewRegistry := []struct {
 		name      string
 		register  func() error
 	}{
@@ -25,7 +25,7 @@ func (s *S9s) initViews() error {
 		{"performance", s.registerPerformanceView},
 	}
 
-	for _, v := range views {
+	for _, v := range viewRegistry {
 		if err := v.register(); err != nil {
 			return err
 		}
