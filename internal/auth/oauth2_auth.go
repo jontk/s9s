@@ -560,7 +560,41 @@ func (o *OAuth2Authenticator) RefreshToken(ctx context.Context, token *Token) (*
 		return nil, fmt.Errorf("failed to get token endpoint: %w", err)
 	}
 
-	// Prepare refresh request
+	// Prepare and send refresh request
+	req, err := o.prepareRefreshRequest(tokenEndpoint, token)
+	if err != nil {
+		return nil, err
+	}
+
+	statusCode, body, err := o.sendRefreshRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check response status - if not OK, re-authenticate
+	if statusCode != http.StatusOK {
+		debug.Logger.Printf("Token refresh failed with status %d, re-authenticating", statusCode)
+		return o.Authenticate(ctx, o.config)
+	}
+
+	// Parse refresh response
+	var tokenResponse map[string]interface{}
+	if err := json.Unmarshal(body, &tokenResponse); err != nil {
+		return nil, fmt.Errorf("failed to parse refresh response: %w", err)
+	}
+
+	// Extract token from response
+	newToken, err := o.extractRefreshTokenResponse(token, tokenResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	debug.Logger.Printf("Successfully refreshed OAuth2 token, expires at: %v", newToken.ExpiresAt)
+	return newToken, nil
+}
+
+// prepareRefreshRequest prepares the refresh token request
+func (o *OAuth2Authenticator) prepareRefreshRequest(tokenEndpoint string, token *Token) (*http.Request, error) {
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", token.RefreshToken)
@@ -576,60 +610,55 @@ func (o *OAuth2Authenticator) RefreshToken(ctx context.Context, token *Token) (*
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "s9s/1.0")
 
-	// Execute refresh request
+	return req, nil
+}
+
+// sendRefreshRequest executes the refresh request and reads the response
+func (o *OAuth2Authenticator) sendRefreshRequest(req *http.Request) (int, []byte, error) {
 	resp, err := o.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("refresh request failed: %w", err)
+		return 0, nil, fmt.Errorf("refresh request failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read refresh response: %w", err)
+		return 0, nil, fmt.Errorf("failed to read refresh response: %w", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		debug.Logger.Printf("Token refresh failed with status %d, re-authenticating", resp.StatusCode)
-		return o.Authenticate(ctx, o.config)
-	}
+	return resp.StatusCode, body, nil
+}
 
-	// Parse refresh response
-	var tokenResponse map[string]interface{}
-	if err := json.Unmarshal(body, &tokenResponse); err != nil {
-		return nil, fmt.Errorf("failed to parse refresh response: %w", err)
-	}
-
-	// Extract new token (similar to exchangeCodeForToken)
-	accessToken, ok := tokenResponse["access_token"].(string)
+// extractRefreshTokenResponse extracts token information from refresh response
+func (o *OAuth2Authenticator) extractRefreshTokenResponse(oldToken *Token, response map[string]interface{}) (*Token, error) {
+	accessToken, ok := response["access_token"].(string)
 	if !ok || accessToken == "" {
 		return nil, fmt.Errorf("missing or invalid access_token in refresh response")
 	}
 
 	// Use existing refresh token if new one not provided
-	refreshToken := token.RefreshToken
-	if rt, ok := tokenResponse["refresh_token"].(string); ok && rt != "" {
+	refreshToken := oldToken.RefreshToken
+	if rt, ok := response["refresh_token"].(string); ok && rt != "" {
 		refreshToken = rt
 	}
 
+	// Extract expiry with fallback
 	var expiresAt time.Time
-	if expiresIn, ok := tokenResponse["expires_in"].(float64); ok {
+	if expiresIn, ok := response["expires_in"].(float64); ok {
 		expiresAt = time.Now().Add(time.Duration(expiresIn) * time.Second)
 	} else {
 		expiresAt = time.Now().Add(1 * time.Hour)
 	}
 
-	newToken := &Token{
+	return &Token{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		TokenType:    token.TokenType,
+		TokenType:    oldToken.TokenType,
 		ExpiresAt:    expiresAt,
-		Scopes:       token.Scopes,
-		ClusterID:    token.ClusterID,
-		Metadata:     token.Metadata,
-	}
-
-	debug.Logger.Printf("Successfully refreshed OAuth2 token, expires at: %v", expiresAt)
-	return newToken, nil
+		Scopes:       oldToken.Scopes,
+		ClusterID:    oldToken.ClusterID,
+		Metadata:     oldToken.Metadata,
+	}, nil
 }
 
 // ValidateToken validates an OAuth2 token
