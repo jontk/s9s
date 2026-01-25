@@ -1,4 +1,3 @@
-//nolint:revive // intentional package name for API endpoints
 // Package api provides external HTTP API endpoints for accessing observability data.
 // The API supports Prometheus queries, historical data analysis, resource efficiency metrics,
 // and subscription management. All endpoints are protected by configurable security layers

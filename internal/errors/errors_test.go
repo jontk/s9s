@@ -1,4 +1,3 @@
-//nolint:revive // intentional package name for error handling utilities
 package errors
 
 import (
