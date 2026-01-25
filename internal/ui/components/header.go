@@ -105,7 +105,15 @@ func (h *Header) updateLoop() {
 func (h *Header) updateDisplay() {
 	var content strings.Builder
 
-	// First line: S9S title and cluster info
+	// Build header lines
+	h.appendTitleLine(&content)
+	h.appendNavigationAndMetricsLine(&content)
+
+	h.SetText(content.String())
+}
+
+// appendTitleLine appends the title and cluster info line
+func (h *Header) appendTitleLine(content *strings.Builder) {
 	content.WriteString("[white::b]S9S - SLURM Terminal UI[white::-]")
 
 	if h.clusterInfo != nil {
@@ -117,7 +125,12 @@ func (h *Header) updateDisplay() {
 	now := time.Now()
 	content.WriteString(fmt.Sprintf(" | %s", now.Format("15:04:05")))
 
-	// Add alerts badge if available
+	h.appendAlertsBadge(content)
+	content.WriteString("\n")
+}
+
+// appendAlertsBadge appends the alerts badge if available
+func (h *Header) appendAlertsBadge(content *strings.Builder) {
 	if h.alertsBadge != nil {
 		h.alertsBadge.update()
 		badgeText := h.alertsBadge.text.GetText(true)
@@ -126,42 +139,55 @@ func (h *Header) updateDisplay() {
 			content.WriteString(badgeText)
 		}
 	}
+}
 
-	content.WriteString("\n")
+// appendNavigationAndMetricsLine appends the navigation and metrics line
+func (h *Header) appendNavigationAndMetricsLine(content *strings.Builder) {
+	h.appendViewsList(content)
+	h.appendMetrics(content)
+	h.appendLastUpdateTime(content)
+}
 
-	// Second line: Navigation and metrics
-	if len(h.views) > 0 {
-		content.WriteString("[yellow]Views:[white] ")
-		for i, view := range h.views {
-			if i > 0 {
-				content.WriteString(" | ")
-			}
-
-			if view == h.currentView {
-				content.WriteString(fmt.Sprintf("[black:yellow] %s [white:-:-]", strings.ToUpper(view)))
-			} else {
-				content.WriteString(fmt.Sprintf("[cyan]%s[white]", strings.ToUpper(view)))
-			}
-		}
+// appendViewsList appends the views list
+func (h *Header) appendViewsList(content *strings.Builder) {
+	if len(h.views) == 0 {
+		return
 	}
 
-	// Add cluster metrics if available
-	if h.metrics != nil {
-		if len(h.views) > 0 {
+	content.WriteString("[yellow]Views:[white] ")
+	for i, view := range h.views {
+		if i > 0 {
 			content.WriteString(" | ")
 		}
-		content.WriteString(h.formatMetrics())
+
+		if view == h.currentView {
+			content.WriteString(fmt.Sprintf("[black:yellow] %s [white:-:-]", strings.ToUpper(view)))
+		} else {
+			content.WriteString(fmt.Sprintf("[cyan]%s[white]", strings.ToUpper(view)))
+		}
+	}
+}
+
+// appendMetrics appends cluster metrics if available
+func (h *Header) appendMetrics(content *strings.Builder) {
+	if h.metrics == nil {
+		return
 	}
 
-	// Add last update time
+	if len(h.views) > 0 {
+		content.WriteString(" | ")
+	}
+	content.WriteString(h.formatMetrics())
+}
+
+// appendLastUpdateTime appends the last update time
+func (h *Header) appendLastUpdateTime(content *strings.Builder) {
 	age := time.Since(h.lastUpdate)
 	if age > time.Minute {
 		content.WriteString(fmt.Sprintf(" | [red]Last update: %s ago[white]", formatAge(age)))
 	} else {
 		content.WriteString(fmt.Sprintf(" | [green]Updated: %s ago[white]", formatAge(age)))
 	}
-
-	h.SetText(content.String())
 }
 
 // formatMetrics formats cluster metrics for display
