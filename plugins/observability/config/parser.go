@@ -261,31 +261,47 @@ func (p *Parser) parseHistoryRetention(key string, config *AlertConfig) {
 // parseCacheConfig parses Cache-specific configuration
 	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseCacheConfig(config *CacheConfig) error {
-	if val, ok := p.getValue("cache.enabled"); ok {
+	p.parseCacheEnabled("cache.enabled", config)
+	p.parseDefaultTTL("cache.defaultTTL", config)
+	p.parseMaxSize("cache.maxSize", config)
+	p.parseCleanupInterval("cache.cleanupInterval", config)
+	return nil
+}
+
+// parseCacheEnabled parses the cache enabled flag
+func (p *Parser) parseCacheEnabled(key string, config *CacheConfig) {
+	if val, ok := p.getValue(key); ok {
 		if b, err := p.parseBool(val); err == nil {
 			config.Enabled = b
 		}
 	}
+}
 
-	if val, ok := p.getValue("cache.defaultTTL"); ok {
+// parseDefaultTTL parses the default cache TTL
+func (p *Parser) parseDefaultTTL(key string, config *CacheConfig) {
+	if val, ok := p.getValue(key); ok {
 		if duration, err := p.parseDuration(val); err == nil {
 			config.DefaultTTL = duration
 		}
 	}
+}
 
-	if val, ok := p.getValue("cache.maxSize"); ok {
+// parseMaxSize parses the maximum cache size
+func (p *Parser) parseMaxSize(key string, config *CacheConfig) {
+	if val, ok := p.getValue(key); ok {
 		if i, err := p.parseInt(val); err == nil {
 			config.MaxSize = i
 		}
 	}
+}
 
-	if val, ok := p.getValue("cache.cleanupInterval"); ok {
+// parseCleanupInterval parses the cache cleanup interval
+func (p *Parser) parseCleanupInterval(key string, config *CacheConfig) {
+	if val, ok := p.getValue(key); ok {
 		if duration, err := p.parseDuration(val); err == nil {
 			config.CleanupInterval = duration
 		}
 	}
-
-	return nil
 }
 
 // parseMetricsConfig parses Metrics-specific configuration
