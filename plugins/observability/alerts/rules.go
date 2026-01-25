@@ -230,6 +230,7 @@ var RuleTemplates = map[string]Rule{
 
 // ValidateRule validates an alert rule
 func ValidateRule(rule Rule) error {
+	// Validate basic fields
 	if rule.Name == "" {
 		return fmt.Errorf("rule name is required")
 	}
@@ -238,44 +239,69 @@ func ValidateRule(rule Rule) error {
 		return fmt.Errorf("rule type is required")
 	}
 
-	switch rule.Type {
-	case RuleTypeThreshold:
-		if rule.Metric == "" {
-			return fmt.Errorf("metric is required for threshold rules")
-		}
-		if rule.Operator == "" {
-			return fmt.Errorf("operator is required for threshold rules")
-		}
-		if !isValidOperator(rule.Operator) {
-			return fmt.Errorf("invalid operator: %s", rule.Operator)
-		}
-
-	case RuleTypeQuery:
-		if rule.Query == "" {
-			return fmt.Errorf("query is required for query rules")
-		}
-
-	case RuleTypeComposite:
-		if len(rule.Conditions) == 0 {
-			return fmt.Errorf("conditions are required for composite rules")
-		}
-		for i, cond := range rule.Conditions {
-			if cond.Metric == "" {
-				return fmt.Errorf("condition %d: metric is required", i)
-			}
-			if !isValidOperator(cond.Operator) {
-				return fmt.Errorf("condition %d: invalid operator: %s", i, cond.Operator)
-			}
-		}
-
-	default:
-		return fmt.Errorf("invalid rule type: %s", rule.Type)
+	// Validate rule type-specific requirements
+	if err := validateRuleType(rule); err != nil {
+		return err
 	}
 
+	// Validate severity
 	if !isValidSeverity(rule.Severity) {
 		return fmt.Errorf("invalid severity: %s", rule.Severity)
 	}
 
+	return nil
+}
+
+// validateRuleType validates requirements specific to each rule type
+func validateRuleType(rule Rule) error {
+	switch rule.Type {
+	case RuleTypeThreshold:
+		return validateThresholdRule(rule)
+	case RuleTypeQuery:
+		return validateQueryRule(rule)
+	case RuleTypeComposite:
+		return validateCompositeRule(rule)
+	default:
+		return fmt.Errorf("invalid rule type: %s", rule.Type)
+	}
+}
+
+// validateThresholdRule validates threshold rule requirements
+func validateThresholdRule(rule Rule) error {
+	if rule.Metric == "" {
+		return fmt.Errorf("metric is required for threshold rules")
+	}
+	if rule.Operator == "" {
+		return fmt.Errorf("operator is required for threshold rules")
+	}
+	if !isValidOperator(rule.Operator) {
+		return fmt.Errorf("invalid operator: %s", rule.Operator)
+	}
+	return nil
+}
+
+// validateQueryRule validates query rule requirements
+func validateQueryRule(rule Rule) error {
+	if rule.Query == "" {
+		return fmt.Errorf("query is required for query rules")
+	}
+	return nil
+}
+
+// validateCompositeRule validates composite rule requirements
+func validateCompositeRule(rule Rule) error {
+	if len(rule.Conditions) == 0 {
+		return fmt.Errorf("conditions are required for composite rules")
+	}
+
+	for i, cond := range rule.Conditions {
+		if cond.Metric == "" {
+			return fmt.Errorf("condition %d: metric is required", i)
+		}
+		if !isValidOperator(cond.Operator) {
+			return fmt.Errorf("condition %d: invalid operator: %s", i, cond.Operator)
+		}
+	}
 	return nil
 }
 

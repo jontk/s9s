@@ -223,54 +223,45 @@ func (nm *NotificationManager) sendNotification(ctx context.Context, notificatio
 // matchesFilter checks if an alert matches a subscription filter
 func (nm *NotificationManager) matchesFilter(alert Alert, filter AlertFilter) bool {
 	// Check severity
-	if len(filter.Severities) > 0 {
-		found := false
-		for _, sev := range filter.Severities {
-			if alert.Severity == sev {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
+	if !nm.matchesStringList(alert.Severity, filter.Severities) {
+		return false
 	}
 
 	// Check source
-	if len(filter.Sources) > 0 {
-		found := false
-		for _, src := range filter.Sources {
-			if alert.Source == src {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
+	if !nm.matchesStringList(alert.Source, filter.Sources) {
+		return false
 	}
 
 	// Check rule
-	if len(filter.Rules) > 0 {
-		found := false
-		for _, rule := range filter.Rules {
-			if alert.RuleName == rule {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
+	if !nm.matchesStringList(alert.RuleName, filter.Rules) {
+		return false
 	}
 
 	// Check labels
-	for key, value := range filter.Labels {
-		if alertValue, ok := alert.Labels[key]; !ok || alertValue != value {
+	return nm.matchesLabels(alert.Labels, filter.Labels)
+}
+
+// matchesStringList checks if a value exists in a list, or returns true if list is empty
+func (nm *NotificationManager) matchesStringList(value string, list []string) bool {
+	if len(list) == 0 {
+		return true
+	}
+
+	for _, item := range list {
+		if value == item {
+			return true
+		}
+	}
+	return false
+}
+
+// matchesLabels checks if alert labels match filter labels
+func (nm *NotificationManager) matchesLabels(alertLabels, filterLabels map[string]string) bool {
+	for key, value := range filterLabels {
+		if alertValue, ok := alertLabels[key]; !ok || alertValue != value {
 			return false
 		}
 	}
-
 	return true
 }
 
