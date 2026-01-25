@@ -542,56 +542,75 @@ func (mst *MultiSelectTable) getSelectAllIcon() string {
 
 // SetData sets the table data and maintains selections when data changes.
 func (mst *MultiSelectTable) SetData(data [][]string) {
-	mst.mu.Lock()
-
-	// Store current selections by data content (for persistence across refreshes)
-	var selectedDataContent []string
-	if mst.multiSelectMode && len(mst.selectedRows) > 0 {
-		// Get filtered data through the accessor to respect Table's mutex
-		filteredData := mst.GetFilteredData()
-		for row := range mst.selectedRows {
-			if row < len(filteredData) && len(filteredData[row]) > 0 {
-				// Use first column (usually ID) as identifier
-				selectedDataContent = append(selectedDataContent, filteredData[row][0])
-			}
-		}
-	}
-
-	// Unlock our mutex before calling Table.SetData which will lock Table's mutex
-	mst.mu.Unlock()
+	// Save current selections before data change
+	selectedDataContent := mst.saveCurrentSelections()
 
 	// Update base table data
 	mst.Table.SetData(data)
 
-	// Relock to update our selection state
+	// Restore selections
 	mst.mu.Lock()
 	defer mst.mu.Unlock()
 
-	// Restore selections if multi-select mode is active
-	if mst.multiSelectMode && len(selectedDataContent) > 0 {
-		newSelectedRows := make(map[int]bool)
-		newSelectionCount := 0
+	mst.restoreSelections(selectedDataContent)
+	mst.refreshDisplay()
+}
 
-		// Get updated filtered data through the accessor
-		filteredData := mst.GetFilteredData()
-		for rowIndex, rowData := range filteredData {
-			if len(rowData) > 0 {
-				for _, selectedID := range selectedDataContent {
-					if rowData[0] == selectedID {
-						newSelectedRows[rowIndex] = true
-						newSelectionCount++
-						break
-					}
-				}
-			}
-		}
+// saveCurrentSelections saves the current selections by content for persistence
+func (mst *MultiSelectTable) saveCurrentSelections() []string {
+	mst.mu.Lock()
+	defer mst.mu.Unlock()
 
-		mst.selectedRows = newSelectedRows
-		mst.selectionCount = newSelectionCount
-		mst.updateSelectAllStateUnsafe()
+	var selectedDataContent []string
+	if !mst.multiSelectMode || len(mst.selectedRows) == 0 {
+		return selectedDataContent
 	}
 
-	mst.refreshDisplay()
+	// Get filtered data through the accessor to respect Table's mutex
+	filteredData := mst.GetFilteredData()
+	for row := range mst.selectedRows {
+		if row < len(filteredData) && len(filteredData[row]) > 0 {
+			// Use first column (usually ID) as identifier
+			selectedDataContent = append(selectedDataContent, filteredData[row][0])
+		}
+	}
+
+	return selectedDataContent
+}
+
+// restoreSelections restores selections based on saved data content
+func (mst *MultiSelectTable) restoreSelections(selectedDataContent []string) {
+	if !mst.multiSelectMode || len(selectedDataContent) == 0 {
+		return
+	}
+
+	newSelectedRows := make(map[int]bool)
+	newSelectionCount := 0
+
+	// Get updated filtered data through the accessor
+	filteredData := mst.GetFilteredData()
+	for rowIndex, rowData := range filteredData {
+		if len(rowData) > 0 {
+			if mst.isRowSelected(rowData[0], selectedDataContent) {
+				newSelectedRows[rowIndex] = true
+				newSelectionCount++
+			}
+		}
+	}
+
+	mst.selectedRows = newSelectedRows
+	mst.selectionCount = newSelectionCount
+	mst.updateSelectAllStateUnsafe()
+}
+
+// isRowSelected checks if a row ID is in the selected IDs list
+func (mst *MultiSelectTable) isRowSelected(rowID string, selectedIDs []string) bool {
+	for _, selectedID := range selectedIDs {
+		if rowID == selectedID {
+			return true
+		}
+	}
+	return false
 }
 
 // GetMultiSelectHints returns keyboard hints for multi-select mode
