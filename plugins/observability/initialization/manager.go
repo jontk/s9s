@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/jontk/s9s/plugins/observability/analysis"
-	"github.com/jontk/s9s/plugins/observability/api"
+	"github.com/jontk/s9s/plugins/observability/endpoints"
 	"github.com/jontk/s9s/plugins/observability/config"
 	"github.com/jontk/s9s/plugins/observability/historical"
 	"github.com/jontk/s9s/plugins/observability/metrics"
@@ -33,7 +33,7 @@ type Components struct {
 	HistoricalCollector *historical.HistoricalDataCollector
 	HistoricalAnalyzer  *historical.HistoricalAnalyzer
 	EfficiencyAnalyzer  *analysis.ResourceEfficiencyAnalyzer
-	ExternalAPI         *api.ExternalAPI
+	ExternalAPI         *endpoints.ExternalAPI
 }
 
 // Manager handles plugin component initialization
@@ -344,7 +344,7 @@ func (m *Manager) initExternalAPI(components *Components) error {
 
 	// Always initialize ExternalAPI, whether enabled or not
 	// If disabled, it just won't be started
-	externalAPI := api.NewExternalAPI(
+	externalAPI := endpoints.NewExternalAPI(
 		components.CachedClient,
 		components.SubscriptionMgr,
 		components.HistoricalCollector,

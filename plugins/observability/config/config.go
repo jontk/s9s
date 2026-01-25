@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/jontk/s9s/plugins/observability/api"
+	"github.com/jontk/s9s/plugins/observability/endpoints"
 	"github.com/jontk/s9s/plugins/observability/security"
 )
 
@@ -35,7 +35,7 @@ type Config struct {
 	Security SecurityConfig `yaml:"security" json:"security"`
 
 	// External API configuration
-	ExternalAPI api.Config `yaml:"externalAPI" json:"externalAPI"`
+	ExternalAPI endpoints.Config `yaml:"externalAPI" json:"externalAPI"`
 
 	// Logging configuration
 	Logging LoggingConfig `yaml:"logging" json:"logging"`
@@ -372,7 +372,7 @@ func DefaultConfig() *Config {
 				Audit:      security.DefaultAuditConfig(),
 			},
 		},
-		ExternalAPI: api.DefaultConfig(),
+		ExternalAPI: endpoints.DefaultConfig(),
 		Logging: LoggingConfig{
 			Enabled:      true,
 			Level:        "DEBUG",

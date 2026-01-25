@@ -1,8 +1,8 @@
-// Package api provides external HTTP API endpoints for accessing observability data.
+// Package endpoints provides external HTTP API endpoints for accessing observability data.
 // The API supports Prometheus queries, historical data analysis, resource efficiency metrics,
 // and subscription management. All endpoints are protected by configurable security layers
 // including authentication, rate limiting, request validation, and audit logging.
-package api
+package endpoints
 
 import (
 	"context"

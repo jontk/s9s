@@ -39,19 +39,13 @@ linters:
     # Phase 4: Advanced Linters (Complex Refactoring Required)
 
     # Phase 4a: revive - Go idioms and style enforcement
-    # Status: DISABLED (PR #32) due to package-level violation suppression issue
+    # Status: RE-ENABLED with var-naming rule configured for valid package names
+    # Solution: Configure var-naming rule to accept "api" and "errors" as valid names
     # Details: 40 nolint directives added for type-alias violations in PR #32
-    # Issue: 2 package-level revive violations cannot be suppressed
-    #   - internal/errors/errors_test.go: package name conflicts with Go stdlib
-    #   - plugins/observability/api/external.go: package name is generic but intentional
-    # Root cause: Go doesn't allow nolint comments on package statements
-    # Attempted solutions:
-    #   - exclude-rules in golangci.yml: Does not match package-level violations
-    #   - .revive.toml var-naming arguments: Does not support package exemptions
-    #   - nolint on preceding lines: Go requires comments on same line
+    # Previous issue: Package-level violations couldn't be suppressed with nolint
+    # Fix: Add "api" and "errors" to var-naming arguments in linters-settings
     # See: internal/auth/*, internal/config/*, plugins/observability/* for type aliases (40 directives)
-    # TODO(Phase 5): Re-enable revive after finding proper solution for package-level violations
-    # - revive        # Disabled: waiting for package-level violation suppression fix
+    - revive        # Re-enabled: var-naming rule configured for valid package names
 
     # Phase 4c: gocognit - Cognitive complexity checking
     # Status: ENABLED with threshold 50 (appropriate for current codebase)
@@ -134,6 +128,16 @@ linters-settings:
   misspell:
     # Correct spellings using locale preferences for US or UK
     locale: US
+
+  revive:
+    # Configure revive rules
+    # Allow "api" and "errors" as valid package names in var-naming rule
+    rules:
+      - name: var-naming
+        severity: warning
+        arguments:
+          - ["ID", "URL", "GID", "UID", "SID", "TID", "CID", "api", "errors"]
+          - ["Arg", "Auth"]
 
   # Phase 4: Advanced Linters
   # cyclop:
