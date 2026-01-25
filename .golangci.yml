@@ -39,13 +39,13 @@ linters:
     # Phase 4: Advanced Linters (Complex Refactoring Required)
 
     # Phase 4a: revive - Go idioms and style enforcement
-    # Status: RE-ENABLED with var-naming rule configured for valid package names
-    # Solution: Configure var-naming rule to accept "api" and "errors" as valid names
+    # Status: RE-ENABLED (PR #34) after renaming packages to avoid naming violations
+    # Solution: Rename packages that triggered naming violations
+    #   - internal/errors → internal/errs (avoids stdlib package name conflict)
+    #   - plugins/observability/api → plugins/observability/endpoints (clearer name)
     # Details: 40 nolint directives added for type-alias violations in PR #32
-    # Previous issue: Package-level violations couldn't be suppressed with nolint
-    # Fix: Add "api" and "errors" to var-naming arguments in linters-settings
     # See: internal/auth/*, internal/config/*, plugins/observability/* for type aliases (40 directives)
-    - revive        # Re-enabled: var-naming rule configured for valid package names
+    - revive        # Re-enabled: package naming violations resolved via package renames
 
     # Phase 4c: gocognit - Cognitive complexity checking
     # Status: ENABLED with threshold 50 (appropriate for current codebase)
@@ -131,12 +131,14 @@ linters-settings:
 
   revive:
     # Configure revive rules
-    # Allow "api" and "errors" as valid package names in var-naming rule
+    # var-naming: Common exceptions for acronyms and naming conventions
+    # Note: "api" and "errors" entries no longer needed after package renames (PR #34)
+    # Keeping for potential future use with other package names
     rules:
       - name: var-naming
         severity: warning
         arguments:
-          - ["ID", "URL", "GID", "UID", "SID", "TID", "CID", "api", "errors"]
+          - ["ID", "URL", "GID", "UID", "SID", "TID", "CID"]
           - ["Arg", "Auth"]
 
   # Phase 4: Advanced Linters
