@@ -151,7 +151,7 @@ func (pe *PerformanceExporter) ExportPerformanceReport(profiler *performance.Pro
 	}
 
 	// Export based on format
-	if err := pe.exportByFormat(data, outputPath, format); err != nil {
+	if err := pe.exportByFormat(&data, outputPath, format); err != nil {
 		result.Error = err
 		return result, err
 	}
@@ -228,7 +228,7 @@ func (pe *PerformanceExporter) ensureExportDirectory(outputPath string) error {
 	return nil
 }
 
-func (pe *PerformanceExporter) exportByFormat(data PerformanceReportData, outputPath string, format ExportFormat) error {
+func (pe *PerformanceExporter) exportByFormat(data *PerformanceReportData, outputPath string, format ExportFormat) error {
 	switch format {
 	case FormatText:
 		return pe.exportText(data, outputPath)
@@ -246,7 +246,7 @@ func (pe *PerformanceExporter) exportByFormat(data PerformanceReportData, output
 }
 
 // exportText exports performance report as plain text
-func (pe *PerformanceExporter) exportText(data PerformanceReportData, outputPath string) error {
+func (pe *PerformanceExporter) exportText(data *PerformanceReportData, outputPath string) error {
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -255,7 +255,7 @@ func (pe *PerformanceExporter) exportText(data PerformanceReportData, outputPath
 
 	// Prepare template data
 	templateData := TemplateData{
-		PerformanceReportData: &data,
+		PerformanceReportData: data,
 		MemoryUsedFormatted:   formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryUsed)),
 		MemoryTotalFormatted:  formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryTotal)),
 		Separator:             strings.Repeat("-", 80),
@@ -274,7 +274,7 @@ func (pe *PerformanceExporter) exportText(data PerformanceReportData, outputPath
 }
 
 // exportJSON exports performance report as JSON
-func (pe *PerformanceExporter) exportJSON(data PerformanceReportData, outputPath string) error {
+func (pe *PerformanceExporter) exportJSON(data *PerformanceReportData, outputPath string) error {
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -292,7 +292,7 @@ func (pe *PerformanceExporter) exportJSON(data PerformanceReportData, outputPath
 }
 
 // exportCSV exports performance report as CSV
-func (pe *PerformanceExporter) exportCSV(data PerformanceReportData, outputPath string) error {
+func (pe *PerformanceExporter) exportCSV(data *PerformanceReportData, outputPath string) error {
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -317,7 +317,7 @@ func (pe *PerformanceExporter) exportCSV(data PerformanceReportData, outputPath 
 }
 
 // writeCSVMetadata writes metadata section to CSV
-func (pe *PerformanceExporter) writeCSVMetadata(writer *csv.Writer, data PerformanceReportData) error {
+func (pe *PerformanceExporter) writeCSVMetadata(writer *csv.Writer, data *PerformanceReportData) error {
 	rows := [][]string{
 		{"Report Type", "Performance Report"},
 		{"Generated", data.GeneratedAt.Format("2006-01-02 15:04:05")},
@@ -334,7 +334,7 @@ func (pe *PerformanceExporter) writeCSVMetadata(writer *csv.Writer, data Perform
 }
 
 // writeCSVSystemMetrics writes system metrics section to CSV
-func (pe *PerformanceExporter) writeCSVSystemMetrics(writer *csv.Writer, data PerformanceReportData) error {
+func (pe *PerformanceExporter) writeCSVSystemMetrics(writer *csv.Writer, data *PerformanceReportData) error {
 	rows := [][]string{
 		{"System Metrics"},
 		{"Metric", "Value"},
@@ -356,7 +356,7 @@ func (pe *PerformanceExporter) writeCSVSystemMetrics(writer *csv.Writer, data Pe
 }
 
 // writeCSVOperationStats writes operation statistics section to CSV
-func (pe *PerformanceExporter) writeCSVOperationStats(writer *csv.Writer, data PerformanceReportData) error {
+func (pe *PerformanceExporter) writeCSVOperationStats(writer *csv.Writer, data *PerformanceReportData) error {
 	if err := writer.Write([]string{"Operation Statistics"}); err != nil {
 		return err
 	}
@@ -380,7 +380,7 @@ func (pe *PerformanceExporter) writeCSVOperationStats(writer *csv.Writer, data P
 }
 
 // exportMarkdown exports performance report as Markdown
-func (pe *PerformanceExporter) exportMarkdown(data PerformanceReportData, outputPath string) error {
+func (pe *PerformanceExporter) exportMarkdown(data *PerformanceReportData, outputPath string) error {
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -389,7 +389,7 @@ func (pe *PerformanceExporter) exportMarkdown(data PerformanceReportData, output
 
 	// Prepare template data
 	templateData := TemplateData{
-		PerformanceReportData: &data,
+		PerformanceReportData: data,
 		MemoryUsedFormatted:   formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryUsed)),
 		MemoryTotalFormatted:  formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryTotal)),
 		GeneratedAt:           data.GeneratedAt.Format("2006-01-02 15:04:05"),
@@ -407,7 +407,7 @@ func (pe *PerformanceExporter) exportMarkdown(data PerformanceReportData, output
 }
 
 // exportHTML exports performance report as HTML
-func (pe *PerformanceExporter) exportHTML(data PerformanceReportData, outputPath string) error {
+func (pe *PerformanceExporter) exportHTML(data *PerformanceReportData, outputPath string) error {
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -550,7 +550,7 @@ func (pe *PerformanceExporter) BatchExportReports(profiler *performance.Profiler
 }
 
 // ExportComparison exports a comparison between two performance snapshots
-func (pe *PerformanceExporter) ExportComparison(_, _ PerformanceReportData, _ ExportFormat, _ string) (*ExportResult, error) {
+func (pe *PerformanceExporter) ExportComparison(_, _ *PerformanceReportData, _ ExportFormat, _ string) (*ExportResult, error) {
 	// This would implement comparison logic between two snapshots
 	// For now, we'll just return an error indicating it's not implemented
 	return nil, fmt.Errorf("comparison export not yet implemented")
