@@ -211,29 +211,7 @@ func (gs *GlobalSearch) searchJobs(query string, results chan<- SearchResult, ca
 		case <-cancel:
 			return
 		default:
-			score := 0
-
-			// Check job ID
-			if strings.Contains(strings.ToLower(job.ID), queryLower) {
-				score += 10
-			}
-			// Check job name
-			if strings.Contains(strings.ToLower(job.Name), queryLower) {
-				score += 8
-			}
-			// Check user
-			if strings.Contains(strings.ToLower(job.User), queryLower) {
-				score += 5
-			}
-			// Check partition
-			if strings.Contains(strings.ToLower(job.Partition), queryLower) {
-				score += 3
-			}
-			// Check state
-			if strings.Contains(strings.ToLower(job.State), queryLower) {
-				score += 3
-			}
-
+			score := gs.calculateJobScore(job, queryLower)
 			if score > 0 {
 				results <- SearchResult{
 					Type:        "job",
@@ -246,6 +224,29 @@ func (gs *GlobalSearch) searchJobs(query string, results chan<- SearchResult, ca
 			}
 		}
 	}
+}
+
+// calculateJobScore calculates search relevance score for a job
+func (gs *GlobalSearch) calculateJobScore(job *dao.Job, queryLower string) int {
+	score := 0
+
+	if strings.Contains(strings.ToLower(job.ID), queryLower) {
+		score += 10
+	}
+	if strings.Contains(strings.ToLower(job.Name), queryLower) {
+		score += 8
+	}
+	if strings.Contains(strings.ToLower(job.User), queryLower) {
+		score += 5
+	}
+	if strings.Contains(strings.ToLower(job.Partition), queryLower) {
+		score += 3
+	}
+	if strings.Contains(strings.ToLower(job.State), queryLower) {
+		score += 3
+	}
+
+	return score
 }
 
 // searchNodes searches through nodes
@@ -261,31 +262,7 @@ func (gs *GlobalSearch) searchNodes(query string, results chan<- SearchResult, c
 		case <-cancel:
 			return
 		default:
-			score := 0
-
-			// Check node name
-			if strings.Contains(strings.ToLower(node.Name), queryLower) {
-				score += 10
-			}
-			// Check state
-			if strings.Contains(strings.ToLower(node.State), queryLower) {
-				score += 5
-			}
-			// Check features
-			for _, feature := range node.Features {
-				if strings.Contains(strings.ToLower(feature), queryLower) {
-					score += 3
-					break
-				}
-			}
-			// Check partitions
-			for _, partition := range node.Partitions {
-				if strings.Contains(strings.ToLower(partition), queryLower) {
-					score += 3
-					break
-				}
-			}
-
+			score := gs.calculateNodeScore(node, queryLower)
 			if score > 0 {
 				partitions := strings.Join(node.Partitions, ",")
 				results <- SearchResult{
@@ -299,6 +276,34 @@ func (gs *GlobalSearch) searchNodes(query string, results chan<- SearchResult, c
 			}
 		}
 	}
+}
+
+// calculateNodeScore calculates search relevance score for a node
+func (gs *GlobalSearch) calculateNodeScore(node *dao.Node, queryLower string) int {
+	score := 0
+
+	if strings.Contains(strings.ToLower(node.Name), queryLower) {
+		score += 10
+	}
+	if strings.Contains(strings.ToLower(node.State), queryLower) {
+		score += 5
+	}
+
+	for _, feature := range node.Features {
+		if strings.Contains(strings.ToLower(feature), queryLower) {
+			score += 3
+			break
+		}
+	}
+
+	for _, partition := range node.Partitions {
+		if strings.Contains(strings.ToLower(partition), queryLower) {
+			score += 3
+			break
+		}
+	}
+
+	return score
 }
 
 // searchPartitions searches through partitions
