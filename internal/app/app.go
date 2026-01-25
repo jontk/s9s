@@ -11,7 +11,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/config"
 	"github.com/jontk/s9s/internal/dao"
-	"github.com/jontk/s9s/internal/errors"
+	"github.com/jontk/s9s/internal/errs"
 	"github.com/jontk/s9s/internal/layouts"
 	"github.com/jontk/s9s/internal/logging"
 	"github.com/jontk/s9s/internal/plugins"
@@ -77,7 +77,7 @@ func New(ctx context.Context, cfg *config.Config) (*S9s, error) {
 // NewWithScreen creates a new S9s application instance with an optional screen for testing
 func NewWithScreen(ctx context.Context, cfg *config.Config, screen tcell.Screen) (*S9s, error) {
 	if cfg == nil {
-		return nil, errors.Config("config is required")
+		return nil, errs.Config("config is required")
 	}
 
 	// Create cancellable context
@@ -101,14 +101,14 @@ func NewWithScreen(ctx context.Context, cfg *config.Config, screen tcell.Screen)
 
 		if clusterConfig == nil {
 			cancel()
-			return nil, errors.Configf("no cluster configuration found for context: %s", cfg.CurrentContext)
+			return nil, errs.Configf("no cluster configuration found for context: %s", cfg.CurrentContext)
 		}
 
 		// Create real SLURM adapter
 		adapter, err := dao.NewSlurmAdapter(appCtx, clusterConfig)
 		if err != nil {
 			cancel()
-			return nil, errors.DAOError("create", "SLURM adapter", err)
+			return nil, errs.DAOError("create", "SLURM adapter", err)
 		}
 		client = adapter
 	}
@@ -149,13 +149,13 @@ func NewWithScreen(ctx context.Context, cfg *config.Config, screen tcell.Screen)
 	// Initialize UI components
 	if err := s9s.initUI(); err != nil {
 		cancel()
-		return nil, errors.Wrap(err, errors.ErrorTypeInternal, "failed to initialize UI")
+		return nil, errs.Wrap(err, errs.ErrorTypeInternal, "failed to initialize UI")
 	}
 
 	// Initialize views
 	if err := s9s.initViews(); err != nil {
 		cancel()
-		return nil, errors.ViewError("all", "initialization", err)
+		return nil, errs.ViewError("all", "initialization", err)
 	}
 
 	// Setup keyboard shortcuts

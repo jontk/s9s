@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jontk/s9s/plugins/observability/api"
+	"github.com/jontk/s9s/plugins/observability/endpoints"
 	"github.com/jontk/s9s/plugins/observability/security"
 )
 
@@ -390,7 +390,7 @@ func (p *Parser) parseSecurityConfig(config *SecurityConfig) error {
 
 // parseExternalAPIConfig parses ExternalAPI-specific configuration
 	//nolint:unparam // Designed for future extensibility; currently always returns nil
-func (p *Parser) parseExternalAPIConfig(config *api.Config) error {
+func (p *Parser) parseExternalAPIConfig(config *endpoints.Config) error {
 	if val, ok := p.getValue("externalAPI.enabled"); ok {
 		if b, err := p.parseBool(val); err == nil {
 			config.Enabled = b

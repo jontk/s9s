@@ -3,7 +3,7 @@ package app
 import (
 	"fmt"
 
-	"github.com/jontk/s9s/internal/errors"
+	"github.com/jontk/s9s/internal/errs"
 	"github.com/jontk/s9s/internal/views"
 )
 
@@ -14,10 +14,10 @@ func (s *S9s) initViews() error {
 	jobsView.SetApp(s.app)
 	jobsView.SetStatusBar(s.statusBar)
 	if err := jobsView.Init(s.ctx); err != nil {
-		return errors.ViewError("jobs", "initialization", err)
+		return errs.ViewError("jobs", "initialization", err)
 	}
 	if err := s.viewMgr.AddView(jobsView); err != nil {
-		return errors.ViewError("jobs", "add to manager", err)
+		return errs.ViewError("jobs", "add to manager", err)
 	}
 	s.contentPages.AddPage("jobs", jobsView.Render(), true, false)
 
@@ -25,10 +25,10 @@ func (s *S9s) initViews() error {
 	nodesView := views.NewNodesView(s.client)
 	nodesView.SetApp(s.app)
 	if err := nodesView.Init(s.ctx); err != nil {
-		return errors.ViewError("nodes", "initialization", err)
+		return errs.ViewError("nodes", "initialization", err)
 	}
 	if err := s.viewMgr.AddView(nodesView); err != nil {
-		return errors.ViewError("nodes", "add to manager", err)
+		return errs.ViewError("nodes", "add to manager", err)
 	}
 	s.contentPages.AddPage("nodes", nodesView.Render(), true, false)
 
@@ -36,10 +36,10 @@ func (s *S9s) initViews() error {
 	partitionsView := views.NewPartitionsView(s.client)
 	partitionsView.SetApp(s.app)
 	if err := partitionsView.Init(s.ctx); err != nil {
-		return errors.ViewError("partitions", "initialization", err)
+		return errs.ViewError("partitions", "initialization", err)
 	}
 	if err := s.viewMgr.AddView(partitionsView); err != nil {
-		return errors.ViewError("partitions", "add to manager", err)
+		return errs.ViewError("partitions", "add to manager", err)
 	}
 	s.contentPages.AddPage("partitions", partitionsView.Render(), true, false)
 
@@ -48,10 +48,10 @@ func (s *S9s) initViews() error {
 	reservationsView.SetApp(s.app)
 	reservationsView.SetPages(s.pages)
 	if err := reservationsView.Init(s.ctx); err != nil {
-		return errors.ViewError("reservations", "initialization", err)
+		return errs.ViewError("reservations", "initialization", err)
 	}
 	if err := s.viewMgr.AddView(reservationsView); err != nil {
-		return errors.ViewError("reservations", "add to manager", err)
+		return errs.ViewError("reservations", "add to manager", err)
 	}
 	s.contentPages.AddPage("reservations", reservationsView.Render(), true, false)
 
@@ -60,10 +60,10 @@ func (s *S9s) initViews() error {
 	qosView.SetApp(s.app)
 	qosView.SetPages(s.pages)
 	if err := qosView.Init(s.ctx); err != nil {
-		return errors.ViewError("qos", "initialization", err)
+		return errs.ViewError("qos", "initialization", err)
 	}
 	if err := s.viewMgr.AddView(qosView); err != nil {
-		return errors.ViewError("qos", "add to manager", err)
+		return errs.ViewError("qos", "add to manager", err)
 	}
 	s.contentPages.AddPage("qos", qosView.Render(), true, false)
 
@@ -72,10 +72,10 @@ func (s *S9s) initViews() error {
 	accountsView.SetApp(s.app)
 	accountsView.SetPages(s.pages)
 	if err := accountsView.Init(s.ctx); err != nil {
-		return errors.ViewError("accounts", "initialization", err)
+		return errs.ViewError("accounts", "initialization", err)
 	}
 	if err := s.viewMgr.AddView(accountsView); err != nil {
-		return errors.ViewError("accounts", "add to manager", err)
+		return errs.ViewError("accounts", "add to manager", err)
 	}
 	s.contentPages.AddPage("accounts", accountsView.Render(), true, false)
 
@@ -84,10 +84,10 @@ func (s *S9s) initViews() error {
 	usersView.SetApp(s.app)
 	usersView.SetPages(s.pages)
 	if err := usersView.Init(s.ctx); err != nil {
-		return errors.ViewError("users", "initialization", err)
+		return errs.ViewError("users", "initialization", err)
 	}
 	if err := s.viewMgr.AddView(usersView); err != nil {
-		return errors.ViewError("users", "add to manager", err)
+		return errs.ViewError("users", "add to manager", err)
 	}
 	s.contentPages.AddPage("users", usersView.Render(), true, false)
 
@@ -96,10 +96,10 @@ func (s *S9s) initViews() error {
 	dashboardView.SetApp(s.app)
 	dashboardView.SetPages(s.pages)
 	if err := dashboardView.Init(s.ctx); err != nil {
-		return errors.ViewError("dashboard", "initialization", err)
+		return errs.ViewError("dashboard", "initialization", err)
 	}
 	if err := s.viewMgr.AddView(dashboardView); err != nil {
-		return errors.ViewError("dashboard", "add to manager", err)
+		return errs.ViewError("dashboard", "add to manager", err)
 	}
 	s.contentPages.AddPage("dashboard", dashboardView.Render(), true, false)
 
@@ -108,10 +108,10 @@ func (s *S9s) initViews() error {
 	healthView.SetApp(s.app)
 	healthView.SetPages(s.pages)
 	if err := healthView.Init(s.ctx); err != nil {
-		return errors.ViewError("health", "initialization", err)
+		return errs.ViewError("health", "initialization", err)
 	}
 	if err := s.viewMgr.AddView(healthView); err != nil {
-		return errors.ViewError("health", "add to manager", err)
+		return errs.ViewError("health", "add to manager", err)
 	}
 	s.contentPages.AddPage("health", healthView.Render(), true, false)
 
@@ -120,10 +120,10 @@ func (s *S9s) initViews() error {
 	performanceView.SetApp(s.app)
 	performanceView.SetPages(s.pages)
 	if err := performanceView.Init(s.ctx); err != nil {
-		return errors.ViewError("performance", "initialization", err)
+		return errs.ViewError("performance", "initialization", err)
 	}
 	if err := s.viewMgr.AddView(performanceView); err != nil {
-		return errors.ViewError("performance", "add to manager", err)
+		return errs.ViewError("performance", "add to manager", err)
 	}
 	s.contentPages.AddPage("performance", performanceView.Render(), true, false)
 
