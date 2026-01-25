@@ -9,127 +9,121 @@ import (
 
 // initViews initializes all the views
 func (s *S9s) initViews() error {
-	// Create jobs view
-	jobsView := views.NewJobsView(s.client)
-	jobsView.SetApp(s.app)
-	jobsView.SetStatusBar(s.statusBar)
-	if err := jobsView.Init(s.ctx); err != nil {
-		return errs.ViewError("jobs", "initialization", err)
+	views := []struct {
+		name      string
+		register  func() error
+	}{
+		{"jobs", s.registerJobsView},
+		{"nodes", s.registerNodesView},
+		{"partitions", s.registerPartitionsView},
+		{"reservations", s.registerReservationsView},
+		{"qos", s.registerQoSView},
+		{"accounts", s.registerAccountsView},
+		{"users", s.registerUsersView},
+		{"dashboard", s.registerDashboardView},
+		{"health", s.registerHealthView},
+		{"performance", s.registerPerformanceView},
 	}
-	if err := s.viewMgr.AddView(jobsView); err != nil {
-		return errs.ViewError("jobs", "add to manager", err)
-	}
-	s.contentPages.AddPage("jobs", jobsView.Render(), true, false)
 
-	// Create nodes view
-	nodesView := views.NewNodesView(s.client)
-	nodesView.SetApp(s.app)
-	if err := nodesView.Init(s.ctx); err != nil {
-		return errs.ViewError("nodes", "initialization", err)
+	for _, v := range views {
+		if err := v.register(); err != nil {
+			return err
+		}
 	}
-	if err := s.viewMgr.AddView(nodesView); err != nil {
-		return errs.ViewError("nodes", "add to manager", err)
-	}
-	s.contentPages.AddPage("nodes", nodesView.Render(), true, false)
 
-	// Create partitions view
-	partitionsView := views.NewPartitionsView(s.client)
-	partitionsView.SetApp(s.app)
-	if err := partitionsView.Init(s.ctx); err != nil {
-		return errs.ViewError("partitions", "initialization", err)
-	}
-	if err := s.viewMgr.AddView(partitionsView); err != nil {
-		return errs.ViewError("partitions", "add to manager", err)
-	}
-	s.contentPages.AddPage("partitions", partitionsView.Render(), true, false)
-
-	// Create reservations view
-	reservationsView := views.NewReservationsView(s.client)
-	reservationsView.SetApp(s.app)
-	reservationsView.SetPages(s.pages)
-	if err := reservationsView.Init(s.ctx); err != nil {
-		return errs.ViewError("reservations", "initialization", err)
-	}
-	if err := s.viewMgr.AddView(reservationsView); err != nil {
-		return errs.ViewError("reservations", "add to manager", err)
-	}
-	s.contentPages.AddPage("reservations", reservationsView.Render(), true, false)
-
-	// Create QoS view
-	qosView := views.NewQoSView(s.client)
-	qosView.SetApp(s.app)
-	qosView.SetPages(s.pages)
-	if err := qosView.Init(s.ctx); err != nil {
-		return errs.ViewError("qos", "initialization", err)
-	}
-	if err := s.viewMgr.AddView(qosView); err != nil {
-		return errs.ViewError("qos", "add to manager", err)
-	}
-	s.contentPages.AddPage("qos", qosView.Render(), true, false)
-
-	// Create Accounts view
-	accountsView := views.NewAccountsView(s.client)
-	accountsView.SetApp(s.app)
-	accountsView.SetPages(s.pages)
-	if err := accountsView.Init(s.ctx); err != nil {
-		return errs.ViewError("accounts", "initialization", err)
-	}
-	if err := s.viewMgr.AddView(accountsView); err != nil {
-		return errs.ViewError("accounts", "add to manager", err)
-	}
-	s.contentPages.AddPage("accounts", accountsView.Render(), true, false)
-
-	// Create Users view
-	usersView := views.NewUsersView(s.client)
-	usersView.SetApp(s.app)
-	usersView.SetPages(s.pages)
-	if err := usersView.Init(s.ctx); err != nil {
-		return errs.ViewError("users", "initialization", err)
-	}
-	if err := s.viewMgr.AddView(usersView); err != nil {
-		return errs.ViewError("users", "add to manager", err)
-	}
-	s.contentPages.AddPage("users", usersView.Render(), true, false)
-
-	// Create Dashboard view
-	dashboardView := views.NewDashboardView(s.client)
-	dashboardView.SetApp(s.app)
-	dashboardView.SetPages(s.pages)
-	if err := dashboardView.Init(s.ctx); err != nil {
-		return errs.ViewError("dashboard", "initialization", err)
-	}
-	if err := s.viewMgr.AddView(dashboardView); err != nil {
-		return errs.ViewError("dashboard", "add to manager", err)
-	}
-	s.contentPages.AddPage("dashboard", dashboardView.Render(), true, false)
-
-	// Create Health view
-	healthView := views.NewHealthView(s.client)
-	healthView.SetApp(s.app)
-	healthView.SetPages(s.pages)
-	if err := healthView.Init(s.ctx); err != nil {
-		return errs.ViewError("health", "initialization", err)
-	}
-	if err := s.viewMgr.AddView(healthView); err != nil {
-		return errs.ViewError("health", "add to manager", err)
-	}
-	s.contentPages.AddPage("health", healthView.Render(), true, false)
-
-	// Create Performance view
-	performanceView := views.NewPerformanceView(s.client)
-	performanceView.SetApp(s.app)
-	performanceView.SetPages(s.pages)
-	if err := performanceView.Init(s.ctx); err != nil {
-		return errs.ViewError("performance", "initialization", err)
-	}
-	if err := s.viewMgr.AddView(performanceView); err != nil {
-		return errs.ViewError("performance", "add to manager", err)
-	}
-	s.contentPages.AddPage("performance", performanceView.Render(), true, false)
-
-	// Update header with view names
 	s.header.SetViews(s.viewMgr.GetViewNames())
+	return nil
+}
 
+// registerJobsView registers the jobs view
+func (s *S9s) registerJobsView() error {
+	view := views.NewJobsView(s.client)
+	view.SetApp(s.app)
+	view.SetStatusBar(s.statusBar)
+	return s.addViewToApp("jobs", view)
+}
+
+// registerNodesView registers the nodes view
+func (s *S9s) registerNodesView() error {
+	view := views.NewNodesView(s.client)
+	view.SetApp(s.app)
+	return s.addViewToApp("nodes", view)
+}
+
+// registerPartitionsView registers the partitions view
+func (s *S9s) registerPartitionsView() error {
+	view := views.NewPartitionsView(s.client)
+	view.SetApp(s.app)
+	return s.addViewToApp("partitions", view)
+}
+
+// registerReservationsView registers the reservations view
+func (s *S9s) registerReservationsView() error {
+	view := views.NewReservationsView(s.client)
+	view.SetApp(s.app)
+	view.SetPages(s.pages)
+	return s.addViewToApp("reservations", view)
+}
+
+// registerQoSView registers the QoS view
+func (s *S9s) registerQoSView() error {
+	view := views.NewQoSView(s.client)
+	view.SetApp(s.app)
+	view.SetPages(s.pages)
+	return s.addViewToApp("qos", view)
+}
+
+// registerAccountsView registers the accounts view
+func (s *S9s) registerAccountsView() error {
+	view := views.NewAccountsView(s.client)
+	view.SetApp(s.app)
+	view.SetPages(s.pages)
+	return s.addViewToApp("accounts", view)
+}
+
+// registerUsersView registers the users view
+func (s *S9s) registerUsersView() error {
+	view := views.NewUsersView(s.client)
+	view.SetApp(s.app)
+	view.SetPages(s.pages)
+	return s.addViewToApp("users", view)
+}
+
+// registerDashboardView registers the dashboard view
+func (s *S9s) registerDashboardView() error {
+	view := views.NewDashboardView(s.client)
+	view.SetApp(s.app)
+	view.SetPages(s.pages)
+	return s.addViewToApp("dashboard", view)
+}
+
+// registerHealthView registers the health view
+func (s *S9s) registerHealthView() error {
+	view := views.NewHealthView(s.client)
+	view.SetApp(s.app)
+	view.SetPages(s.pages)
+	return s.addViewToApp("health", view)
+}
+
+// registerPerformanceView registers the performance view
+func (s *S9s) registerPerformanceView() error {
+	view := views.NewPerformanceView(s.client)
+	view.SetApp(s.app)
+	view.SetPages(s.pages)
+	return s.addViewToApp("performance", view)
+}
+
+// addViewToApp initializes and adds a view to the application
+func (s *S9s) addViewToApp(name string, view views.View) error {
+	if err := view.Init(s.ctx); err != nil {
+		return errs.ViewError(name, "initialization", err)
+	}
+
+	if err := s.viewMgr.AddView(view); err != nil {
+		return errs.ViewError(name, "add to manager", err)
+	}
+
+	s.contentPages.AddPage(name, view.Render(), true, false)
 	return nil
 }
 
