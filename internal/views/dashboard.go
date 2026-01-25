@@ -987,97 +987,127 @@ func (v *DashboardView) generateHealthCheck() string {
 
 	// Detailed checks
 	health.WriteString("[teal]Component Health Checks:[white]\n")
-
-	// Node health
-	if len(v.nodes) > 0 {
-		downNodes := 0
-		drainNodes := 0
-		for _, node := range v.nodes {
-			switch node.State {
-			case dao.NodeStateDown:
-				downNodes++
-			case dao.NodeStateDrain, dao.NodeStateDraining:
-				drainNodes++
-			}
-		}
-
-		health.WriteString("[yellow]Nodes:[white]\n")
-		if downNodes == 0 {
-			health.WriteString("  [green]✓[white] All nodes operational\n")
-		} else {
-			health.WriteString(fmt.Sprintf("  [red]✗[white] %d node(s) down\n", downNodes))
-		}
-
-		if drainNodes > 0 {
-			health.WriteString(fmt.Sprintf("  [yellow]⚠[white] %d node(s) draining\n", drainNodes))
-		}
-	}
-
-	// Job queue health
-	if len(v.jobs) > 0 {
-		failedJobs := 0
-		stuckJobs := 0
-		now := time.Now()
-
-		for _, job := range v.jobs {
-			if job.State == dao.JobStateFailed {
-				failedJobs++
-			} else if job.State == dao.JobStatePending && now.Sub(job.SubmitTime) > 24*time.Hour {
-				stuckJobs++
-			}
-		}
-
-		health.WriteString("\n[yellow]Job Queue:[white]\n")
-		if failedJobs == 0 {
-			health.WriteString("  [green]✓[white] No failed jobs detected\n")
-		} else {
-			health.WriteString(fmt.Sprintf("  [red]✗[white] %d failed job(s)\n", failedJobs))
-		}
-
-		if stuckJobs == 0 {
-			health.WriteString("  [green]✓[white] No stuck jobs detected\n")
-		} else {
-			health.WriteString(fmt.Sprintf("  [yellow]⚠[white] %d job(s) waiting >24h\n", stuckJobs))
-		}
-	}
-
-	// Resource utilization health
-	if v.clusterMetrics != nil {
-		health.WriteString("\n[yellow]Resource Utilization:[white]\n")
-
-		if v.clusterMetrics.CPUUsage < 95 {
-			health.WriteString(fmt.Sprintf("  [green]✓[white] CPU utilization normal (%.1f%%)\n", v.clusterMetrics.CPUUsage))
-		} else {
-			health.WriteString(fmt.Sprintf("  [red]✗[white] CPU utilization critical (%.1f%%)\n", v.clusterMetrics.CPUUsage))
-		}
-
-		if v.clusterMetrics.MemoryUsage < 95 {
-			health.WriteString(fmt.Sprintf("  [green]✓[white] Memory utilization normal (%.1f%%)\n", v.clusterMetrics.MemoryUsage))
-		} else {
-			health.WriteString(fmt.Sprintf("  [red]✗[white] Memory utilization critical (%.1f%%)\n", v.clusterMetrics.MemoryUsage))
-		}
-	}
-
-	// Partition health
-	if len(v.partitions) > 0 {
-		downPartitions := 0
-		for _, partition := range v.partitions {
-			if partition.State == dao.PartitionStateDown {
-				downPartitions++
-			}
-		}
-
-		health.WriteString("\n[yellow]Partitions:[white]\n")
-		if downPartitions == 0 {
-			health.WriteString("  [green]✓[white] All partitions operational\n")
-		} else {
-			health.WriteString(fmt.Sprintf("  [red]✗[white] %d partition(s) down\n", downPartitions))
-		}
-	}
+	health.WriteString(v.generateNodeHealthSection())
+	health.WriteString(v.generateJobQueueHealthSection())
+	health.WriteString(v.generateResourceUtilizationSection())
+	health.WriteString(v.generatePartitionHealthSection())
 
 	health.WriteString(fmt.Sprintf("\n[gray]Health check completed: %s[white]", time.Now().Format("2006-01-02 15:04:05")))
 
 	return health.String()
+}
+
+func (v *DashboardView) generateNodeHealthSection() string {
+	if len(v.nodes) == 0 {
+		return ""
+	}
+
+	var output strings.Builder
+	downNodes := 0
+	drainNodes := 0
+
+	for _, node := range v.nodes {
+		switch node.State {
+		case dao.NodeStateDown:
+			downNodes++
+		case dao.NodeStateDrain, dao.NodeStateDraining:
+			drainNodes++
+		}
+	}
+
+	output.WriteString("[yellow]Nodes:[white]\n")
+	if downNodes == 0 {
+		output.WriteString("  [green]✓[white] All nodes operational\n")
+	} else {
+		output.WriteString(fmt.Sprintf("  [red]✗[white] %d node(s) down\n", downNodes))
+	}
+
+	if drainNodes > 0 {
+		output.WriteString(fmt.Sprintf("  [yellow]⚠[white] %d node(s) draining\n", drainNodes))
+	}
+
+	return output.String()
+}
+
+func (v *DashboardView) generateJobQueueHealthSection() string {
+	if len(v.jobs) == 0 {
+		return ""
+	}
+
+	var output strings.Builder
+	failedJobs := 0
+	stuckJobs := 0
+	now := time.Now()
+
+	for _, job := range v.jobs {
+		if job.State == dao.JobStateFailed {
+			failedJobs++
+		} else if job.State == dao.JobStatePending && now.Sub(job.SubmitTime) > 24*time.Hour {
+			stuckJobs++
+		}
+	}
+
+	output.WriteString("\n[yellow]Job Queue:[white]\n")
+	if failedJobs == 0 {
+		output.WriteString("  [green]✓[white] No failed jobs detected\n")
+	} else {
+		output.WriteString(fmt.Sprintf("  [red]✗[white] %d failed job(s)\n", failedJobs))
+	}
+
+	if stuckJobs == 0 {
+		output.WriteString("  [green]✓[white] No stuck jobs detected\n")
+	} else {
+		output.WriteString(fmt.Sprintf("  [yellow]⚠[white] %d job(s) waiting >24h\n", stuckJobs))
+	}
+
+	return output.String()
+}
+
+func (v *DashboardView) generateResourceUtilizationSection() string {
+	if v.clusterMetrics == nil {
+		return ""
+	}
+
+	var output strings.Builder
+	output.WriteString("\n[yellow]Resource Utilization:[white]\n")
+
+	if v.clusterMetrics.CPUUsage < 95 {
+		output.WriteString(fmt.Sprintf("  [green]✓[white] CPU utilization normal (%.1f%%)\n", v.clusterMetrics.CPUUsage))
+	} else {
+		output.WriteString(fmt.Sprintf("  [red]✗[white] CPU utilization critical (%.1f%%)\n", v.clusterMetrics.CPUUsage))
+	}
+
+	if v.clusterMetrics.MemoryUsage < 95 {
+		output.WriteString(fmt.Sprintf("  [green]✓[white] Memory utilization normal (%.1f%%)\n", v.clusterMetrics.MemoryUsage))
+	} else {
+		output.WriteString(fmt.Sprintf("  [red]✗[white] Memory utilization critical (%.1f%%)\n", v.clusterMetrics.MemoryUsage))
+	}
+
+	return output.String()
+}
+
+func (v *DashboardView) generatePartitionHealthSection() string {
+	if len(v.partitions) == 0 {
+		return ""
+	}
+
+	var output strings.Builder
+	downPartitions := 0
+
+	for _, partition := range v.partitions {
+		if partition.State == dao.PartitionStateDown {
+			downPartitions++
+		}
+	}
+
+	output.WriteString("\n[yellow]Partitions:[white]\n")
+	if downPartitions == 0 {
+		output.WriteString("  [green]✓[white] All partitions operational\n")
+	} else {
+		output.WriteString(fmt.Sprintf("  [red]✗[white] %d partition(s) down\n", downPartitions))
+	}
+
+	return output.String()
 }
 
 // Helper functions for analytics

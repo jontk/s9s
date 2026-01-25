@@ -201,15 +201,9 @@ func (v *PartitionsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return event // Let modal handle it
 	}
 
-	// If filter input has focus, let it handle the key events (except ESC)
-	if v.filterInput != nil && v.filterInput.HasFocus() {
-		if event.Key() == tcell.KeyEsc {
-			// ESC should return focus to table
-			v.app.SetFocus(v.table.Table)
-			return nil
-		}
-		// For all other keys, let the filter input handle them
-		return event
+	// Handle filter input focus interactions
+	if focusEvent := v.handleFilterInputFocus(event); focusEvent != nil {
+		return focusEvent
 	}
 
 	// Handle advanced filter mode
@@ -218,6 +212,7 @@ func (v *PartitionsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
+	// Dispatch to appropriate handler by key type
 	switch event.Key() {
 	case tcell.KeyF3:
 		v.showAdvancedFilter()
@@ -226,24 +221,7 @@ func (v *PartitionsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		v.showGlobalSearch()
 		return nil
 	case tcell.KeyRune:
-		switch event.Rune() {
-		case 'j', 'J':
-			v.showPartitionJobs()
-			return nil
-		case 'n', 'N':
-			v.showPartitionNodes()
-			return nil
-		case 'a', 'A':
-			v.showPartitionAnalytics()
-			return nil
-		case 'w', 'W':
-			v.showWaitTimeAnalytics()
-			return nil
-		case 'R':
-			go func() { _ = v.Refresh() }()
-			return nil
-		case '/':
-			v.app.SetFocus(v.filterInput)
+		if handled := v.handleRuneCommand(event.Rune()); handled {
 			return nil
 		}
 	case tcell.KeyEnter:
@@ -257,6 +235,46 @@ func (v *PartitionsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+func (v *PartitionsView) handleFilterInputFocus(event *tcell.EventKey) *tcell.EventKey {
+	if v.filterInput == nil || !v.filterInput.HasFocus() {
+		return nil
+	}
+
+	if event.Key() == tcell.KeyEsc {
+		// ESC should return focus to table
+		v.app.SetFocus(v.table.Table)
+		return nil
+	}
+
+	// For all other keys, let the filter input handle them
+	return event
+}
+
+func (v *PartitionsView) handleRuneCommand(r rune) bool {
+	switch r {
+	case 'j', 'J':
+		v.showPartitionJobs()
+		return true
+	case 'n', 'N':
+		v.showPartitionNodes()
+		return true
+	case 'a', 'A':
+		v.showPartitionAnalytics()
+		return true
+	case 'w', 'W':
+		v.showWaitTimeAnalytics()
+		return true
+	case 'R':
+		go func() { _ = v.Refresh() }()
+		return true
+	case '/':
+		v.app.SetFocus(v.filterInput)
+		return true
+	}
+
+	return false // Unhandled rune
 }
 
 // OnFocus handles focus events

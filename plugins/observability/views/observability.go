@@ -406,7 +406,28 @@ func (v *ObservabilityView) refresh(ctx context.Context) error {
 func (v *ObservabilityView) fetchNodeMetrics(ctx context.Context) error {
 	logging.Debug("observability-view", "fetchNodeMetrics starting")
 
-	// Add extra safety checks
+	// Validate prerequisites
+	if err := v.validateNodeMetricsPrerequisites(); err != nil {
+		return err
+	}
+
+	// Get list of nodes with panic recovery
+	nodes := v.safeGetNodeList(ctx)
+	logging.Info("observability-view", "Processing %d nodes", len(nodes))
+
+	// Process each node
+	for _, nodeName := range nodes {
+		v.processNodeMetrics(ctx, nodeName)
+	}
+
+	// Update local cache
+	v.nodeMetrics = v.nodeCollector.GetAllNodes()
+	logging.Info("observability-view", "fetchNodeMetrics completed: %d nodes in cache", len(v.nodeMetrics))
+
+	return nil
+}
+
+func (v *ObservabilityView) validateNodeMetricsPrerequisites() error {
 	if v.client == nil {
 		logging.Error("observability-view", "Prometheus client not initialized")
 		return fmt.Errorf("prometheus client not initialized")
@@ -415,130 +436,125 @@ func (v *ObservabilityView) fetchNodeMetrics(ctx context.Context) error {
 		logging.Error("observability-view", "Query builder not initialized")
 		return fmt.Errorf("query builder not initialized")
 	}
+	return nil
+}
 
-	// Get list of nodes - in a real implementation, this would come from SLURM
-	// For now, we'll query Prometheus for all nodes with error handling
+func (v *ObservabilityView) safeGetNodeList(ctx context.Context) []string {
 	logging.Debug("observability-view", "Getting node list")
 	var nodes []string
-	func() {
-		defer func() {
-			if r := recover(); r != nil {
-				logging.Error("observability-view", "getNodeList panicked: %v", r)
-				// If getNodeList panics, use empty list
-				nodes = []string{}
-			}
-		}()
-		nodes = v.getNodeList(ctx)
+	defer func() {
+		if r := recover(); r != nil {
+			logging.Error("observability-view", "getNodeList panicked: %v", r)
+			nodes = []string{}
+		}
+	}()
+	nodes = v.getNodeList(ctx)
+	return nodes
+}
+
+func (v *ObservabilityView) processNodeMetrics(ctx context.Context, nodeName string) {
+	// Get instance name
+	instanceName := nodeName
+	if fullInstance, exists := nodeInstanceMap[nodeName]; exists {
+		instanceName = fullInstance
+		logging.Debug("observability-view", "Using instance name %s for node %s", instanceName, nodeName)
+	}
+
+	// Build and execute queries
+	queries, err := v.buildNodeQueries(instanceName)
+	if err != nil {
+		logging.Error("observability-view", "Failed to build queries for node %s: %v", nodeName, err)
+		return
+	}
+
+	v.logQueries(queries)
+
+	results, err := v.executeNodeQueries(ctx, queries)
+	if err != nil {
+		logging.Error("observability-view", "Failed to execute queries for node %s: %v", nodeName, err)
+		return
+	}
+
+	logging.Debug("observability-view", "Batch query returned %d results for node %s", len(results), nodeName)
+
+	// Convert results and update collector
+	metrics := v.convertNodeResults(nodeName, results)
+	v.updateNodeCollector(nodeName, metrics)
+}
+
+func (v *ObservabilityView) buildNodeQueries(instanceName string) (map[string]string, error) {
+	var err error
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("query building panic: %v", r)
+		}
 	}()
 
-	logging.Info("observability-view", "Processing %d nodes", len(nodes))
+	result, queryErr := v.queryBuilder.GetNodeQueries(instanceName, v.config.Metrics.Node.NodeLabel)
+	if queryErr != nil {
+		err = queryErr
+	}
+	return result, err
+}
 
-	for _, nodeName := range nodes {
-		// Get the full instance name (with port) for Prometheus queries
-		instanceName := nodeName
-		if fullInstance, exists := nodeInstanceMap[nodeName]; exists {
-			instanceName = fullInstance
-			logging.Debug("observability-view", "Using instance name %s for node %s", instanceName, nodeName)
-		}
-
-		// Build queries for this node with error handling
-		queries, err := func() (map[string]string, error) {
-			var err error
-			defer func() {
-				if r := recover(); r != nil {
-					err = fmt.Errorf("query building panic: %v", r)
-				}
-			}()
-			result, queryErr := v.queryBuilder.GetNodeQueries(instanceName, v.config.Metrics.Node.NodeLabel)
-			if queryErr != nil {
-				err = queryErr
-			}
-			return result, err
-		}()
-
-		if err != nil {
-			logging.Error("observability-view", "Failed to build queries for node %s: %v", nodeName, err)
-			continue
-		}
-
-		logging.Debug("observability-view", "Built %d queries for node %s", len(queries), nodeName)
-		for qName, qStr := range queries {
-			// Log first 100 chars of query to avoid too much output
-			if len(qStr) > 100 {
-				logging.Debug("observability-view", "Query %s: %s...", qName, qStr[:100])
-			} else {
-				logging.Debug("observability-view", "Query %s: %s", qName, qStr)
-			}
-		}
-
-		// Execute queries in batch with error handling
-		results, err := func() (map[string]*prometheus.QueryResult, error) {
-			var err error
-			defer func() {
-				if r := recover(); r != nil {
-					err = fmt.Errorf("batch query panic: %v", r)
-				}
-			}()
-			result, queryErr := v.client.BatchQuery(ctx, queries, time.Now())
-			if queryErr != nil {
-				err = queryErr
-			}
-			return result, err
-		}()
-
-		if err != nil {
-			logging.Error("observability-view", "Failed to execute queries for node %s: %v", nodeName, err)
-			continue
-		}
-
-		logging.Debug("observability-view", "Batch query returned %d results for node %s", len(results), nodeName)
-
-		// Convert results to TimeSeries
-		metrics := make(map[string]*models.TimeSeries)
-		for queryName, result := range results {
-			if len(result.Data.Result) > 0 {
-				logging.Debug("observability-view", "Query %s returned %d results for node %s",
-					queryName, len(result.Data.Result), nodeName)
-				// Convert first result to TimeSeries
-				ts := v.convertToTimeSeries(queryName, result)
-				if ts != nil {
-					metrics[queryName] = ts
-					logging.Debug("observability-view", "Converted %s to TimeSeries with %d values",
-						queryName, len(ts.Values))
-				} else {
-					logging.Warn("observability-view", "Failed to convert %s to TimeSeries", queryName)
-				}
-			} else {
-				logging.Debug("observability-view", "Query %s returned no results for node %s",
-					queryName, nodeName)
-			}
-		}
-
-		// Log the metrics being sent to the collector
-		logging.Info("observability-view", "Updating node %s with %d metrics", nodeName, len(metrics))
-
-		// Update node collector
-		v.nodeCollector.UpdateFromPrometheus(nodeName, metrics)
-
-		// Check if the node was actually stored
-		if storedNode, exists := v.nodeCollector.GetNode(nodeName); exists {
-			logging.Info("observability-view", "Node %s successfully stored: CPU=%.2f%%, Memory=%.2f%%",
-				nodeName, storedNode.Resources.CPU.Usage, storedNode.Resources.Memory.Usage)
+func (v *ObservabilityView) logQueries(queries map[string]string) {
+	logging.Debug("observability-view", "Built %d queries", len(queries))
+	for qName, qStr := range queries {
+		if len(qStr) > 100 {
+			logging.Debug("observability-view", "Query %s: %s...", qName, qStr[:100])
 		} else {
-			logging.Error("observability-view", "Node %s was not stored in collector!", nodeName)
+			logging.Debug("observability-view", "Query %s: %s", qName, qStr)
 		}
 	}
+}
 
-	// Update local cache
-	v.nodeMetrics = v.nodeCollector.GetAllNodes()
+func (v *ObservabilityView) executeNodeQueries(ctx context.Context, queries map[string]string) (map[string]*prometheus.QueryResult, error) {
+	var err error
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("batch query panic: %v", r)
+		}
+	}()
 
-	logging.Info("observability-view", "fetchNodeMetrics completed: %d nodes in cache", len(v.nodeMetrics))
-	for nodeName, metrics := range v.nodeMetrics {
-		logging.Debug("observability-view", "Node %s metrics: CPU=%.2f%%, Memory=%.2f%%, State=%s",
-			nodeName, metrics.Resources.CPU.Usage, metrics.Resources.Memory.Usage, metrics.NodeState)
+	result, queryErr := v.client.BatchQuery(ctx, queries, time.Now())
+	if queryErr != nil {
+		err = queryErr
 	}
+	return result, err
+}
 
-	return nil
+func (v *ObservabilityView) convertNodeResults(nodeName string, results map[string]*prometheus.QueryResult) map[string]*models.TimeSeries {
+	metrics := make(map[string]*models.TimeSeries)
+	for queryName, result := range results {
+		if len(result.Data.Result) > 0 {
+			logging.Debug("observability-view", "Query %s returned %d results for node %s",
+				queryName, len(result.Data.Result), nodeName)
+			ts := v.convertToTimeSeries(queryName, result)
+			if ts != nil {
+				metrics[queryName] = ts
+				logging.Debug("observability-view", "Converted %s to TimeSeries with %d values",
+					queryName, len(ts.Values))
+			} else {
+				logging.Warn("observability-view", "Failed to convert %s to TimeSeries", queryName)
+			}
+		} else {
+			logging.Debug("observability-view", "Query %s returned no results for node %s",
+				queryName, nodeName)
+		}
+	}
+	return metrics
+}
+
+func (v *ObservabilityView) updateNodeCollector(nodeName string, metrics map[string]*models.TimeSeries) {
+	logging.Info("observability-view", "Updating node %s with %d metrics", nodeName, len(metrics))
+	v.nodeCollector.UpdateFromPrometheus(nodeName, metrics)
+
+	if storedNode, exists := v.nodeCollector.GetNode(nodeName); exists {
+		logging.Info("observability-view", "Node %s successfully stored: CPU=%.2f%%, Memory=%.2f%%",
+			nodeName, storedNode.Resources.CPU.Usage, storedNode.Resources.Memory.Usage)
+	} else {
+		logging.Error("observability-view", "Node %s was not stored in collector!", nodeName)
+	}
 }
 
 // fetchJobMetrics fetches job metrics from Prometheus

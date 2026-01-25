@@ -96,67 +96,103 @@ func (tp *TerminalPane) handleInput(event *tcell.EventKey) *tcell.EventKey {
 
 	switch event.Key() {
 	case tcell.KeyEnter:
-		if tp.inputMode {
-			command := tp.inputBuffer.String()
-			tp.inputBuffer.Reset()
-			tp.executeCommand(command)
+		if tp.handleEnterKey() {
 			return nil
 		}
-
 	case tcell.KeyBackspace, tcell.KeyBackspace2:
-		if tp.inputMode && tp.inputBuffer.Len() > 0 {
-			current := tp.inputBuffer.String()
-			if len(current) > 0 {
-				tp.inputBuffer.Reset()
-				tp.inputBuffer.WriteString(current[:len(current)-1])
-				tp.updatePrompt()
-			}
+		if tp.handleBackspaceKey() {
 			return nil
 		}
-
 	case tcell.KeyCtrlC:
-		if tp.inputMode {
-			tp.inputBuffer.Reset()
-			tp.addOutput("[red]^C[white]\n")
-			tp.showPrompt()
+		if tp.handleCtrlCKey() {
 			return nil
 		}
-
 	case tcell.KeyCtrlD:
-		if tp.inputMode && tp.inputBuffer.Len() == 0 {
-			tp.addOutput("[yellow]logout[white]\n")
-			tp.disconnect()
+		if tp.handleCtrlDKey() {
 			return nil
 		}
-
 	case tcell.KeyRune:
-		if tp.inputMode {
-			tp.inputBuffer.WriteRune(event.Rune())
-			tp.updatePrompt()
-			return nil
-		}
-
-		// Handle special characters when not in input mode
-		switch event.Rune() {
-		case 'i', 'I':
-			tp.enterInputMode()
-			return nil
-		case 'c', 'C':
-			tp.connect()
-			return nil
-		case 'd', 'D':
-			tp.disconnect()
-			return nil
-		case 'r', 'R':
-			tp.reconnect()
-			return nil
-		case 'h', 'H':
-			tp.showHelp()
+		if handled := tp.handleRuneKey(event.Rune()); handled {
 			return nil
 		}
 	}
 
 	return event
+}
+
+func (tp *TerminalPane) handleEnterKey() bool {
+	if !tp.inputMode {
+		return false
+	}
+
+	command := tp.inputBuffer.String()
+	tp.inputBuffer.Reset()
+	tp.executeCommand(command)
+	return true
+}
+
+func (tp *TerminalPane) handleBackspaceKey() bool {
+	if !tp.inputMode || tp.inputBuffer.Len() == 0 {
+		return false
+	}
+
+	current := tp.inputBuffer.String()
+	if len(current) > 0 {
+		tp.inputBuffer.Reset()
+		tp.inputBuffer.WriteString(current[:len(current)-1])
+		tp.updatePrompt()
+	}
+	return true
+}
+
+func (tp *TerminalPane) handleCtrlCKey() bool {
+	if !tp.inputMode {
+		return false
+	}
+
+	tp.inputBuffer.Reset()
+	tp.addOutput("[red]^C[white]\n")
+	tp.showPrompt()
+	return true
+}
+
+func (tp *TerminalPane) handleCtrlDKey() bool {
+	if !tp.inputMode || tp.inputBuffer.Len() > 0 {
+		return false
+	}
+
+	tp.addOutput("[yellow]logout[white]\n")
+	tp.disconnect()
+	return true
+}
+
+func (tp *TerminalPane) handleRuneKey(r rune) bool {
+	if tp.inputMode {
+		tp.inputBuffer.WriteRune(r)
+		tp.updatePrompt()
+		return true
+	}
+
+	// Handle special characters when not in input mode
+	handlers := map[rune]func(){
+		'i': tp.enterInputMode,
+		'I': tp.enterInputMode,
+		'c': tp.connect,
+		'C': tp.connect,
+		'd': tp.disconnect,
+		'D': tp.disconnect,
+		'r': tp.reconnect,
+		'R': tp.reconnect,
+		'h': tp.showHelp,
+		'H': tp.showHelp,
+	}
+
+	if handler, ok := handlers[r]; ok {
+		handler()
+		return true
+	}
+
+	return false
 }
 
 // executeCommand executes a command in the terminal

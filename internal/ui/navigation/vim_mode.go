@@ -27,101 +27,108 @@ func (v *VimMode) HandleKey(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	currentTime := time.Now()
+	r := event.Rune()
 
 	// Check for double key press (like gg)
-	if v.lastKey == event.Rune() && currentTime.Sub(v.lastKeyTime) < 500*time.Millisecond {
-		// Double key press detected
-		switch event.Rune() {
-		case 'g':
-			// gg - go to top
-			v.reset()
-			return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
-		case 'd':
-			// dd - delete line (in future, for now just reset)
-			v.reset()
-			return nil
-		}
+	if doubleKeyEvent := v.handleDoubleKeyPress(r, currentTime); doubleKeyEvent != nil {
+		return doubleKeyEvent
 	}
 
 	// Handle number prefix for repeat count
-	if event.Rune() >= '1' && event.Rune() <= '9' {
-		if v.repeatCount == 0 {
-			v.repeatCount = int(event.Rune() - '0')
-		} else {
-			v.repeatCount = v.repeatCount*10 + int(event.Rune()-'0')
-		}
-		v.lastKey = event.Rune()
-		v.lastKeyTime = currentTime
+	if v.handleNumberPrefix(r, currentTime) {
 		return nil // Consume the number
 	}
 
 	// Handle single key commands
-	switch event.Rune() {
-	case 'j':
-		// Move down (with repeat count)
-		count := v.getRepeatCount()
-		v.reset()
-		if count == 1 {
-			return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
-		}
-		// For multiple moves, we'll need to handle this differently
-		// For now, just move once
-		return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
-
-	case 'k':
-		// Move up
-		v.reset()
-		return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
-
-	case 'h':
-		// Move left
-		v.reset()
-		return tcell.NewEventKey(tcell.KeyLeft, 0, tcell.ModNone)
-
-	case 'l':
-		// Move right
-		v.reset()
-		return tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone)
-
-	case 'G':
-		// Go to bottom (or line N with count)
-		v.reset()
-		return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
-
-	case '0':
-		// Go to beginning of line
-		v.reset()
-		return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
-
-	case '$':
-		// Go to end of line
-		v.reset()
-		return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
-
-	case 'g':
-		// First 'g' - wait for second key
-		v.lastKey = 'g'
-		v.lastKeyTime = currentTime
-		return nil // Consume the key
-
-	case '/':
-		// Search - let it pass through
-		v.reset()
-		return event
-
-	default:
-		// Unknown vim command, reset and pass through
-		v.reset()
-		return event
-	}
+	return v.handleSingleKeyCommand(r, currentTime, event)
 }
 
-// getRepeatCount returns the current repeat count (default 1)
-func (v *VimMode) getRepeatCount() int {
-	if v.repeatCount == 0 {
-		return 1
+func (v *VimMode) handleDoubleKeyPress(r rune, currentTime time.Time) *tcell.EventKey {
+	if v.lastKey != r || currentTime.Sub(v.lastKeyTime) >= 500*time.Millisecond {
+		return nil
 	}
-	return v.repeatCount
+
+	// Double key press detected
+	switch r {
+	case 'g':
+		// gg - go to top
+		v.reset()
+		return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
+	case 'd':
+		// dd - delete line (in future, for now just reset)
+		v.reset()
+		return nil
+	}
+
+	return nil
+}
+
+func (v *VimMode) handleNumberPrefix(r rune, currentTime time.Time) bool {
+	if r < '1' || r > '9' {
+		return false
+	}
+
+	if v.repeatCount == 0 {
+		v.repeatCount = int(r - '0')
+	} else {
+		v.repeatCount = v.repeatCount*10 + int(r-'0')
+	}
+
+	v.lastKey = r
+	v.lastKeyTime = currentTime
+	return true
+}
+
+func (v *VimMode) handleSingleKeyCommand(r rune, currentTime time.Time, event *tcell.EventKey) *tcell.EventKey {
+	handlers := map[rune]func() *tcell.EventKey{
+		'j': func() *tcell.EventKey {
+			v.reset()
+			return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+		},
+		'k': func() *tcell.EventKey {
+			v.reset()
+			return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+		},
+		'h': func() *tcell.EventKey {
+			v.reset()
+			return tcell.NewEventKey(tcell.KeyLeft, 0, tcell.ModNone)
+		},
+		'l': func() *tcell.EventKey {
+			v.reset()
+			return tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone)
+		},
+		'G': func() *tcell.EventKey {
+			v.reset()
+			return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
+		},
+		'0': func() *tcell.EventKey {
+			v.reset()
+			return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
+		},
+		'$': func() *tcell.EventKey {
+			v.reset()
+			return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
+		},
+		'g': func() *tcell.EventKey {
+			// First 'g' - wait for second key
+			v.lastKey = 'g'
+			v.lastKeyTime = currentTime
+			return nil // Consume the key
+		},
+		'/': func() *tcell.EventKey {
+			// Search - let it pass through
+			v.reset()
+			return event
+		},
+	}
+
+	if handler, ok := handlers[r]; ok {
+		return handler()
+	}
+
+	// Unknown vim command, reset and pass through
+	v.reset()
+	return event
 }
 
 // reset clears the vim mode state
