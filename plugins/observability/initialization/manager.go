@@ -92,7 +92,7 @@ func (m *Manager) InitializeComponents() (*Components, error) {
 
 // initSecretsManager initializes the secrets manager
 func (m *Manager) initSecretsManager(components *Components) error {
-	secretsManager, err := security.NewSecretsManager(m.ctx, m.config.Security.Secrets)
+	secretsManager, err := security.NewSecretsManager(m.ctx, &m.config.Security.Secrets)
 	if err != nil {
 		return fmt.Errorf("failed to create secrets manager: %w", err)
 	}
