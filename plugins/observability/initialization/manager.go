@@ -66,49 +66,25 @@ func (m *Manager) InitializeComponents() (*Components, error) {
 
 	components := &Components{}
 
-	// Initialize secrets manager first (needed for auth)
-	if err := m.initSecretsManager(components); err != nil {
-		return nil, fmt.Errorf("failed to initialize secrets manager: %w", err)
+	initializers := []struct {
+		name  string
+		fn    func(*Components) error
+	}{
+		{"secrets manager", m.initSecretsManager},
+		{"Prometheus client", m.initPrometheusClient},
+		{"caching", m.initCaching},
+		{"metrics", m.initMetrics},
+		{"overlays", m.initOverlays},
+		{"subscriptions", m.initSubscriptions},
+		{"historical data", m.initHistoricalData},
+		{"analysis", m.initAnalysis},
+		{"external API", m.initExternalAPI},
 	}
 
-	// Initialize Prometheus client
-	if err := m.initPrometheusClient(components); err != nil {
-		return nil, fmt.Errorf("failed to initialize Prometheus client: %w", err)
-	}
-
-	// Initialize caching layer
-	if err := m.initCaching(components); err != nil {
-		return nil, fmt.Errorf("failed to initialize caching: %w", err)
-	}
-
-	// Initialize metrics collection
-	if err := m.initMetrics(components); err != nil {
-		return nil, fmt.Errorf("failed to initialize metrics: %w", err)
-	}
-
-	// Initialize overlay management
-	if err := m.initOverlays(components); err != nil {
-		return nil, fmt.Errorf("failed to initialize overlays: %w", err)
-	}
-
-	// Initialize subscription system
-	if err := m.initSubscriptions(components); err != nil {
-		return nil, fmt.Errorf("failed to initialize subscriptions: %w", err)
-	}
-
-	// Initialize historical data collection
-	if err := m.initHistoricalData(components); err != nil {
-		return nil, fmt.Errorf("failed to initialize historical data: %w", err)
-	}
-
-	// Initialize analysis components
-	if err := m.initAnalysis(components); err != nil {
-		return nil, fmt.Errorf("failed to initialize analysis: %w", err)
-	}
-
-	// Initialize external API if enabled
-	if err := m.initExternalAPI(components); err != nil {
-		return nil, fmt.Errorf("failed to initialize external API: %w", err)
+	for _, init := range initializers {
+		if err := init.fn(components); err != nil {
+			return nil, fmt.Errorf("failed to initialize %s: %w", init.name, err)
+		}
 	}
 
 	return components, nil
