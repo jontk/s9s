@@ -46,11 +46,36 @@ func NewExportDialog(exportType ExportType) *ExportDialog {
 
 // setupUI creates the dialog UI
 func (ed *ExportDialog) setupUI() {
-	// Create form
 	ed.form = tview.NewForm()
 	ed.form.SetBorder(true)
 	ed.form.SetBorderPadding(1, 1, 2, 2)
+	ed.form.SetTitle(ed.getExportTitle())
+	ed.form.SetTitleAlign(tview.AlignCenter)
 
+	ed.setupExportOptions()
+	ed.setupExportButtons()
+
+	// Preview
+	preview := tview.NewTextView().
+		SetText(ed.getExportPreviewText()).
+		SetTextColor(tcell.ColorGray)
+	preview.SetBorder(true).SetTitle("Export Contents")
+
+	// Help text
+	help := tview.NewTextView().
+		SetText("[Tab] Navigate fields | [Enter] Select | [Esc] Cancel").
+		SetTextAlign(tview.AlignCenter).
+		SetTextColor(tcell.ColorGray)
+
+	// Layout
+	ed.SetDirection(tview.FlexRow)
+	ed.AddItem(ed.form, 0, 2, true)
+	ed.AddItem(preview, 0, 1, false)
+	ed.AddItem(help, 1, 0, false)
+}
+
+// getExportTitle returns the title based on export type
+func (ed *ExportDialog) getExportTitle() string {
 	title := "Export "
 	switch ed.exportType {
 	case ExportTypeJobOutput:
@@ -58,36 +83,42 @@ func (ed *ExportDialog) setupUI() {
 	case ExportTypePerformance:
 		title += "Performance Report"
 	}
-	ed.form.SetTitle(title)
-	ed.form.SetTitleAlign(tview.AlignCenter)
+	return title
+}
 
-	// Format dropdown
+// setupExportOptions configures format and path inputs
+func (ed *ExportDialog) setupExportOptions() {
 	formats := []string{"Text", "JSON", "CSV", "Markdown", "HTML"}
 	ed.form.AddDropDown("Format:", formats, 0, func(option string, _ int) {
-		switch option {
-		case "Text":
-			ed.selectedFormat = export.FormatText
-		case "JSON":
-			ed.selectedFormat = export.FormatJSON
-		case "CSV":
-			ed.selectedFormat = export.FormatCSV
-		case "Markdown":
-			ed.selectedFormat = export.FormatMarkdown
-		case "HTML":
-			ed.selectedFormat = export.FormatHTML
-		}
+		ed.selectedFormat = ed.parseFormatOption(option)
 	})
-	ed.selectedFormat = export.FormatText // Default
+	ed.selectedFormat = export.FormatText
 
-	// Path input
 	homeDir, _ := os.UserHomeDir()
 	defaultPath := filepath.Join(homeDir, "slurm_exports")
 	ed.form.AddInputField("Path:", defaultPath, 50, nil, func(text string) {
 		ed.customPath = text
 	})
 	ed.customPath = defaultPath
+}
 
-	// Preview text
+// setupExportButtons adds export and cancel buttons
+func (ed *ExportDialog) setupExportButtons() {
+	ed.form.AddButton("Export", func() {
+		if ed.onExport != nil {
+			ed.onExport(ed.selectedFormat, ed.customPath)
+		}
+	})
+
+	ed.form.AddButton("Cancel", func() {
+		if ed.onCancel != nil {
+			ed.onCancel()
+		}
+	})
+}
+
+// getExportPreviewText returns preview content based on export type
+func (ed *ExportDialog) getExportPreviewText() string {
 	previewText := "Preview:\n"
 	switch ed.exportType {
 	case ExportTypeJobOutput:
@@ -101,37 +132,24 @@ func (ed *ExportDialog) setupUI() {
 		previewText += "• Network performance\n"
 		previewText += "• Optimization recommendations"
 	}
+	return previewText
+}
 
-	preview := tview.NewTextView().
-		SetText(previewText).
-		SetTextColor(tcell.ColorGray)
-	preview.SetBorder(true).SetTitle("Export Contents")
-
-	// Buttons
-	ed.form.AddButton("Export", func() {
-		if ed.onExport != nil {
-			ed.onExport(ed.selectedFormat, ed.customPath)
-		}
-	})
-
-	ed.form.AddButton("Cancel", func() {
-		if ed.onCancel != nil {
-			ed.onCancel()
-		}
-	})
-
-	// Help text
-	helpText := "[Tab] Navigate fields | [Enter] Select | [Esc] Cancel"
-	help := tview.NewTextView().
-		SetText(helpText).
-		SetTextAlign(tview.AlignCenter).
-		SetTextColor(tcell.ColorGray)
-
-	// Layout
-	ed.SetDirection(tview.FlexRow)
-	ed.AddItem(ed.form, 0, 2, true)
-	ed.AddItem(preview, 0, 1, false)
-	ed.AddItem(help, 1, 0, false)
+// parseFormatOption converts format string to export format
+func (ed *ExportDialog) parseFormatOption(option string) export.ExportFormat {
+	switch option {
+	case "Text":
+		return export.FormatText
+	case "JSON":
+		return export.FormatJSON
+	case "CSV":
+		return export.FormatCSV
+	case "Markdown":
+		return export.FormatMarkdown
+	case "HTML":
+		return export.FormatHTML
+	}
+	return export.FormatText
 }
 
 // SetExportHandler sets the export callback
