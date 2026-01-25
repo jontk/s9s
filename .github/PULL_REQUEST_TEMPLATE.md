@@ -32,12 +32,14 @@ Relates to #(issue)
 ## Screenshots (if applicable)
 Add screenshots to help explain your changes.
 
-## Code Quality
+## Code Quality & Linting
 - [ ] Code passes golangci-lint checks (`make lint`)
 - [ ] Code is formatted with gofumpt (`make fmt`)
-- [ ] No new linter warnings introduced
+- [ ] No new linter warnings introduced (especially revive violations)
+- [ ] All exported symbols have godoc comments (package level + public APIs)
 - [ ] Pre-commit hooks pass (if installed locally)
-- [ ] Nolint directives include justification comments (if used)
+- [ ] Nolint directives include specific rule names and justification comments
+- [ ] No unused parameters (use `_` if required by interface)
 
 ## Checklist
 - [ ] My code follows the code style of this project and passes all linters
