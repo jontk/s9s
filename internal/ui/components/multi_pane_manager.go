@@ -518,7 +518,18 @@ func (mpm *MultiPaneManager) SetLayout(layout PaneLayout) {
 
 // refreshLayout rebuilds the UI layout
 func (mpm *MultiPaneManager) refreshLayout() {
-	// Clear current content area (keep tab bar and status bar)
+	mpm.clearContentArea()
+
+	if len(mpm.panes) == 0 {
+		return
+	}
+
+	contentArea := mpm.createLayoutContent()
+	mpm.rebuildContainer(contentArea)
+}
+
+// clearContentArea removes existing content area items
+func (mpm *MultiPaneManager) clearContentArea() {
 	items := mpm.container.GetItemCount()
 	if items > 2 {
 		// Remove content area items (everything between tab bar and status bar)
@@ -526,33 +537,29 @@ func (mpm *MultiPaneManager) refreshLayout() {
 			mpm.container.RemoveItem(mpm.container.GetItem(i - 1))
 		}
 	}
+}
 
-	if len(mpm.panes) == 0 {
-		return
-	}
-
-	var contentArea tview.Primitive
-
+// createLayoutContent creates the appropriate layout content
+func (mpm *MultiPaneManager) createLayoutContent() tview.Primitive {
 	switch mpm.layout {
 	case LayoutTabs:
-		contentArea = mpm.createTabLayout()
+		return mpm.createTabLayout()
 	case LayoutHorizontal:
-		contentArea = mpm.createHorizontalLayout()
+		return mpm.createHorizontalLayout()
 	case LayoutVertical:
-		contentArea = mpm.createVerticalLayout()
+		return mpm.createVerticalLayout()
 	case LayoutGrid:
-		contentArea = mpm.createGridLayout()
+		return mpm.createGridLayout()
 	default:
-		contentArea = mpm.createTabLayout()
+		return mpm.createTabLayout()
 	}
+}
 
-	// Insert content area between tab bar and status bar
-	// Remove existing content area first
+// rebuildContainer rebuilds the container with the new content area
+func (mpm *MultiPaneManager) rebuildContainer(contentArea tview.Primitive) {
 	itemCount := mpm.container.GetItemCount()
 
-	// Add content area before status bar
 	if itemCount > 1 {
-		// We need to rebuild the container with the new content area
 		mpm.container.Clear()
 		if mpm.showTabs {
 			mpm.container.AddItem(mpm.tabBar, 1, 0, false)
