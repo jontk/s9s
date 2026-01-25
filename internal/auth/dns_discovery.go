@@ -285,7 +285,7 @@ func (d *DNSEndpointDiscoverer) sortEndpointsByPriority(endpoints []Endpoint) {
 }
 
 // HealthCheck performs a health check on an endpoint
-func (d *DNSEndpointDiscoverer) HealthCheck(ctx context.Context, endpoint Endpoint) error {
+func (d *DNSEndpointDiscoverer) HealthCheck(ctx context.Context, endpoint *Endpoint) error {
 	debug.Logger.Printf("Health checking endpoint: %s", endpoint.URL)
 
 	// Use the same health check logic as static discovery

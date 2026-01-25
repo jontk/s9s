@@ -43,7 +43,7 @@ func Get() Info {
 }
 
 // String returns a human-readable version string
-func (i Info) String() string {
+func (i *Info) String() string {
 	if i.Commit != "unknown" && len(i.Commit) > 7 {
 		return fmt.Sprintf("%s (commit: %s, built: %s)", i.Version, i.Commit[:7], i.BuildDate)
 	}
@@ -51,12 +51,12 @@ func (i Info) String() string {
 }
 
 // Short returns just the version number
-func (i Info) Short() string {
+func (i *Info) Short() string {
 	return i.Version
 }
 
 // Full returns detailed version information
-func (i Info) Full() string {
+func (i *Info) Full() string {
 	return fmt.Sprintf(`s9s version %s
 Git commit: %s
 Built: %s

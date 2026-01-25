@@ -25,7 +25,7 @@ type Authenticator interface {
 // EndpointDiscoverer defines the interface for endpoint discovery plugins
 type EndpointDiscoverer interface {
 	DiscoverEndpoints(ctx context.Context, clusterID string) ([]Endpoint, error)
-	HealthCheck(ctx context.Context, endpoint Endpoint) error
+	HealthCheck(ctx context.Context, endpoint *Endpoint) error
 	GetLoadBalancer() LoadBalancer
 
 	// Plugin metadata
