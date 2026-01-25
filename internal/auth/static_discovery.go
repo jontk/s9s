@@ -86,64 +86,90 @@ func (s *StaticEndpointDiscoverer) parseEndpoints(config DiscoveryConfig) error 
 func (s *StaticEndpointDiscoverer) parseEndpoint(clusterID string, ep interface{}, _ int) (*Endpoint, error) {
 	switch endpoint := ep.(type) {
 	case string:
-		// Simple string URL
-		return &Endpoint{
-			URL:       endpoint,
-			ClusterID: clusterID,
-			Weight:    100, // Default weight
-			Status:    EndpointStatusUnknown,
-			Metadata:  make(map[string]string),
-			LastCheck: time.Time{},
-		}, nil
-
+		return s.parseStringEndpoint(endpoint, clusterID)
 	case map[string]interface{}:
-		// Object with URL and optional metadata
-		url, ok := endpoint["url"].(string)
-		if !ok {
-			return nil, fmt.Errorf("endpoint must have a 'url' field")
-		}
-
-		weight := 100 // Default weight
-		if w, ok := endpoint["weight"].(int); ok {
-			weight = w
-		} else if w, ok := endpoint["weight"].(float64); ok {
-			weight = int(w)
-		}
-
-		metadata := make(map[string]string)
-		if meta, ok := endpoint["metadata"].(map[string]interface{}); ok {
-			for k, v := range meta {
-				if str, ok := v.(string); ok {
-					metadata[k] = str
-				}
-			}
-		}
-
-		// Add tags if present
-		if tags, ok := endpoint["tags"].([]interface{}); ok {
-			var tagStrings []string
-			for _, tag := range tags {
-				if tagStr, ok := tag.(string); ok {
-					tagStrings = append(tagStrings, tagStr)
-				}
-			}
-			if len(tagStrings) > 0 {
-				metadata["tags"] = fmt.Sprintf("%v", tagStrings)
-			}
-		}
-
-		return &Endpoint{
-			URL:       url,
-			ClusterID: clusterID,
-			Weight:    weight,
-			Status:    EndpointStatusUnknown,
-			Metadata:  metadata,
-			LastCheck: time.Time{},
-		}, nil
-
+		return s.parseMapEndpoint(endpoint, clusterID)
 	default:
 		return nil, fmt.Errorf("endpoint must be either a string URL or an object with 'url' field")
 	}
+}
+
+// parseStringEndpoint creates an endpoint from a simple URL string
+func (s *StaticEndpointDiscoverer) parseStringEndpoint(url, clusterID string) (*Endpoint, error) {
+	return &Endpoint{
+		URL:       url,
+		ClusterID: clusterID,
+		Weight:    100,
+		Status:    EndpointStatusUnknown,
+		Metadata:  make(map[string]string),
+		LastCheck: time.Time{},
+	}, nil
+}
+
+// parseMapEndpoint creates an endpoint from a map with URL and metadata
+func (s *StaticEndpointDiscoverer) parseMapEndpoint(endpoint map[string]interface{}, clusterID string) (*Endpoint, error) {
+	url, ok := endpoint["url"].(string)
+	if !ok {
+		return nil, fmt.Errorf("endpoint must have a 'url' field")
+	}
+
+	weight := s.extractWeight(endpoint)
+	metadata := s.extractMetadata(endpoint)
+
+	return &Endpoint{
+		URL:       url,
+		ClusterID: clusterID,
+		Weight:    weight,
+		Status:    EndpointStatusUnknown,
+		Metadata:  metadata,
+		LastCheck: time.Time{},
+	}, nil
+}
+
+// extractWeight extracts the weight from endpoint config with fallback to 100
+func (s *StaticEndpointDiscoverer) extractWeight(endpoint map[string]interface{}) int {
+	if w, ok := endpoint["weight"].(int); ok {
+		return w
+	}
+	if w, ok := endpoint["weight"].(float64); ok {
+		return int(w)
+	}
+	return 100
+}
+
+// extractMetadata extracts metadata and tags from endpoint config
+func (s *StaticEndpointDiscoverer) extractMetadata(endpoint map[string]interface{}) map[string]string {
+	metadata := make(map[string]string)
+
+	// Add explicit metadata
+	if meta, ok := endpoint["metadata"].(map[string]interface{}); ok {
+		for k, v := range meta {
+			if str, ok := v.(string); ok {
+				metadata[k] = str
+			}
+		}
+	}
+
+	// Add tags as comma-separated metadata
+	if tags := s.extractTags(endpoint); len(tags) > 0 {
+		metadata["tags"] = fmt.Sprintf("%v", tags)
+	}
+
+	return metadata
+}
+
+// extractTags extracts tags from endpoint config as string array
+func (s *StaticEndpointDiscoverer) extractTags(endpoint map[string]interface{}) []string {
+	if tags, ok := endpoint["tags"].([]interface{}); ok {
+		var tagStrings []string
+		for _, tag := range tags {
+			if tagStr, ok := tag.(string); ok {
+				tagStrings = append(tagStrings, tagStr)
+			}
+		}
+		return tagStrings
+	}
+	return nil
 }
 
 // DiscoverEndpoints returns the statically configured endpoints for a cluster
