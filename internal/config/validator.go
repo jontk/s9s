@@ -498,46 +498,78 @@ func ValidateAndFix(config *Config, autoFix bool) *ValidationResult {
 
 // PrintValidationResult prints a formatted validation result
 func PrintValidationResult(result *ValidationResult, verbose bool) {
-	if result.Valid {
+	printValidationStatus(result.Valid)
+	printErrorsSection(result.Errors)
+	printWarningsSection(result.Warnings, verbose)
+	printFixesSection(result.Fixes, verbose)
+	printFinalMessage(result)
+}
+
+// printValidationStatus prints the overall validation status
+func printValidationStatus(valid bool) {
+	if valid {
 		fmt.Printf("✅ Configuration is valid\n")
 	} else {
 		fmt.Printf("❌ Configuration has issues\n")
 	}
+}
 
-	if len(result.Errors) > 0 {
-		fmt.Printf("\n🚨 Errors (%d):\n", len(result.Errors))
-		for _, err := range result.Errors {
-			fmt.Printf("   • [%s] %s\n", err.Field, err.Message)
-			if err.Suggestion != "" {
-				fmt.Printf("     💡 %s\n", err.Suggestion)
-			}
-		}
+// printErrorsSection prints the errors section
+func printErrorsSection(errors []ValidationError) {
+	if len(errors) == 0 {
+		return
 	}
 
-	if len(result.Warnings) > 0 {
-		fmt.Printf("\n⚠️  Warnings (%d):\n", len(result.Warnings))
-		for _, warn := range result.Warnings {
-			fmt.Printf("   • [%s] %s\n", warn.Field, warn.Message)
-			if warn.Impact != "" && verbose {
-				fmt.Printf("     📄 Impact: %s\n", warn.Impact)
-			}
+	fmt.Printf("\n🚨 Errors (%d):\n", len(errors))
+	for _, err := range errors {
+		fmt.Printf("   • [%s] %s\n", err.Field, err.Message)
+		if err.Suggestion != "" {
+			fmt.Printf("     💡 %s\n", err.Suggestion)
 		}
 	}
+}
 
-	if len(result.Fixes) > 0 {
-		fmt.Printf("\n🔧 Fixes (%d):\n", len(result.Fixes))
-		for _, fix := range result.Fixes {
-			status := "available"
-			if fix.Applied {
-				status = "applied"
-			}
-			fmt.Printf("   • [%s] %s (%s)\n", fix.Field, fix.Description, status)
-			if verbose && fix.OldValue != fix.NewValue {
-				fmt.Printf("     📝 %v → %v\n", fix.OldValue, fix.NewValue)
-			}
-		}
+// printWarningsSection prints the warnings section
+func printWarningsSection(warnings []ValidationWarning, verbose bool) {
+	if len(warnings) == 0 {
+		return
 	}
 
+	fmt.Printf("\n⚠️  Warnings (%d):\n", len(warnings))
+	for _, warn := range warnings {
+		fmt.Printf("   • [%s] %s\n", warn.Field, warn.Message)
+		if warn.Impact != "" && verbose {
+			fmt.Printf("     📄 Impact: %s\n", warn.Impact)
+		}
+	}
+}
+
+// printFixesSection prints the fixes section
+func printFixesSection(fixes []ValidationFix, verbose bool) {
+	if len(fixes) == 0 {
+		return
+	}
+
+	fmt.Printf("\n🔧 Fixes (%d):\n", len(fixes))
+	for _, fix := range fixes {
+		status := getFixStatus(fix.Applied)
+		fmt.Printf("   • [%s] %s (%s)\n", fix.Field, fix.Description, status)
+		if verbose && fix.OldValue != fix.NewValue {
+			fmt.Printf("     📝 %v → %v\n", fix.OldValue, fix.NewValue)
+		}
+	}
+}
+
+// getFixStatus returns the status string for a fix
+func getFixStatus(applied bool) string {
+	if applied {
+		return "applied"
+	}
+	return "available"
+}
+
+// printFinalMessage prints a final message if configuration is perfect
+func printFinalMessage(result *ValidationResult) {
 	if result.Valid && len(result.Warnings) == 0 && len(result.Fixes) == 0 {
 		fmt.Printf("\n🎉 Configuration is perfect!\n")
 	}
