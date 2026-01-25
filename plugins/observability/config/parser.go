@@ -215,31 +215,47 @@ func (p *Parser) parseDecimalPrecision(key string, config *DisplayConfig) {
 // parseAlertsConfig parses Alerts-specific configuration
 	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseAlertsConfig(config *AlertConfig) error {
-	if val, ok := p.getValue("alerts.enabled"); ok {
+	p.parseAlertsEnabled("alerts.enabled", config)
+	p.parseCheckInterval("alerts.checkInterval", config)
+	p.parseShowNotifications("alerts.showNotifications", config)
+	p.parseHistoryRetention("alerts.historyRetention", config)
+	return nil
+}
+
+// parseAlertsEnabled parses the alerts enabled flag
+func (p *Parser) parseAlertsEnabled(key string, config *AlertConfig) {
+	if val, ok := p.getValue(key); ok {
 		if b, err := p.parseBool(val); err == nil {
 			config.Enabled = b
 		}
 	}
+}
 
-	if val, ok := p.getValue("alerts.checkInterval"); ok {
+// parseCheckInterval parses the alerts check interval
+func (p *Parser) parseCheckInterval(key string, config *AlertConfig) {
+	if val, ok := p.getValue(key); ok {
 		if duration, err := p.parseDuration(val); err == nil {
 			config.CheckInterval = duration
 		}
 	}
+}
 
-	if val, ok := p.getValue("alerts.showNotifications"); ok {
+// parseShowNotifications parses the show notifications flag
+func (p *Parser) parseShowNotifications(key string, config *AlertConfig) {
+	if val, ok := p.getValue(key); ok {
 		if b, err := p.parseBool(val); err == nil {
 			config.ShowNotifications = b
 		}
 	}
+}
 
-	if val, ok := p.getValue("alerts.historyRetention"); ok {
+// parseHistoryRetention parses the history retention duration
+func (p *Parser) parseHistoryRetention(key string, config *AlertConfig) {
+	if val, ok := p.getValue(key); ok {
 		if duration, err := p.parseDuration(val); err == nil {
 			config.HistoryRetention = duration
 		}
 	}
-
-	return nil
 }
 
 // parseCacheConfig parses Cache-specific configuration
