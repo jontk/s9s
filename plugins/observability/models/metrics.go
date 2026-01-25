@@ -123,8 +123,8 @@ func NewMetricCollection(id, name, collectionType string) *MetricCollection {
 }
 
 // AddMetric adds a time series to the collection
-func (mc *MetricCollection) AddMetric(name string, ts TimeSeries) {
-	mc.Metrics[name] = ts
+func (mc *MetricCollection) AddMetric(name string, ts *TimeSeries) {
+	mc.Metrics[name] = *ts
 	mc.LastUpdate = time.Now()
 }
 
