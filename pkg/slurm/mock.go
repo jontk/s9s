@@ -124,7 +124,17 @@ func (m *MockClient) Close() error {
 
 // populateSampleData populates the mock client with sample data
 func (m *MockClient) populateSampleData() {
-	// Add sample partitions
+	m.populatePartitions()
+	m.populateComputeNodes()
+	m.populateGPUNodes()
+	m.populateJobs()
+	m.populateReservations()
+	m.populateQoS()
+	m.populateAccounts()
+	m.populateUsers()
+}
+
+func (m *MockClient) populatePartitions() {
 	m.partitions["compute"] = &dao.Partition{
 		Name:        "compute",
 		State:       dao.PartitionStateUp,
@@ -157,8 +167,9 @@ func (m *MockClient) populateSampleData() {
 		QOS:         []string{"debug"},
 		Nodes:       []string{"debug[001-010]"},
 	}
+}
 
-	// Add sample nodes
+func (m *MockClient) populateComputeNodes() {
 	for i := 1; i <= 100; i++ {
 		state := dao.NodeStateIdle
 		if i <= 60 {
@@ -168,52 +179,16 @@ func (m *MockClient) populateSampleData() {
 		}
 
 		m.nodes[fmt.Sprintf("node%03d", i)] = &dao.Node{
-			Name:       fmt.Sprintf("node%03d", i),
-			State:      state,
-			Partitions: []string{"compute"},
-			CPUsTotal:  32,
-			CPUsAllocated: func() int {
-				switch state {
-				case dao.NodeStateAllocated:
-					return 32
-				case dao.NodeStateMixed:
-					return 16
-				default:
-					return 0
-				}
-			}(),
-			CPUsIdle: func() int {
-				switch state {
-				case dao.NodeStateIdle:
-					return 32
-				case dao.NodeStateMixed:
-					return 16
-				default:
-					return 0
-				}
-			}(),
-			MemoryTotal: 128 * 1024, // 128GB
-			MemoryAllocated: func() int64 {
-				switch state {
-				case dao.NodeStateAllocated:
-					return 128 * 1024
-				case dao.NodeStateMixed:
-					return 64 * 1024
-				default:
-					return 0
-				}
-			}(),
-			MemoryFree: func() int64 {
-				switch state {
-				case dao.NodeStateIdle:
-					return 128 * 1024
-				case dao.NodeStateMixed:
-					return 64 * 1024
-				default:
-					return 0
-				}
-			}(),
-			Features: []string{"avx2", "sse4.2"},
+			Name:             fmt.Sprintf("node%03d", i),
+			State:            state,
+			Partitions:       []string{"compute"},
+			CPUsTotal:        32,
+			CPUsAllocated:    m.getComputeNodeCPUsAllocated(state),
+			CPUsIdle:         m.getComputeNodeCPUsIdle(state),
+			MemoryTotal:      128 * 1024, // 128GB
+			MemoryAllocated:  m.getComputeNodeMemoryAllocated(state),
+			MemoryFree:       m.getComputeNodeMemoryFree(state),
+			Features:         []string{"avx2", "sse4.2"},
 		}
 	}
 
@@ -222,8 +197,53 @@ func (m *MockClient) populateSampleData() {
 	m.nodes["node098"].Reason = "Hardware failure"
 	m.nodes["node099"].State = dao.NodeStateDrain
 	m.nodes["node099"].Reason = "Maintenance"
+}
 
-	// Add GPU nodes
+func (m *MockClient) getComputeNodeCPUsAllocated(state string) int {
+	switch state {
+	case dao.NodeStateAllocated:
+		return 32
+	case dao.NodeStateMixed:
+		return 16
+	default:
+		return 0
+	}
+}
+
+func (m *MockClient) getComputeNodeCPUsIdle(state string) int {
+	switch state {
+	case dao.NodeStateIdle:
+		return 32
+	case dao.NodeStateMixed:
+		return 16
+	default:
+		return 0
+	}
+}
+
+func (m *MockClient) getComputeNodeMemoryAllocated(state string) int64 {
+	switch state {
+	case dao.NodeStateAllocated:
+		return 128 * 1024
+	case dao.NodeStateMixed:
+		return 64 * 1024
+	default:
+		return 0
+	}
+}
+
+func (m *MockClient) getComputeNodeMemoryFree(state string) int64 {
+	switch state {
+	case dao.NodeStateIdle:
+		return 128 * 1024
+	case dao.NodeStateMixed:
+		return 64 * 1024
+	default:
+		return 0
+	}
+}
+
+func (m *MockClient) populateGPUNodes() {
 	for i := 1; i <= 20; i++ {
 		m.nodes[fmt.Sprintf("gpu%03d", i)] = &dao.Node{
 			Name:            fmt.Sprintf("gpu%03d", i),
@@ -238,8 +258,9 @@ func (m *MockClient) populateSampleData() {
 			Features:        []string{"gpu", "cuda", "avx2"},
 		}
 	}
+}
 
-	// Add sample jobs
+func (m *MockClient) populateJobs() {
 	jobStates := []string{
 		dao.JobStateRunning,
 		dao.JobStatePending,
@@ -271,28 +292,32 @@ func (m *MockClient) populateSampleData() {
 			Command:    "python simulate.py",
 		}
 
-		switch state {
-		case dao.JobStateRunning:
-			startTime := job.SubmitTime.Add(time.Duration(rand.Intn(60)) * time.Minute)
-			job.StartTime = &startTime
-			job.TimeUsed = fmt.Sprintf("%d:%02d:%02d", rand.Intn(2), rand.Intn(60), rand.Intn(60))
-			job.NodeList = fmt.Sprintf("node[%03d-%03d]", rand.Intn(90)+1, rand.Intn(90)+10)
-		case dao.JobStateCompleted, dao.JobStateFailed:
-			startTime := job.SubmitTime.Add(time.Duration(rand.Intn(60)) * time.Minute)
-			endTime := startTime.Add(time.Duration(rand.Intn(120)) * time.Minute)
-			job.StartTime = &startTime
-			job.EndTime = &endTime
-			exitCode := 0
-			if state == dao.JobStateFailed {
-				exitCode = rand.Intn(255) + 1
-			}
-			job.ExitCode = &exitCode
-		}
-
+		m.setJobStateDetails(job, state)
 		m.jobs[job.ID] = job
 	}
+}
 
-	// Add sample reservations
+func (m *MockClient) setJobStateDetails(job *dao.Job, state string) {
+	switch state {
+	case dao.JobStateRunning:
+		startTime := job.SubmitTime.Add(time.Duration(rand.Intn(60)) * time.Minute)
+		job.StartTime = &startTime
+		job.TimeUsed = fmt.Sprintf("%d:%02d:%02d", rand.Intn(2), rand.Intn(60), rand.Intn(60))
+		job.NodeList = fmt.Sprintf("node[%03d-%03d]", rand.Intn(90)+1, rand.Intn(90)+10)
+	case dao.JobStateCompleted, dao.JobStateFailed:
+		startTime := job.SubmitTime.Add(time.Duration(rand.Intn(60)) * time.Minute)
+		endTime := startTime.Add(time.Duration(rand.Intn(120)) * time.Minute)
+		job.StartTime = &startTime
+		job.EndTime = &endTime
+		exitCode := 0
+		if state == dao.JobStateFailed {
+			exitCode = rand.Intn(255) + 1
+		}
+		job.ExitCode = &exitCode
+	}
+}
+
+func (m *MockClient) populateReservations() {
 	m.reservations["maint-001"] = &dao.Reservation{
 		Name:      "maint-001",
 		State:     "ACTIVE",
@@ -305,8 +330,9 @@ func (m *MockClient) populateSampleData() {
 		Users:     []string{"admin"},
 		Accounts:  []string{"maintenance"},
 	}
+}
 
-	// Add sample QoS
+func (m *MockClient) populateQoS() {
 	m.qos["normal"] = &dao.QoS{
 		Name:                 "normal",
 		Priority:             100,
@@ -357,8 +383,9 @@ func (m *MockClient) populateSampleData() {
 		MinCPUs:              1,
 		MinNodes:             1,
 	}
+}
 
-	// Add sample accounts
+func (m *MockClient) populateAccounts() {
 	m.accounts["physics"] = &dao.Account{
 		Name:         "physics",
 		Description:  "Physics Department Research",
@@ -454,8 +481,9 @@ func (m *MockClient) populateSampleData() {
 		Parent:       "",
 		Children:     []string{},
 	}
+}
 
-	// Add sample users
+func (m *MockClient) populateUsers() {
 	m.users["alice"] = &dao.User{
 		Name:           "alice",
 		UID:            1001,
@@ -551,42 +579,56 @@ func (m *mockJobManager) List(opts *dao.ListJobsOptions) (*dao.JobList, error) {
 	m.client.mu.RLock()
 	defer m.client.mu.RUnlock()
 
+	jobs := m.filterJobs(opts)
+	start, end := m.calculateLimitOffset(opts, len(jobs))
+
+	return &dao.JobList{
+		Jobs:  jobs[start:end],
+		Total: len(jobs),
+	}, nil
+}
+
+func (m *mockJobManager) filterJobs(opts *dao.ListJobsOptions) []*dao.Job {
 	jobs := make([]*dao.Job, 0, len(m.client.jobs))
 	for _, job := range m.client.jobs {
-		// Apply filters
-		if opts != nil {
-			if len(opts.States) > 0 && !contains(opts.States, job.State) {
-				continue
-			}
-			if len(opts.Users) > 0 && !contains(opts.Users, job.User) {
-				continue
-			}
-			if len(opts.Partitions) > 0 && !contains(opts.Partitions, job.Partition) {
-				continue
-			}
-			if len(opts.Accounts) > 0 && !contains(opts.Accounts, job.Account) {
-				continue
-			}
+		if m.jobMatchesFilters(job, opts) {
+			jobs = append(jobs, job)
 		}
-		jobs = append(jobs, job)
 	}
+	return jobs
+}
 
-	// Apply limit and offset
+func (m *mockJobManager) jobMatchesFilters(job *dao.Job, opts *dao.ListJobsOptions) bool {
+	if opts == nil {
+		return true
+	}
+	if len(opts.States) > 0 && !contains(opts.States, job.State) {
+		return false
+	}
+	if len(opts.Users) > 0 && !contains(opts.Users, job.User) {
+		return false
+	}
+	if len(opts.Partitions) > 0 && !contains(opts.Partitions, job.Partition) {
+		return false
+	}
+	if len(opts.Accounts) > 0 && !contains(opts.Accounts, job.Account) {
+		return false
+	}
+	return true
+}
+
+func (m *mockJobManager) calculateLimitOffset(opts *dao.ListJobsOptions, jobCount int) (int, int) {
 	start := 0
-	end := len(jobs)
+	end := jobCount
 	if opts != nil {
-		if opts.Offset > 0 && opts.Offset < len(jobs) {
+		if opts.Offset > 0 && opts.Offset < jobCount {
 			start = opts.Offset
 		}
 		if opts.Limit > 0 && start+opts.Limit < end {
 			end = start + opts.Limit
 		}
 	}
-
-	return &dao.JobList{
-		Jobs:  jobs[start:end],
-		Total: len(jobs),
-	}, nil
+	return start, end
 }
 
 func (m *mockJobManager) Get(id string) (*dao.Job, error) {
