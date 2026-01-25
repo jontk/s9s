@@ -51,10 +51,10 @@ func (s *S9s) setupKeyboardShortcuts() {
 
 // handleRuneKey handles keyboard input for rune (character) keys
 func (s *S9s) handleRuneKey(event *tcell.EventKey, isModalOpen bool) *tcell.EventKey {
-	rune := event.Rune()
+	r := event.Rune()
 
 	// Allow command mode in modals for emergency commands
-	if isModalOpen && rune == ':' {
+	if isModalOpen && r == ':' {
 		s.showCommandLine()
 		return nil
 	}
@@ -65,7 +65,7 @@ func (s *S9s) handleRuneKey(event *tcell.EventKey, isModalOpen bool) *tcell.Even
 	}
 
 	// Handle global rune shortcuts
-	handler, ok := s.globalRuneHandlers()[rune]
+	handler, ok := s.globalRuneHandlers()[r]
 	if ok {
 		return handler(s, event)
 	}
@@ -109,32 +109,32 @@ func (s *S9s) globalRuneHandlers() map[rune]KeyHandler {
 }
 
 // Handler implementations
-func (s *S9s) handleCtrlC(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleCtrlC(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	_ = s.Stop()
 	return nil
 }
 
-func (s *S9s) handleF1Help(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleF1Help(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	views.ShowHelpModal(s.pages)
 	return nil
 }
 
-func (s *S9s) handleF2Alerts(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleF2Alerts(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	s.showAlertsModal()
 	return nil
 }
 
-func (s *S9s) handleF3Preferences(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleF3Preferences(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	s.showPreferences()
 	return nil
 }
 
-func (s *S9s) handleF4LayoutSwitcher(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleF4LayoutSwitcher(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	s.showLayoutSwitcher()
 	return nil
 }
 
-func (s *S9s) handleF5Refresh(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleF5Refresh(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	if err := s.viewMgr.RefreshCurrentView(); err != nil {
 		s.statusBar.Error(fmt.Sprintf("Failed to refresh: %v", err))
 	} else {
@@ -150,41 +150,41 @@ func (s *S9s) handleF5Refresh(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
 	return nil
 }
 
-func (s *S9s) handleF10Configuration(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleF10Configuration(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	s.showConfiguration()
 	return nil
 }
 
-func (s *S9s) handleTabNavigation(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleTabNavigation(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	_ = s.viewMgr.NextView()
 	s.updateCurrentView()
 	return nil
 }
 
-func (s *S9s) handleBacktabNavigation(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleBacktabNavigation(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	_ = s.viewMgr.PreviousView()
 	s.updateCurrentView()
 	return nil
 }
 
-func (s *S9s) handleColonCommand(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleColonCommand(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	s.showCommandLine()
 	return nil
 }
 
-func (s *S9s) handleQuestionHelp(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleQuestionHelp(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	s.showHelp()
 	return nil
 }
 
-func (s *S9s) handleQuit(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleQuit(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	_ = s.Stop()
 	return nil
 }
 
 // makeViewSwitchHandler creates a handler for switching to a specific view
 func (s *S9s) makeViewSwitchHandler(viewName string) KeyHandler {
-	return func(s *S9s, event *tcell.EventKey) *tcell.EventKey {
+	return func(s *S9s, _ *tcell.EventKey) *tcell.EventKey {
 		s.switchToView(viewName)
 		return nil
 	}

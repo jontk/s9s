@@ -492,7 +492,7 @@ func (o *OAuth2Authenticator) prepareTokenExchangeRequest(tokenEndpoint, code, c
 	data.Set("code_verifier", codeVerifier)
 
 	// Note: We can safely ignore the error here as we control all inputs
-	req, _ := http.NewRequestWithContext(context.Background(), "POST", tokenEndpoint, strings.NewReader(data.Encode())) //nolint:errcheck
+	req, _ := http.NewRequestWithContext(context.Background(), "POST", tokenEndpoint, strings.NewReader(data.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "s9s/1.0")

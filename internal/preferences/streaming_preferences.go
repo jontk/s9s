@@ -195,8 +195,8 @@ func (m *StreamingPreferencesManager) validateNumericRanges(prefs *StreamingPref
 }
 
 // validateIntRange validates an integer is within bounds and resets to default if not
-func (m *StreamingPreferencesManager) validateIntRange(val *int, min, max, defaultVal int) {
-	if *val < min || *val > max {
+func (m *StreamingPreferencesManager) validateIntRange(val *int, minVal, maxVal, defaultVal int) {
+	if *val < minVal || *val > maxVal {
 		*val = defaultVal
 	}
 }

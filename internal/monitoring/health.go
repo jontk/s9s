@@ -269,7 +269,7 @@ func (hm *HealthMonitor) checkNodes(client dao.SlurmClient) *HealthCheck {
 	downNodes, drainNodes := countNodeStates(nodeList.Nodes)
 	unavailablePercent := float64(downNodes+drainNodes) * 100.0 / float64(total)
 
-	hm.setCheckStatus(check, unavailablePercent, func(status HealthStatus) string {
+	hm.setCheckStatus(check, unavailablePercent, func(_ HealthStatus) string {
 		return fmt.Sprintf("%.1f%% of nodes unavailable (%d down, %d drain out of %d total)",
 			unavailablePercent, downNodes, drainNodes, total)
 	}, func() string {
@@ -346,7 +346,7 @@ func (hm *HealthMonitor) checkUtilization(client dao.SlurmClient) *HealthCheck {
 		maxUtil = memUtil
 	}
 
-	hm.setCheckStatus(check, maxUtil, func(status HealthStatus) string {
+	hm.setCheckStatus(check, maxUtil, func(_ HealthStatus) string {
 		return fmt.Sprintf("Resource utilization: CPU %.1f%%, Memory %.1f%%", cpuUtil, memUtil)
 	}, nil)
 
