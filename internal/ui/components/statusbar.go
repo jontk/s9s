@@ -170,31 +170,25 @@ func (s *StatusBar) formatHints(hints []string) string {
 }
 
 // getColorName returns the color name for tview markup
+// colorNameMap maps tcell colors to their string names
+var colorNameMap = map[tcell.Color]string{
+	tcell.ColorRed:    "red",
+	tcell.ColorGreen:  "green",
+	tcell.ColorYellow: "yellow",
+	tcell.ColorBlue:   "blue",
+	tcell.ColorPurple: "purple",
+	tcell.ColorTeal:   "teal",
+	tcell.ColorWhite:  "white",
+	tcell.ColorBlack:  "black",
+	tcell.ColorOrange: "orange",
+	tcell.ColorGray:   "gray",
+}
+
 func getColorName(color tcell.Color) string {
-	switch color {
-	case tcell.ColorRed:
-		return "red"
-	case tcell.ColorGreen:
-		return "green"
-	case tcell.ColorYellow:
-		return "yellow"
-	case tcell.ColorBlue:
-		return "blue"
-	case tcell.ColorPurple:
-		return "purple"
-	case tcell.ColorTeal:
-		return "teal"
-	case tcell.ColorWhite:
-		return "white"
-	case tcell.ColorBlack:
-		return "black"
-	case tcell.ColorOrange:
-		return "orange"
-	case tcell.ColorGray:
-		return "gray"
-	default:
-		return "white"
+	if name, exists := colorNameMap[color]; exists {
+		return name
 	}
+	return "white"
 }
 
 // StatusBarBuilder provides a fluent interface for building status bars
