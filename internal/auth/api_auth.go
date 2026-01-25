@@ -118,26 +118,70 @@ func (a *APIAuthenticator) Initialize(_ context.Context, config AuthConfig) erro
 // Authenticate authenticates against the API endpoint
 func (a *APIAuthenticator) Authenticate(ctx context.Context, config AuthConfig) (*Token, error) {
 	endpoint := config.GetString("endpoint")
-	method := config.GetString("method")
-	if method == "" {
-		method = "POST"
-	}
-
-	username := config.GetString("username")
-	password := config.GetString("password")
+	method := a.getHTTPMethod(config)
 
 	debug.Logger.Printf("Authenticating with API endpoint: %s", endpoint)
 
 	// Prepare request payload
-	payload := map[string]interface{}{
-		"username": username,
-		"password": password,
+	payloadBytes, err := a.preparePayload(config)
+	if err != nil {
+		return nil, err
 	}
 
-	// Add any additional fields from config
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(payloadBytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	// Set request headers
+	a.setRequestHeaders(req, config)
+
+	// Execute request
+	resp, err := a.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	// Handle response
+	responseData, err := a.handleResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract token information
+	token, err := a.extractToken(responseData, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract token from response: %w", err)
+	}
+
+	debug.Logger.Printf("Successfully authenticated via API, token expires at: %v", token.ExpiresAt)
+	return token, nil
+}
+
+// getHTTPMethod returns the HTTP method, defaulting to POST
+func (a *APIAuthenticator) getHTTPMethod(config AuthConfig) string {
+	method := config.GetString("method")
+	if method == "" {
+		return "POST"
+	}
+	return method
+}
+
+// preparePayload creates the request payload
+func (a *APIAuthenticator) preparePayload(config AuthConfig) ([]byte, error) {
+	payload := map[string]interface{}{
+		"username": config.GetString("username"),
+		"password": config.GetString("password"),
+	}
+
+	// Add client_id if present
 	if clientID := config.GetString("client_id"); clientID != "" {
 		payload["client_id"] = clientID
 	}
+
+	// Add grant_type (default to "password")
 	if grantType := config.GetString("grant_type"); grantType != "" {
 		payload["grant_type"] = grantType
 	} else {
@@ -148,14 +192,12 @@ func (a *APIAuthenticator) Authenticate(ctx context.Context, config AuthConfig) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request payload: %w", err)
 	}
+	return payloadBytes, nil
+}
 
-	// Create HTTP request
-	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(payloadBytes))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
-	}
-
-	// Set headers
+// setRequestHeaders sets required and custom headers on the request
+func (a *APIAuthenticator) setRequestHeaders(req *http.Request, config AuthConfig) {
+	// Set standard headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "s9s/1.0")
@@ -170,14 +212,10 @@ func (a *APIAuthenticator) Authenticate(ctx context.Context, config AuthConfig) 
 			}
 		}
 	}
+}
 
-	// Execute request
-	resp, err := a.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("HTTP request failed: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
+// handleResponse reads and validates the HTTP response
+func (a *APIAuthenticator) handleResponse(resp *http.Response) (map[string]interface{}, error) {
 	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -196,85 +234,26 @@ func (a *APIAuthenticator) Authenticate(ctx context.Context, config AuthConfig) 
 		return nil, fmt.Errorf("failed to parse JSON response: %w", err)
 	}
 
-	// Extract token information
-	token, err := a.extractToken(responseData, config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to extract token from response: %w", err)
-	}
-
-	debug.Logger.Printf("Successfully authenticated via API, token expires at: %v", token.ExpiresAt)
-	return token, nil
+	return responseData, nil
 }
 
 // extractToken extracts token information from the API response
 func (a *APIAuthenticator) extractToken(data map[string]interface{}, config AuthConfig) (*Token, error) {
-	tokenPath := config.GetString("token_path")
-	if tokenPath == "" {
-		tokenPath = "access_token"
-	}
+	// Get configured paths or use defaults
+	tokenPath := a.getPathOrDefault(config, "token_path", "access_token")
+	refreshTokenPath := a.getPathOrDefault(config, "refresh_token_path", "refresh_token")
+	expiryPath := a.getPathOrDefault(config, "expiry_path", "expires_in")
 
-	refreshTokenPath := config.GetString("refresh_token_path")
-	if refreshTokenPath == "" {
-		refreshTokenPath = "refresh_token"
-	}
-
-	expiryPath := config.GetString("expiry_path")
-	if expiryPath == "" {
-		expiryPath = "expires_in"
-	}
-
-	// Extract access token
-	accessToken, err := a.extractValueFromPath(data, tokenPath)
+	// Extract access token (required)
+	accessTokenStr, err := a.extractAccessToken(data, tokenPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract access token: %w", err)
+		return nil, err
 	}
 
-	accessTokenStr, ok := accessToken.(string)
-	if !ok {
-		return nil, fmt.Errorf("access token is not a string")
-	}
-
-	// Extract refresh token (optional)
-	var refreshToken string
-	if refreshTokenVal, err := a.extractValueFromPath(data, refreshTokenPath); err == nil {
-		if refreshTokenStr, ok := refreshTokenVal.(string); ok {
-			refreshToken = refreshTokenStr
-		}
-	}
-
-	// Extract expiry (optional)
-	var expiresAt time.Time
-	if expiryVal, err := a.extractValueFromPath(data, expiryPath); err == nil {
-		switch exp := expiryVal.(type) {
-		case float64:
-			// Assume it's seconds from now
-			expiresAt = time.Now().Add(time.Duration(exp) * time.Second)
-		case int:
-			expiresAt = time.Now().Add(time.Duration(exp) * time.Second)
-		case string:
-			// Try to parse as RFC3339 timestamp
-			if parsedTime, err := time.Parse(time.RFC3339, exp); err == nil {
-				expiresAt = parsedTime
-			} else {
-				// Default to 1 hour if we can't parse
-				expiresAt = time.Now().Add(1 * time.Hour)
-			}
-		default:
-			// Default to 1 hour
-			expiresAt = time.Now().Add(1 * time.Hour)
-		}
-	} else {
-		// Default to 1 hour if no expiry found
-		expiresAt = time.Now().Add(1 * time.Hour)
-	}
-
-	// Extract token type (optional)
-	tokenType := "Bearer"
-	if tokenTypeVal, err := a.extractValueFromPath(data, "token_type"); err == nil {
-		if tokenTypeStr, ok := tokenTypeVal.(string); ok {
-			tokenType = tokenTypeStr
-		}
-	}
+	// Extract optional fields
+	refreshToken := a.extractRefreshToken(data, refreshTokenPath)
+	expiresAt := a.extractExpiry(data, expiryPath)
+	tokenType := a.extractTokenType(data)
 
 	return &Token{
 		AccessToken:  accessTokenStr,
@@ -287,6 +266,73 @@ func (a *APIAuthenticator) extractToken(data map[string]interface{}, config Auth
 			"endpoint":    config.GetString("endpoint"),
 		},
 	}, nil
+}
+
+// getPathOrDefault returns a path from config or the default value
+func (a *APIAuthenticator) getPathOrDefault(config AuthConfig, key, defaultValue string) string {
+	if val := config.GetString(key); val != "" {
+		return val
+	}
+	return defaultValue
+}
+
+// extractAccessToken extracts and validates the access token
+func (a *APIAuthenticator) extractAccessToken(data map[string]interface{}, tokenPath string) (string, error) {
+	accessToken, err := a.extractValueFromPath(data, tokenPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to extract access token: %w", err)
+	}
+
+	accessTokenStr, ok := accessToken.(string)
+	if !ok {
+		return "", fmt.Errorf("access token is not a string")
+	}
+	return accessTokenStr, nil
+}
+
+// extractRefreshToken extracts the refresh token if available
+func (a *APIAuthenticator) extractRefreshToken(data map[string]interface{}, refreshTokenPath string) string {
+	if refreshTokenVal, err := a.extractValueFromPath(data, refreshTokenPath); err == nil {
+		if refreshTokenStr, ok := refreshTokenVal.(string); ok {
+			return refreshTokenStr
+		}
+	}
+	return ""
+}
+
+// extractExpiry extracts the token expiry time with fallback to 1 hour
+func (a *APIAuthenticator) extractExpiry(data map[string]interface{}, expiryPath string) time.Time {
+	if expiryVal, err := a.extractValueFromPath(data, expiryPath); err == nil {
+		return a.parseExpiryValue(expiryVal)
+	}
+	return time.Now().Add(1 * time.Hour)
+}
+
+// parseExpiryValue parses an expiry value that can be float64, int, or string
+func (a *APIAuthenticator) parseExpiryValue(val interface{}) time.Time {
+	switch exp := val.(type) {
+	case float64:
+		return time.Now().Add(time.Duration(exp) * time.Second)
+	case int:
+		return time.Now().Add(time.Duration(exp) * time.Second)
+	case string:
+		// Try to parse as RFC3339 timestamp
+		if parsedTime, err := time.Parse(time.RFC3339, exp); err == nil {
+			return parsedTime
+		}
+	}
+	// Default to 1 hour
+	return time.Now().Add(1 * time.Hour)
+}
+
+// extractTokenType extracts the token type with fallback to "Bearer"
+func (a *APIAuthenticator) extractTokenType(data map[string]interface{}) string {
+	if tokenTypeVal, err := a.extractValueFromPath(data, "token_type"); err == nil {
+		if tokenTypeStr, ok := tokenTypeVal.(string); ok {
+			return tokenTypeStr
+		}
+	}
+	return "Bearer"
 }
 
 // extractValueFromPath extracts a value from a nested map using a simple path
