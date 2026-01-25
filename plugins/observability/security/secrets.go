@@ -178,52 +178,62 @@ func NewSecretsManager(ctx context.Context, config SecretConfig) (*SecretsManage
 func (sm *SecretsManager) initializeMasterKey() error {
 	switch sm.config.MasterKeySource {
 	case SecretSourceEnvironment:
-		envKey := os.Getenv(sm.config.MasterKeyEnv)
-		if envKey == "" {
-			// Generate a new master key if none exists
-			masterKey := make([]byte, 32) // 256-bit key
-			if _, err := rand.Read(masterKey); err != nil {
-				return fmt.Errorf("failed to generate master key: %w", err)
-			}
-			sm.masterKey = masterKey
-
-			// Optionally save to environment hint file (not the actual key!)
-			sm.saveKeyDerivationHint()
-		} else {
-			// Decode the key from environment
-			keyBytes, err := base64.StdEncoding.DecodeString(envKey)
-			if err != nil {
-				return fmt.Errorf("invalid master key format in environment: %w", err)
-			}
-			sm.masterKey = keyBytes
+		if err := sm.initializeMasterKeyFromEnvironment(); err != nil {
+			return err
 		}
-
 	case SecretSourceFile:
-		if sm.config.MasterKeyPath == "" {
-			return errors.New("master key path is required when using file source")
+		if err := sm.initializeMasterKeyFromFile(); err != nil {
+			return err
 		}
-
-		keyData, err := os.ReadFile(sm.config.MasterKeyPath)
-		if err != nil {
-			return fmt.Errorf("failed to read master key file: %w", err)
-		}
-
-		// Try to decode as base64, fallback to raw bytes
-		if decodedKey, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(keyData))); err == nil {
-			sm.masterKey = decodedKey
-		} else {
-			sm.masterKey = keyData
-		}
-
 	default:
 		return fmt.Errorf("unsupported master key source: %s", sm.config.MasterKeySource)
 	}
 
-	// Validate key length
+	return sm.validateMasterKeyLength()
+}
+
+func (sm *SecretsManager) initializeMasterKeyFromEnvironment() error {
+	envKey := os.Getenv(sm.config.MasterKeyEnv)
+	if envKey == "" {
+		masterKey := make([]byte, 32)
+		if _, err := rand.Read(masterKey); err != nil {
+			return fmt.Errorf("failed to generate master key: %w", err)
+		}
+		sm.masterKey = masterKey
+		sm.saveKeyDerivationHint()
+		return nil
+	}
+
+	keyBytes, err := base64.StdEncoding.DecodeString(envKey)
+	if err != nil {
+		return fmt.Errorf("invalid master key format in environment: %w", err)
+	}
+	sm.masterKey = keyBytes
+	return nil
+}
+
+func (sm *SecretsManager) initializeMasterKeyFromFile() error {
+	if sm.config.MasterKeyPath == "" {
+		return errors.New("master key path is required when using file source")
+	}
+
+	keyData, err := os.ReadFile(sm.config.MasterKeyPath)
+	if err != nil {
+		return fmt.Errorf("failed to read master key file: %w", err)
+	}
+
+	if decodedKey, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(keyData))); err == nil {
+		sm.masterKey = decodedKey
+	} else {
+		sm.masterKey = keyData
+	}
+	return nil
+}
+
+func (sm *SecretsManager) validateMasterKeyLength() error {
 	if len(sm.masterKey) < 16 {
 		return errors.New("master key must be at least 16 bytes long")
 	}
-
 	return nil
 }
 
