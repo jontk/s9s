@@ -117,8 +117,8 @@ const markdownReportTemplate = `# S9s Performance Report
 
 {{end}}{{end}}`
 
-// ExportTemplateData wraps PerformanceReportData with additional formatting
-type ExportTemplateData struct {
+// TemplateData wraps PerformanceReportData with additional formatting
+type TemplateData struct {
 	*PerformanceReportData
 	MemoryUsedFormatted   string
 	MemoryTotalFormatted  string
@@ -254,7 +254,7 @@ func (pe *PerformanceExporter) exportText(data PerformanceReportData, outputPath
 	defer func() { _ = file.Close() }()
 
 	// Prepare template data
-	templateData := ExportTemplateData{
+	templateData := TemplateData{
 		PerformanceReportData: &data,
 		MemoryUsedFormatted:   formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryUsed)),
 		MemoryTotalFormatted:  formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryTotal)),
@@ -388,7 +388,7 @@ func (pe *PerformanceExporter) exportMarkdown(data PerformanceReportData, output
 	defer func() { _ = file.Close() }()
 
 	// Prepare template data
-	templateData := ExportTemplateData{
+	templateData := TemplateData{
 		PerformanceReportData: &data,
 		MemoryUsedFormatted:   formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryUsed)),
 		MemoryTotalFormatted:  formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryTotal)),

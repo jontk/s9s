@@ -928,24 +928,24 @@ func (v *NodesView) formatNodeDetails(node *dao.Node) string {
 // writeCPUDetails writes CPU information section to the details
 func (v *NodesView) writeCPUDetails(w *strings.Builder, node *dao.Node) {
 	w.WriteString("\n[teal]CPU Information:[white]\n")
-	w.WriteString(fmt.Sprintf("[yellow]  Total CPUs:[white] %d\n", node.CPUsTotal))
-	w.WriteString(fmt.Sprintf("[yellow]  Allocated CPUs:[white] %d\n", node.CPUsAllocated))
-	w.WriteString(fmt.Sprintf("[yellow]  Idle CPUs:[white] %d\n", node.CPUsIdle))
+	fmt.Fprintf(w, "[yellow]  Total CPUs:[white] %d\n", node.CPUsTotal)
+	fmt.Fprintf(w, "[yellow]  Allocated CPUs:[white] %d\n", node.CPUsAllocated)
+	fmt.Fprintf(w, "[yellow]  Idle CPUs:[white] %d\n", node.CPUsIdle)
 
 	cpuAllocPercent := 0.0
 	if node.CPUsTotal > 0 {
 		cpuAllocPercent = float64(node.CPUsAllocated) * 100.0 / float64(node.CPUsTotal)
 	}
-	w.WriteString(fmt.Sprintf("[yellow]  CPU Allocation:[white] %.1f%% (SLURM allocated)\n", cpuAllocPercent))
+	fmt.Fprintf(w, "[yellow]  CPU Allocation:[white] %.1f%% (SLURM allocated)\n", cpuAllocPercent)
 
 	if node.CPULoad >= 0 {
-		w.WriteString(fmt.Sprintf("[yellow]  CPU Load:[white] %.2f (1-minute load average)\n", node.CPULoad))
+		fmt.Fprintf(w, "[yellow]  CPU Load:[white] %.2f (1-minute load average)\n", node.CPULoad)
 		if node.CPUsAllocated > 0 {
 			efficiency := (node.CPULoad / float64(node.CPUsAllocated)) * 100.0
 			if efficiency > 100 {
 				efficiency = 100
 			}
-			w.WriteString(fmt.Sprintf("[yellow]  CPU Efficiency:[white] %.1f%% (load/allocation)\n", efficiency))
+			fmt.Fprintf(w, "[yellow]  CPU Efficiency:[white] %.1f%% (load/allocation)\n", efficiency)
 		}
 	}
 }
@@ -953,14 +953,14 @@ func (v *NodesView) writeCPUDetails(w *strings.Builder, node *dao.Node) {
 // writeMemoryDetails writes memory information section to the details
 func (v *NodesView) writeMemoryDetails(w *strings.Builder, node *dao.Node) {
 	w.WriteString("\n[teal]Memory Information:[white]\n")
-	w.WriteString(fmt.Sprintf("[yellow]  Total Memory:[white] %s\n", FormatMemory(node.MemoryTotal)))
-	w.WriteString(fmt.Sprintf("[yellow]  Allocated Memory:[white] %s", FormatMemory(node.MemoryAllocated)))
+	fmt.Fprintf(w, "[yellow]  Total Memory:[white] %s\n", FormatMemory(node.MemoryTotal))
+	fmt.Fprintf(w, "[yellow]  Allocated Memory:[white] %s", FormatMemory(node.MemoryAllocated))
 
 	memAllocPercent := 0.0
 	if node.MemoryTotal > 0 {
 		memAllocPercent = float64(node.MemoryAllocated) * 100.0 / float64(node.MemoryTotal)
 	}
-	w.WriteString(fmt.Sprintf(" (%.1f%% allocated by SLURM)\n", memAllocPercent))
+	fmt.Fprintf(w, " (%.1f%% allocated by SLURM)\n", memAllocPercent)
 
 	memActualUsed := node.MemoryTotal - node.MemoryFree
 	if memActualUsed < 0 {
@@ -970,15 +970,15 @@ func (v *NodesView) writeMemoryDetails(w *strings.Builder, node *dao.Node) {
 	if node.MemoryTotal > 0 {
 		memUsagePercent = float64(memActualUsed) * 100.0 / float64(node.MemoryTotal)
 	}
-	w.WriteString(fmt.Sprintf("[yellow]  Used Memory:[white] %s (%.1f%% actual usage)\n", FormatMemory(memActualUsed), memUsagePercent))
-	w.WriteString(fmt.Sprintf("[yellow]  Free Memory:[white] %s\n", FormatMemory(node.MemoryFree)))
+	fmt.Fprintf(w, "[yellow]  Used Memory:[white] %s (%.1f%% actual usage)\n", FormatMemory(memActualUsed), memUsagePercent)
+	fmt.Fprintf(w, "[yellow]  Free Memory:[white] %s\n", FormatMemory(node.MemoryFree))
 
 	if node.MemoryAllocated > 0 {
 		efficiency := float64(memActualUsed) * 100.0 / float64(node.MemoryAllocated)
 		if efficiency > 100 {
 			efficiency = 100
 		}
-		w.WriteString(fmt.Sprintf("[yellow]  Memory Efficiency:[white] %.1f%% (used/allocated)\n", efficiency))
+		fmt.Fprintf(w, "[yellow]  Memory Efficiency:[white] %.1f%% (used/allocated)\n", efficiency)
 	}
 }
 

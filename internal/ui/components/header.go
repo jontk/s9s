@@ -117,13 +117,13 @@ func (h *Header) appendTitleLine(content *strings.Builder) {
 	content.WriteString("[white::b]S9S - SLURM Terminal UI[white::-]")
 
 	if h.clusterInfo != nil {
-		content.WriteString(fmt.Sprintf(" | [cyan]%s[white] (%s)",
-			h.clusterInfo.Name, h.clusterInfo.Version))
+		fmt.Fprintf(content, " | [cyan]%s[white] (%s)",
+			h.clusterInfo.Name, h.clusterInfo.Version)
 	}
 
 	// Add current time
 	now := time.Now()
-	content.WriteString(fmt.Sprintf(" | %s", now.Format("15:04:05")))
+	fmt.Fprintf(content, " | %s", now.Format("15:04:05"))
 
 	h.appendAlertsBadge(content)
 	content.WriteString("\n")
@@ -161,9 +161,9 @@ func (h *Header) appendViewsList(content *strings.Builder) {
 		}
 
 		if view == h.currentView {
-			content.WriteString(fmt.Sprintf("[black:yellow] %s [white:-:-]", strings.ToUpper(view)))
+			fmt.Fprintf(content, "[black:yellow] %s [white:-:-]", strings.ToUpper(view))
 		} else {
-			content.WriteString(fmt.Sprintf("[cyan]%s[white]", strings.ToUpper(view)))
+			fmt.Fprintf(content, "[cyan]%s[white]", strings.ToUpper(view))
 		}
 	}
 }
@@ -184,9 +184,9 @@ func (h *Header) appendMetrics(content *strings.Builder) {
 func (h *Header) appendLastUpdateTime(content *strings.Builder) {
 	age := time.Since(h.lastUpdate)
 	if age > time.Minute {
-		content.WriteString(fmt.Sprintf(" | [red]Last update: %s ago[white]", formatAge(age)))
+		fmt.Fprintf(content, " | [red]Last update: %s ago[white]", formatAge(age))
 	} else {
-		content.WriteString(fmt.Sprintf(" | [green]Updated: %s ago[white]", formatAge(age)))
+		fmt.Fprintf(content, " | [green]Updated: %s ago[white]", formatAge(age))
 	}
 }
 

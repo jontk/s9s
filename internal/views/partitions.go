@@ -1064,9 +1064,9 @@ func (v *PartitionsView) calculateClusterStats() (int, int, []time.Duration, tim
 // writeClusterSummary writes cluster summary to the analytics output
 func (v *PartitionsView) writeClusterSummary(w *strings.Builder, totalPending, totalRunning int, longestWait time.Duration, allWaitTimes []time.Duration) {
 	w.WriteString("[teal]Cluster Summary:[white]\n")
-	w.WriteString(fmt.Sprintf("[yellow]  Total Pending Jobs:[white] %d\n", totalPending))
-	w.WriteString(fmt.Sprintf("[yellow]  Total Running Jobs:[white] %d\n", totalRunning))
-	w.WriteString(fmt.Sprintf("[yellow]  Cluster-wide Longest Wait:[white] %s\n", FormatTimeDuration(longestWait)))
+	fmt.Fprintf(w, "[yellow]  Total Pending Jobs:[white] %d\n", totalPending)
+	fmt.Fprintf(w, "[yellow]  Total Running Jobs:[white] %d\n", totalRunning)
+	fmt.Fprintf(w, "[yellow]  Cluster-wide Longest Wait:[white] %s\n", FormatTimeDuration(longestWait))
 
 	if len(allWaitTimes) > 0 {
 		var totalWait time.Duration
@@ -1074,7 +1074,7 @@ func (v *PartitionsView) writeClusterSummary(w *strings.Builder, totalPending, t
 			totalWait += wait
 		}
 		avgClusterWait := totalWait / time.Duration(len(allWaitTimes))
-		w.WriteString(fmt.Sprintf("[yellow]  Average Wait Across Partitions:[white] %s\n", FormatTimeDuration(avgClusterWait)))
+		fmt.Fprintf(w, "[yellow]  Average Wait Across Partitions:[white] %s\n", FormatTimeDuration(avgClusterWait))
 	}
 }
 
@@ -1108,21 +1108,38 @@ func (v *PartitionsView) formatDurationField(dur time.Duration, width int) strin
 
 // assessPartitionStatus assesses the status of a partition based on queue information
 func (v *PartitionsView) assessPartitionStatus(info *dao.QueueInfo) (string, string) {
-	statusColor := "green"
-	status := "OK"
-
-	if info.LongestWait.Hours() > 24 {
-		status = "CRITICAL"
-		statusColor = "red"
-	} else if info.LongestWait.Hours() > 6 {
-		status = "WARNING"
-		statusColor = "yellow"
-	} else if info.PendingJobs > info.RunningJobs*2 {
-		status = "BACKLOG"
-		statusColor = "orange"
+	statusChecks := []struct {
+		condition bool
+		color     string
+		status    string
+	}{
+		{v.isCriticalWaitTime(info.LongestWait), "red", "CRITICAL"},
+		{v.isWarningWaitTime(info.LongestWait), "yellow", "WARNING"},
+		{v.hasJobBacklog(info), "orange", "BACKLOG"},
 	}
 
-	return statusColor, status
+	for _, check := range statusChecks {
+		if check.condition {
+			return check.color, check.status
+		}
+	}
+
+	return "green", "OK"
+}
+
+// isCriticalWaitTime checks if wait time is critical (> 24 hours)
+func (v *PartitionsView) isCriticalWaitTime(wait time.Duration) bool {
+	return wait.Hours() > 24
+}
+
+// isWarningWaitTime checks if wait time is warning level (> 6 hours)
+func (v *PartitionsView) isWarningWaitTime(wait time.Duration) bool {
+	return wait.Hours() > 6
+}
+
+// hasJobBacklog checks if there's a job backlog
+func (v *PartitionsView) hasJobBacklog(info *dao.QueueInfo) bool {
+	return info.PendingJobs > info.RunningJobs*2
 }
 
 // showAdvancedFilter shows the advanced filter bar

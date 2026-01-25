@@ -889,9 +889,9 @@ func (v *DashboardView) appendEfficiencyAnalysis(w *strings.Builder) {
 	memEfficiency := v.clusterMetrics.MemoryUsage
 	overallEfficiency := (cpuEfficiency + memEfficiency) / 2
 
-	w.WriteString(fmt.Sprintf("[yellow]  CPU Efficiency:[white] %.1f%% %s\n", cpuEfficiency, v.getEfficiencyAssessment(cpuEfficiency)))
-	w.WriteString(fmt.Sprintf("[yellow]  Memory Efficiency:[white] %.1f%% %s\n", memEfficiency, v.getEfficiencyAssessment(memEfficiency)))
-	w.WriteString(fmt.Sprintf("[yellow]  Overall Efficiency:[white] %.1f%% %s\n", overallEfficiency, v.getEfficiencyAssessment(overallEfficiency)))
+	fmt.Fprintf(w, "[yellow]  CPU Efficiency:[white] %.1f%% %s\n", cpuEfficiency, v.getEfficiencyAssessment(cpuEfficiency))
+	fmt.Fprintf(w, "[yellow]  Memory Efficiency:[white] %.1f%% %s\n", memEfficiency, v.getEfficiencyAssessment(memEfficiency))
+	fmt.Fprintf(w, "[yellow]  Overall Efficiency:[white] %.1f%% %s\n", overallEfficiency, v.getEfficiencyAssessment(overallEfficiency))
 }
 
 // appendJobAnalysis appends job analysis section
@@ -917,7 +917,7 @@ func (v *DashboardView) appendJobStateDistribution(w *strings.Builder) {
 	for state, count := range stateStats {
 		percentage := float64(count) * 100.0 / float64(totalJobs)
 		color := dao.GetJobStateColor(state)
-		w.WriteString(fmt.Sprintf("[yellow]  %s:[white] [%s]%d[white] (%.1f%%)\n", state, color, count, percentage))
+		fmt.Fprintf(w, "[yellow]  %s:[white] [%s]%d[white] (%.1f%%)\n", state, color, count, percentage)
 	}
 }
 
@@ -946,10 +946,10 @@ func (v *DashboardView) appendWaitTimeAnalysis(w *strings.Builder) {
 	}
 	avgWait := totalWait / time.Duration(len(waitTimes))
 
-	w.WriteString(fmt.Sprintf("[yellow]  Average Wait Time:[white] %s\n", FormatDurationDetailed(avgWait)))
-	w.WriteString(fmt.Sprintf("[yellow]  Maximum Wait Time:[white] %s\n", FormatDurationDetailed(maxWait)))
-	w.WriteString(fmt.Sprintf("[yellow]  Jobs Waiting >1h:[white] %d\n", v.countJobsWaitingLongerThan(time.Hour)))
-	w.WriteString(fmt.Sprintf("[yellow]  Jobs Waiting >24h:[white] %d\n", v.countJobsWaitingLongerThan(24*time.Hour)))
+	fmt.Fprintf(w, "[yellow]  Average Wait Time:[white] %s\n", FormatDurationDetailed(avgWait))
+	fmt.Fprintf(w, "[yellow]  Maximum Wait Time:[white] %s\n", FormatDurationDetailed(maxWait))
+	fmt.Fprintf(w, "[yellow]  Jobs Waiting >1h:[white] %d\n", v.countJobsWaitingLongerThan(time.Hour))
+	fmt.Fprintf(w, "[yellow]  Jobs Waiting >24h:[white] %d\n", v.countJobsWaitingLongerThan(24*time.Hour))
 }
 
 // appendNodeAnalysis appends node analysis section
@@ -975,18 +975,18 @@ func (v *DashboardView) appendNodeAnalysis(w *strings.Builder) {
 	for state, count := range stateStats {
 		percentage := float64(count) * 100.0 / float64(len(v.nodes))
 		color := dao.GetNodeStateColor(state)
-		w.WriteString(fmt.Sprintf("[yellow]  %s:[white] [%s]%d[white] (%.1f%%)\n", state, color, count, percentage))
+		fmt.Fprintf(w, "[yellow]  %s:[white] [%s]%d[white] (%.1f%%)\n", state, color, count, percentage)
 	}
 
 	if totalCPUs > 0 {
 		cpuUtilization := float64(allocatedCPUs) * 100.0 / float64(totalCPUs)
-		w.WriteString(fmt.Sprintf("[yellow]  CPU Utilization:[white] %.1f%% (%d/%d cores)\n", cpuUtilization, allocatedCPUs, totalCPUs))
+		fmt.Fprintf(w, "[yellow]  CPU Utilization:[white] %.1f%% (%d/%d cores)\n", cpuUtilization, allocatedCPUs, totalCPUs)
 	}
 
 	if totalMemory > 0 {
 		memUtilization := float64(allocatedMemory) * 100.0 / float64(totalMemory)
-		w.WriteString(fmt.Sprintf("[yellow]  Memory Utilization:[white] %.1f%% (%s/%s)\n",
-			memUtilization, FormatMemory(allocatedMemory), FormatMemory(totalMemory)))
+		fmt.Fprintf(w, "[yellow]  Memory Utilization:[white] %.1f%% (%s/%s)\n",
+			memUtilization, FormatMemory(allocatedMemory), FormatMemory(totalMemory))
 	}
 }
 
@@ -995,7 +995,7 @@ func (v *DashboardView) appendRecommendations(w *strings.Builder) {
 	w.WriteString("\n[teal]Recommendations:[white]\n")
 	recommendations := v.generateRecommendations()
 	for _, rec := range recommendations {
-		w.WriteString(fmt.Sprintf("[yellow]  •[white] %s\n", rec))
+		fmt.Fprintf(w, "[yellow]  •[white] %s\n", rec)
 	}
 }
 
