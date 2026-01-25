@@ -459,33 +459,42 @@ func (cf *Field) validateIntRange(num int64) error {
 
 // validateFloat validates float field values
 func (cf *Field) validateFloat(value interface{}) error {
-	var num float64
-
-	switch v := value.(type) {
-	case float64:
-		num = v
-	case float32:
-		num = float64(v)
-	case int:
-		num = float64(v)
-	case string:
-		var err error
-		num, err = strconv.ParseFloat(v, 64)
-		if err != nil {
-			return fmt.Errorf("%s must be a valid number", cf.Label)
-		}
-	default:
-		return fmt.Errorf("%s must be a number", cf.Label)
+	num, err := cf.parseFloatValue(value)
+	if err != nil {
+		return err
 	}
 
-	// Range validation
+	return cf.validateFloatRange(num)
+}
+
+// parseFloatValue converts a value to float64 with proper type handling
+func (cf *Field) parseFloatValue(value interface{}) (float64, error) {
+	switch v := value.(type) {
+	case float64:
+		return v, nil
+	case float32:
+		return float64(v), nil
+	case int:
+		return float64(v), nil
+	case string:
+		num, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return 0, fmt.Errorf("%s must be a valid number", cf.Label)
+		}
+		return num, nil
+	default:
+		return 0, fmt.Errorf("%s must be a number", cf.Label)
+	}
+}
+
+// validateFloatRange validates float is within configured min/max bounds
+func (cf *Field) validateFloatRange(num float64) error {
 	if cf.Min != nil && num < *cf.Min {
 		return fmt.Errorf("%s must be at least %.2f", cf.Label, *cf.Min)
 	}
 	if cf.Max != nil && num > *cf.Max {
 		return fmt.Errorf("%s must be at most %.2f", cf.Label, *cf.Max)
 	}
-
 	return nil
 }
 

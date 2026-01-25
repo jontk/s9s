@@ -306,7 +306,6 @@ func (v *Validator) validateSecurity() {
 
 // validatePaths validates file and directory paths
 func (v *Validator) validatePaths() {
-	// Check if config directory exists and is writable
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		v.addWarning("paths", "Cannot determine home directory", "Some features may not work")
@@ -314,31 +313,46 @@ func (v *Validator) validatePaths() {
 	}
 
 	configDir := filepath.Join(homeDir, ".s9s")
-	if !v.directoryExists(configDir) {
-		if v.autoFix {
-			if err := os.MkdirAll(configDir, fileperms.ConfigDir); err != nil {
-				v.addError("paths",
-					fmt.Sprintf("Cannot create config directory: %s", configDir),
-					"Create directory manually with proper permissions", false)
-			} else {
-				v.result.Fixes = append(v.result.Fixes, ValidationFix{
-					Field:       "paths.config_dir",
-					Description: "Created missing config directory",
-					OldValue:    "missing",
-					NewValue:    configDir,
-					Applied:     true,
-				})
-			}
-		} else {
-			v.addError("paths",
-				fmt.Sprintf("Config directory does not exist: %s", configDir),
-				"Run 's9s setup' or create directory manually", true)
-		}
+	v.validateConfigDirectory(configDir)
+	v.validateCacheDirectory(configDir)
+	v.validateLogsDirectory(configDir)
+}
+
+// validateConfigDirectory checks and creates the config directory
+func (v *Validator) validateConfigDirectory(configDir string) {
+	if v.directoryExists(configDir) {
+		return
 	}
 
-	// Check cache directory
+	if v.autoFix {
+		if err := os.MkdirAll(configDir, fileperms.ConfigDir); err != nil {
+			v.addError("paths",
+				fmt.Sprintf("Cannot create config directory: %s", configDir),
+				"Create directory manually with proper permissions", false)
+		} else {
+			v.result.Fixes = append(v.result.Fixes, ValidationFix{
+				Field:       "paths.config_dir",
+				Description: "Created missing config directory",
+				OldValue:    "missing",
+				NewValue:    configDir,
+				Applied:     true,
+			})
+		}
+	} else {
+		v.addError("paths",
+			fmt.Sprintf("Config directory does not exist: %s", configDir),
+			"Run 's9s setup' or create directory manually", true)
+	}
+}
+
+// validateCacheDirectory checks and creates the cache directory
+func (v *Validator) validateCacheDirectory(configDir string) {
+	if !v.autoFix {
+		return
+	}
+
 	cacheDir := filepath.Join(configDir, "cache")
-	if !v.directoryExists(cacheDir) && v.autoFix {
+	if !v.directoryExists(cacheDir) {
 		if err := os.MkdirAll(cacheDir, fileperms.DirUserOnly); err == nil {
 			v.result.Fixes = append(v.result.Fixes, ValidationFix{
 				Field:       "paths.cache_dir",
@@ -349,10 +363,16 @@ func (v *Validator) validatePaths() {
 			})
 		}
 	}
+}
 
-	// Check logs directory
+// validateLogsDirectory checks and creates the logs directory
+func (v *Validator) validateLogsDirectory(configDir string) {
+	if !v.autoFix {
+		return
+	}
+
 	logsDir := filepath.Join(configDir, "logs")
-	if !v.directoryExists(logsDir) && v.autoFix {
+	if !v.directoryExists(logsDir) {
 		if err := os.MkdirAll(logsDir, fileperms.LogDir); err == nil {
 			v.result.Fixes = append(v.result.Fixes, ValidationFix{
 				Field:       "paths.logs_dir",
