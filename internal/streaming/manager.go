@@ -94,7 +94,7 @@ func (sm *StreamManager) StartStream(jobID, outputType string) error {
 	}
 
 	// Publish stream start event
-	sm.eventBus.Publish(StreamEvent{
+	sm.eventBus.Publish(&StreamEvent{
 		JobID:      jobID,
 		OutputType: outputType,
 		EventType:  StreamEventStreamStart,
@@ -125,7 +125,7 @@ func (sm *StreamManager) StopStream(jobID, outputType string) error {
 	}
 
 	// Publish stream stop event
-	sm.eventBus.Publish(StreamEvent{
+	sm.eventBus.Publish(&StreamEvent{
 		JobID:      jobID,
 		OutputType: outputType,
 		EventType:  StreamEventStreamStop,
@@ -421,7 +421,7 @@ func (sm *StreamManager) emitNewContent(stream *JobStream, content string, newOf
 	}
 
 	// Emit event
-	event := StreamEvent{
+	event := &StreamEvent{
 		JobID:      stream.JobID,
 		OutputType: stream.OutputType,
 		Content:    content,
@@ -436,7 +436,7 @@ func (sm *StreamManager) emitNewContent(stream *JobStream, content string, newOf
 
 // emitError emits an error event for a stream
 func (sm *StreamManager) emitError(stream *JobStream, err error) {
-	event := StreamEvent{
+	event := &StreamEvent{
 		JobID:      stream.JobID,
 		OutputType: stream.OutputType,
 		EventType:  StreamEventError,

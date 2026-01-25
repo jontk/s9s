@@ -44,3 +44,9 @@ test/e2e/*.gif
 # Debug logs
 *-debug.log
 s9s-debug.log
+
+# Test coverage
+coverage.txt
+coverage.out
+coverage.html
+*.coverage

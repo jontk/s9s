@@ -156,7 +156,7 @@ func (m *Manager) DisablePlugin(name string) error {
 	}
 
 	// Perform disable operations
-	m.performPluginDisable(name, plugin, state)
+	m.performPluginDisable(name, plugin, &state)
 
 	debug.Logger.Printf("Disabled plugin: %s", name)
 	return nil
@@ -200,7 +200,7 @@ func (m *Manager) checkPluginDependencies(name string) error {
 }
 
 // performPluginDisable handles lifecycle hooks and stopping the plugin
-func (m *Manager) performPluginDisable(name string, plugin Plugin, state PluginState) {
+func (m *Manager) performPluginDisable(name string, plugin Plugin, state *PluginState) {
 	// Call lifecycle hook if implemented
 	if lifecycle, ok := plugin.(LifecycleAware); ok {
 		if err := lifecycle.OnDisable(m.ctx); err != nil {
@@ -216,7 +216,7 @@ func (m *Manager) performPluginDisable(name string, plugin Plugin, state PluginS
 	// Update state
 	state.Enabled = false
 	state.Running = false
-	m.states[name] = state
+	m.states[name] = *state
 }
 
 // GetPlugin returns a plugin by name

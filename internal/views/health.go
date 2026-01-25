@@ -435,7 +435,7 @@ func (v *HealthView) showAlertDetails() {
 	}
 
 	alertManager := v.healthMonitor.GetAlertManager()
-	allAlerts := alertManager.GetAlerts(monitoring.AlertFilter{})
+	allAlerts := alertManager.GetAlerts(&monitoring.AlertFilter{})
 
 	var details strings.Builder
 	details.WriteString("[yellow]Alert Details[white]\n\n")

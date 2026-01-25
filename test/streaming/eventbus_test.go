@@ -44,7 +44,7 @@ func TestEventBus_PublishEvent(t *testing.T) {
 	bus.Subscribe("job1", "stdout", ch)
 
 	// Publish event
-	event := streaming.StreamEvent{
+	event := &streaming.StreamEvent{
 		JobID:      "job1",
 		OutputType: "stdout",
 		Content:    "test content",
@@ -85,7 +85,7 @@ func TestEventBus_MultipleSubscribers(t *testing.T) {
 	}
 
 	// Publish event
-	event := streaming.StreamEvent{
+	event := &streaming.StreamEvent{
 		JobID:      "job1",
 		OutputType: "stdout",
 		Content:    "broadcast test",
@@ -131,7 +131,7 @@ func TestEventBus_Unsubscribe(t *testing.T) {
 	}
 
 	// Publish event - only ch2 should receive it
-	event := streaming.StreamEvent{
+	event := &streaming.StreamEvent{
 		JobID:      "job1",
 		OutputType: "stdout",
 		Content:    "after unsubscribe",
@@ -356,7 +356,7 @@ func TestEventBus_ThreadSafety(t *testing.T) {
 				bus.Subscribe(jobID, "stdout", ch)
 
 				// Publish event
-				event := streaming.StreamEvent{
+				event := &streaming.StreamEvent{
 					JobID:      jobID,
 					OutputType: "stdout",
 					Content:    fmt.Sprintf("routine%d-msg%d", routineID, j),
@@ -399,7 +399,7 @@ func TestEventBus_FullChannelHandling(t *testing.T) {
 	bus.Subscribe("job1", "stdout", ch)
 
 	// Fill the channel
-	event1 := streaming.StreamEvent{
+	event1 := &streaming.StreamEvent{
 		JobID:      "job1",
 		OutputType: "stdout",
 		Content:    "message1",
@@ -409,7 +409,7 @@ func TestEventBus_FullChannelHandling(t *testing.T) {
 	bus.Publish(event1)
 
 	// Publish another event - should not block even if channel is full
-	event2 := streaming.StreamEvent{
+	event2 := &streaming.StreamEvent{
 		JobID:      "job1",
 		OutputType: "stdout",
 		Content:    "message2",

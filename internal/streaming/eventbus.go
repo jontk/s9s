@@ -66,7 +66,7 @@ func (eb *EventBus) UnsubscribeAll(jobID, outputType string) {
 }
 
 // Publish sends an event to all subscribers of a specific job and output type
-func (eb *EventBus) Publish(event StreamEvent) {
+func (eb *EventBus) Publish(event *StreamEvent) {
 	eb.mu.RLock()
 	defer eb.mu.RUnlock()
 
@@ -76,7 +76,7 @@ func (eb *EventBus) Publish(event StreamEvent) {
 	// Send event to all subscribers (non-blocking)
 	for _, ch := range subscribers {
 		select {
-		case ch <- event:
+		case ch <- *event:
 			// Event sent successfully
 		default:
 			// Channel full or closed, skip this subscriber
@@ -87,7 +87,7 @@ func (eb *EventBus) Publish(event StreamEvent) {
 
 // PublishError sends an error event to all subscribers of a specific job and output type
 func (eb *EventBus) PublishError(jobID, outputType string, err error) {
-	event := StreamEvent{
+	event := &StreamEvent{
 		JobID:      jobID,
 		OutputType: outputType,
 		EventType:  StreamEventError,

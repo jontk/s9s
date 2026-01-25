@@ -188,7 +188,7 @@ func (s *StaticEndpointDiscoverer) DiscoverEndpoints(_ context.Context, clusterI
 }
 
 // HealthCheck performs a health check on an endpoint
-func (s *StaticEndpointDiscoverer) HealthCheck(ctx context.Context, endpoint Endpoint) error {
+func (s *StaticEndpointDiscoverer) HealthCheck(ctx context.Context, endpoint *Endpoint) error {
 	debug.Logger.Printf("Health checking endpoint: %s", endpoint.URL)
 
 	// Determine health check path

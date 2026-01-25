@@ -156,7 +156,8 @@ func (v *Validator) validateContexts() {
 	}
 
 	contextNames := make(map[string]bool)
-	for i, context := range v.config.Contexts {
+	for i := range v.config.Contexts {
+		context := &v.config.Contexts[i]
 		contextPath := fmt.Sprintf("contexts[%d]", i)
 
 		// Name validation
@@ -233,7 +234,7 @@ func (v *Validator) validateCluster(cluster ClusterConfig, basePath string) {
 }
 
 // validateClusterInContext validates cluster within a context
-func (v *Validator) validateClusterInContext(context ContextConfig, contextPath string) {
+func (v *Validator) validateClusterInContext(context *ContextConfig, contextPath string) {
 	v.validateCluster(context.Cluster, fmt.Sprintf("%s.cluster", contextPath))
 }
 

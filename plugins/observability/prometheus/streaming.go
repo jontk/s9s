@@ -252,7 +252,7 @@ func (c *Client) processAndStreamChunk(ctx context.Context, dataStream chan<- St
 		Timestamp:  time.Now(),
 	}
 
-	return c.sendStreamChunkWithTimeout(ctx, dataStream, chunk, config.WriteTimeout, chunkID)
+	return c.sendStreamChunkWithTimeout(ctx, dataStream, &chunk, config.WriteTimeout, chunkID)
 }
 
 func (c *Client) sendStreamChunkError(dataStream chan<- StreamingDataChunk, chunkID int, err error) {
@@ -263,9 +263,9 @@ func (c *Client) sendStreamChunkError(dataStream chan<- StreamingDataChunk, chun
 	}
 }
 
-func (c *Client) sendStreamChunkWithTimeout(ctx context.Context, dataStream chan<- StreamingDataChunk, chunk StreamingDataChunk, timeout time.Duration, chunkID *int) bool {
+func (c *Client) sendStreamChunkWithTimeout(ctx context.Context, dataStream chan<- StreamingDataChunk, chunk *StreamingDataChunk, timeout time.Duration, chunkID *int) bool {
 	select {
-	case dataStream <- chunk:
+	case dataStream <- *chunk:
 		*chunkID++
 		return true
 	case <-ctx.Done():

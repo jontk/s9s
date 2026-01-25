@@ -387,7 +387,8 @@ func (lm *LayoutManager) applyGridLayout(layout *Layout) error {
 	rows, colUsage := lm.initializeGridStructures(layout)
 
 	// Place widgets in grid
-	for _, placement := range layout.Widgets {
+	for i := range layout.Widgets {
+		placement := &layout.Widgets[i]
 		if !placement.Visible {
 			continue
 		}
@@ -424,7 +425,7 @@ func (lm *LayoutManager) initializeGridStructures(layout *Layout) ([]*tview.Flex
 }
 
 // canPlaceWidget checks if a widget can be placed at the given location
-func (lm *LayoutManager) canPlaceWidget(layout *Layout, placement WidgetPlacement, colUsage [][]bool) bool {
+func (lm *LayoutManager) canPlaceWidget(layout *Layout, placement *WidgetPlacement, colUsage [][]bool) bool {
 	// Validate bounds
 	if placement.Row >= layout.Grid.Rows || placement.Column >= layout.Grid.Columns {
 		return false
@@ -443,7 +444,7 @@ func (lm *LayoutManager) canPlaceWidget(layout *Layout, placement WidgetPlacemen
 }
 
 // markWidgetCells marks grid cells as used by a widget
-func (lm *LayoutManager) markWidgetCells(placement WidgetPlacement, colUsage [][]bool) {
+func (lm *LayoutManager) markWidgetCells(placement *WidgetPlacement, colUsage [][]bool) {
 	for r := placement.Row; r < placement.Row+placement.RowSpan && r < len(colUsage); r++ {
 		for c := placement.Column; c < placement.Column+placement.ColSpan && c < len(colUsage[r]); c++ {
 			colUsage[r][c] = true
@@ -452,7 +453,7 @@ func (lm *LayoutManager) markWidgetCells(placement WidgetPlacement, colUsage [][
 }
 
 // placeWidgetInGrid adds a widget to the grid at the appropriate row
-func (lm *LayoutManager) placeWidgetInGrid(rows []*tview.Flex, placement WidgetPlacement, widget Widget) {
+func (lm *LayoutManager) placeWidgetInGrid(rows []*tview.Flex, placement *WidgetPlacement, widget Widget) {
 	if placement.Row >= len(rows) {
 		return
 	}

@@ -37,8 +37,8 @@ type Engine struct {
 	mu          sync.RWMutex
 
 	// Callbacks
-	onAlert    func(alert Alert)
-	onResolved func(alert Alert)
+	onAlert    func(alert *Alert)
+	onResolved func(alert *Alert)
 }
 
 // Alert represents an active or historical alert
@@ -142,13 +142,15 @@ func (e *Engine) evaluateAll(ctx context.Context) {
 	stillActive := make(map[string]bool)
 
 	// Evaluate each rule
-	for _, rule := range e.rules {
+	for i := range e.rules {
+		rule := &e.rules[i]
 		if !rule.Enabled {
 			continue
 		}
 
 		alerts := e.evaluateRule(ctx, rule)
-		for _, alert := range alerts {
+		for i := range alerts {
+			alert := &alerts[i]
 			alertID := e.generateAlertID(alert)
 			stillActive[alertID] = true
 
@@ -163,7 +165,7 @@ func (e *Engine) evaluateAll(ctx context.Context) {
 				if existing.State == AlertStatePending {
 					if existing.Duration >= rule.Duration {
 						existing.State = AlertStateFiring
-						e.fireAlert(*existing)
+						e.fireAlert(existing)
 					}
 				}
 			} else {
@@ -179,7 +181,7 @@ func (e *Engine) evaluateAll(ctx context.Context) {
 					e.fireAlert(alert)
 				}
 
-				e.activeAlerts[alertID] = &alert
+				e.activeAlerts[alertID] = alert
 			}
 		}
 	}
@@ -190,10 +192,10 @@ func (e *Engine) evaluateAll(ctx context.Context) {
 			// Alert is resolved
 			alert.State = AlertStateResolved
 			alert.ResolvedAt = time.Now()
-			e.resolveAlert(*alert)
+			e.resolveAlert(alert)
 
 			// Add to history
-			e.addToHistory(*alert)
+			e.addToHistory(alert)
 
 			// Remove from active alerts
 			delete(e.activeAlerts, id)
@@ -205,7 +207,7 @@ func (e *Engine) evaluateAll(ctx context.Context) {
 }
 
 // evaluateRule evaluates a single alert rule
-func (e *Engine) evaluateRule(ctx context.Context, rule Rule) []Alert {
+func (e *Engine) evaluateRule(ctx context.Context, rule *Rule) []Alert {
 	alerts := []Alert{}
 
 	switch rule.Type {
@@ -226,7 +228,7 @@ func (e *Engine) evaluateRule(ctx context.Context, rule Rule) []Alert {
 }
 
 // evaluateThresholdRule evaluates a simple threshold rule
-func (e *Engine) evaluateThresholdRule(ctx context.Context, rule Rule) []Alert {
+func (e *Engine) evaluateThresholdRule(ctx context.Context, rule *Rule) []Alert {
 	switch rule.Target {
 	case "node":
 		return e.evaluateNodeThreshold(rule)
@@ -239,7 +241,7 @@ func (e *Engine) evaluateThresholdRule(ctx context.Context, rule Rule) []Alert {
 	}
 }
 
-func (e *Engine) evaluateNodeThreshold(rule Rule) []Alert {
+func (e *Engine) evaluateNodeThreshold(rule *Rule) []Alert {
 	alerts := []Alert{}
 	nodes := e.nodeCollector.GetAllNodes()
 	for nodeName, node := range nodes {
@@ -255,7 +257,7 @@ func (e *Engine) evaluateNodeThreshold(rule Rule) []Alert {
 	return alerts
 }
 
-func (e *Engine) evaluateJobThreshold(rule Rule) []Alert {
+func (e *Engine) evaluateJobThreshold(rule *Rule) []Alert {
 	alerts := []Alert{}
 	jobs := e.jobCollector.GetActiveJobs()
 	for jobID, job := range jobs {
@@ -272,7 +274,7 @@ func (e *Engine) evaluateJobThreshold(rule Rule) []Alert {
 	return alerts
 }
 
-func (e *Engine) evaluateClusterThreshold(ctx context.Context, rule Rule) []Alert {
+func (e *Engine) evaluateClusterThreshold(ctx context.Context, rule *Rule) []Alert {
 	value := e.getClusterMetricValue(ctx, rule.Metric)
 	if value != nil && e.checkThreshold(*value, rule.Operator, rule.Threshold) {
 		return []Alert{e.buildAlert(rule, "cluster", *value, "cluster", map[string]string{
@@ -282,7 +284,7 @@ func (e *Engine) evaluateClusterThreshold(ctx context.Context, rule Rule) []Aler
 	return []Alert{}
 }
 
-func (e *Engine) buildAlert(rule Rule, source string, value float64, sourceLabel string, labels map[string]string) Alert {
+func (e *Engine) buildAlert(rule *Rule, source string, value float64, sourceLabel string, labels map[string]string) Alert {
 	return Alert{
 		RuleName:    rule.Name,
 		Severity:    rule.Severity,
@@ -296,7 +298,7 @@ func (e *Engine) buildAlert(rule Rule, source string, value float64, sourceLabel
 }
 
 // evaluateQueryRule evaluates a custom PromQL query rule
-func (e *Engine) evaluateQueryRule(ctx context.Context, rule Rule) []Alert {
+func (e *Engine) evaluateQueryRule(ctx context.Context, rule *Rule) []Alert {
 	alerts := []Alert{}
 
 	// Execute the custom query
@@ -363,7 +365,7 @@ func (e *Engine) evaluateQueryRule(ctx context.Context, rule Rule) []Alert {
 }
 
 // evaluateCompositeRule evaluates a composite rule
-func (e *Engine) evaluateCompositeRule(_ context.Context, _ Rule) []Alert {
+func (e *Engine) evaluateCompositeRule(_ context.Context, _ *Rule) []Alert {
 	// TODO: Implement composite rule evaluation
 	return []Alert{}
 }
@@ -465,7 +467,7 @@ func (e *Engine) checkThreshold(value float64, operator string, threshold float6
 }
 
 // formatAlertMessage formats an alert message
-func (e *Engine) formatAlertMessage(rule Rule, target string, value float64) string {
+func (e *Engine) formatAlertMessage(rule *Rule, target string, value float64) string {
 	if rule.MessageTemplate != "" {
 		// TODO: Implement template rendering
 		return rule.MessageTemplate
@@ -482,28 +484,28 @@ func (e *Engine) formatAlertMessage(rule Rule, target string, value float64) str
 }
 
 // generateAlertID generates a unique ID for an alert
-func (e *Engine) generateAlertID(alert Alert) string {
+func (e *Engine) generateAlertID(alert *Alert) string {
 	// Generate ID based on rule name and source
 	return fmt.Sprintf("%s:%s", alert.RuleName, alert.Source)
 }
 
 // fireAlert is called when an alert transitions to firing state
-func (e *Engine) fireAlert(alert Alert) {
+func (e *Engine) fireAlert(alert *Alert) {
 	if e.onAlert != nil {
 		e.onAlert(alert)
 	}
 }
 
 // resolveAlert is called when an alert is resolved
-func (e *Engine) resolveAlert(alert Alert) {
+func (e *Engine) resolveAlert(alert *Alert) {
 	if e.onResolved != nil {
 		e.onResolved(alert)
 	}
 }
 
 // addToHistory adds an alert to the history
-func (e *Engine) addToHistory(alert Alert) {
-	e.alertHistory = append([]Alert{alert}, e.alertHistory...)
+func (e *Engine) addToHistory(alert *Alert) {
+	e.alertHistory = append([]Alert{*alert}, e.alertHistory...)
 
 	// Limit history size
 	maxHistory := 1000
@@ -556,12 +558,12 @@ func (e *Engine) GetAlertHistory(limit int) []Alert {
 }
 
 // SetAlertCallback sets the callback for new alerts
-func (e *Engine) SetAlertCallback(fn func(Alert)) {
+func (e *Engine) SetAlertCallback(fn func(*Alert)) {
 	e.onAlert = fn
 }
 
 // SetResolvedCallback sets the callback for resolved alerts
-func (e *Engine) SetResolvedCallback(fn func(Alert)) {
+func (e *Engine) SetResolvedCallback(fn func(*Alert)) {
 	e.onResolved = fn
 }
 
@@ -606,11 +608,11 @@ func (e *Engine) loadRules() error {
 }
 
 // AddRule adds a new alert rule
-func (e *Engine) AddRule(rule Rule) {
+func (e *Engine) AddRule(rule *Rule) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	e.rules = append(e.rules, rule)
+	e.rules = append(e.rules, *rule)
 }
 
 // RemoveRule removes an alert rule by name

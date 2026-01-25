@@ -44,8 +44,8 @@ func (w *AlertsWidget) SetAlerts(alerts []models.Alert) {
 }
 
 // AddAlert adds a new alert
-func (w *AlertsWidget) AddAlert(alert models.Alert) {
-	w.alerts = append(w.alerts, alert)
+func (w *AlertsWidget) AddAlert(alert *models.Alert) {
+	w.alerts = append(w.alerts, *alert)
 
 	// Keep only the most recent alerts
 	if len(w.alerts) > w.maxAlerts {
@@ -250,8 +250,8 @@ func NewAlertHistoryWidget() *AlertHistoryWidget {
 }
 
 // AddToHistory adds an alert to the history
-func (w *AlertHistoryWidget) AddToHistory(alert models.Alert) {
-	w.history = append([]models.Alert{alert}, w.history...)
+func (w *AlertHistoryWidget) AddToHistory(alert *models.Alert) {
+	w.history = append([]models.Alert{*alert}, w.history...)
 
 	if len(w.history) > w.maxHistory {
 		w.history = w.history[:w.maxHistory]

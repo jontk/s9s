@@ -91,7 +91,7 @@ func (e *JobOutputExporter) ExportJobOutput(jobID, jobName, outputType, content 
 		ContentSize: len(content),
 	}
 
-	result, err := e.Export(data, FormatText, "")
+	result, err := e.Export(&data, FormatText, "")
 	if err != nil {
 		return "", err
 	}
@@ -99,7 +99,7 @@ func (e *JobOutputExporter) ExportJobOutput(jobID, jobName, outputType, content 
 }
 
 // Export exports job output to a file in the specified format
-func (e *JobOutputExporter) Export(data JobOutputData, format ExportFormat, customPath string) (*ExportResult, error) {
+func (e *JobOutputExporter) Export(data *JobOutputData, format ExportFormat, customPath string) (*ExportResult, error) {
 	result := &Result{
 		Format:    format,
 		Timestamp: time.Now(),
@@ -167,7 +167,7 @@ func (e *JobOutputExporter) createExportDirectory(result *Result, outputPath str
 }
 
 // exportByFormat dispatches to the appropriate export format handler
-func (e *JobOutputExporter) exportByFormat(result *Result, data JobOutputData, format ExportFormat, outputPath string) error {
+func (e *JobOutputExporter) exportByFormat(result *Result, data *JobOutputData, format ExportFormat, outputPath string) error {
 	var err error
 	switch format {
 	case FormatText:
@@ -197,7 +197,7 @@ func (e *JobOutputExporter) updateFileSize(result *Result, outputPath string) {
 }
 
 // exportText exports job output as plain text
-func (e *JobOutputExporter) exportText(data JobOutputData, outputPath string) error {
+func (e *JobOutputExporter) exportText(data *JobOutputData, outputPath string) error {
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -232,7 +232,7 @@ func (e *JobOutputExporter) exportText(data JobOutputData, outputPath string) er
 }
 
 // exportJSON exports job output as JSON
-func (e *JobOutputExporter) exportJSON(data JobOutputData, outputPath string) error {
+func (e *JobOutputExporter) exportJSON(data *JobOutputData, outputPath string) error {
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -250,7 +250,7 @@ func (e *JobOutputExporter) exportJSON(data JobOutputData, outputPath string) er
 }
 
 // exportCSV exports job output as CSV (useful for tabular data or logs)
-func (e *JobOutputExporter) exportCSV(data JobOutputData, outputPath string) error {
+func (e *JobOutputExporter) exportCSV(data *JobOutputData, outputPath string) error {
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -306,7 +306,7 @@ func (e *JobOutputExporter) exportCSV(data JobOutputData, outputPath string) err
 }
 
 // exportMarkdown exports job output as Markdown
-func (e *JobOutputExporter) exportMarkdown(data JobOutputData, outputPath string) error {
+func (e *JobOutputExporter) exportMarkdown(data *JobOutputData, outputPath string) error {
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -364,12 +364,12 @@ func (e *JobOutputExporter) SetDefaultPath(path string) {
 }
 
 // BatchExport exports multiple job outputs in the specified format
-func (e *JobOutputExporter) BatchExport(jobs []JobOutputData, format ExportFormat, basePath string) ([]*ExportResult, error) {
+func (e *JobOutputExporter) BatchExport(jobs []*JobOutputData, format ExportFormat, basePath string) ([]*ExportResult, error) {
 	return e.BatchExportWithCallback(jobs, format, basePath, nil)
 }
 
 // BatchExportWithCallback exports multiple job outputs with optional progress callback
-func (e *JobOutputExporter) BatchExportWithCallback(jobs []JobOutputData, format ExportFormat, _ string, progressCallback func(current, total int, jobID string)) ([]*ExportResult, error) {
+func (e *JobOutputExporter) BatchExportWithCallback(jobs []*JobOutputData, format ExportFormat, _ string, progressCallback func(current, total int, jobID string)) ([]*ExportResult, error) {
 	results := make([]*ExportResult, 0, len(jobs))
 
 	for i, job := range jobs {
@@ -392,7 +392,7 @@ func (e *JobOutputExporter) BatchExportWithCallback(jobs []JobOutputData, format
 }
 
 // StreamingBatchExport exports jobs one at a time to minimize memory usage
-func (e *JobOutputExporter) StreamingBatchExport(jobProvider func() (JobOutputData, bool), format ExportFormat, _ string, progressCallback func(current int, jobID string)) ([]*ExportResult, error) {
+func (e *JobOutputExporter) StreamingBatchExport(jobProvider func() (*JobOutputData, bool), format ExportFormat, _ string, progressCallback func(current int, jobID string)) ([]*ExportResult, error) {
 	var results []*ExportResult
 	jobCount := 0
 
@@ -445,7 +445,7 @@ func (e *JobOutputExporter) ExportSummary(results []*ExportResult) string {
 }
 
 // exportHTML exports job output as HTML
-func (e *JobOutputExporter) exportHTML(data JobOutputData, outputPath string) error {
+func (e *JobOutputExporter) exportHTML(data *JobOutputData, outputPath string) error {
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)

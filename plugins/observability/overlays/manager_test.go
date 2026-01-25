@@ -91,7 +91,7 @@ func TestRegisterOverlay(t *testing.T) {
 		Priority:    100,
 	}
 
-	err := manager.RegisterOverlay(info, overlay)
+	err := manager.RegisterOverlay(&info, overlay)
 	if err != nil {
 		t.Fatalf("RegisterOverlay failed: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestUnregisterOverlay(t *testing.T) {
 	}
 
 	// Register first
-	err := manager.RegisterOverlay(info, overlay)
+	err := manager.RegisterOverlay(&info, overlay)
 	if err != nil {
 		t.Fatalf("RegisterOverlay failed: %v", err)
 	}
@@ -180,8 +180,8 @@ func TestGetOverlaysForView(t *testing.T) {
 	}
 
 	// Register overlays
-	_ = manager.RegisterOverlay(info1, overlay1)
-	_ = manager.RegisterOverlay(info2, overlay2)
+	_ = manager.RegisterOverlay(&info1, overlay1)
+	_ = manager.RegisterOverlay(&info2, overlay2)
 
 	// Test view1 (should have overlay1)
 	overlays := manager.GetOverlaysForView("view1")
@@ -263,7 +263,7 @@ func TestTriggerUpdate(t *testing.T) {
 		TargetViews: []string{"test-view"},
 		Priority:    100,
 	}
-	_ = manager.RegisterOverlay(info, overlay)
+	_ = manager.RegisterOverlay(&info, overlay)
 
 	// Trigger update for specific view
 	manager.TriggerUpdate("test-view")
@@ -298,7 +298,7 @@ func TestShouldRefresh(t *testing.T) {
 		TargetViews: []string{"test-view"},
 		Priority:    100,
 	}
-	_ = manager.RegisterOverlay(info1, overlay1)
+	_ = manager.RegisterOverlay(&info1, overlay1)
 
 	shouldRefresh = manager.ShouldRefresh("test-view")
 	if !shouldRefresh {
@@ -312,7 +312,7 @@ func TestShouldRefresh(t *testing.T) {
 		TargetViews: []string{"test-view"},
 		Priority:    200,
 	}
-	_ = manager.RegisterOverlay(info2, overlay2)
+	_ = manager.RegisterOverlay(&info2, overlay2)
 
 	shouldRefresh = manager.ShouldRefresh("test-view")
 	if !shouldRefresh {
@@ -349,7 +349,7 @@ func TestGetColumns(t *testing.T) {
 		TargetViews: []string{"test-view"},
 		Priority:    100,
 	}
-	_ = manager.RegisterOverlay(info, overlay)
+	_ = manager.RegisterOverlay(&info, overlay)
 
 	columns = manager.GetColumns("test-view")
 	if len(columns) != 2 {
@@ -380,7 +380,7 @@ func TestGetOverlayData(t *testing.T) {
 		TargetViews: []string{"test-view"},
 		Priority:    100,
 	}
-	_ = manager.RegisterOverlay(info, overlay)
+	_ = manager.RegisterOverlay(&info, overlay)
 
 	// Get overlay data
 	data := manager.GetOverlayData(ctx, "test-view", "row1", "col1")
@@ -413,7 +413,7 @@ func TestGetOverlayByID(t *testing.T) {
 		TargetViews: []string{"test-view"},
 		Priority:    100,
 	}
-	_ = manager.RegisterOverlay(info, testOverlay)
+	_ = manager.RegisterOverlay(&info, testOverlay)
 
 	// Get overlay by ID
 	overlay = manager.GetOverlayByID("test-overlay")
@@ -457,8 +457,8 @@ func TestGetStats(t *testing.T) {
 		Priority:    200,
 	}
 
-	_ = manager.RegisterOverlay(info1, overlay1)
-	_ = manager.RegisterOverlay(info2, overlay2)
+	_ = manager.RegisterOverlay(&info1, overlay1)
+	_ = manager.RegisterOverlay(&info2, overlay2)
 
 	stats = manager.GetStats()
 	if stats.TotalOverlays != 2 {
@@ -507,7 +507,7 @@ func TestConcurrentAccess(t *testing.T) {
 				TargetViews: []string{"test-view"},
 				Priority:    100 + i,
 			}
-			_ = manager.RegisterOverlay(info, overlay)
+			_ = manager.RegisterOverlay(&info, overlay)
 		}
 		done <- true
 	}()

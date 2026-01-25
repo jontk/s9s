@@ -123,7 +123,7 @@ func (jmc *JobMetricsCollector) setMemoryLimit(rm *ResourceMetrics, memLimit *Ti
 }
 
 // UpdateJobInfo updates SLURM job information
-func (jmc *JobMetricsCollector) UpdateJobInfo(jobID string, info JobInfo) {
+func (jmc *JobMetricsCollector) UpdateJobInfo(jobID string, info *JobInfo) {
 	job, exists := jmc.jobs[jobID]
 	if !exists {
 		job = &JobMetrics{

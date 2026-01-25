@@ -16,7 +16,7 @@ func TestNewAuditLogger(t *testing.T) {
 	config := DefaultAuditConfig()
 	config.LogFile = "" // Use stdout for test
 
-	logger, err := NewAuditLogger(config)
+	logger, err := NewAuditLogger(&config)
 	if err != nil {
 		t.Fatalf("NewAuditLogger failed: %v", err)
 	}
@@ -41,7 +41,7 @@ func TestNewAuditLoggerWithFile(t *testing.T) {
 		LogFile: logFile,
 	}
 
-	logger, err := NewAuditLogger(config)
+	logger, err := NewAuditLogger(&config)
 	if err != nil {
 		t.Fatalf("NewAuditLogger with file failed: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestNewAuditLoggerDisabled(t *testing.T) {
 		Enabled: false,
 	}
 
-	logger, err := NewAuditLogger(config)
+	logger, err := NewAuditLogger(&config)
 	if err != nil {
 		t.Fatalf("NewAuditLogger failed: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestLogEvent(t *testing.T) {
 	config := DefaultAuditConfig()
 	config.LogFile = "" // Use stdout
 
-	logger, err := NewAuditLogger(config)
+	logger, err := NewAuditLogger(&config)
 	if err != nil {
 		t.Fatalf("NewAuditLogger failed: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestLogEvent(t *testing.T) {
 		Sensitive: true,
 	}
 
-	logger.LogEvent(event)
+	logger.LogEvent(&event)
 
 	// Verify event was logged
 	output := buffer.String()
@@ -128,7 +128,7 @@ func TestLogEventSensitiveFiltering(t *testing.T) {
 		LogLevel:      "info",
 	}
 
-	logger, err := NewAuditLogger(config)
+	logger, err := NewAuditLogger(&config)
 	if err != nil {
 		t.Fatalf("NewAuditLogger failed: %v", err)
 	}
@@ -142,7 +142,7 @@ func TestLogEventSensitiveFiltering(t *testing.T) {
 		EventType: EventTypeAPIAccess,
 		Sensitive: false,
 	}
-	logger.LogEvent(nonSensitiveEvent)
+	logger.LogEvent(&nonSensitiveEvent)
 
 	// Should not be logged
 	if buffer.Len() > 0 {
@@ -155,7 +155,7 @@ func TestLogEventSensitiveFiltering(t *testing.T) {
 		EventType: EventTypeSecretAccess,
 		Sensitive: true,
 	}
-	logger.LogEvent(sensitiveEvent)
+	logger.LogEvent(&sensitiveEvent)
 
 	// Should be logged
 	if buffer.Len() == 0 {
@@ -171,7 +171,7 @@ func TestLogAPIRequest(t *testing.T) {
 	config.SensitiveOnly = false // Log all events for this test
 	config.LogHeaders = []string{"User-Agent", "X-Test-Header"}
 
-	logger, err := NewAuditLogger(config)
+	logger, err := NewAuditLogger(&config)
 	if err != nil {
 		t.Fatalf("NewAuditLogger failed: %v", err)
 	}
@@ -236,7 +236,7 @@ func TestLogSecretAccess(t *testing.T) {
 	config := DefaultAuditConfig()
 	config.LogFile = ""
 
-	logger, err := NewAuditLogger(config)
+	logger, err := NewAuditLogger(&config)
 	if err != nil {
 		t.Fatalf("NewAuditLogger failed: %v", err)
 	}
@@ -288,7 +288,7 @@ func TestAuditMiddleware(t *testing.T) {
 		LogLevel:      "info",
 	}
 
-	logger, err := NewAuditLogger(config)
+	logger, err := NewAuditLogger(&config)
 	if err != nil {
 		t.Fatalf("NewAuditLogger failed: %v", err)
 	}
@@ -340,7 +340,7 @@ func TestAuditMiddlewareDisabled(t *testing.T) {
 		Enabled: false,
 	}
 
-	logger, err := NewAuditLogger(config)
+	logger, err := NewAuditLogger(&config)
 	if err != nil {
 		t.Fatalf("NewAuditLogger failed: %v", err)
 	}
@@ -427,7 +427,7 @@ func TestExtractClientIPFunction(t *testing.T) {
 func TestIsSensitivePath(t *testing.T) {
 	config := DefaultAuditConfig()
 	config.LogFile = "" // Use stdout for test
-	logger, err := NewAuditLogger(config)
+	logger, err := NewAuditLogger(&config)
 	if err != nil {
 		t.Fatalf("NewAuditLogger failed: %v", err)
 	}
@@ -502,10 +502,10 @@ func TestLogLevelFiltering(t *testing.T) {
 				SensitiveOnly: false,
 			}
 
-			logger, _ := NewAuditLogger(config)
+			logger, _ := NewAuditLogger(&config)
 			defer func() { _ = logger.Close() }()
 
-			result := logger.shouldLog(tt.event)
+			result := logger.shouldLog(&tt.event)
 			if result != tt.shouldLog {
 				t.Errorf("Log level '%s' with event: expected shouldLog=%v, got %v",
 					tt.logLevel, tt.shouldLog, result)
@@ -516,7 +516,7 @@ func TestLogLevelFiltering(t *testing.T) {
 
 func TestExtractUserID(t *testing.T) {
 	config := DefaultAuditConfig()
-	logger, _ := NewAuditLogger(config)
+	logger, _ := NewAuditLogger(&config)
 	defer func() { _ = logger.Close() }()
 
 	tests := []struct {
@@ -570,7 +570,7 @@ func TestAuditGetStats(t *testing.T) {
 		IncludeBodies: false,
 	}
 
-	logger, err := NewAuditLogger(config)
+	logger, err := NewAuditLogger(&config)
 	if err != nil {
 		t.Fatalf("NewAuditLogger failed: %v", err)
 	}

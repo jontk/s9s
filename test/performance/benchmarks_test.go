@@ -114,7 +114,7 @@ func BenchmarkJobExportOperations(b *testing.B) {
 			for _, format := range formats {
 				b.Run(string(format), func(b *testing.B) {
 					for i := 0; i < b.N; i++ {
-						_, err := exporter.Export(jobData, format, "")
+						_, err := exporter.Export(&jobData, format, "")
 						if err != nil {
 							b.Errorf("Export failed: %v", err)
 						}
@@ -136,9 +136,9 @@ func BenchmarkBatchExportOperations(b *testing.B) {
 	for _, batchSize := range batchSizes {
 		b.Run(fmt.Sprintf("BatchSize_%d", batchSize), func(b *testing.B) {
 			// Generate batch data
-			batchJobs := make([]export.JobOutputData, batchSize)
+			batchJobs := make([]*export.JobOutputData, batchSize)
 			for i := 0; i < batchSize; i++ {
-				batchJobs[i] = export.JobOutputData{
+				batchJobs[i] = &export.JobOutputData{
 					JobID:       fmt.Sprintf("batch_job_%d", i),
 					JobName:     fmt.Sprintf("batch_test_%d", i),
 					OutputType:  "stdout",
@@ -276,7 +276,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := exporter.Export(largeJobData, export.FormatJSON, "")
+			_, err := exporter.Export(&largeJobData, export.FormatJSON, "")
 			if err != nil {
 				b.Errorf("Large export failed: %v", err)
 			}

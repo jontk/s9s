@@ -89,11 +89,11 @@ func (nm *NotificationManager) UnregisterCallback(subscriptionType string) {
 }
 
 // SendNotification sends a notification to registered callbacks
-func (nm *NotificationManager) SendNotification(notification Notification) {
+func (nm *NotificationManager) SendNotification(notification *Notification) {
 	nm.mu.Lock()
 
 	// Add to history
-	nm.notifications = append(nm.notifications, notification)
+	nm.notifications = append(nm.notifications, *notification)
 
 	// Trim history if necessary
 	if len(nm.notifications) > nm.maxHistory {
@@ -121,7 +121,7 @@ func (nm *NotificationManager) SendNotification(notification Notification) {
 				_ = recover()
 			}()
 			cb(notif)
-		}(callback, notification)
+		}(callback, *notification)
 	}
 }
 
@@ -425,7 +425,7 @@ func (esc *EnhancedSubscriptionCallback) Call(data interface{}, err error) {
 	if err == nil && data != nil {
 		notifications := esc.changeDetector.DetectChanges(esc.subscriptionID, esc.providerID, data)
 		for _, notification := range notifications {
-			esc.notificationMgr.SendNotification(notification)
+			esc.notificationMgr.SendNotification(&notification)
 		}
 	}
 }

@@ -165,38 +165,38 @@ func TestAlertManagerGetAlerts(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		filter        AlertFilter
+		filter        *AlertFilter
 		expectedCount int
 	}{
 		{
 			name:          "no filter returns all alerts",
-			filter:        AlertFilter{},
+			filter:        &AlertFilter{},
 			expectedCount: 3,
 		},
 		{
 			name: "filter by type",
-			filter: AlertFilter{
+			filter: &AlertFilter{
 				Types: []AlertType{AlertTypeHealth},
 			},
 			expectedCount: 1,
 		},
 		{
 			name: "filter by severity",
-			filter: AlertFilter{
+			filter: &AlertFilter{
 				Severities: []AlertSeverity{AlertSeverityCritical, AlertSeverityWarning},
 			},
 			expectedCount: 2,
 		},
 		{
 			name: "filter by component",
-			filter: AlertFilter{
+			filter: &AlertFilter{
 				Components: []string{"nodes"},
 			},
 			expectedCount: 1,
 		},
 		{
 			name: "multiple filters",
-			filter: AlertFilter{
+			filter: &AlertFilter{
 				Types:      []AlertType{AlertTypePerformance},
 				Severities: []AlertSeverity{AlertSeverityWarning},
 			},
@@ -648,13 +648,13 @@ func TestAlertFilterTimeRange(t *testing.T) {
 	untilTime := baseTime.Add(-15 * time.Minute)
 
 	// Filter for alerts in the last hour
-	alerts := am.GetAlerts(AlertFilter{
+	alerts := am.GetAlerts(&AlertFilter{
 		SinceTime: &sinceTime,
 	})
 	assert.Len(t, alerts, 2) // recent and new
 
 	// Filter for alerts before 15 minutes ago
-	alerts = am.GetAlerts(AlertFilter{
+	alerts = am.GetAlerts(&AlertFilter{
 		UntilTime: &untilTime,
 	})
 	assert.Len(t, alerts, 2) // old and recent

@@ -193,7 +193,7 @@ func (fsm *FilteredStreamManager) GetFilterStats() map[string]FilterStats {
 }
 
 // EmitFilteredEvent emits an event after applying filters
-func (fsm *FilteredStreamManager) EmitFilteredEvent(event StreamEvent) {
+func (fsm *FilteredStreamManager) EmitFilteredEvent(event *StreamEvent) {
 	// Extract lines from content
 	lines := strings.Split(event.Content, "\n")
 	filteredLines := make([]string, 0)
@@ -297,12 +297,12 @@ func (fsm *FilteredStreamManager) SetFilterChainMode(mode ChainMode) {
 }
 
 // StreamWithContext provides a filtered event channel for a specific stream
-func (fsm *FilteredStreamManager) StreamWithContext(ctx context.Context, jobID, outputType string) (<-chan StreamEvent, error) {
+func (fsm *FilteredStreamManager) StreamWithContext(ctx context.Context, jobID, outputType string) (<-chan *StreamEvent, error) {
 	// Subscribe to the base stream
 	eventChan := fsm.Subscribe(jobID, outputType)
 
 	// Create filtered channel
-	filteredChan := make(chan StreamEvent, 100)
+	filteredChan := make(chan *StreamEvent, 100)
 
 	go fsm.streamEventProcessor(ctx, eventChan, filteredChan)
 
@@ -310,7 +310,7 @@ func (fsm *FilteredStreamManager) StreamWithContext(ctx context.Context, jobID, 
 }
 
 // streamEventProcessor processes events from the source channel and sends filtered events to the output channel
-func (fsm *FilteredStreamManager) streamEventProcessor(ctx context.Context, eventChan <-chan StreamEvent, filteredChan chan StreamEvent) {
+func (fsm *FilteredStreamManager) streamEventProcessor(ctx context.Context, eventChan <-chan StreamEvent, filteredChan chan *StreamEvent) {
 	defer close(filteredChan)
 
 	for {
@@ -321,13 +321,13 @@ func (fsm *FilteredStreamManager) streamEventProcessor(ctx context.Context, even
 			if !ok {
 				return
 			}
-			fsm.processStreamEvent(ctx, event, filteredChan)
+			fsm.processStreamEvent(ctx, &event, filteredChan)
 		}
 	}
 }
 
 // processStreamEvent handles filtering and sending of a single stream event
-func (fsm *FilteredStreamManager) processStreamEvent(ctx context.Context, event StreamEvent, filteredChan chan StreamEvent) {
+func (fsm *FilteredStreamManager) processStreamEvent(ctx context.Context, event *StreamEvent, filteredChan chan *StreamEvent) {
 	if event.EventType == StreamEventNewOutput {
 		fsm.processOutputEvent(ctx, event, filteredChan)
 	} else {
@@ -336,7 +336,7 @@ func (fsm *FilteredStreamManager) processStreamEvent(ctx context.Context, event 
 }
 
 // processOutputEvent filters output event lines and sends if matching lines exist
-func (fsm *FilteredStreamManager) processOutputEvent(ctx context.Context, event StreamEvent, filteredChan chan StreamEvent) {
+func (fsm *FilteredStreamManager) processOutputEvent(ctx context.Context, event *StreamEvent, filteredChan chan *StreamEvent) {
 	filteredNewLines := fsm.filterEventLines(event.NewLines, event.Timestamp)
 	if len(filteredNewLines) > 0 {
 		event.NewLines = filteredNewLines
@@ -345,7 +345,7 @@ func (fsm *FilteredStreamManager) processOutputEvent(ctx context.Context, event 
 }
 
 // processOtherEvent sends non-output events directly
-func (fsm *FilteredStreamManager) processOtherEvent(ctx context.Context, event StreamEvent, filteredChan chan StreamEvent) {
+func (fsm *FilteredStreamManager) processOtherEvent(ctx context.Context, event *StreamEvent, filteredChan chan *StreamEvent) {
 	fsm.sendToFilteredChannel(ctx, event, filteredChan)
 }
 
@@ -362,7 +362,7 @@ func (fsm *FilteredStreamManager) filterEventLines(lines []string, timestamp tim
 }
 
 // sendToFilteredChannel sends an event to the filtered channel, respecting context cancellation
-func (fsm *FilteredStreamManager) sendToFilteredChannel(ctx context.Context, event StreamEvent, filteredChan chan StreamEvent) {
+func (fsm *FilteredStreamManager) sendToFilteredChannel(ctx context.Context, event *StreamEvent, filteredChan chan *StreamEvent) {
 	select {
 	case filteredChan <- event:
 	case <-ctx.Done():

@@ -44,12 +44,12 @@ func NewOverlayManager(client *prometheus.CachedClient, updateInterval time.Dura
 }
 
 // RegisterOverlay registers an overlay for specific views
-func (om *OverlayManager) RegisterOverlay(info plugin.OverlayInfo, overlay plugin.Overlay) error {
+func (om *OverlayManager) RegisterOverlay(info *plugin.OverlayInfo, overlay plugin.Overlay) error {
 	om.mu.Lock()
 	defer om.mu.Unlock()
 
 	// Store overlay info
-	om.overlayInfos[info.ID] = info
+	om.overlayInfos[info.ID] = *info
 
 	// Register overlay for each target view
 	for _, viewID := range info.TargetViews {

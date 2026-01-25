@@ -19,7 +19,7 @@ type AdvancedLoadBalancer struct {
 	endpoints     map[string]*ManagedEndpoint
 	mutex         sync.RWMutex
 	healthChecker *HealthChecker
-	config        LoadBalancerConfig
+	config        *LoadBalancerConfig
 }
 
 // ManagedEndpoint wraps an Endpoint with additional load balancing metadata
@@ -49,7 +49,7 @@ type LoadBalancerConfig struct {
 // HealthChecker performs periodic health checks on endpoints
 type HealthChecker struct {
 	client   *http.Client
-	config   LoadBalancerConfig
+	config   *LoadBalancerConfig
 	balancer *AdvancedLoadBalancer
 	stopChan chan struct{}
 	wg       sync.WaitGroup
@@ -58,7 +58,7 @@ type HealthChecker struct {
 }
 
 // NewAdvancedLoadBalancer creates a new advanced load balancer
-func NewAdvancedLoadBalancer(config LoadBalancerConfig) LoadBalancer {
+func NewAdvancedLoadBalancer(config *LoadBalancerConfig) LoadBalancer {
 	if config.Strategy == "" {
 		config.Strategy = "weighted-least-connections"
 	}

@@ -592,7 +592,7 @@ func (v *ObservabilityView) processSingleJobMetrics(ctx context.Context, jobID s
 	v.jobCollector.UpdateFromPrometheus(jobID, metrics)
 
 	if details, ok := jobDetails[jobID]; ok {
-		v.jobCollector.UpdateJobInfo(jobID, details)
+		v.jobCollector.UpdateJobInfo(jobID, &details)
 	}
 }
 
@@ -940,7 +940,7 @@ func (v *ObservabilityView) updateClusterMetrics() {
 // setupAlertCallbacks configures alert engine callbacks
 func (v *ObservabilityView) setupAlertCallbacks() {
 	// Set up alert callback - when new alert fires
-	v.alertEngine.SetAlertCallback(func(alert alerts.Alert) {
+	v.alertEngine.SetAlertCallback(func(alert *alerts.Alert) {
 		v.app.QueueUpdateDraw(func() {
 			// Convert engine alert to model alert
 			modelAlert := v.convertToModelAlert(alert)
@@ -965,7 +965,7 @@ func (v *ObservabilityView) setupAlertCallbacks() {
 	})
 
 	// Set up resolved callback - when alert resolves
-	v.alertEngine.SetResolvedCallback(func(alert alerts.Alert) {
+	v.alertEngine.SetResolvedCallback(func(alert *alerts.Alert) {
 		v.app.QueueUpdateDraw(func() {
 			// Update alert status in the list
 			v.mu.Lock()
@@ -985,7 +985,7 @@ func (v *ObservabilityView) setupAlertCallbacks() {
 }
 
 // convertToModelAlert converts an engine alert to a model alert
-func (v *ObservabilityView) convertToModelAlert(alert alerts.Alert) models.Alert {
+func (v *ObservabilityView) convertToModelAlert(alert *alerts.Alert) models.Alert {
 	return models.Alert{
 		Name:       alert.RuleName,
 		Severity:   alert.Severity,
@@ -1008,8 +1008,8 @@ func (v *ObservabilityView) updateAlerts() {
 	// Convert to model alerts
 	// Note: Mutex is already held by the caller (refresh function)
 	newAlerts := make([]models.Alert, 0, len(activeAlerts))
-	for _, alert := range activeAlerts {
-		newAlerts = append(newAlerts, v.convertToModelAlert(alert))
+	for i := range activeAlerts {
+		newAlerts = append(newAlerts, v.convertToModelAlert(&activeAlerts[i]))
 	}
 
 	// Merge with existing alerts (to preserve resolved alerts)

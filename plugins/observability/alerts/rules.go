@@ -229,7 +229,7 @@ var RuleTemplates = map[string]Rule{
 }
 
 // ValidateRule validates an alert rule
-func ValidateRule(rule Rule) error {
+func ValidateRule(rule *Rule) error {
 	// Validate basic fields
 	if rule.Name == "" {
 		return fmt.Errorf("rule name is required")
@@ -253,7 +253,7 @@ func ValidateRule(rule Rule) error {
 }
 
 // validateRuleType validates requirements specific to each rule type
-func validateRuleType(rule Rule) error {
+func validateRuleType(rule *Rule) error {
 	switch rule.Type {
 	case RuleTypeThreshold:
 		return validateThresholdRule(rule)
@@ -267,7 +267,7 @@ func validateRuleType(rule Rule) error {
 }
 
 // validateThresholdRule validates threshold rule requirements
-func validateThresholdRule(rule Rule) error {
+func validateThresholdRule(rule *Rule) error {
 	if rule.Metric == "" {
 		return fmt.Errorf("metric is required for threshold rules")
 	}
@@ -281,7 +281,7 @@ func validateThresholdRule(rule Rule) error {
 }
 
 // validateQueryRule validates query rule requirements
-func validateQueryRule(rule Rule) error {
+func validateQueryRule(rule *Rule) error {
 	if rule.Query == "" {
 		return fmt.Errorf("query is required for query rules")
 	}
@@ -289,7 +289,7 @@ func validateQueryRule(rule Rule) error {
 }
 
 // validateCompositeRule validates composite rule requirements
-func validateCompositeRule(rule Rule) error {
+func validateCompositeRule(rule *Rule) error {
 	if len(rule.Conditions) == 0 {
 		return fmt.Errorf("conditions are required for composite rules")
 	}
@@ -413,7 +413,7 @@ func (rb *RuleBuilder) WithAnnotation(key, value string) *RuleBuilder {
 
 // Build validates and returns the rule
 func (rb *RuleBuilder) Build() (Rule, error) {
-	if err := ValidateRule(rb.rule); err != nil {
+	if err := ValidateRule(&rb.rule); err != nil {
 		return Rule{}, err
 	}
 	return rb.rule, nil

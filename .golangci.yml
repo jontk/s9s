@@ -242,14 +242,10 @@ linters:
         linters:
           - gocritic
 
-      # Temporary: Exclude gocritic hugeParam violations
-      # These occur when passing large structs (80+ bytes) by value to functions.
-      # This is a performance optimization that requires significant API refactoring
-      # across multiple packages (alerts, metrics, models, etc.)
-      # TODO(Phase 6): Refactor function signatures to pass large structs by pointer
-      - text: 'is heavy'
-        linters:
-          - gocritic
+      # Phase 6: hugeParam violations - FIXING NOW
+      # - text: 'is heavy'
+      #   linters:
+      #     - gocritic
 
       # Temporary: Exclude gocritic unnamedResult violations
       # These are style preferences where return values could be named for clarity.

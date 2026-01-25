@@ -138,7 +138,7 @@ func (am *AlertManager) GetAlert(id string) *Alert {
 }
 
 // GetAlerts returns all alerts, optionally filtered by parameters
-func (am *AlertManager) GetAlerts(filter AlertFilter) []*Alert {
+func (am *AlertManager) GetAlerts(filter *AlertFilter) []*Alert {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
 
@@ -168,12 +168,12 @@ type AlertFilter struct {
 // GetActiveAlerts returns all unresolved alerts
 func (am *AlertManager) GetActiveAlerts() []*Alert {
 	resolved := false
-	return am.GetAlerts(AlertFilter{Resolved: &resolved})
+	return am.GetAlerts(&AlertFilter{Resolved: &resolved})
 }
 
 // GetCriticalAlerts returns all critical alerts
 func (am *AlertManager) GetCriticalAlerts() []*Alert {
-	return am.GetAlerts(AlertFilter{
+	return am.GetAlerts(&AlertFilter{
 		Severities: []AlertSeverity{AlertSeverityCritical},
 		Resolved:   boolPtr(false),
 	})
@@ -314,7 +314,7 @@ func (am *AlertManager) findSimilarAlert(newAlert *Alert) string {
 }
 
 // matchesFilter checks if an alert matches the given filter
-func (am *AlertManager) matchesFilter(alert *Alert, filter AlertFilter) bool {
+func (am *AlertManager) matchesFilter(alert *Alert, filter *AlertFilter) bool {
 	return am.matchesTypeFilter(alert, filter) &&
 		am.matchesSeverityFilter(alert, filter) &&
 		am.matchesComponentFilter(alert, filter) &&
@@ -324,7 +324,7 @@ func (am *AlertManager) matchesFilter(alert *Alert, filter AlertFilter) bool {
 }
 
 // matchesTypeFilter checks if alert type matches filter
-func (am *AlertManager) matchesTypeFilter(alert *Alert, filter AlertFilter) bool {
+func (am *AlertManager) matchesTypeFilter(alert *Alert, filter *AlertFilter) bool {
 	if len(filter.Types) == 0 {
 		return true
 	}
@@ -332,7 +332,7 @@ func (am *AlertManager) matchesTypeFilter(alert *Alert, filter AlertFilter) bool
 }
 
 // matchesSeverityFilter checks if alert severity matches filter
-func (am *AlertManager) matchesSeverityFilter(alert *Alert, filter AlertFilter) bool {
+func (am *AlertManager) matchesSeverityFilter(alert *Alert, filter *AlertFilter) bool {
 	if len(filter.Severities) == 0 {
 		return true
 	}
@@ -340,7 +340,7 @@ func (am *AlertManager) matchesSeverityFilter(alert *Alert, filter AlertFilter) 
 }
 
 // matchesComponentFilter checks if alert component matches filter
-func (am *AlertManager) matchesComponentFilter(alert *Alert, filter AlertFilter) bool {
+func (am *AlertManager) matchesComponentFilter(alert *Alert, filter *AlertFilter) bool {
 	if len(filter.Components) == 0 {
 		return true
 	}
@@ -348,7 +348,7 @@ func (am *AlertManager) matchesComponentFilter(alert *Alert, filter AlertFilter)
 }
 
 // matchesAcknowledgedFilter checks if alert acknowledged status matches filter
-func (am *AlertManager) matchesAcknowledgedFilter(alert *Alert, filter AlertFilter) bool {
+func (am *AlertManager) matchesAcknowledgedFilter(alert *Alert, filter *AlertFilter) bool {
 	if filter.Acknowledged == nil {
 		return true
 	}
@@ -356,7 +356,7 @@ func (am *AlertManager) matchesAcknowledgedFilter(alert *Alert, filter AlertFilt
 }
 
 // matchesResolvedFilter checks if alert resolved status matches filter
-func (am *AlertManager) matchesResolvedFilter(alert *Alert, filter AlertFilter) bool {
+func (am *AlertManager) matchesResolvedFilter(alert *Alert, filter *AlertFilter) bool {
 	if filter.Resolved == nil {
 		return true
 	}
@@ -364,7 +364,7 @@ func (am *AlertManager) matchesResolvedFilter(alert *Alert, filter AlertFilter) 
 }
 
 // matchesTimeFilter checks if alert timestamp is within filter time range
-func (am *AlertManager) matchesTimeFilter(alert *Alert, filter AlertFilter) bool {
+func (am *AlertManager) matchesTimeFilter(alert *Alert, filter *AlertFilter) bool {
 	if filter.SinceTime != nil && alert.Timestamp.Before(*filter.SinceTime) {
 		return false
 	}

@@ -79,7 +79,7 @@ func TestNewClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client, err := NewClient(tt.config)
+			client, err := NewClient(&tt.config)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
@@ -173,7 +173,7 @@ func TestCreateTLSConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tlsConfig, err := createTLSConfig(tt.config)
+			tlsConfig, err := createTLSConfig(&tt.config)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("createTLSConfig() error = %v, wantErr %v", err, tt.wantErr)
@@ -213,7 +213,7 @@ func TestClientConfigFields(t *testing.T) {
 		TLSCAFile:     "/path/to/ca.pem",
 	}
 
-	client, err := NewClient(config)
+	client, err := NewClient(&config)
 	if err != nil {
 		// Expected to fail due to non-existent cert files
 		// But we can verify the config was stored
@@ -252,7 +252,7 @@ func TestBatchQuery(t *testing.T) {
 		Timeout:  10 * time.Second,
 	}
 
-	client, err := NewClient(config)
+	client, err := NewClient(&config)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -283,7 +283,7 @@ func TestClientClose(t *testing.T) {
 		Timeout:  10 * time.Second,
 	}
 
-	client, err := NewClient(config)
+	client, err := NewClient(&config)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -301,7 +301,7 @@ func TestClientMethods(t *testing.T) {
 		Timeout:  10 * time.Second,
 	}
 
-	client, err := NewClient(config)
+	client, err := NewClient(&config)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -347,7 +347,7 @@ func TestHTTPClientConfiguration(t *testing.T) {
 		TLSSkipVerify: true,
 	}
 
-	client, err := NewClient(config)
+	client, err := NewClient(&config)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -412,7 +412,7 @@ func TestEndpointNormalization(t *testing.T) {
 				Timeout:  10 * time.Second,
 			}
 
-			client, err := NewClient(config)
+			client, err := NewClient(&config)
 			if err != nil {
 				t.Fatalf("Failed to create client: %v", err)
 			}
@@ -433,7 +433,7 @@ func BenchmarkNewClient(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		client, err := NewClient(config)
+		client, err := NewClient(&config)
 		if err != nil {
 			b.Fatalf("Failed to create client: %v", err)
 		}
@@ -448,7 +448,7 @@ func BenchmarkCreateTLSConfig(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := createTLSConfig(config)
+		_, err := createTLSConfig(&config)
 		if err != nil {
 			b.Fatalf("Failed to create TLS config: %v", err)
 		}

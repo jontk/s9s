@@ -11,7 +11,7 @@ import (
 
 func TestNewRequestValidator(t *testing.T) {
 	config := DefaultValidationConfig()
-	validator, err := NewRequestValidator(config)
+	validator, err := NewRequestValidator(&config)
 
 	if err != nil {
 		t.Fatalf("NewRequestValidator failed: %v", err)
@@ -31,7 +31,7 @@ func TestNewRequestValidatorInvalidRegex(t *testing.T) {
 		AllowedMetricPatterns: []string{"[invalid"},
 	}
 
-	_, err := NewRequestValidator(config)
+	_, err := NewRequestValidator(&config)
 	if err == nil {
 		t.Error("Expected error for invalid regex pattern")
 	}
@@ -49,7 +49,7 @@ func TestValidateQueryRequest(t *testing.T) {
 		MaxComplexityScore:         50,
 	}
 
-	validator, err := NewRequestValidator(config)
+	validator, err := NewRequestValidator(&config)
 	if err != nil {
 		t.Fatalf("Failed to create validator: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestValidateTimeRange(t *testing.T) {
 		MaxTimeRange: 24 * time.Hour,
 	}
 
-	validator, _ := NewRequestValidator(config)
+	validator, _ := NewRequestValidator(&config)
 
 	tests := []struct {
 		name     string
@@ -246,7 +246,7 @@ func TestValidationMiddleware(t *testing.T) {
 		AllowedMetricPatterns: []string{"cpu_.*"},
 	}
 
-	validator, err := NewRequestValidator(config)
+	validator, err := NewRequestValidator(&config)
 	if err != nil {
 		t.Fatalf("Failed to create validator: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestValidationMiddlewareDisabled(t *testing.T) {
 		Enabled: false,
 	}
 
-	validator, err := NewRequestValidator(config)
+	validator, err := NewRequestValidator(&config)
 	if err != nil {
 		t.Fatalf("Failed to create validator: %v", err)
 	}
@@ -370,7 +370,8 @@ func TestParseTimeParameter(t *testing.T) {
 }
 
 func TestValidateAnomalyParameters(t *testing.T) {
-	validator, _ := NewRequestValidator(DefaultValidationConfig())
+	config := DefaultValidationConfig()
+	validator, _ := NewRequestValidator(&config)
 
 	tests := []struct {
 		name        string
@@ -437,7 +438,7 @@ func TestValidateMetricPatterns(t *testing.T) {
 		BlockedMetricPatterns: []string{".*_secret.*", ".*_password.*"},
 	}
 
-	validator, _ := NewRequestValidator(config)
+	validator, _ := NewRequestValidator(&config)
 
 	tests := []struct {
 		name       string
@@ -494,7 +495,8 @@ func TestValidateMetricPatterns(t *testing.T) {
 }
 
 func TestValidateGenericRequest(t *testing.T) {
-	validator, _ := NewRequestValidator(DefaultValidationConfig())
+	config := DefaultValidationConfig()
+	validator, _ := NewRequestValidator(&config)
 
 	tests := []struct {
 		name    string
@@ -559,7 +561,7 @@ func TestValidateGenericRequest(t *testing.T) {
 
 func TestValidationGetStats(t *testing.T) {
 	config := DefaultValidationConfig()
-	validator, _ := NewRequestValidator(config)
+	validator, _ := NewRequestValidator(&config)
 
 	stats := validator.GetStats()
 

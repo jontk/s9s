@@ -92,7 +92,7 @@ func (m *Manager) InitializeComponents() (*Components, error) {
 
 // initSecretsManager initializes the secrets manager
 func (m *Manager) initSecretsManager(components *Components) error {
-	secretsManager, err := security.NewSecretsManager(m.ctx, m.config.Security.Secrets)
+	secretsManager, err := security.NewSecretsManager(m.ctx, &m.config.Security.Secrets)
 	if err != nil {
 		return fmt.Errorf("failed to create secrets manager: %w", err)
 	}
@@ -143,7 +143,7 @@ func (m *Manager) initPrometheusClient(components *Components) error {
 		clientConfig.BearerToken = token
 	}
 
-	client, err := prometheus.NewClient(clientConfig)
+	client, err := prometheus.NewClient(&clientConfig)
 	if err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func (m *Manager) initExternalAPI(components *Components) error {
 		components.HistoricalCollector,
 		components.HistoricalAnalyzer,
 		components.EfficiencyAnalyzer,
-		apiConfig,
+		&apiConfig,
 	)
 	components.ExternalAPI = externalAPI
 

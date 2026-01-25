@@ -444,7 +444,7 @@ func (p *ObservabilityPlugin) CreateOverlay(ctx context.Context, overlayID strin
 
 	// Register with overlay manager
 	if p.components.OverlayMgr != nil {
-		if err := p.components.OverlayMgr.RegisterOverlay(overlayInfo, overlay); err != nil {
+		if err := p.components.OverlayMgr.RegisterOverlay(&overlayInfo, overlay); err != nil {
 			return nil, fmt.Errorf("failed to register overlay with manager: %w", err)
 		}
 	}

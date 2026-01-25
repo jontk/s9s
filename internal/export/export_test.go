@@ -29,7 +29,7 @@ func TestJobOutputExporter(t *testing.T) {
 			ContentSize: 50,
 		}
 
-		result, err := exporter.Export(data, FormatText, "")
+		result, err := exporter.Export(&data, FormatText, "")
 		require.NoError(t, err)
 		assert.True(t, result.Success)
 		assert.Contains(t, result.FilePath, ".txt")
@@ -49,7 +49,7 @@ func TestJobOutputExporter(t *testing.T) {
 			Content:    "Test content",
 		}
 
-		result, err := exporter.Export(data, FormatJSON, "")
+		result, err := exporter.Export(&data, FormatJSON, "")
 		require.NoError(t, err)
 		assert.True(t, result.Success)
 		assert.Contains(t, result.FilePath, ".json")
@@ -63,7 +63,7 @@ func TestJobOutputExporter(t *testing.T) {
 			Content:    "Line 1\nLine 2\nLine 3",
 		}
 
-		result, err := exporter.Export(data, FormatCSV, "")
+		result, err := exporter.Export(&data, FormatCSV, "")
 		require.NoError(t, err)
 		assert.True(t, result.Success)
 		assert.Contains(t, result.FilePath, ".csv")

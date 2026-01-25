@@ -39,7 +39,7 @@ func testBatchExportMemory(t *testing.T, useOptimized bool) {
 
 	// Create export data for 100 jobs (simulating medium batch)
 	jobCount := 100
-	exportData := make([]export.JobOutputData, jobCount)
+	exportData := make([]*export.JobOutputData, jobCount)
 
 	for i := 0; i < jobCount; i++ {
 		jobID := fmt.Sprintf("job_%d", i)
@@ -52,7 +52,7 @@ func testBatchExportMemory(t *testing.T, useOptimized bool) {
 			content = generateLargeContent(jobID)
 		}
 
-		exportData[i] = export.JobOutputData{
+		exportData[i] = &export.JobOutputData{
 			JobID:       jobID,
 			JobName:     fmt.Sprintf("test_job_%d", i),
 			OutputType:  "stdout",
@@ -162,7 +162,7 @@ func benchmarkBatchExportMemory(b *testing.B, jobCount int, useOptimized bool) {
 	exporter := export.NewJobOutputExporter(tempDir)
 
 	// Pre-generate export data
-	exportData := make([]export.JobOutputData, jobCount)
+	exportData := make([]*export.JobOutputData, jobCount)
 	for i := 0; i < jobCount; i++ {
 		jobID := fmt.Sprintf("bench_job_%d", i)
 		var content string
@@ -172,7 +172,7 @@ func benchmarkBatchExportMemory(b *testing.B, jobCount int, useOptimized bool) {
 			content = generateLargeContent(jobID)
 		}
 
-		exportData[i] = export.JobOutputData{
+		exportData[i] = &export.JobOutputData{
 			JobID:       jobID,
 			JobName:     fmt.Sprintf("bench_test_%d", i),
 			OutputType:  "stdout",

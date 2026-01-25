@@ -513,7 +513,8 @@ func (c *Config) validateAlerts() error {
 		return fmt.Errorf("alert check interval must be positive")
 	}
 
-	for i, rule := range c.Alerts.Rules {
+	for i := range c.Alerts.Rules {
+		rule := &c.Alerts.Rules[i]
 		if err := c.validateAlertRule(i, rule); err != nil {
 			return err
 		}
@@ -521,7 +522,7 @@ func (c *Config) validateAlerts() error {
 	return nil
 }
 
-func (c *Config) validateAlertRule(index int, rule AlertRule) error {
+func (c *Config) validateAlertRule(index int, rule *AlertRule) error {
 	if rule.Name == "" {
 		return fmt.Errorf("alert rule %d: name is required", index)
 	}

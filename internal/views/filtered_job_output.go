@@ -40,7 +40,7 @@ type FilteredJobOutputView struct {
 	// Stream context
 	streamCtx     context.Context
 	streamCancel  context.CancelFunc
-	streamChannel <-chan streaming.StreamEvent
+	streamChannel <-chan *streaming.StreamEvent
 
 	// Export
 	exporter *export.JobOutputExporter
@@ -311,7 +311,7 @@ func (v *FilteredJobOutputView) processStreamEvents() {
 }
 
 // handleStreamEvent handles a single stream event
-func (v *FilteredJobOutputView) handleStreamEvent(event streaming.StreamEvent) {
+func (v *FilteredJobOutputView) handleStreamEvent(event *streaming.StreamEvent) {
 	v.app.QueueUpdateDraw(func() {
 		switch event.EventType {
 		case streaming.StreamEventNewOutput:

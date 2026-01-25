@@ -69,7 +69,7 @@ func NewExternalAPI(
 	historicalCollector *historical.HistoricalDataCollector,
 	historicalAnalyzer *historical.HistoricalAnalyzer,
 	efficiencyAnalyzer *analysis.ResourceEfficiencyAnalyzer,
-	config Config,
+	config *Config,
 ) *ExternalAPI {
 	var rateLimiter *security.RateLimiter
 	if config.Enabled && (config.RateLimit.RequestsPerMinute > 0 || config.RateLimit.EnableGlobalLimit) {
@@ -79,7 +79,7 @@ func NewExternalAPI(
 	var validator *security.RequestValidator
 	if config.Enabled && config.Validation.Enabled {
 		var err error
-		validator, err = security.NewRequestValidator(config.Validation)
+		validator, err = security.NewRequestValidator(&config.Validation)
 		if err != nil {
 			// Log error but don't fail initialization
 			validator = nil
@@ -89,7 +89,7 @@ func NewExternalAPI(
 	var auditLogger *security.AuditLogger
 	if config.Enabled && config.Audit.Enabled {
 		var err error
-		auditLogger, err = security.NewAuditLogger(config.Audit)
+		auditLogger, err = security.NewAuditLogger(&config.Audit)
 		if err != nil {
 			// Log error but don't fail initialization
 			auditLogger = nil

@@ -119,7 +119,14 @@ func (s *S9s) handleF1Help(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	return nil
 }
 
-func (s *S9s) handleF2Alerts(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
+func (s *S9s) handleF2Alerts(_ *S9s, event *tcell.EventKey) *tcell.EventKey {
+	// Check if current view is Jobs - if so, let it handle F2 for templates
+	if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
+		if currentView.Name() == "jobs" {
+			// Return event to let view's OnKey handle it
+			return event
+		}
+	}
 	s.showAlertsModal()
 	return nil
 }

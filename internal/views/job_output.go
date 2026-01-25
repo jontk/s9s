@@ -608,7 +608,7 @@ func (v *JobOutputView) processStreamEvents() {
 			}
 
 			// Process the event
-			v.handleStreamEvent(event)
+			v.handleStreamEvent(&event)
 
 		case <-time.After(1 * time.Second):
 			// Timeout - update status
@@ -620,7 +620,7 @@ func (v *JobOutputView) processStreamEvents() {
 }
 
 // handleStreamEvent processes a single stream event
-func (v *JobOutputView) handleStreamEvent(event streaming.StreamEvent) {
+func (v *JobOutputView) handleStreamEvent(event *streaming.StreamEvent) {
 	v.app.QueueUpdateDraw(func() {
 		switch event.EventType {
 		case streaming.StreamEventNewOutput:

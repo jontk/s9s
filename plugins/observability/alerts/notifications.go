@@ -10,8 +10,8 @@ import (
 // NotificationManager handles alert notifications
 type NotificationManager struct {
 	handlers      map[string]NotificationHandler
-	subscriptions map[string][]AlertSubscription
-	history       []NotificationEvent
+	subscriptions map[string][]*AlertSubscription
+	history       []*NotificationEvent
 	mu            sync.RWMutex
 
 	// Configuration
@@ -23,13 +23,13 @@ type NotificationManager struct {
 type NotificationHandler interface {
 	GetID() string
 	GetName() string
-	Send(ctx context.Context, notification Notification) error
+	Send(ctx context.Context, notification *Notification) error
 	IsEnabled() bool
 }
 
 // Notification represents an alert notification
 type Notification struct {
-	Alert      Alert             `json:"alert"`
+	Alert      *Alert            `json:"alert"`
 	Type       NotificationType  `json:"type"`
 	Timestamp  time.Time         `json:"timestamp"`
 	Recipients []string          `json:"recipients,omitempty"`
@@ -68,7 +68,7 @@ type AlertFilter struct {
 // NotificationEvent represents a notification event in history
 type NotificationEvent struct {
 	ID           string
-	Notification Notification
+	Notification *Notification
 	HandlerID    string
 	Status       string
 	Error        string
@@ -79,8 +79,8 @@ type NotificationEvent struct {
 func NewNotificationManager() *NotificationManager {
 	return &NotificationManager{
 		handlers:       make(map[string]NotificationHandler),
-		subscriptions:  make(map[string][]AlertSubscription),
-		history:        make([]NotificationEvent, 0),
+		subscriptions:  make(map[string][]*AlertSubscription),
+		history:        make([]*NotificationEvent, 0),
 		maxHistorySize: 1000,
 		rateLimiter:    NewRateLimiter(10, time.Minute), // 10 notifications per minute by default
 	}
@@ -113,7 +113,7 @@ func (nm *NotificationManager) UnregisterHandler(handlerID string) {
 }
 
 // Subscribe creates a subscription for alert notifications
-func (nm *NotificationManager) Subscribe(subscription AlertSubscription) error {
+func (nm *NotificationManager) Subscribe(subscription *AlertSubscription) error {
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
 
@@ -141,7 +141,7 @@ func (nm *NotificationManager) Unsubscribe(subscriptionID string) {
 	defer nm.mu.Unlock()
 
 	for handlerID, subs := range nm.subscriptions {
-		newSubs := []AlertSubscription{}
+		newSubs := []*AlertSubscription{}
 		for _, sub := range subs {
 			if sub.ID != subscriptionID {
 				newSubs = append(newSubs, sub)
@@ -152,29 +152,29 @@ func (nm *NotificationManager) Unsubscribe(subscriptionID string) {
 }
 
 // NotifyAlert sends notifications for a new alert
-func (nm *NotificationManager) NotifyAlert(ctx context.Context, alert Alert) error {
+func (nm *NotificationManager) NotifyAlert(ctx context.Context, alert *Alert) error {
 	notification := Notification{
 		Alert:     alert,
 		Type:      NotificationTypeAlert,
 		Timestamp: time.Now(),
 	}
 
-	return nm.sendNotification(ctx, notification)
+	return nm.sendNotification(ctx, &notification)
 }
 
 // NotifyResolved sends notifications for a resolved alert
-func (nm *NotificationManager) NotifyResolved(ctx context.Context, alert Alert) error {
+func (nm *NotificationManager) NotifyResolved(ctx context.Context, alert *Alert) error {
 	notification := Notification{
 		Alert:     alert,
 		Type:      NotificationTypeResolved,
 		Timestamp: time.Now(),
 	}
 
-	return nm.sendNotification(ctx, notification)
+	return nm.sendNotification(ctx, &notification)
 }
 
 // sendNotification sends a notification to all matching subscriptions
-func (nm *NotificationManager) sendNotification(ctx context.Context, notification Notification) error {
+func (nm *NotificationManager) sendNotification(ctx context.Context, notification *Notification) error {
 	nm.mu.RLock()
 	defer nm.mu.RUnlock()
 
@@ -188,7 +188,7 @@ func (nm *NotificationManager) sendNotification(ctx context.Context, notificatio
 
 		// Check if any subscription matches
 		for _, sub := range nm.subscriptions[handlerID] {
-			if nm.matchesFilter(notification.Alert, sub.Filter) {
+			if nm.matchesFilter(notification.Alert, &sub.Filter) {
 				// Apply rate limiting
 				if !nm.rateLimiter.Allow(fmt.Sprintf("%s:%s", handlerID, sub.ID)) {
 					continue
@@ -212,7 +212,7 @@ func (nm *NotificationManager) sendNotification(ctx context.Context, notificatio
 					sub.LastNotified = time.Now()
 				}
 
-				nm.addToHistory(event)
+				nm.addToHistory(&event)
 			}
 		}
 	}
@@ -221,7 +221,7 @@ func (nm *NotificationManager) sendNotification(ctx context.Context, notificatio
 }
 
 // matchesFilter checks if an alert matches a subscription filter
-func (nm *NotificationManager) matchesFilter(alert Alert, filter AlertFilter) bool {
+func (nm *NotificationManager) matchesFilter(alert *Alert, filter *AlertFilter) bool {
 	// Check severity
 	if !nm.matchesStringList(alert.Severity, filter.Severities) {
 		return false
@@ -266,8 +266,8 @@ func (nm *NotificationManager) matchesLabels(alertLabels, filterLabels map[strin
 }
 
 // addToHistory adds an event to the notification history
-func (nm *NotificationManager) addToHistory(event NotificationEvent) {
-	nm.history = append([]NotificationEvent{event}, nm.history...)
+func (nm *NotificationManager) addToHistory(event *NotificationEvent) {
+	nm.history = append([]*NotificationEvent{event}, nm.history...)
 
 	// Limit history size
 	if len(nm.history) > nm.maxHistorySize {
@@ -276,7 +276,7 @@ func (nm *NotificationManager) addToHistory(event NotificationEvent) {
 }
 
 // GetHistory returns notification history
-func (nm *NotificationManager) GetHistory(limit int) []NotificationEvent {
+func (nm *NotificationManager) GetHistory(limit int) []*NotificationEvent {
 	nm.mu.RLock()
 	defer nm.mu.RUnlock()
 
@@ -321,12 +321,12 @@ func (nm *NotificationManager) TestNotification(ctx context.Context, handlerID s
 	}
 
 	notification := Notification{
-		Alert:     testAlert,
+		Alert:     &testAlert,
 		Type:      NotificationTypeTest,
 		Timestamp: time.Now(),
 	}
 
-	return handler.Send(ctx, notification)
+	return handler.Send(ctx, &notification)
 }
 
 // Built-in notification handlers
@@ -334,7 +334,7 @@ func (nm *NotificationManager) TestNotification(ctx context.Context, handlerID s
 // InAppHandler handles in-app notifications
 type InAppHandler struct {
 	enabled       bool
-	notifications []Notification
+	notifications []*Notification
 	mu            sync.RWMutex
 	maxSize       int
 }
@@ -343,7 +343,7 @@ type InAppHandler struct {
 func NewInAppHandler() *InAppHandler {
 	return &InAppHandler{
 		enabled:       true,
-		notifications: make([]Notification, 0),
+		notifications: make([]*Notification, 0),
 		maxSize:       100,
 	}
 }
@@ -359,11 +359,11 @@ func (h *InAppHandler) GetName() string {
 }
 
 // Send sends a notification to the in-app notification queue.
-func (h *InAppHandler) Send(_ context.Context, notification Notification) error {
+func (h *InAppHandler) Send(_ context.Context, notification *Notification) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	h.notifications = append([]Notification{notification}, h.notifications...)
+	h.notifications = append([]*Notification{notification}, h.notifications...)
 
 	// Limit size
 	if len(h.notifications) > h.maxSize {
@@ -379,7 +379,7 @@ func (h *InAppHandler) IsEnabled() bool {
 }
 
 // GetNotifications returns in-app notifications
-func (h *InAppHandler) GetNotifications(limit int) []Notification {
+func (h *InAppHandler) GetNotifications(limit int) []*Notification {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -395,7 +395,7 @@ func (h *InAppHandler) ClearNotifications() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	h.notifications = make([]Notification, 0)
+	h.notifications = make([]*Notification, 0)
 }
 
 // LogHandler logs notifications
@@ -423,7 +423,7 @@ func (h *LogHandler) GetName() string {
 }
 
 // Send sends a notification to the configured logger.
-func (h *LogHandler) Send(_ context.Context, notification Notification) error {
+func (h *LogHandler) Send(_ context.Context, notification *Notification) error {
 	if h.logger == nil {
 		return fmt.Errorf("logger not configured")
 	}

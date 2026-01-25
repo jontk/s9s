@@ -293,7 +293,7 @@ func (v *StreamMonitorView) processStreamEvents(panel *StreamPanel) {
 				return
 			}
 
-			v.handlePanelStreamEvent(panel, event)
+			v.handlePanelStreamEvent(panel, &event)
 
 		case <-time.After(5 * time.Second):
 			// Timeout - update status
@@ -305,7 +305,7 @@ func (v *StreamMonitorView) processStreamEvents(panel *StreamPanel) {
 }
 
 // handlePanelStreamEvent handles a stream event for a panel
-func (v *StreamMonitorView) handlePanelStreamEvent(panel *StreamPanel, event streaming.StreamEvent) {
+func (v *StreamMonitorView) handlePanelStreamEvent(panel *StreamPanel, event *streaming.StreamEvent) {
 	v.app.QueueUpdateDraw(func() {
 		switch event.EventType {
 		case streaming.StreamEventNewOutput:

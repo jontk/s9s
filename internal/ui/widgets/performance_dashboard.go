@@ -292,7 +292,7 @@ func (pd *PerformanceDashboard) updateMetrics() {
 	pd.updateCPUChart()
 
 	// Update Memory metrics
-	memUsage := pd.calculateMemoryUsage(memStats)
+	memUsage := pd.calculateMemoryUsage(&memStats)
 	pd.addToHistory(&pd.memoryHistory, memUsage)
 	pd.updateMemoryChart()
 
@@ -355,7 +355,7 @@ func (pd *PerformanceDashboard) calculateCPUUsage(stats map[string]performance.O
 }
 
 // calculateMemoryUsage extracts memory usage from memory stats
-func (pd *PerformanceDashboard) calculateMemoryUsage(memStats runtime.MemStats) float64 {
+func (pd *PerformanceDashboard) calculateMemoryUsage(memStats *runtime.MemStats) float64 {
 	// Calculate memory usage percentage based on heap
 	if memStats.Sys > 0 {
 		return float64(memStats.HeapInuse) / float64(memStats.Sys) * 100.0

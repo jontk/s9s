@@ -195,8 +195,8 @@ func (cm *ConfigManager) buildForm() {
 	}
 
 	// Add form fields
-	for _, field := range fields {
-		cm.addFormField(field)
+	for i := range fields {
+		cm.addFormField(&fields[i])
 	}
 
 	cm.addActionButtons()
@@ -204,7 +204,7 @@ func (cm *ConfigManager) buildForm() {
 }
 
 // addFormField adds a single field to the form
-func (cm *ConfigManager) addFormField(field config.ConfigField) {
+func (cm *ConfigManager) addFormField(field *config.ConfigField) {
 	label := field.Label
 	if field.Required {
 		label += "*"
@@ -228,7 +228,7 @@ func (cm *ConfigManager) addFormField(field config.ConfigField) {
 	}
 }
 
-func (cm *ConfigManager) addStringField(label string, field config.ConfigField) {
+func (cm *ConfigManager) addStringField(label string, field *config.ConfigField) {
 	currentValue := cm.getConfigValue(field.Key)
 	initialValue := ""
 	if currentValue != nil {
@@ -252,7 +252,7 @@ func (cm *ConfigManager) addStringField(label string, field config.ConfigField) 
 	}
 }
 
-func (cm *ConfigManager) addIntField(label string, field config.ConfigField) {
+func (cm *ConfigManager) addIntField(label string, field *config.ConfigField) {
 	currentValue := cm.getConfigValue(field.Key)
 	initialValue := ""
 	if currentValue != nil {
@@ -275,7 +275,7 @@ func (cm *ConfigManager) addIntField(label string, field config.ConfigField) {
 	}
 }
 
-func (cm *ConfigManager) addBoolField(label string, field config.ConfigField) {
+func (cm *ConfigManager) addBoolField(label string, field *config.ConfigField) {
 	currentValue := cm.getConfigValue(field.Key)
 	initialValue := false
 	if currentValue != nil {
@@ -294,7 +294,7 @@ func (cm *ConfigManager) addBoolField(label string, field config.ConfigField) {
 	}
 }
 
-func (cm *ConfigManager) addSelectField(label string, field config.ConfigField) {
+func (cm *ConfigManager) addSelectField(label string, field *config.ConfigField) {
 	currentValue := cm.getConfigValue(field.Key)
 	currentIndex := 0
 	if currentValue != nil {
@@ -317,7 +317,7 @@ func (cm *ConfigManager) addSelectField(label string, field config.ConfigField) 
 	}
 }
 
-func (cm *ConfigManager) addArrayField(label string, field config.ConfigField) {
+func (cm *ConfigManager) addArrayField(label string, field *config.ConfigField) {
 	currentValue := cm.getConfigValue(field.Key)
 	initialValue := ""
 	if currentValue != nil {
@@ -353,7 +353,7 @@ func (cm *ConfigManager) addArrayField(label string, field config.ConfigField) {
 	cm.addFieldDescription(description + " - Separate multiple values with commas")
 }
 
-func (cm *ConfigManager) addDurationField(label string, field config.ConfigField) {
+func (cm *ConfigManager) addDurationField(label string, field *config.ConfigField) {
 	currentValue := cm.getConfigValue(field.Key)
 	initialValue := ""
 	if currentValue != nil {
@@ -745,7 +745,7 @@ func (cm *ConfigManager) setFeaturesValue(features *config.FeaturesConfig, path 
 }
 
 // validateField validates a single field and updates the UI
-func (cm *ConfigManager) validateField(field config.ConfigField, value interface{}) {
+func (cm *ConfigManager) validateField(field *config.ConfigField, value interface{}) {
 	result := field.ValidateField(value)
 	cm.validationErrors[field.Key] = result
 
@@ -978,7 +978,7 @@ func (cm *ConfigManager) HasChanges() bool {
 }
 
 // addContextField adds a context management field
-func (cm *ConfigManager) addContextField(_ config.ConfigField) {
+func (cm *ConfigManager) addContextField(_ *config.ConfigField) {
 	contextCount := len(cm.currentConfig.Contexts)
 	summary := fmt.Sprintf("Contexts: %d configured", contextCount)
 	if cm.currentConfig.CurrentContext != "" {
@@ -992,7 +992,7 @@ func (cm *ConfigManager) addContextField(_ config.ConfigField) {
 }
 
 // addShortcutField adds a shortcut management field
-func (cm *ConfigManager) addShortcutField(_ config.ConfigField) {
+func (cm *ConfigManager) addShortcutField(_ *config.ConfigField) {
 	shortcutCount := len(cm.currentConfig.Shortcuts)
 	summary := fmt.Sprintf("Shortcuts: %d configured", shortcutCount)
 
@@ -1003,7 +1003,7 @@ func (cm *ConfigManager) addShortcutField(_ config.ConfigField) {
 }
 
 // addAliasField adds an alias management field
-func (cm *ConfigManager) addAliasField(_ config.ConfigField) {
+func (cm *ConfigManager) addAliasField(_ *config.ConfigField) {
 	aliasCount := len(cm.currentConfig.Aliases)
 	summary := fmt.Sprintf("Aliases: %d configured", aliasCount)
 
@@ -1014,7 +1014,7 @@ func (cm *ConfigManager) addAliasField(_ config.ConfigField) {
 }
 
 // addPluginField adds a plugin management field
-func (cm *ConfigManager) addPluginField(_ config.ConfigField) {
+func (cm *ConfigManager) addPluginField(_ *config.ConfigField) {
 	pluginCount := len(cm.currentConfig.Plugins)
 	summary := fmt.Sprintf("Plugins: %d configured", pluginCount)
 

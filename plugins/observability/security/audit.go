@@ -97,9 +97,9 @@ const (
 )
 
 // NewAuditLogger creates a new audit logger
-func NewAuditLogger(config AuditConfig) (*AuditLogger, error) {
+func NewAuditLogger(config *AuditConfig) (*AuditLogger, error) {
 	logger := &AuditLogger{
-		config: config,
+		config: *config,
 	}
 
 	if !config.Enabled {
@@ -129,7 +129,7 @@ func NewAuditLogger(config AuditConfig) (*AuditLogger, error) {
 }
 
 // LogEvent logs an audit event
-func (al *AuditLogger) LogEvent(event AuditEvent) {
+func (al *AuditLogger) LogEvent(event *AuditEvent) {
 	if !al.config.Enabled {
 		return
 	}
@@ -189,7 +189,7 @@ func (al *AuditLogger) LogAPIRequest(r *http.Request, statusCode int, duration t
 	// Include request body for sensitive operations if configured
 	// Note: This would require buffering the body via middleware to capture this
 
-	al.LogEvent(event)
+	al.LogEvent(&event)
 }
 
 // LogSecretAccess logs secret access operations
@@ -210,7 +210,7 @@ func (al *AuditLogger) LogSecretAccess(secretID, operation, userID string, succe
 		event.Error = err.Error()
 	}
 
-	al.LogEvent(event)
+	al.LogEvent(&event)
 }
 
 // LogAuthenticationAttempt logs authentication attempts
@@ -230,7 +230,7 @@ func (al *AuditLogger) LogAuthenticationAttempt(clientIP, userID string, success
 		event.Error = err.Error()
 	}
 
-	al.LogEvent(event)
+	al.LogEvent(&event)
 }
 
 // LogRateLimit logs rate limiting events
@@ -246,7 +246,7 @@ func (al *AuditLogger) LogRateLimit(clientIP, userID, rateLimitType string) {
 		},
 	}
 
-	al.LogEvent(event)
+	al.LogEvent(&event)
 }
 
 // LogValidationFailure logs request validation failures
@@ -263,7 +263,7 @@ func (al *AuditLogger) LogValidationFailure(r *http.Request, validationError err
 		Headers:   al.extractHeaders(r),
 	}
 
-	al.LogEvent(event)
+	al.LogEvent(&event)
 }
 
 // Close closes the audit logger and any open files
@@ -283,7 +283,7 @@ func (al *AuditLogger) Close() error {
 
 // Helper methods
 
-func (al *AuditLogger) shouldLog(event AuditEvent) bool {
+func (al *AuditLogger) shouldLog(event *AuditEvent) bool {
 	switch al.config.LogLevel {
 	case "error":
 		return event.Error != ""

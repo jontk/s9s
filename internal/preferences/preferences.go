@@ -547,9 +547,9 @@ func (up *UserPreferences) GetViewSettings(viewName string) ViewPrefs {
 }
 
 // SetViewSettings updates settings for a specific view
-func (up *UserPreferences) SetViewSettings(viewName string, settings ViewPrefs) error {
+func (up *UserPreferences) SetViewSettings(viewName string, settings *ViewPrefs) error {
 	return up.Update(func(p *UserPreferences) error {
-		p.ViewSettings[viewName] = settings
+		p.ViewSettings[viewName] = *settings
 		return nil
 	})
 }

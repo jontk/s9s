@@ -45,7 +45,7 @@ func (r *Registry) Register(plugin Plugin) error {
 	info := plugin.GetInfo()
 
 	// Validate plugin info
-	if err := r.validatePluginInfo(info); err != nil {
+	if err := r.validatePluginInfo(&info); err != nil {
 		return fmt.Errorf("invalid plugin info: %w", err)
 	}
 
@@ -330,7 +330,7 @@ func (r *Registry) GetCapabilities() []string {
 }
 
 // validatePluginInfo validates plugin information
-func (r *Registry) validatePluginInfo(info Info) error {
+func (r *Registry) validatePluginInfo(info *Info) error {
 	if info.Name == "" {
 		return fmt.Errorf("plugin name is required")
 	}

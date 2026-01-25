@@ -72,7 +72,7 @@ func BenchmarkEventBus(b *testing.B) {
 				}(ch)
 			}
 
-			event := streaming.StreamEvent{
+			event := &streaming.StreamEvent{
 				JobID:      "job1",
 				OutputType: "stdout",
 				Content:    "Test line of output data",
