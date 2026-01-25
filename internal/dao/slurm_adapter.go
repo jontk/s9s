@@ -321,7 +321,18 @@ func (j *jobManager) simulateJobOutput(id string) (string, error) {
 		return "", errs.DAOError("get", "job", err).WithContext("job_id", id).WithContext("operation", "get_output")
 	}
 
-	// Create simulated output based on job state and type
+	// Build output header with job info
+	output := j.buildJobOutputHeader(job)
+
+	// Add state-specific output
+	output += j.buildStateOutput(job)
+
+	output += "\n=== End of Output ===\n"
+	return output, nil
+}
+
+// buildJobOutputHeader creates the header section of job output
+func (j *jobManager) buildJobOutputHeader(job *Job) string {
 	output := fmt.Sprintf("=== Job %s (%s) Output ===\n", job.ID, job.Name)
 	output += fmt.Sprintf("User: %s\n", job.User)
 	output += fmt.Sprintf("Partition: %s\n", job.Partition)
@@ -334,36 +345,66 @@ func (j *jobManager) simulateJobOutput(id string) (string, error) {
 	output += fmt.Sprintf("State: %s\n", job.State)
 	output += "\n=== Command Output ===\n"
 
+	return output
+}
+
+// buildStateOutput creates output based on job state
+func (j *jobManager) buildStateOutput(job *Job) string {
 	switch job.State {
 	case "PENDING":
-		output += "Job is waiting in queue...\n"
+		return j.addPendingOutput()
 	case "RUNNING":
-		output += "Job is currently running...\n"
-		output += "Processing data...\n"
-		output += "[Step 1/3] Initializing...\n"
-		output += "[Step 2/3] Computing...\n"
-		output += "[Step 3/3] Finalizing...\n"
+		return j.addRunningOutput()
 	case "COMPLETED":
-		output += "Job completed successfully!\n"
-		output += "Processing completed in " + job.TimeUsed + "\n"
-		output += "Results saved to output files.\n"
-		if job.ExitCode != nil {
-			output += fmt.Sprintf("Exit Code: %d\n", *job.ExitCode)
-		}
+		return j.addCompletedOutput(job)
 	case "FAILED":
-		output += "Job failed during execution.\n"
-		output += "Error: Simulation failure for demonstration\n"
-		if job.ExitCode != nil {
-			output += fmt.Sprintf("Exit Code: %d\n", *job.ExitCode)
-		}
+		return j.addFailedOutput(job)
 	case "CANCELLED":
-		output += "Job was cancelled by user.\n"
+		return j.addCancelledOutput()
 	default:
-		output += fmt.Sprintf("Job state: %s\n", job.State)
+		return fmt.Sprintf("Job state: %s\n", job.State)
 	}
+}
 
-	output += "\n=== End of Output ===\n"
-	return output, nil
+// addPendingOutput returns output for pending jobs
+func (j *jobManager) addPendingOutput() string {
+	return "Job is waiting in queue...\n"
+}
+
+// addRunningOutput returns output for running jobs
+func (j *jobManager) addRunningOutput() string {
+	output := "Job is currently running...\n"
+	output += "Processing data...\n"
+	output += "[Step 1/3] Initializing...\n"
+	output += "[Step 2/3] Computing...\n"
+	output += "[Step 3/3] Finalizing...\n"
+	return output
+}
+
+// addCompletedOutput returns output for completed jobs
+func (j *jobManager) addCompletedOutput(job *Job) string {
+	output := "Job completed successfully!\n"
+	output += "Processing completed in " + job.TimeUsed + "\n"
+	output += "Results saved to output files.\n"
+	if job.ExitCode != nil {
+		output += fmt.Sprintf("Exit Code: %d\n", *job.ExitCode)
+	}
+	return output
+}
+
+// addFailedOutput returns output for failed jobs
+func (j *jobManager) addFailedOutput(job *Job) string {
+	output := "Job failed during execution.\n"
+	output += "Error: Simulation failure for demonstration\n"
+	if job.ExitCode != nil {
+		output += fmt.Sprintf("Exit Code: %d\n", *job.ExitCode)
+	}
+	return output
+}
+
+// addCancelledOutput returns output for cancelled jobs
+func (j *jobManager) addCancelledOutput() string {
+	return "Job was cancelled by user.\n"
 }
 
 func (j *jobManager) Notify(id string, message string) error {
