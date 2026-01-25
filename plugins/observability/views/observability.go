@@ -592,7 +592,7 @@ func (v *ObservabilityView) processSingleJobMetrics(ctx context.Context, jobID s
 	v.jobCollector.UpdateFromPrometheus(jobID, metrics)
 
 	if details, ok := jobDetails[jobID]; ok {
-		v.jobCollector.UpdateJobInfo(jobID, details)
+		v.jobCollector.UpdateJobInfo(jobID, &details)
 	}
 }
 
