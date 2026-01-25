@@ -136,9 +136,9 @@ func BenchmarkBatchExportOperations(b *testing.B) {
 	for _, batchSize := range batchSizes {
 		b.Run(fmt.Sprintf("BatchSize_%d", batchSize), func(b *testing.B) {
 			// Generate batch data
-			batchJobs := make([]export.JobOutputData, batchSize)
+			batchJobs := make([]*export.JobOutputData, batchSize)
 			for i := 0; i < batchSize; i++ {
-				batchJobs[i] = export.JobOutputData{
+				batchJobs[i] = &export.JobOutputData{
 					JobID:       fmt.Sprintf("batch_job_%d", i),
 					JobName:     fmt.Sprintf("batch_test_%d", i),
 					OutputType:  "stdout",
