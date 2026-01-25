@@ -129,7 +129,6 @@ func (o *NodesOverlay) GetColumns() []plugin.ColumnDefinition {
 
 // GetCellData returns data for a specific cell
 func (o *NodesOverlay) GetCellData(_ context.Context, _ string, rowID interface{}, columnID string) (string, error) {
-	// Extract node name from row ID
 	nodeName, ok := rowID.(string)
 	if !ok {
 		return "-", nil
@@ -144,40 +143,57 @@ func (o *NodesOverlay) GetCellData(_ context.Context, _ string, rowID interface{
 		return "-", nil
 	}
 
+	return o.formatCellData(columnID, metrics, sparkline)
+}
+
+func (o *NodesOverlay) formatCellData(columnID string, metrics *models.NodeMetrics, sparkline *widgets.TimeSeriesSparkline) (string, error) {
 	switch columnID {
 	case "cpu":
-		cpu := metrics.Resources.CPU.Usage
-		bar := generateUsageBar(cpu, 8)
-		return fmt.Sprintf("%s %.1f%%", bar, cpu), nil
-
+		return o.formatCPUData(metrics)
 	case "memory":
-		mem := metrics.Resources.Memory
-		usage := mem.Usage
-		bar := generateUsageBar(usage, 8)
-		return fmt.Sprintf("%s %.1f%%", bar, usage), nil
-
+		return o.formatMemoryData(metrics)
 	case "load":
-		load := metrics.Resources.CPU.Load1m
-		return fmt.Sprintf("%.2f", load), nil
-
+		return fmt.Sprintf("%.2f", metrics.Resources.CPU.Load1m), nil
 	case "network_io":
-		rx := metrics.Resources.Network.ReceiveBytesPerSec
-		tx := metrics.Resources.Network.TransmitBytesPerSec
-		return fmt.Sprintf("↓%s ↑%s", formatBandwidth(rx), formatBandwidth(tx)), nil
-
+		return o.formatNetworkData(metrics)
 	case "disk_io":
-		read := metrics.Resources.Disk.ReadBytesPerSec
-		write := metrics.Resources.Disk.WriteBytesPerSec
-		return fmt.Sprintf("R:%s W:%s", formatBandwidth(read), formatBandwidth(write)), nil
-
+		return o.formatDiskData(metrics)
 	case "trend":
-		if sparkline != nil && o.showSparklines {
-			return generateTextSparkline(sparkline), nil
-		}
-		return "", nil
+		return o.formatTrendData(sparkline)
+	default:
+		return "", fmt.Errorf("unknown column: %s", columnID)
 	}
+}
 
-	return "", fmt.Errorf("unknown column: %s", columnID)
+func (o *NodesOverlay) formatCPUData(metrics *models.NodeMetrics) (string, error) {
+	cpu := metrics.Resources.CPU.Usage
+	bar := generateUsageBar(cpu, 8)
+	return fmt.Sprintf("%s %.1f%%", bar, cpu), nil
+}
+
+func (o *NodesOverlay) formatMemoryData(metrics *models.NodeMetrics) (string, error) {
+	usage := metrics.Resources.Memory.Usage
+	bar := generateUsageBar(usage, 8)
+	return fmt.Sprintf("%s %.1f%%", bar, usage), nil
+}
+
+func (o *NodesOverlay) formatNetworkData(metrics *models.NodeMetrics) (string, error) {
+	rx := metrics.Resources.Network.ReceiveBytesPerSec
+	tx := metrics.Resources.Network.TransmitBytesPerSec
+	return fmt.Sprintf("↓%s ↑%s", formatBandwidth(rx), formatBandwidth(tx)), nil
+}
+
+func (o *NodesOverlay) formatDiskData(metrics *models.NodeMetrics) (string, error) {
+	read := metrics.Resources.Disk.ReadBytesPerSec
+	write := metrics.Resources.Disk.WriteBytesPerSec
+	return fmt.Sprintf("R:%s W:%s", formatBandwidth(read), formatBandwidth(write)), nil
+}
+
+func (o *NodesOverlay) formatTrendData(sparkline *widgets.TimeSeriesSparkline) (string, error) {
+	if sparkline != nil && o.showSparklines {
+		return generateTextSparkline(sparkline), nil
+	}
+	return "", nil
 }
 
 // GetCellStyle returns styling for a specific cell
