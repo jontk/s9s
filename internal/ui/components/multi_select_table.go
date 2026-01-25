@@ -406,80 +406,98 @@ func (mst *MultiSelectTable) refreshDisplay() {
 		return
 	}
 
-	// Add header row with select-all checkbox if in multi-select mode
+	// Render header row
+	headerRow := mst.renderHeaderRow()
+
+	// Render data rows
+	mst.renderDataRows(headerRow)
+}
+
+// renderHeaderRow adds the header row to the table
+func (mst *MultiSelectTable) renderHeaderRow() int {
 	headerRow := 0
-	if mst.config.ShowHeader {
-		for col, column := range mst.config.Columns {
-			if column.Hidden {
-				continue
-			}
-
-			var cellText string
-			if col == 0 && mst.multiSelectMode && mst.showCheckboxes {
-				// Add select-all checkbox in first column header
-				selectAllIcon := mst.getSelectAllIcon()
-				cellText = fmt.Sprintf("%s %s", selectAllIcon, column.Name)
-			} else {
-				cellText = column.Name
-			}
-
-			cell := tview.NewTableCell(cellText).
-				SetTextColor(mst.config.HeaderColor).
-				SetAlign(column.Alignment).
-				SetSelectable(false).
-				SetExpansion(1)
-
-			mst.SetCell(headerRow, col, cell)
-		}
-		headerRow++
+	if !mst.config.ShowHeader {
+		return headerRow
 	}
 
-	// Access filteredData (already protected by Table.mu.Lock above)
+	for col, column := range mst.config.Columns {
+		if column.Hidden {
+			continue
+		}
+
+		var cellText string
+		if col == 0 && mst.multiSelectMode && mst.showCheckboxes {
+			selectAllIcon := mst.getSelectAllIcon()
+			cellText = fmt.Sprintf("%s %s", selectAllIcon, column.Name)
+		} else {
+			cellText = column.Name
+		}
+
+		cell := tview.NewTableCell(cellText).
+			SetTextColor(mst.config.HeaderColor).
+			SetAlign(column.Alignment).
+			SetSelectable(false).
+			SetExpansion(1)
+
+		mst.SetCell(headerRow, col, cell)
+	}
+	return 1
+}
+
+// renderDataRows adds all data rows to the table
+func (mst *MultiSelectTable) renderDataRows(headerRow int) {
 	filteredData := mst.filteredData
 
-	// Add data rows with selection indicators
 	for rowIndex, rowData := range filteredData {
 		displayRow := headerRow + rowIndex
+		mst.renderRow(displayRow, rowIndex, rowData)
+	}
+}
 
-		for col, cellData := range rowData {
-			if col >= len(mst.config.Columns) {
-				break
-			}
+// renderRow renders a single data row with proper styling and checkboxes
+func (mst *MultiSelectTable) renderRow(displayRow, rowIndex int, rowData []string) {
+	for col, cellData := range rowData {
+		if col >= len(mst.config.Columns) {
+			break
+		}
 
-			column := mst.config.Columns[col]
-			if column.Hidden {
-				continue
-			}
+		column := mst.config.Columns[col]
+		if column.Hidden {
+			continue
+		}
 
-			var cellText string
-			if col == 0 && mst.multiSelectMode && mst.showCheckboxes {
-				// Add selection checkbox in first column
-				checkboxIcon := mst.getCheckboxIcon(mst.selectedRows[rowIndex])
-				cellText = fmt.Sprintf("%s %s", checkboxIcon, cellData)
-			} else {
-				cellText = cellData
-			}
+		var cellText string
+		if col == 0 && mst.multiSelectMode && mst.showCheckboxes {
+			checkboxIcon := mst.getCheckboxIcon(mst.selectedRows[rowIndex])
+			cellText = fmt.Sprintf("%s %s", checkboxIcon, cellData)
+		} else {
+			cellText = cellData
+		}
 
-			// Apply row selection styling
-			cell := tview.NewTableCell(cellText).
-				SetAlign(column.Alignment).
-				SetExpansion(1)
+		cell := mst.createStyledCell(cellText, column, rowIndex)
+		mst.SetCell(displayRow, col, cell)
+	}
+}
 
-			if mst.selectedRows[rowIndex] {
-				cell.SetBackgroundColor(tcell.ColorDarkBlue).
-					SetTextColor(tcell.ColorWhite)
-			} else {
-				// Alternate row colors
-				if rowIndex%2 == 0 {
-					cell.SetBackgroundColor(mst.config.EvenRowColor)
-				} else {
-					cell.SetBackgroundColor(mst.config.OddRowColor)
-				}
-			}
+// createStyledCell creates a table cell with proper styling based on selection state
+func (mst *MultiSelectTable) createStyledCell(cellText string, column Column, rowIndex int) *tview.TableCell {
+	cell := tview.NewTableCell(cellText).
+		SetAlign(column.Alignment).
+		SetExpansion(1)
 
-			mst.SetCell(displayRow, col, cell)
+	if mst.selectedRows[rowIndex] {
+		cell.SetBackgroundColor(tcell.ColorDarkBlue).
+			SetTextColor(tcell.ColorWhite)
+	} else {
+		// Alternate row colors
+		if rowIndex%2 == 0 {
+			cell.SetBackgroundColor(mst.config.EvenRowColor)
+		} else {
+			cell.SetBackgroundColor(mst.config.OddRowColor)
 		}
 	}
+
+	return cell
 }
 
 // getCheckboxIcon returns the appropriate checkbox icon
