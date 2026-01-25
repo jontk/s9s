@@ -44,53 +44,62 @@ func (s *S9s) onCommandDone(key tcell.Key) {
 
 // executeCommand executes a command
 func (s *S9s) executeCommand(command string) {
-	switch command {
-	case "q", "quit":
-		_ = s.Stop()
-	case "jobs", "j":
-		s.switchToView("jobs")
-	case "nodes", "n":
-		s.switchToView("nodes")
-	case "partitions", "p":
-		s.switchToView("partitions")
-	case "reservations":
-		s.switchToView("reservations")
-	case "qos":
-		s.switchToView("qos")
-	case "accounts":
-		s.switchToView("accounts")
-	case "users":
-		s.switchToView("users")
-	case "dashboard":
-		s.switchToView("dashboard")
-	case "health":
-		s.switchToView("health")
-	case "performance":
-		s.switchToView("performance")
-	case "refresh", "r":
-		if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
-			go func() {
-				if err := currentView.Refresh(); err != nil {
-					s.statusBar.Error(fmt.Sprintf("Refresh failed: %v", err))
-				} else {
-					s.statusBar.Success("Refreshed")
-					// Restore hints after success message expires
-					time.Sleep(3500 * time.Millisecond) // Wait slightly longer than success message
-					if cv, err := s.viewMgr.GetCurrentView(); err == nil {
-						s.statusBar.SetHints(cv.Hints())
-					}
-				}
-			}()
-		}
-	case "help", "h":
-		s.showHelp()
-	case "prefs", "preferences":
-		s.showPreferences()
-	case "layout", "layouts":
-		s.showLayoutSwitcher()
-	case "config", "configuration", "settings":
-		s.showConfiguration()
-	default:
-		s.statusBar.Error(fmt.Sprintf("Unknown command: %s", command))
+	if handler, ok := s.commandHandlers()[command]; ok {
+		handler()
+		return
 	}
+	s.statusBar.Error(fmt.Sprintf("Unknown command: %s", command))
+}
+
+// commandHandlers returns a map of command strings to handler functions
+func (s *S9s) commandHandlers() map[string]func() {
+	return map[string]func(){
+		"q":             func() { _ = s.Stop() },
+		"quit":          func() { _ = s.Stop() },
+		"jobs":          func() { s.switchToView("jobs") },
+		"j":             func() { s.switchToView("jobs") },
+		"nodes":         func() { s.switchToView("nodes") },
+		"n":             func() { s.switchToView("nodes") },
+		"partitions":    func() { s.switchToView("partitions") },
+		"p":             func() { s.switchToView("partitions") },
+		"reservations":  func() { s.switchToView("reservations") },
+		"qos":           func() { s.switchToView("qos") },
+		"accounts":      func() { s.switchToView("accounts") },
+		"users":         func() { s.switchToView("users") },
+		"dashboard":     func() { s.switchToView("dashboard") },
+		"health":        func() { s.switchToView("health") },
+		"performance":   func() { s.switchToView("performance") },
+		"refresh":       s.handleRefreshCommand,
+		"r":             s.handleRefreshCommand,
+		"help":          func() { s.showHelp() },
+		"h":             func() { s.showHelp() },
+		"prefs":         func() { s.showPreferences() },
+		"preferences":   func() { s.showPreferences() },
+		"layout":        func() { s.showLayoutSwitcher() },
+		"layouts":       func() { s.showLayoutSwitcher() },
+		"config":        func() { s.showConfiguration() },
+		"configuration": func() { s.showConfiguration() },
+		"settings":      func() { s.showConfiguration() },
+	}
+}
+
+// handleRefreshCommand handles the refresh command
+func (s *S9s) handleRefreshCommand() {
+	currentView, err := s.viewMgr.GetCurrentView()
+	if err != nil {
+		return
+	}
+
+	go func() {
+		if err := currentView.Refresh(); err != nil {
+			s.statusBar.Error(fmt.Sprintf("Refresh failed: %v", err))
+		} else {
+			s.statusBar.Success("Refreshed")
+			// Restore hints after success message expires
+			time.Sleep(3500 * time.Millisecond)
+			if cv, err := s.viewMgr.GetCurrentView(); err == nil {
+				s.statusBar.SetHints(cv.Hints())
+			}
+		}
+	}()
 }
