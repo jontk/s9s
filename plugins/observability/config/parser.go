@@ -62,101 +62,86 @@ func (p *Parser) ParseConfig() (*Config, error) {
 	return config, nil
 }
 
+// Field binding helpers to reduce parsing complexity
+
+// parseStringField parses a string field from config and assigns it if present
+func (p *Parser) parseStringField(key string, target *string) {
+	if val, ok := p.getValue(key); ok {
+		if str, ok := val.(string); ok {
+			*target = str
+		}
+	}
+}
+
+// parseBoolField parses a boolean field from config and assigns it if present
+func (p *Parser) parseBoolField(key string, target *bool) {
+	if val, ok := p.getValue(key); ok {
+		if b, err := p.parseBool(val); err == nil {
+			*target = b
+		}
+	}
+}
+
+// parseIntField parses an integer field from config and assigns it if present
+func (p *Parser) parseIntField(key string, target *int) {
+	if val, ok := p.getValue(key); ok {
+		if i, err := p.parseInt(val); err == nil {
+			*target = i
+		}
+	}
+}
+
+// parseDurationField parses a duration field from config and assigns it if present
+func (p *Parser) parseDurationField(key string, target *time.Duration) {
+	if val, ok := p.getValue(key); ok {
+		if dur, err := p.parseDuration(val); err == nil {
+			*target = dur
+		}
+	}
+}
+
+// parseFloatField parses a float field from config and assigns it if present
+func (p *Parser) parseFloatField(key string, target *float64) {
+	if val, ok := p.getValue(key); ok {
+		if f, err := p.parseFloat(val); err == nil {
+			*target = f
+		}
+	}
+}
+
+// parseStringArrayField parses a string array field from config and assigns it if present
+func (p *Parser) parseStringArrayField(key string, target *[]string) {
+	if val, ok := p.getValue(key); ok {
+		if arr, err := p.parseStringArray(val); err == nil {
+			*target = arr
+		}
+	}
+}
+
 // parsePrometheusConfig parses Prometheus-specific configuration
 	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parsePrometheusConfig(config *PrometheusConfig) error {
-	if val, ok := p.getValue("prometheus.endpoint"); ok {
-		if str, ok := val.(string); ok {
-			config.Endpoint = str
-		}
-	}
-
-	if val, ok := p.getValue("prometheus.timeout"); ok {
-		if duration, err := p.parseDuration(val); err == nil {
-			config.Timeout = duration
-		}
-	}
+	p.parseStringField("prometheus.endpoint", &config.Endpoint)
+	p.parseDurationField("prometheus.timeout", &config.Timeout)
 
 	// Parse auth configuration
-	if val, ok := p.getValue("prometheus.auth.type"); ok {
-		if str, ok := val.(string); ok {
-			config.Auth.Type = str
-		}
-	}
-
-	if val, ok := p.getValue("prometheus.auth.username"); ok {
-		if str, ok := val.(string); ok {
-			config.Auth.Username = str
-		}
-	}
-
-	if val, ok := p.getValue("prometheus.auth.password"); ok {
-		if str, ok := val.(string); ok {
-			config.Auth.Password = str
-		}
-	}
-
-	if val, ok := p.getValue("prometheus.auth.token"); ok {
-		if str, ok := val.(string); ok {
-			config.Auth.Token = str
-		}
-	}
+	p.parseStringField("prometheus.auth.type", &config.Auth.Type)
+	p.parseStringField("prometheus.auth.username", &config.Auth.Username)
+	p.parseStringField("prometheus.auth.password", &config.Auth.Password)
+	p.parseStringField("prometheus.auth.token", &config.Auth.Token)
 
 	// Parse TLS configuration
-	if val, ok := p.getValue("prometheus.tls.enabled"); ok {
-		if b, err := p.parseBool(val); err == nil {
-			config.TLS.Enabled = b
-		}
-	}
-
-	if val, ok := p.getValue("prometheus.tls.insecureSkipVerify"); ok {
-		if b, err := p.parseBool(val); err == nil {
-			config.TLS.InsecureSkipVerify = b
-		}
-	}
-
-	if val, ok := p.getValue("prometheus.tls.caFile"); ok {
-		if str, ok := val.(string); ok {
-			config.TLS.CAFile = str
-		}
-	}
-
-	if val, ok := p.getValue("prometheus.tls.certFile"); ok {
-		if str, ok := val.(string); ok {
-			config.TLS.CertFile = str
-		}
-	}
-
-	if val, ok := p.getValue("prometheus.tls.keyFile"); ok {
-		if str, ok := val.(string); ok {
-			config.TLS.KeyFile = str
-		}
-	}
+	p.parseBoolField("prometheus.tls.enabled", &config.TLS.Enabled)
+	p.parseBoolField("prometheus.tls.insecureSkipVerify", &config.TLS.InsecureSkipVerify)
+	p.parseStringField("prometheus.tls.caFile", &config.TLS.CAFile)
+	p.parseStringField("prometheus.tls.certFile", &config.TLS.CertFile)
+	p.parseStringField("prometheus.tls.keyFile", &config.TLS.KeyFile)
 
 	// Parse retry configuration
-	if val, ok := p.getValue("prometheus.retry.maxRetries"); ok {
-		if i, err := p.parseInt(val); err == nil {
-			config.Retry.MaxRetries = i
-		}
-	}
-
-	if val, ok := p.getValue("prometheus.retry.initialDelay"); ok {
-		if duration, err := p.parseDuration(val); err == nil {
-			config.Retry.InitialDelay = duration
-		}
-	}
-
-	if val, ok := p.getValue("prometheus.retry.maxDelay"); ok {
-		if duration, err := p.parseDuration(val); err == nil {
-			config.Retry.MaxDelay = duration
-		}
-	}
-
-	if val, ok := p.getValue("prometheus.retry.multiplier"); ok {
-		if f, err := p.parseFloat(val); err == nil {
-			config.Retry.Multiplier = f
-		}
-	}
+	p.parseIntField("prometheus.retry.maxRetries", &config.Retry.MaxRetries)
+	p.parseDurationField("prometheus.retry.initialDelay", &config.Retry.InitialDelay)
+	p.parseDurationField("prometheus.retry.maxDelay", &config.Retry.MaxDelay)
+	p.parseFloatField("prometheus.retry.multiplier", &config.Retry.Multiplier)
 
 	return nil
 }
@@ -309,81 +294,33 @@ func (p *Parser) parseMetricsConfig(config *MetricsConfig) error {
 	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseSecurityConfig(config *SecurityConfig) error {
 	// Parse secrets configuration
-	if val, ok := p.getValue("security.secrets.storageDir"); ok {
-		if str, ok := val.(string); ok {
-			config.Secrets.StorageDir = str
-		}
-	}
+	p.parseStringField("security.secrets.storageDir", &config.Secrets.StorageDir)
+	p.parseBoolField("security.secrets.encryptAtRest", &config.Secrets.EncryptAtRest)
 
-	if val, ok := p.getValue("security.secrets.encryptAtRest"); ok {
-		if b, err := p.parseBool(val); err == nil {
-			config.Secrets.EncryptAtRest = b
-		}
-	}
-
+	// Parse master key source (requires special handling for type conversion)
 	if val, ok := p.getValue("security.secrets.masterKeySource"); ok {
 		if str, ok := val.(string); ok {
 			config.Secrets.MasterKeySource = security.SecretSource(str)
 		}
 	}
 
-	if val, ok := p.getValue("security.secrets.masterKeyEnv"); ok {
-		if str, ok := val.(string); ok {
-			config.Secrets.MasterKeyEnv = str
-		}
-	}
+	p.parseStringField("security.secrets.masterKeyEnv", &config.Secrets.MasterKeyEnv)
 
 	// Parse API security configuration
-	if val, ok := p.getValue("security.api.enableAuth"); ok {
-		if b, err := p.parseBool(val); err == nil {
-			config.API.EnableAuth = b
-		}
-	}
+	p.parseBoolField("security.api.enableAuth", &config.API.EnableAuth)
 
 	// Parse rate limit configuration
-	if val, ok := p.getValue("security.api.rateLimit.requestsPerMinute"); ok {
-		if i, err := p.parseInt(val); err == nil {
-			config.API.RateLimit.RequestsPerMinute = i
-		}
-	}
-
-	if val, ok := p.getValue("security.api.rateLimit.enableGlobalLimit"); ok {
-		if b, err := p.parseBool(val); err == nil {
-			config.API.RateLimit.EnableGlobalLimit = b
-		}
-	}
-
-	if val, ok := p.getValue("security.api.rateLimit.globalRequestsPerMinute"); ok {
-		if i, err := p.parseInt(val); err == nil {
-			config.API.RateLimit.GlobalRequestsPerMinute = i
-		}
-	}
+	p.parseIntField("security.api.rateLimit.requestsPerMinute", &config.API.RateLimit.RequestsPerMinute)
+	p.parseBoolField("security.api.rateLimit.enableGlobalLimit", &config.API.RateLimit.EnableGlobalLimit)
+	p.parseIntField("security.api.rateLimit.globalRequestsPerMinute", &config.API.RateLimit.GlobalRequestsPerMinute)
 
 	// Parse validation configuration
-	if val, ok := p.getValue("security.api.validation.enabled"); ok {
-		if b, err := p.parseBool(val); err == nil {
-			config.API.Validation.Enabled = b
-		}
-	}
-
-	if val, ok := p.getValue("security.api.validation.maxQueryLength"); ok {
-		if i, err := p.parseInt(val); err == nil {
-			config.API.Validation.MaxQueryLength = i
-		}
-	}
+	p.parseBoolField("security.api.validation.enabled", &config.API.Validation.Enabled)
+	p.parseIntField("security.api.validation.maxQueryLength", &config.API.Validation.MaxQueryLength)
 
 	// Parse audit configuration
-	if val, ok := p.getValue("security.api.audit.enabled"); ok {
-		if b, err := p.parseBool(val); err == nil {
-			config.API.Audit.Enabled = b
-		}
-	}
-
-	if val, ok := p.getValue("security.api.audit.logFile"); ok {
-		if str, ok := val.(string); ok {
-			config.API.Audit.LogFile = str
-		}
-	}
+	p.parseBoolField("security.api.audit.enabled", &config.API.Audit.Enabled)
+	p.parseStringField("security.api.audit.logFile", &config.API.Audit.LogFile)
 
 	return nil
 }

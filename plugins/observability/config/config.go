@@ -586,94 +586,81 @@ func (c *Config) validateMetrics() error {
 	return nil
 }
 
+// mergeStringField merges a string field from default if current is empty
+func mergeStringField(current *string, def string) {
+	if *current == "" {
+		*current = def
+	}
+}
+
+// mergeDurationField merges a duration field from default if current is zero
+func mergeDurationField(current *time.Duration, def time.Duration) {
+	if *current == 0 {
+		*current = def
+	}
+}
+
+// mergeIntField merges an int field from default if current is zero
+func mergeIntField(current *int, def int) {
+	if *current == 0 {
+		*current = def
+	}
+}
+
+// mergeFloatField merges a float field from default if current is zero
+func mergeFloatField(current *float64, def float64) {
+	if *current == 0 {
+		*current = def
+	}
+}
+
+// mergeStringSliceField merges a string slice field from default if current is empty
+func mergeStringSliceField(current *[]string, def []string) {
+	if len(*current) == 0 {
+		*current = def
+	}
+}
+
 // MergeWithDefaults merges the configuration with defaults
 func (c *Config) MergeWithDefaults() {
 	def := DefaultConfig()
 
 	// Merge Prometheus config
-	if c.Prometheus.Endpoint == "" {
-		c.Prometheus.Endpoint = def.Prometheus.Endpoint
-	}
-	if c.Prometheus.Timeout == 0 {
-		c.Prometheus.Timeout = def.Prometheus.Timeout
-	}
-	if c.Prometheus.Auth.Type == "" {
-		c.Prometheus.Auth.Type = def.Prometheus.Auth.Type
-	}
-	if c.Prometheus.Retry.MaxRetries == 0 {
-		c.Prometheus.Retry.MaxRetries = def.Prometheus.Retry.MaxRetries
-	}
-	if c.Prometheus.Retry.InitialDelay == 0 {
-		c.Prometheus.Retry.InitialDelay = def.Prometheus.Retry.InitialDelay
-	}
-	if c.Prometheus.Retry.MaxDelay == 0 {
-		c.Prometheus.Retry.MaxDelay = def.Prometheus.Retry.MaxDelay
-	}
-	if c.Prometheus.Retry.Multiplier == 0 {
-		c.Prometheus.Retry.Multiplier = def.Prometheus.Retry.Multiplier
-	}
+	mergeStringField(&c.Prometheus.Endpoint, def.Prometheus.Endpoint)
+	mergeDurationField(&c.Prometheus.Timeout, def.Prometheus.Timeout)
+	mergeStringField(&c.Prometheus.Auth.Type, def.Prometheus.Auth.Type)
+	mergeIntField(&c.Prometheus.Retry.MaxRetries, def.Prometheus.Retry.MaxRetries)
+	mergeDurationField(&c.Prometheus.Retry.InitialDelay, def.Prometheus.Retry.InitialDelay)
+	mergeDurationField(&c.Prometheus.Retry.MaxDelay, def.Prometheus.Retry.MaxDelay)
+	mergeFloatField(&c.Prometheus.Retry.Multiplier, def.Prometheus.Retry.Multiplier)
 
 	// Merge Display config
-	if c.Display.RefreshInterval == 0 {
-		c.Display.RefreshInterval = def.Display.RefreshInterval
-	}
-	if c.Display.SparklinePoints == 0 {
-		c.Display.SparklinePoints = def.Display.SparklinePoints
-	}
-	if c.Display.ColorScheme == "" {
-		c.Display.ColorScheme = def.Display.ColorScheme
-	}
-	if c.Display.DecimalPrecision == 0 {
-		c.Display.DecimalPrecision = def.Display.DecimalPrecision
-	}
+	mergeDurationField(&c.Display.RefreshInterval, def.Display.RefreshInterval)
+	mergeIntField(&c.Display.SparklinePoints, def.Display.SparklinePoints)
+	mergeStringField(&c.Display.ColorScheme, def.Display.ColorScheme)
+	mergeIntField(&c.Display.DecimalPrecision, def.Display.DecimalPrecision)
 
 	// Merge Alert config
-	if c.Alerts.CheckInterval == 0 {
-		c.Alerts.CheckInterval = def.Alerts.CheckInterval
-	}
-	if c.Alerts.HistoryRetention == 0 {
-		c.Alerts.HistoryRetention = def.Alerts.HistoryRetention
-	}
+	mergeDurationField(&c.Alerts.CheckInterval, def.Alerts.CheckInterval)
+	mergeDurationField(&c.Alerts.HistoryRetention, def.Alerts.HistoryRetention)
 	if len(c.Alerts.Rules) == 0 {
 		c.Alerts.Rules = def.Alerts.Rules
 	}
 
 	// Merge Cache config
-	if c.Cache.DefaultTTL == 0 {
-		c.Cache.DefaultTTL = def.Cache.DefaultTTL
-	}
-	if c.Cache.MaxSize == 0 {
-		c.Cache.MaxSize = def.Cache.MaxSize
-	}
-	if c.Cache.CleanupInterval == 0 {
-		c.Cache.CleanupInterval = def.Cache.CleanupInterval
-	}
+	mergeDurationField(&c.Cache.DefaultTTL, def.Cache.DefaultTTL)
+	mergeIntField(&c.Cache.MaxSize, def.Cache.MaxSize)
+	mergeDurationField(&c.Cache.CleanupInterval, def.Cache.CleanupInterval)
 
 	// Merge Metrics config
-	if c.Metrics.Node.NodeLabel == "" {
-		c.Metrics.Node.NodeLabel = def.Metrics.Node.NodeLabel
-	}
-	if c.Metrics.Node.RateRange == "" {
-		c.Metrics.Node.RateRange = def.Metrics.Node.RateRange
-	}
-	if len(c.Metrics.Node.EnabledMetrics) == 0 {
-		c.Metrics.Node.EnabledMetrics = def.Metrics.Node.EnabledMetrics
-	}
-	if c.Metrics.Job.CgroupPattern == "" {
-		c.Metrics.Job.CgroupPattern = def.Metrics.Job.CgroupPattern
-	}
-	if len(c.Metrics.Job.EnabledMetrics) == 0 {
-		c.Metrics.Job.EnabledMetrics = def.Metrics.Job.EnabledMetrics
-	}
+	mergeStringField(&c.Metrics.Node.NodeLabel, def.Metrics.Node.NodeLabel)
+	mergeStringField(&c.Metrics.Node.RateRange, def.Metrics.Node.RateRange)
+	mergeStringSliceField(&c.Metrics.Node.EnabledMetrics, def.Metrics.Node.EnabledMetrics)
+	mergeStringField(&c.Metrics.Job.CgroupPattern, def.Metrics.Job.CgroupPattern)
+	mergeStringSliceField(&c.Metrics.Job.EnabledMetrics, def.Metrics.Job.EnabledMetrics)
 
 	// Merge Logging config
-	if c.Logging.Level == "" {
-		c.Logging.Level = def.Logging.Level
-	}
-	if c.Logging.LogFile == "" {
-		c.Logging.LogFile = def.Logging.LogFile
-	}
-	if c.Logging.Component == "" {
-		c.Logging.Component = def.Logging.Component
-	}
+	mergeStringField(&c.Logging.Level, def.Logging.Level)
+	mergeStringField(&c.Logging.LogFile, def.Logging.LogFile)
+	mergeStringField(&c.Logging.Component, def.Logging.Component)
 }
