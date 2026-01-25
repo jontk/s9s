@@ -1181,53 +1181,82 @@ func (v *DashboardView) countJobsWaitingLongerThan(duration time.Duration) int {
 func (v *DashboardView) generateRecommendations() []string {
 	var recommendations []string
 
-	// Analyze resource utilization
-	if v.clusterMetrics != nil {
-		if v.clusterMetrics.CPUUsage < 30 {
-			recommendations = append(recommendations, "Consider consolidating workloads or reducing cluster size due to low CPU utilization")
-		} else if v.clusterMetrics.CPUUsage > 90 {
-			recommendations = append(recommendations, "Consider expanding CPU capacity due to high utilization")
-		}
-
-		if v.clusterMetrics.MemoryUsage > 90 {
-			recommendations = append(recommendations, "Consider expanding memory capacity due to high utilization")
-		}
-	}
-
-	// Analyze job queue
-	if len(v.jobs) > 0 {
-		longWaitingJobs := v.countJobsWaitingLongerThan(24 * time.Hour)
-		if longWaitingJobs > 10 {
-			recommendations = append(recommendations, "High number of jobs waiting >24h - review job priorities and resource allocation")
-		}
-
-		failedJobs := 0
-		for _, job := range v.jobs {
-			if job.State == dao.JobStateFailed {
-				failedJobs++
-			}
-		}
-		if failedJobs > 5 {
-			recommendations = append(recommendations, "Multiple failed jobs detected - review job scripts and resource requirements")
-		}
-	}
-
-	// Analyze node health
-	if len(v.nodes) > 0 {
-		downNodes := 0
-		for _, node := range v.nodes {
-			if node.State == dao.NodeStateDown {
-				downNodes++
-			}
-		}
-		if downNodes > 0 {
-			recommendations = append(recommendations, "Down nodes detected - investigate hardware issues and consider maintenance")
-		}
-	}
+	v.addResourceUtilizationRecommendations(&recommendations)
+	v.addJobQueueRecommendations(&recommendations)
+	v.addNodeHealthRecommendations(&recommendations)
 
 	if len(recommendations) == 0 {
 		recommendations = append(recommendations, "System is operating optimally - no immediate action required")
 	}
 
 	return recommendations
+}
+
+func (v *DashboardView) addResourceUtilizationRecommendations(recommendations *[]string) {
+	if v.clusterMetrics == nil {
+		return
+	}
+
+	if v.clusterMetrics.CPUUsage < 30 {
+		*recommendations = append(*recommendations,
+			"Consider consolidating workloads or reducing cluster size due to low CPU utilization")
+	} else if v.clusterMetrics.CPUUsage > 90 {
+		*recommendations = append(*recommendations,
+			"Consider expanding CPU capacity due to high utilization")
+	}
+
+	if v.clusterMetrics.MemoryUsage > 90 {
+		*recommendations = append(*recommendations,
+			"Consider expanding memory capacity due to high utilization")
+	}
+}
+
+func (v *DashboardView) addJobQueueRecommendations(recommendations *[]string) {
+	if len(v.jobs) == 0 {
+		return
+	}
+
+	longWaitingJobs := v.countJobsWaitingLongerThan(24 * time.Hour)
+	if longWaitingJobs > 10 {
+		*recommendations = append(*recommendations,
+			"High number of jobs waiting >24h - review job priorities and resource allocation")
+	}
+
+	failedJobs := v.countFailedJobs()
+	if failedJobs > 5 {
+		*recommendations = append(*recommendations,
+			"Multiple failed jobs detected - review job scripts and resource requirements")
+	}
+}
+
+func (v *DashboardView) addNodeHealthRecommendations(recommendations *[]string) {
+	if len(v.nodes) == 0 {
+		return
+	}
+
+	downNodes := v.countDownNodes()
+	if downNodes > 0 {
+		*recommendations = append(*recommendations,
+			"Down nodes detected - investigate hardware issues and consider maintenance")
+	}
+}
+
+func (v *DashboardView) countDownNodes() int {
+	count := 0
+	for _, node := range v.nodes {
+		if node.State == dao.NodeStateDown {
+			count++
+		}
+	}
+	return count
+}
+
+func (v *DashboardView) countFailedJobs() int {
+	count := 0
+	for _, job := range v.jobs {
+		if job.State == dao.JobStateFailed {
+			count++
+		}
+	}
+	return count
 }
