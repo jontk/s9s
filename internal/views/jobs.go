@@ -291,11 +291,9 @@ func (v *JobsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 	// If filter input has focus, let it handle the key events (except ESC)
 	if v.filterInput != nil && v.filterInput.HasFocus() {
 		if event.Key() == tcell.KeyEsc {
-			// ESC should return focus to table
 			v.app.SetFocus(v.table.Table)
 			return nil
 		}
-		// For all other keys, let the filter input handle them
 		return event
 	}
 
@@ -305,78 +303,71 @@ func (v *JobsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
+	// Handle by key type
 	switch event.Key() {
-	case tcell.KeyF2:
-		v.showJobTemplateSelector()
-		return nil
-	case tcell.KeyF3:
-		v.showAdvancedFilter()
-		return nil
-	case tcell.KeyCtrlF:
-		v.showGlobalSearch()
-		return nil
 	case tcell.KeyRune:
-		switch event.Rune() {
-		case 'c', 'C':
-			v.cancelSelectedJob()
-			return nil
-		case 'h', 'H':
-			v.holdSelectedJob()
-			return nil
-		case 'r':
-			v.releaseSelectedJob()
-			return nil
-		case 'R':
-			go func() { _ = v.Refresh() }()
-			return nil
-		case 'o', 'O':
-			v.showJobOutput()
-			return nil
-		case 's', 'S':
-			v.showJobSubmissionForm()
-			return nil
-		case 'd', 'D':
-			v.showJobDependencies()
-			return nil
-		case 'b', 'B':
-			v.showBatchOperations()
-			return nil
-		case 'm', 'M':
-			v.toggleAutoRefresh()
-			return nil
-		case 'q', 'Q':
-			v.requeueSelectedJob()
-			return nil
-		case '/':
-			v.app.SetFocus(v.filterInput)
-			return nil
-		case 'a', 'A':
-			v.toggleStateFilter("all")
-			return nil
-		case 'p', 'P':
-			v.toggleStateFilter(dao.JobStatePending)
-			return nil
-		case 'u', 'U':
-			v.promptUserFilter()
-			return nil
-		case 'v', 'V':
-			v.toggleMultiSelectMode()
-			return nil
-		}
-	case tcell.KeyEnter:
-		v.showJobDetails()
-		return nil
-	case tcell.KeyEsc:
-		if v.filterInput.HasFocus() {
-			v.app.SetFocus(v.table.Table)
-			return nil
-		}
-	case tcell.KeyF1:
-		v.showJobActions()
-		return nil
+		return v.handleJobsViewRune(event)
+	}
+
+	// Handle by special key
+	if handler, ok := v.jobsKeyHandlers()[event.Key()]; ok {
+		return handler(v, event)
 	}
 
 	return event
+}
+
+// handleJobsViewRune handles rune key presses in the jobs view
+func (v *JobsView) handleJobsViewRune(event *tcell.EventKey) *tcell.EventKey {
+	handler, ok := v.jobsRuneHandlers()[event.Rune()]
+	if ok {
+		return handler(v, event)
+	}
+	return event
+}
+
+// jobsKeyHandlers returns a map of special keys to their handlers
+func (v *JobsView) jobsKeyHandlers() map[tcell.Key]func(*JobsView, *tcell.EventKey) *tcell.EventKey {
+	return map[tcell.Key]func(*JobsView, *tcell.EventKey) *tcell.EventKey{
+		tcell.KeyF1:     func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobActions(); return nil },
+		tcell.KeyF2:     func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobTemplateSelector(); return nil },
+		tcell.KeyF3:     func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
+		tcell.KeyCtrlF:  func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showGlobalSearch(); return nil },
+		tcell.KeyEnter:  func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobDetails(); return nil },
+	}
+}
+
+// jobsRuneHandlers returns a map of rune keys to their handlers
+func (v *JobsView) jobsRuneHandlers() map[rune]func(*JobsView, *tcell.EventKey) *tcell.EventKey {
+	return map[rune]func(*JobsView, *tcell.EventKey) *tcell.EventKey{
+		'c': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.cancelSelectedJob(); return nil },
+		'C': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.cancelSelectedJob(); return nil },
+		'h': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.holdSelectedJob(); return nil },
+		'H': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.holdSelectedJob(); return nil },
+		'r': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.releaseSelectedJob(); return nil },
+		'R': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { go func() { _ = v.Refresh() }(); return nil },
+		'o': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobOutput(); return nil },
+		'O': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobOutput(); return nil },
+		's': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobSubmissionForm(); return nil },
+		'S': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobSubmissionForm(); return nil },
+		'd': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobDependencies(); return nil },
+		'D': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobDependencies(); return nil },
+		'b': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showBatchOperations(); return nil },
+		'B': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showBatchOperations(); return nil },
+		'm': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleAutoRefresh(); return nil },
+		'M': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleAutoRefresh(); return nil },
+		'q': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.requeueSelectedJob(); return nil },
+		'Q': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.requeueSelectedJob(); return nil },
+		'/': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.app.SetFocus(v.filterInput); return nil },
+		'a': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter("all"); return nil },
+		'A': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter("all"); return nil },
+		'p': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter(dao.JobStatePending); return nil },
+		'P': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter(dao.JobStatePending); return nil },
+		'u': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.promptUserFilter(); return nil },
+		'U': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.promptUserFilter(); return nil },
+		'v': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleMultiSelectMode(); return nil },
+		'V': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleMultiSelectMode(); return nil },
+	}
 }
 
 // OnFocus handles focus events

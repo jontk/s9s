@@ -226,11 +226,9 @@ func (v *NodesView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 	// If filter input has focus, let it handle the key events (except ESC)
 	if v.filterInput != nil && v.filterInput.HasFocus() {
 		if event.Key() == tcell.KeyEsc {
-			// ESC should return focus to table
 			v.app.SetFocus(v.table.Table)
 			return nil
 		}
-		// For all other keys, let the filter input handle them
 		return event
 	}
 
@@ -240,60 +238,60 @@ func (v *NodesView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
+	// Handle by key type
 	switch event.Key() {
-	case tcell.KeyF3:
-		v.showAdvancedFilter()
-		return nil
-	case tcell.KeyCtrlF:
-		v.showGlobalSearch()
-		return nil
 	case tcell.KeyRune:
-		switch event.Rune() {
-		case 'd', 'D':
-			v.drainSelectedNode()
-			return nil
-		case 'r':
-			v.resumeSelectedNode()
-			return nil
-		case 'R':
-			go func() { _ = v.Refresh() }()
-			return nil
-		case 's', 'S':
-			v.sshToNode()
-			return nil
-		case '/':
-			v.app.SetFocus(v.filterInput)
-			return nil
-		case 'a', 'A':
-			v.toggleStateFilter("all")
-			return nil
-		case 'i', 'I':
-			v.toggleStateFilter(dao.NodeStateIdle)
-			return nil
-		case 'm', 'M':
-			v.toggleStateFilter(dao.NodeStateMixed)
-			return nil
-		case 'p', 'P':
-			v.promptPartitionFilter()
-			return nil
-		case 'g', 'G':
-			v.promptGroupBy()
-			return nil
-		case ' ':
-			v.toggleGroupExpansion()
-			return nil
-		}
-	case tcell.KeyEnter:
-		v.showNodeDetails()
-		return nil
-	case tcell.KeyEsc:
-		if v.filterInput.HasFocus() {
-			v.app.SetFocus(v.table.Table)
-			return nil
-		}
+		return v.handleNodesViewRune(event)
+	}
+
+	// Handle by special key
+	if handler, ok := v.nodesKeyHandlers()[event.Key()]; ok {
+		return handler(v, event)
 	}
 
 	return event
+}
+
+// handleNodesViewRune handles rune key presses in the nodes view
+func (v *NodesView) handleNodesViewRune(event *tcell.EventKey) *tcell.EventKey {
+	handler, ok := v.nodesRuneHandlers()[event.Rune()]
+	if ok {
+		return handler(v, event)
+	}
+	return event
+}
+
+// nodesKeyHandlers returns a map of special keys to their handlers
+func (v *NodesView) nodesKeyHandlers() map[tcell.Key]func(*NodesView, *tcell.EventKey) *tcell.EventKey {
+	return map[tcell.Key]func(*NodesView, *tcell.EventKey) *tcell.EventKey{
+		tcell.KeyF3:     func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
+		tcell.KeyCtrlF:  func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showGlobalSearch(); return nil },
+		tcell.KeyEnter:  func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showNodeDetails(); return nil },
+	}
+}
+
+// nodesRuneHandlers returns a map of rune keys to their handlers
+func (v *NodesView) nodesRuneHandlers() map[rune]func(*NodesView, *tcell.EventKey) *tcell.EventKey {
+	return map[rune]func(*NodesView, *tcell.EventKey) *tcell.EventKey{
+		'd': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.drainSelectedNode(); return nil },
+		'D': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.drainSelectedNode(); return nil },
+		'r': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.resumeSelectedNode(); return nil },
+		'R': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { go func() { _ = v.Refresh() }(); return nil },
+		's': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.sshToNode(); return nil },
+		'S': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.sshToNode(); return nil },
+		'/': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.app.SetFocus(v.filterInput); return nil },
+		'a': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter("all"); return nil },
+		'A': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter("all"); return nil },
+		'i': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter(dao.NodeStateIdle); return nil },
+		'I': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter(dao.NodeStateIdle); return nil },
+		'm': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter(dao.NodeStateMixed); return nil },
+		'M': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter(dao.NodeStateMixed); return nil },
+		'p': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.promptPartitionFilter(); return nil },
+		'P': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.promptPartitionFilter(); return nil },
+		'g': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.promptGroupBy(); return nil },
+		'G': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.promptGroupBy(); return nil },
+		' ': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleGroupExpansion(); return nil },
+	}
 }
 
 // OnFocus handles focus events
