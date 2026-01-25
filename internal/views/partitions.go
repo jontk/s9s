@@ -797,95 +797,137 @@ func (v *PartitionsView) formatPartitionAnalytics(partition *dao.Partition) stri
 	var analytics strings.Builder
 
 	analytics.WriteString(fmt.Sprintf("[yellow]Partition Analytics: %s[white]\n\n", partition.Name))
+	analytics.WriteString(v.formatBasicInformation(partition))
 
-	// Basic information
-	stateColor := dao.GetPartitionStateColor(partition.State)
-	analytics.WriteString("[teal]Basic Information:[white]\n")
-	analytics.WriteString(fmt.Sprintf("[yellow]  State:[white] [%s]%s[white]\n", stateColor, partition.State))
-	analytics.WriteString(fmt.Sprintf("[yellow]  Total Nodes:[white] %d\n", partition.TotalNodes))
-	analytics.WriteString(fmt.Sprintf("[yellow]  Total CPUs:[white] %d\n", partition.TotalCPUs))
-	analytics.WriteString(fmt.Sprintf("[yellow]  Default Time Limit:[white] %s\n", partition.DefaultTime))
-	analytics.WriteString(fmt.Sprintf("[yellow]  Maximum Time Limit:[white] %s\n", partition.MaxTime))
-
-	// Queue analytics
+	// Get queue info
 	v.mu.RLock()
 	queueInfo := v.queueInfo[partition.Name]
 	v.mu.RUnlock()
 
 	if queueInfo != nil {
-		analytics.WriteString("\n[teal]Queue Analytics:[white]\n")
-		analytics.WriteString(fmt.Sprintf("[yellow]  Total Jobs:[white] %d\n", queueInfo.TotalJobs))
-		analytics.WriteString(fmt.Sprintf("[yellow]  Running Jobs:[white] [green]%d[white]\n", queueInfo.RunningJobs))
-		analytics.WriteString(fmt.Sprintf("[yellow]  Pending Jobs:[white] [yellow]%d[white]\n", queueInfo.PendingJobs))
-
-		if queueInfo.TotalJobs > 0 {
-			runningPct := float64(queueInfo.RunningJobs) * 100.0 / float64(queueInfo.TotalJobs)
-			pendingPct := float64(queueInfo.PendingJobs) * 100.0 / float64(queueInfo.TotalJobs)
-			analytics.WriteString(fmt.Sprintf("[yellow]  Running Percentage:[white] %.1f%%\n", runningPct))
-			analytics.WriteString(fmt.Sprintf("[yellow]  Pending Percentage:[white] %.1f%%\n", pendingPct))
-		}
-
-		// Utilization analytics
-		if partition.TotalCPUs > 0 {
-			utilizationPct := float64(queueInfo.RunningJobs) * 100.0 / float64(partition.TotalCPUs)
-			analytics.WriteString("\n[teal]Resource Utilization:[white]\n")
-			analytics.WriteString(fmt.Sprintf("[yellow]  CPU Utilization:[white] %.1f%%\n", utilizationPct))
-
-			utilizationBar := v.createEfficiencyBar(utilizationPct)
-			analytics.WriteString(fmt.Sprintf("[yellow]  Utilization Visual:[white] %s\n", utilizationBar))
-
-			// Performance assessment
-			analytics.WriteString("\n[teal]Performance Assessment:[white]\n")
-			switch {
-			case utilizationPct < 30:
-				analytics.WriteString("[yellow]  Status:[white] [red]Under-utilized[white] - Consider job promotion or resource reallocation\n")
-			case utilizationPct < 70:
-				analytics.WriteString("[yellow]  Status:[white] [yellow]Moderate utilization[white] - Room for growth\n")
-			case utilizationPct < 95:
-				analytics.WriteString("[yellow]  Status:[white] [green]Well-utilized[white] - Optimal performance\n")
-			default:
-				analytics.WriteString("[yellow]  Status:[white] [red]Over-subscribed[white] - Consider expanding capacity\n")
-			}
-		}
-
-		// Wait time analytics
-		if queueInfo.AverageWait > 0 || queueInfo.LongestWait > 0 {
-			analytics.WriteString("\n[teal]Wait Time Analytics:[white]\n")
-			if queueInfo.AverageWait > 0 {
-				analytics.WriteString(fmt.Sprintf("[yellow]  Average Wait Time:[white] %s\n", FormatTimeDuration(queueInfo.AverageWait)))
-			}
-			if queueInfo.LongestWait > 0 {
-				analytics.WriteString(fmt.Sprintf("[yellow]  Longest Wait Time:[white] %s\n", FormatTimeDuration(queueInfo.LongestWait)))
-
-				// Wait time assessment
-				hours := queueInfo.LongestWait.Hours()
-				switch {
-				case hours < 1:
-					analytics.WriteString("[yellow]  Wait Assessment:[white] [green]Excellent[white] - Quick turnaround\n")
-				case hours < 6:
-					analytics.WriteString("[yellow]  Wait Assessment:[white] [yellow]Good[white] - Reasonable wait times\n")
-				case hours < 24:
-					analytics.WriteString("[yellow]  Wait Assessment:[white] [orange]Moderate[white] - Some delays expected\n")
-				default:
-					analytics.WriteString("[yellow]  Wait Assessment:[white] [red]Poor[white] - Long wait times detected\n")
-				}
-			}
-		}
+		analytics.WriteString(v.formatQueueAnalytics(queueInfo))
+		analytics.WriteString(v.formatResourceUtilization(partition, queueInfo))
+		analytics.WriteString(v.formatWaitTimeSection(queueInfo))
 	} else {
 		analytics.WriteString("\n[yellow]Queue information not available[white]\n")
 	}
 
-	// QoS and limits
-	if len(partition.QOS) > 0 {
-		analytics.WriteString("\n[teal]Quality of Service:[white]\n")
-		for _, qos := range partition.QOS {
-			analytics.WriteString(fmt.Sprintf("[yellow]  - %s[white]\n", qos))
-		}
-	}
-
+	analytics.WriteString(v.formatQoSSection(partition))
 	analytics.WriteString("\n[gray]Last updated: " + time.Now().Format("15:04:05") + "[white]")
 
 	return analytics.String()
+}
+
+func (v *PartitionsView) formatBasicInformation(partition *dao.Partition) string {
+	var output strings.Builder
+	stateColor := dao.GetPartitionStateColor(partition.State)
+
+	output.WriteString("[teal]Basic Information:[white]\n")
+	output.WriteString(fmt.Sprintf("[yellow]  State:[white] [%s]%s[white]\n", stateColor, partition.State))
+	output.WriteString(fmt.Sprintf("[yellow]  Total Nodes:[white] %d\n", partition.TotalNodes))
+	output.WriteString(fmt.Sprintf("[yellow]  Total CPUs:[white] %d\n", partition.TotalCPUs))
+	output.WriteString(fmt.Sprintf("[yellow]  Default Time Limit:[white] %s\n", partition.DefaultTime))
+	output.WriteString(fmt.Sprintf("[yellow]  Maximum Time Limit:[white] %s\n", partition.MaxTime))
+
+	return output.String()
+}
+
+func (v *PartitionsView) formatQueueAnalytics(queueInfo *dao.QueueInfo) string {
+	var output strings.Builder
+
+	output.WriteString("\n[teal]Queue Analytics:[white]\n")
+	output.WriteString(fmt.Sprintf("[yellow]  Total Jobs:[white] %d\n", queueInfo.TotalJobs))
+	output.WriteString(fmt.Sprintf("[yellow]  Running Jobs:[white] [green]%d[white]\n", queueInfo.RunningJobs))
+	output.WriteString(fmt.Sprintf("[yellow]  Pending Jobs:[white] [yellow]%d[white]\n", queueInfo.PendingJobs))
+
+	if queueInfo.TotalJobs > 0 {
+		runningPct := float64(queueInfo.RunningJobs) * 100.0 / float64(queueInfo.TotalJobs)
+		pendingPct := float64(queueInfo.PendingJobs) * 100.0 / float64(queueInfo.TotalJobs)
+		output.WriteString(fmt.Sprintf("[yellow]  Running Percentage:[white] %.1f%%\n", runningPct))
+		output.WriteString(fmt.Sprintf("[yellow]  Pending Percentage:[white] %.1f%%\n", pendingPct))
+	}
+
+	return output.String()
+}
+
+func (v *PartitionsView) formatResourceUtilization(partition *dao.Partition, queueInfo *dao.QueueInfo) string {
+	if partition.TotalCPUs == 0 {
+		return ""
+	}
+
+	var output strings.Builder
+	utilizationPct := float64(queueInfo.RunningJobs) * 100.0 / float64(partition.TotalCPUs)
+
+	output.WriteString("\n[teal]Resource Utilization:[white]\n")
+	output.WriteString(fmt.Sprintf("[yellow]  CPU Utilization:[white] %.1f%%\n", utilizationPct))
+
+	utilizationBar := v.createEfficiencyBar(utilizationPct)
+	output.WriteString(fmt.Sprintf("[yellow]  Utilization Visual:[white] %s\n", utilizationBar))
+
+	output.WriteString("\n[teal]Performance Assessment:[white]\n")
+	output.WriteString(v.formatPerformanceStatus(utilizationPct))
+
+	return output.String()
+}
+
+func (v *PartitionsView) formatPerformanceStatus(utilizationPct float64) string {
+	switch {
+	case utilizationPct < 30:
+		return "[yellow]  Status:[white] [red]Under-utilized[white] - Consider job promotion or resource reallocation\n"
+	case utilizationPct < 70:
+		return "[yellow]  Status:[white] [yellow]Moderate utilization[white] - Room for growth\n"
+	case utilizationPct < 95:
+		return "[yellow]  Status:[white] [green]Well-utilized[white] - Optimal performance\n"
+	default:
+		return "[yellow]  Status:[white] [red]Over-subscribed[white] - Consider expanding capacity\n"
+	}
+}
+
+func (v *PartitionsView) formatWaitTimeSection(queueInfo *dao.QueueInfo) string {
+	if queueInfo.AverageWait == 0 && queueInfo.LongestWait == 0 {
+		return ""
+	}
+
+	var output strings.Builder
+	output.WriteString("\n[teal]Wait Time Analytics:[white]\n")
+
+	if queueInfo.AverageWait > 0 {
+		output.WriteString(fmt.Sprintf("[yellow]  Average Wait Time:[white] %s\n", FormatTimeDuration(queueInfo.AverageWait)))
+	}
+
+	if queueInfo.LongestWait > 0 {
+		output.WriteString(fmt.Sprintf("[yellow]  Longest Wait Time:[white] %s\n", FormatTimeDuration(queueInfo.LongestWait)))
+		output.WriteString(v.formatWaitAssessment(queueInfo.LongestWait.Hours()))
+	}
+
+	return output.String()
+}
+
+func (v *PartitionsView) formatWaitAssessment(hours float64) string {
+	switch {
+	case hours < 1:
+		return "[yellow]  Wait Assessment:[white] [green]Excellent[white] - Quick turnaround\n"
+	case hours < 6:
+		return "[yellow]  Wait Assessment:[white] [yellow]Good[white] - Reasonable wait times\n"
+	case hours < 24:
+		return "[yellow]  Wait Assessment:[white] [orange]Moderate[white] - Some delays expected\n"
+	default:
+		return "[yellow]  Wait Assessment:[white] [red]Poor[white] - Long wait times detected\n"
+	}
+}
+
+func (v *PartitionsView) formatQoSSection(partition *dao.Partition) string {
+	if len(partition.QOS) == 0 {
+		return ""
+	}
+
+	var output strings.Builder
+	output.WriteString("\n[teal]Quality of Service:[white]\n")
+	for _, qos := range partition.QOS {
+		output.WriteString(fmt.Sprintf("[yellow]  - %s[white]\n", qos))
+	}
+
+	return output.String()
 }
 
 // showWaitTimeAnalytics shows detailed wait time analytics for all partitions
