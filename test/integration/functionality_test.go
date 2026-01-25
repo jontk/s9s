@@ -38,7 +38,7 @@ func TestJobExportFunctionality(t *testing.T) {
 
 		for _, format := range formats {
 			t.Run(string(format), func(t *testing.T) {
-				result, err := exporter.Export(testJobData, format, "")
+				result, err := exporter.Export(&testJobData, format, "")
 				if err != nil {
 					t.Fatalf("Export failed for format %s: %v", format, err)
 				}
@@ -71,7 +71,7 @@ func TestJobExportFunctionality(t *testing.T) {
 
 	t.Run("BatchExport", func(t *testing.T) {
 		// Create multiple job outputs for batch testing
-		batchJobs := []export.JobOutputData{
+		batchJobs := []*export.JobOutputData{
 			{
 				JobID:       "batch_1",
 				JobName:     "batch_test_1",

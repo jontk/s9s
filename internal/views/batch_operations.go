@@ -632,7 +632,7 @@ func (v *BatchOperationsView) exportJobOutputStreaming(jobID, formatStr string) 
 	}
 
 	// Perform export and immediately clear content to free memory
-	_, err := v.exporter.Export(exportData, format, "")
+	_, err := v.exporter.Export(&exportData, format, "")
 
 	// Clear the content from memory ASAP
 	exportData.Content = ""

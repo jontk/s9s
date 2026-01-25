@@ -215,7 +215,7 @@ func (jed *JobOutputExportDialog) performExport(format export.ExportFormat, base
 	}
 
 	// Export
-	result, err := jed.exporter.Export(data, format, "")
+	result, err := jed.exporter.Export(&data, format, "")
 	if err != nil {
 		// Show error (in a real app, this would be a proper error dialog)
 		jed.form.SetTitle(fmt.Sprintf("Export Failed: %v", err))
