@@ -401,21 +401,7 @@ func SplitRespectingQuotes(s string) []string {
 	quoteChar := rune(0)
 
 	for _, r := range s {
-		switch {
-		case !inQuotes && (r == '"' || r == '\''):
-			inQuotes = true
-			quoteChar = r
-		case inQuotes && r == quoteChar:
-			inQuotes = false
-			quoteChar = 0
-		case !inQuotes && r == ' ':
-			if current.Len() > 0 {
-				result = append(result, current.String())
-				current.Reset()
-			}
-		default:
-			current.WriteRune(r)
-		}
+		processQuoteChar(&inQuotes, &quoteChar, r, &current, &result)
 	}
 
 	if current.Len() > 0 {
@@ -423,6 +409,25 @@ func SplitRespectingQuotes(s string) []string {
 	}
 
 	return result
+}
+
+// processQuoteChar handles the logic of processing a single character in quote parsing
+func processQuoteChar(inQuotes *bool, quoteChar *rune, r rune, current *strings.Builder, result *[]string) {
+	switch {
+	case !*inQuotes && (r == '"' || r == '\''):
+		*inQuotes = true
+		*quoteChar = r
+	case *inQuotes && r == *quoteChar:
+		*inQuotes = false
+		*quoteChar = 0
+	case !*inQuotes && r == ' ':
+		if current.Len() > 0 {
+			*result = append(*result, current.String())
+			current.Reset()
+		}
+	default:
+		current.WriteRune(r)
+	}
 }
 
 // smartSplit splits filter string while respecting multi-word operators like "in" and "not in"
