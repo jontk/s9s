@@ -111,7 +111,7 @@ func (qb *QueryBuilder) BuildQuery(queryName string, params map[string]interface
 }
 
 // GetNodeQueries returns all node-level queries for a specific node
-func (qb *QueryBuilder) GetNodeQueries(nodeName string, labelName string) (map[string]string, error) {
+func (qb *QueryBuilder) GetNodeQueries(nodeName, labelName string) (map[string]string, error) {
 	queries := make(map[string]string)
 
 	nodeQueries := []string{

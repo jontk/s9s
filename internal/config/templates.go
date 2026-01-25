@@ -331,7 +331,7 @@ func (tm *TemplateManager) GetCategories() []string {
 }
 
 // CreateQuickStartConfig creates a quick-start configuration
-func (tm *TemplateManager) CreateQuickStartConfig(clusterHost string, clusterName string) (*Config, error) {
+func (tm *TemplateManager) CreateQuickStartConfig(clusterHost, clusterName string) (*Config, error) {
 	_ = clusterName // Parameter reserved for future use
 	if clusterHost == "" {
 		clusterHost = "localhost"

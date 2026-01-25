@@ -482,7 +482,7 @@ func (a *APIAuthenticator) ValidateToken(ctx context.Context, token *Token) erro
 
 // validateTokenWithAPI validates a token by calling the API validation endpoint
 func (a *APIAuthenticator) validateTokenWithAPI(ctx context.Context, token *Token, endpoint string) error {
-	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("failed to create validation request: %w", err)
 	}

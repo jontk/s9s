@@ -803,7 +803,7 @@ func (m *mockJobManager) GetOutput(id string) (string, error) {
 	return fmt.Sprintf("Mock output for job %s\nLine 1: Starting simulation...\nLine 2: Processing data...\nLine 3: Simulation complete.", id), nil
 }
 
-func (m *mockJobManager) Notify(id string, _ string) error {
+func (m *mockJobManager) Notify(id, _ string) error {
 	m.client.simulateDelay()
 	m.client.mu.RLock()
 	defer m.client.mu.RUnlock()
@@ -860,7 +860,7 @@ func (m *mockNodeManager) Get(name string) (*dao.Node, error) {
 	return node, nil
 }
 
-func (m *mockNodeManager) Drain(name string, reason string) error {
+func (m *mockNodeManager) Drain(name, reason string) error {
 	m.client.simulateDelay()
 	m.client.mu.Lock()
 	defer m.client.mu.Unlock()
@@ -895,7 +895,7 @@ func (m *mockNodeManager) Resume(name string) error {
 	return nil
 }
 
-func (m *mockNodeManager) SetState(name string, state string) error {
+func (m *mockNodeManager) SetState(name, state string) error {
 	m.client.simulateDelay()
 	m.client.mu.Lock()
 	defer m.client.mu.Unlock()

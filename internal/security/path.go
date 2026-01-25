@@ -145,7 +145,7 @@ func ValidateConfigPath(path, configDir string) (string, error) {
 
 // SafeOpenFile opens a file with path validation.
 // Use this as a wrapper around os.Open when you need path validation.
-func SafeOpenFile(path string, baseDir string) (*os.File, error) {
+func SafeOpenFile(path, baseDir string) (*os.File, error) {
 	validPath, err := ValidatePathWithinBase(path, baseDir)
 	if err != nil {
 		return nil, err

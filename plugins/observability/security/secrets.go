@@ -391,7 +391,7 @@ func (sm *SecretsManager) ListSecrets() []SecretReference {
 }
 
 // RotateSecret manually rotates a secret
-func (sm *SecretsManager) RotateSecret(name string, newValue string) error {
+func (sm *SecretsManager) RotateSecret(name, newValue string) error {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
