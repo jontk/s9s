@@ -279,7 +279,7 @@ func parsePort(hostPort string) int {
 
 		port := 22
 		if portStr != "" {
-			if p, err := net.LookupPort("tcp", portStr); err == nil {
+			if p, err := net.DefaultResolver.LookupPort(context.Background(), "tcp", portStr); err == nil {
 				port = p
 			}
 		}
@@ -359,7 +359,7 @@ func setupSSHContainer(_ *testing.T) (string, error) {
 	privateKeyPath := filepath.Join(keyDir, "test_key")
 	publicKeyPath := filepath.Join(keyDir, "test_key.pub")
 
-	cmd := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-f", privateKeyPath, "-N", "")
+	cmd := exec.CommandContext(context.Background(), "ssh-keygen", "-t", "rsa", "-b", "2048", "-f", privateKeyPath, "-N", "")
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to generate SSH key: %w", err)
 	}
@@ -393,13 +393,13 @@ CMD ["/usr/sbin/sshd", "-D"]
 	}
 
 	// Build Docker image
-	buildCmd := exec.Command("docker", "build", "-t", "ssh-test-server", keyDir)
+	buildCmd := exec.CommandContext(context.Background(), "docker", "build", "-t", "ssh-test-server", keyDir)
 	if err := buildCmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to build Docker image: %w", err)
 	}
 
 	// Run container
-	runCmd := exec.Command("docker", "run", "-d", "-p", "2222:22", "ssh-test-server")
+	runCmd := exec.CommandContext(context.Background(), "docker", "run", "-d", "-p", "2222:22", "ssh-test-server")
 	output, err := runCmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("failed to run Docker container: %w", err)
@@ -415,9 +415,9 @@ CMD ["/usr/sbin/sshd", "-D"]
 
 func cleanupSSHContainer(_ *testing.T, containerID string) {
 	// Stop and remove container
-	_ = exec.Command("docker", "stop", containerID).Run()
-	_ = exec.Command("docker", "rm", containerID).Run()
+	_ = exec.CommandContext(context.Background(), "docker", "stop", containerID).Run()
+	_ = exec.CommandContext(context.Background(), "docker", "rm", containerID).Run()
 
 	// Remove test image
-	_ = exec.Command("docker", "rmi", "ssh-test-server").Run()
+	_ = exec.CommandContext(context.Background(), "docker", "rmi", "ssh-test-server").Run()
 }

@@ -45,10 +45,11 @@ linters:
     # - containedctx # Prevent context.Context in struct fields - 22 pre-existing instances, requires architectural refactor
     # - revive        # Phase 7: Fixed 460+ violations (PR #29), ready to enable in future PR with proper exclude rules
 
+    # Phase 3: noctx - context.Context not passed to function (PR #31)
+    # All 7 integration test violations fixed by using context-aware versions
+    - noctx
+
   disable:
-    # Temporarily disabled - will be fixed in follow-up PRs
-    - noctx         # 7 issues - all in test/integration files where context is not required
-    # TODO(Phase3c): Re-enable noctx after fixing test file exclusion rule patterns
 
 linters-settings:
   errcheck:
