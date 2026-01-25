@@ -258,32 +258,36 @@ func (e *FilterExpression) Evaluate(data map[string]interface{}) bool {
 		return false
 	}
 
-	switch e.Operator {
+	return evaluateOperator(e.Operator, value, e.Value)
+}
+
+// evaluateOperator applies the appropriate comparison operator
+func evaluateOperator(operator FilterOperator, value, expected interface{}) bool {
+	switch operator {
 	case OpEquals:
-		return compareEqual(value, e.Value)
+		return compareEqual(value, expected)
 	case OpNotEquals:
-		return !compareEqual(value, e.Value)
+		return !compareEqual(value, expected)
 	case OpContains:
-		return contains(value, e.Value)
+		return contains(value, expected)
 	case OpNotContains:
-		return !contains(value, e.Value)
+		return !contains(value, expected)
 	case OpGreater:
-		return compareGreater(value, e.Value)
+		return compareGreater(value, expected)
 	case OpLess:
-		return compareLess(value, e.Value)
+		return compareLess(value, expected)
 	case OpGreaterEq:
-		return compareGreater(value, e.Value) || compareEqual(value, e.Value)
+		return compareGreater(value, expected) || compareEqual(value, expected)
 	case OpLessEq:
-		return compareLess(value, e.Value) || compareEqual(value, e.Value)
+		return compareLess(value, expected) || compareEqual(value, expected)
 	case OpRegex:
-		return matchRegex(value, e.Value)
+		return matchRegex(value, expected)
 	case OpIn:
-		return isIn(value, e.Value)
+		return isIn(value, expected)
 	case OpNotIn:
-		return !isIn(value, e.Value)
-	default:
-		return false
+		return !isIn(value, expected)
 	}
+	return false
 }
 
 // Helper functions for comparisons
