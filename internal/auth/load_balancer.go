@@ -105,10 +105,25 @@ func (a *AdvancedLoadBalancer) SelectEndpoint(endpoints []Endpoint) (*Endpoint, 
 		return nil, fmt.Errorf("no endpoints available")
 	}
 
-	// Update managed endpoints
+	// Update and get available candidates
 	a.updateManagedEndpoints(endpoints)
+	candidates, err := a.getAvailableCandidates()
+	if err != nil {
+		return nil, err
+	}
 
-	// Filter healthy endpoints
+	// Select endpoint by strategy
+	selected := a.selectByStrategy(candidates)
+	if selected == nil {
+		return nil, fmt.Errorf("failed to select endpoint")
+	}
+
+	a.logSelectedEndpoint(selected)
+	return &selected.Endpoint, nil
+}
+
+// getAvailableCandidates returns healthy endpoints or falls back to all endpoints
+func (a *AdvancedLoadBalancer) getAvailableCandidates() ([]*ManagedEndpoint, error) {
 	candidates := a.getHealthyEndpoints()
 	if len(candidates) == 0 {
 		debug.Logger.Printf("No healthy endpoints available, falling back to all endpoints")
@@ -119,33 +134,33 @@ func (a *AdvancedLoadBalancer) SelectEndpoint(endpoints []Endpoint) (*Endpoint, 
 		return nil, fmt.Errorf("no endpoints available after filtering")
 	}
 
-	// Select endpoint based on strategy
-	var selected *ManagedEndpoint
+	return candidates, nil
+}
+
+// selectByStrategy selects an endpoint using the configured strategy
+func (a *AdvancedLoadBalancer) selectByStrategy(candidates []*ManagedEndpoint) *ManagedEndpoint {
 	switch a.config.Strategy {
 	case "round-robin":
-		selected = a.selectRoundRobin(candidates)
+		return a.selectRoundRobin(candidates)
 	case "weighted-round-robin":
-		selected = a.selectWeightedRoundRobin(candidates)
+		return a.selectWeightedRoundRobin(candidates)
 	case "least-connections":
-		selected = a.selectLeastConnections(candidates)
+		return a.selectLeastConnections(candidates)
 	case "weighted-least-connections":
-		selected = a.selectWeightedLeastConnections(candidates)
+		return a.selectWeightedLeastConnections(candidates)
 	case "response-time":
-		selected = a.selectByResponseTime(candidates)
+		return a.selectByResponseTime(candidates)
 	case "random":
-		selected = a.selectRandom(candidates)
+		return a.selectRandom(candidates)
 	default:
-		selected = a.selectWeightedLeastConnections(candidates)
+		return a.selectWeightedLeastConnections(candidates)
 	}
+}
 
-	if selected == nil {
-		return nil, fmt.Errorf("failed to select endpoint")
-	}
-
+// logSelectedEndpoint logs the selected endpoint details
+func (a *AdvancedLoadBalancer) logSelectedEndpoint(selected *ManagedEndpoint) {
 	debug.Logger.Printf("Selected endpoint: %s (strategy: %s, weight: %d, connections: %d, response_time: %v)",
 		selected.URL, a.config.Strategy, selected.Weight, selected.activeConnections, selected.responseTime)
-
-	return &selected.Endpoint, nil
 }
 
 // updateManagedEndpoints synchronizes the managed endpoints with the provided list
