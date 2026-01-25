@@ -278,63 +278,81 @@ func (mst *MultiSelectTable) handleMultiSelectInput(event *tcell.EventKey) *tcel
 	selectAllState := mst.selectAllState
 	mst.mu.RUnlock()
 
+	// Handle multi-select mode shortcuts
 	if multiSelectMode {
-		switch event.Key() {
-		case tcell.KeyCtrlA:
-			// Select all
-			if selectAllState == 2 {
-				mst.ClearSelection()
-			} else {
-				mst.SelectAll()
-			}
+		if handled := mst.handleMultiSelectShortcuts(event, selectAllState); handled {
 			return nil
-
-		case tcell.KeyDelete, tcell.KeyBackspace2:
-			// Clear selection
-			mst.ClearSelection()
-			return nil
-
-		case tcell.KeyRune:
-			switch event.Rune() {
-			case ' ':
-				// Toggle current row
-				currentRow, _ := mst.GetSelection()
-				mst.ToggleRow(currentRow)
-				return nil
-			case 'a', 'A':
-				// Select all (alternative to Ctrl+A)
-				if selectAllState == 2 {
-					mst.ClearSelection()
-				} else {
-					mst.SelectAll()
-				}
-				return nil
-			case 'n', 'N':
-				// Clear selection (none)
-				mst.ClearSelection()
-				return nil
-			case 'i', 'I':
-				// Invert selection
-				mst.InvertSelection()
-				return nil
-			}
 		}
 	}
 
 	// Handle vim-style navigation
-	if event.Key() == tcell.KeyRune {
-		switch event.Rune() {
-		case 'j':
-			// Move down (like ArrowDown)
-			return mst.handleInput(tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone))
-		case 'k':
-			// Move up (like ArrowUp)
-			return mst.handleInput(tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone))
-		}
+	if handled := mst.handleVimNavigation(event); handled {
+		return nil
 	}
 
 	// Let the base table handle other input
 	return mst.handleInput(event)
+}
+
+// handleMultiSelectShortcuts processes multi-select mode keyboard shortcuts
+func (mst *MultiSelectTable) handleMultiSelectShortcuts(event *tcell.EventKey, selectAllState int) bool {
+	switch event.Key() {
+	case tcell.KeyCtrlA:
+		mst.toggleSelectAll(selectAllState)
+		return true
+	case tcell.KeyDelete, tcell.KeyBackspace2:
+		mst.ClearSelection()
+		return true
+	case tcell.KeyRune:
+		return mst.handleMultiSelectRune(event.Rune(), selectAllState)
+	}
+	return false
+}
+
+// handleMultiSelectRune processes character shortcuts for multi-select mode
+func (mst *MultiSelectTable) handleMultiSelectRune(r rune, selectAllState int) bool {
+	switch r {
+	case ' ':
+		currentRow, _ := mst.GetSelection()
+		mst.ToggleRow(currentRow)
+		return true
+	case 'a', 'A':
+		mst.toggleSelectAll(selectAllState)
+		return true
+	case 'n', 'N':
+		mst.ClearSelection()
+		return true
+	case 'i', 'I':
+		mst.InvertSelection()
+		return true
+	}
+	return false
+}
+
+// toggleSelectAll toggles between select all and clear all
+func (mst *MultiSelectTable) toggleSelectAll(selectAllState int) {
+	if selectAllState == 2 {
+		mst.ClearSelection()
+	} else {
+		mst.SelectAll()
+	}
+}
+
+// handleVimNavigation processes vim-style navigation keys
+func (mst *MultiSelectTable) handleVimNavigation(event *tcell.EventKey) bool {
+	if event.Key() != tcell.KeyRune {
+		return false
+	}
+
+	switch event.Rune() {
+	case 'j':
+		mst.handleInput(tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone))
+		return true
+	case 'k':
+		mst.handleInput(tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone))
+		return true
+	}
+	return false
 }
 
 // InvertSelection inverts the current selection
