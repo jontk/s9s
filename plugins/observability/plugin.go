@@ -513,40 +513,40 @@ func (p *ObservabilityPlugin) GetDataProviders() []plugin.DataProviderInfo {
 
 // Query performs a one-time data query
 func (p *ObservabilityPlugin) Query(ctx context.Context, providerID string, params map[string]interface{}) (interface{}, error) {
-	switch providerID {
-	case "prometheus-metrics", "alerts", "node-metrics", "job-metrics":
+	if p.isSubscriptionProvider(providerID) {
 		if p.components.SubscriptionMgr == nil {
 			return nil, fmt.Errorf("subscription manager not initialized")
 		}
 		return p.components.SubscriptionMgr.GetData(ctx, providerID, params)
+	}
 
-	case "historical-data":
-		return p.queryHistoricalData(params)
+	queryHandlers := map[string]func(map[string]interface{}) (interface{}, error){
+		"historical-data":      p.queryHistoricalData,
+		"trend-analysis":       p.queryTrendAnalysis,
+		"anomaly-detection":    p.queryAnomalyDetection,
+		"seasonal-analysis":    p.querySeasonalAnalysis,
+		"resource-efficiency":  p.queryResourceEfficiency,
+		"cluster-efficiency":   p.queryClusterEfficiency,
+		"plugin-metrics":       p.queryPluginMetrics,
+		"secrets-manager":      p.querySecretsManager,
+	}
 
-	case "trend-analysis":
-		return p.queryTrendAnalysis(params)
-
-	case "anomaly-detection":
-		return p.queryAnomalyDetection(params)
-
-	case "seasonal-analysis":
-		return p.querySeasonalAnalysis(params)
-
-	case "resource-efficiency":
-		return p.queryResourceEfficiency(params)
-
-	case "cluster-efficiency":
-		return p.queryClusterEfficiency(params)
-
-	case "plugin-metrics":
-		return p.queryPluginMetrics(params)
-
-	case "secrets-manager":
-		return p.querySecretsManager(params)
-
-	default:
+	handler, ok := queryHandlers[providerID]
+	if !ok {
 		return nil, fmt.Errorf("unknown data provider: %s", providerID)
 	}
+
+	return handler(params)
+}
+
+func (p *ObservabilityPlugin) isSubscriptionProvider(providerID string) bool {
+	subscriptionProviders := map[string]bool{
+		"prometheus-metrics": true,
+		"alerts":             true,
+		"node-metrics":       true,
+		"job-metrics":        true,
+	}
+	return subscriptionProviders[providerID]
 }
 
 // Subscribe allows other plugins to subscribe to data updates
