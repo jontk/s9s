@@ -1146,80 +1146,111 @@ func (v *ObservabilityView) renderNodeTable() {
 // renderJobTable updates the job metrics table
 func (v *ObservabilityView) renderJobTable() {
 	logging.Debug("observability-view", "renderJobTable: jobMetrics count=%d", len(v.jobMetrics))
-	// Clear existing rows (except header)
-	for i := v.jobTable.GetRowCount() - 1; i > 0; i-- {
-		v.jobTable.RemoveRow(i)
-	}
 
-	if len(v.jobMetrics) == 0 {
-		// Add empty row with debug message
-		v.jobTable.SetCell(1, 0, tview.NewTableCell("No jobs detected"))
-		v.jobTable.SetCell(1, 1, tview.NewTableCell("Check SLURM/cgroup"))
-		logging.Warn("observability-view", "No job metrics available")
+	v.clearJobTable()
+
+	if v.handleEmptyJobMetrics() {
 		return
 	}
 
-	row := 1
+	// Populate table with job metrics
 	runningJobs := 0
+	row := 1
 	for jobID, job := range v.jobMetrics {
 		logging.Debug("observability-view", "Processing job: %s, state: %s, CPU: %.1f%%",
 			jobID, job.State, job.Resources.CPU.Usage)
 
 		// Skip non-running jobs only if state is explicitly set
-		// If state is empty, assume the job is running (since we're getting metrics for it)
 		if job.State != "" && job.State != "RUNNING" && job.State != "R" {
 			continue
 		}
 		runningJobs++
 
-		metrics := &job.Resources
-
-		// Determine efficiency color
-		effColor := tcell.ColorGreen
-		if job.Efficiency.OverallEfficiency < 50 {
-			effColor = tcell.ColorYellow
-		}
-		if job.Efficiency.OverallEfficiency < 20 {
-			effColor = tcell.ColorRed
-		}
-
-		// Determine state color
-		stateColor := tcell.ColorGreen
-		if job.State == "PENDING" || job.State == "PD" {
-			stateColor = tcell.ColorYellow
-		}
-
-		v.jobTable.SetCell(row, 0, tview.NewTableCell(job.JobID))
-		v.jobTable.SetCell(row, 1, tview.NewTableCell(job.User))
-		v.jobTable.SetCell(row, 2, tview.NewTableCell(
-			fmt.Sprintf("%.1f%%", metrics.CPU.Usage)).
-			SetTextColor(getColor(models.GetColorForUsage(metrics.CPU.Usage))))
-		v.jobTable.SetCell(row, 3, tview.NewTableCell(
-			models.FormatValue(float64(metrics.Memory.Used), "bytes")))
-		// Use cgroup limits if SLURM allocation info is not available
-		cpuLimit := job.AllocatedCPUs
-		memLimit := job.AllocatedMem
-
-		// If SLURM info is not available (0), try to use cgroup limits
-		if cpuLimit == 0 && metrics.CPU.Limit > 0 {
-			cpuLimit = int(metrics.CPU.Limit)
-		}
-		if memLimit == 0 && metrics.Memory.Limit > 0 {
-			memLimit = metrics.Memory.Limit
-		}
-
-		v.jobTable.SetCell(row, 4, tview.NewTableCell(
-			fmt.Sprintf("%d", cpuLimit)))
-		v.jobTable.SetCell(row, 5, tview.NewTableCell(
-			models.FormatValue(float64(memLimit), "bytes")))
-		v.jobTable.SetCell(row, 6, tview.NewTableCell(
-			fmt.Sprintf("%.1f%%", job.Efficiency.OverallEfficiency)).SetTextColor(effColor))
-		v.jobTable.SetCell(row, 7, tview.NewTableCell(job.State).
-			SetTextColor(stateColor))
-
+		v.addJobRow(row, job)
 		row++
 	}
+
 	logging.Info("observability-view", "Total running jobs displayed: %d", runningJobs)
+}
+
+func (v *ObservabilityView) clearJobTable() {
+	// Clear existing rows (except header)
+	for i := v.jobTable.GetRowCount() - 1; i > 0; i-- {
+		v.jobTable.RemoveRow(i)
+	}
+}
+
+func (v *ObservabilityView) handleEmptyJobMetrics() bool {
+	if len(v.jobMetrics) == 0 {
+		// Add empty row with debug message
+		v.jobTable.SetCell(1, 0, tview.NewTableCell("No jobs detected"))
+		v.jobTable.SetCell(1, 1, tview.NewTableCell("Check SLURM/cgroup"))
+		logging.Warn("observability-view", "No job metrics available")
+		return true
+	}
+	return false
+}
+
+func (v *ObservabilityView) addJobRow(row int, job *models.JobMetrics) {
+	metrics := &job.Resources
+
+	// Determine colors for efficiency and state
+	effColor := v.getEfficiencyColor(job.Efficiency.OverallEfficiency)
+	stateColor := v.getStateColor(job.State)
+
+	// Get CPU and memory limits
+	cpuLimit, memLimit := v.getJobResourceLimits(job, metrics)
+
+	// NOTE: memLimit is uint64, but FormatValue expects float64
+	// The type assertion is safe here
+
+	// Set table cells for job row
+	v.jobTable.SetCell(row, 0, tview.NewTableCell(job.JobID))
+	v.jobTable.SetCell(row, 1, tview.NewTableCell(job.User))
+	v.jobTable.SetCell(row, 2, tview.NewTableCell(
+		fmt.Sprintf("%.1f%%", metrics.CPU.Usage)).
+		SetTextColor(getColor(models.GetColorForUsage(metrics.CPU.Usage))))
+	v.jobTable.SetCell(row, 3, tview.NewTableCell(
+		models.FormatValue(float64(metrics.Memory.Used), "bytes")))
+	v.jobTable.SetCell(row, 4, tview.NewTableCell(fmt.Sprintf("%d", cpuLimit)))
+	v.jobTable.SetCell(row, 5, tview.NewTableCell(
+		models.FormatValue(float64(memLimit), "bytes")))
+	v.jobTable.SetCell(row, 6, tview.NewTableCell(
+		fmt.Sprintf("%.1f%%", job.Efficiency.OverallEfficiency)).SetTextColor(effColor))
+	v.jobTable.SetCell(row, 7, tview.NewTableCell(job.State).SetTextColor(stateColor))
+}
+
+func (v *ObservabilityView) getEfficiencyColor(efficiency float64) tcell.Color {
+	switch {
+	case efficiency < 20:
+		return tcell.ColorRed
+	case efficiency < 50:
+		return tcell.ColorYellow
+	default:
+		return tcell.ColorGreen
+	}
+}
+
+func (v *ObservabilityView) getStateColor(state string) tcell.Color {
+	if state == "PENDING" || state == "PD" {
+		return tcell.ColorYellow
+	}
+	return tcell.ColorGreen
+}
+
+func (v *ObservabilityView) getJobResourceLimits(job *models.JobMetrics, metrics *models.ResourceMetrics) (int, uint64) {
+	cpuLimit := job.AllocatedCPUs
+	memLimit := job.AllocatedMem
+
+	// If SLURM info is not available (0), try to use cgroup limits
+	if cpuLimit == 0 && metrics.CPU.Limit > 0 {
+		cpuLimit = int(metrics.CPU.Limit)
+	}
+	if memLimit == 0 && metrics.Memory.Limit > 0 {
+		memLimit = metrics.Memory.Limit
+	}
+
+	return cpuLimit, memLimit
 }
 
 // renderAlerts updates the alerts panel
