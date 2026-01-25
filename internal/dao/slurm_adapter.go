@@ -621,64 +621,12 @@ func convertJob(job *slurm.Job) *Job {
 
 func convertNode(node *slurm.Node) *Node {
 	// Use available fields from the slurm-client, with fallbacks for missing fields
-
-	// Try to get allocated CPUs, fallback to 0 if not available
-	allocCPUs := 0
-	if node.CPUs > 0 {
-		// Estimate based on node state or provide reasonable default
-		switch node.State {
-		case "idle":
-			allocCPUs = 0
-		case "mixed", "allocated":
-			allocCPUs = node.CPUs / 2 // Estimate 50% utilization
-		case "down", "drain":
-			allocCPUs = 0
-		default:
-			allocCPUs = 0
-		}
-	}
-
-	// Estimate memory allocation (in MB)
-	allocMemory := int64(0)
-	if node.Memory > 0 {
-		memoryTotalMB := int64(node.Memory)
-		switch node.State {
-		case "mixed", "allocated":
-			allocMemory = memoryTotalMB / 2 // Estimate 50% utilization
-		default:
-			allocMemory = 0
-		}
-	}
-
-	// CPU load - provide reasonable defaults
-	cpuLoad := float64(0.0)
-	if allocCPUs > 0 && node.CPUs > 0 {
-		cpuLoad = float64(allocCPUs) / float64(node.CPUs) * 100.0
-	}
-
-	// Convert memory to MB if needed
 	memoryTotalMB := int64(node.Memory)
-
-	// Calculate idle CPUs (total - allocated)
-	idleCPUs := node.CPUs - allocCPUs
-	if idleCPUs < 0 {
-		idleCPUs = 0
-	}
-
-	// Calculate free memory (total - allocated)
-	freeMemory := memoryTotalMB - allocMemory
-	if freeMemory < 0 {
-		freeMemory = 0
-	}
-
-	// If FreeMemory not available, calculate from allocation
-	// This is less accurate as it doesn't reflect actual system usage
-	if freeMemory == 0 {
-		freeMemory = memoryTotalMB - allocMemory
-		if freeMemory < 0 {
-			freeMemory = 0
-		}
-	}
+	allocCPUs := estimateAllocatedCPUs(node)
+	allocMemory := estimateAllocatedMemory(node, memoryTotalMB)
+	idleCPUs := safeSubtract(node.CPUs, allocCPUs)
+	freeMemory := safeSubtract64(memoryTotalMB, allocMemory)
+	cpuLoad := calculateCPULoad(allocCPUs, node.CPUs)
 
 	debug.Logger.Printf("convertNode: %s state='%s' CPULoad=%.2f AllocCPUs=%d AllocMem=%dMB MemTotal=%dMB FreeMem=%dMB",
 		node.Name, node.State, cpuLoad, allocCPUs, allocMemory, memoryTotalMB, freeMemory)
@@ -699,6 +647,60 @@ func convertNode(node *slurm.Node) *Node {
 		ReasonTime:      node.LastBusy,
 		AllocatedJobs:   []string{}, // Would need to query jobs for this node
 	}
+}
+
+// estimateAllocatedCPUs estimates CPU allocation based on node state
+func estimateAllocatedCPUs(node *slurm.Node) int {
+	if node.CPUs <= 0 {
+		return 0
+	}
+
+	switch node.State {
+	case "mixed", "allocated":
+		return node.CPUs / 2 // Estimate 50% utilization
+	default:
+		return 0
+	}
+}
+
+// estimateAllocatedMemory estimates memory allocation based on node state
+func estimateAllocatedMemory(node *slurm.Node, totalMemory int64) int64 {
+	if totalMemory <= 0 {
+		return 0
+	}
+
+	switch node.State {
+	case "mixed", "allocated":
+		return totalMemory / 2 // Estimate 50% utilization
+	default:
+		return 0
+	}
+}
+
+// safeSubtract subtracts two integers and returns 0 if result is negative
+func safeSubtract(a, b int) int {
+	result := a - b
+	if result < 0 {
+		return 0
+	}
+	return result
+}
+
+// safeSubtract64 subtracts two int64 values and returns 0 if result is negative
+func safeSubtract64(a, b int64) int64 {
+	result := a - b
+	if result < 0 {
+		return 0
+	}
+	return result
+}
+
+// calculateCPULoad calculates CPU load as a percentage
+func calculateCPULoad(allocCPUs, totalCPUs int) float64 {
+	if allocCPUs <= 0 || totalCPUs <= 0 {
+		return 0.0
+	}
+	return float64(allocCPUs) / float64(totalCPUs) * 100.0
 }
 
 func convertPartition(partition *slurm.Partition) *Partition {
