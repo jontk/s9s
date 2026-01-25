@@ -159,10 +159,11 @@ linters:
 
     cyclop:
       # The maximal code complexity to report
-      # All non-test production code violations ELIMINATED (10 functions refactored)
-      # Current threshold: 30 allows test functions while enforcing production quality
+      # All violations eliminated through comprehensive Phase 5 refactoring
+      # Successfully using default threshold of 10 (down from 30)
+      # Keyboard handlers, config parsers, export functions all refactored
       # Default: 10
-      max-complexity: 30
+      max-complexity: 10
 
       # The maximal average package complexity
       # If it's higher than 0.0 (float) the check is enabled
