@@ -201,59 +201,64 @@ func (v *ViewAdapter) Init(ctx context.Context) error {
 
 // loadS9sConfig loads the observability plugin configuration from s9s config.yaml
 func loadS9sConfig() (map[string]interface{}, error) {
-	// Try to find the s9s config file
-	var configPath string
+	configPath := findS9sConfigPath()
 
-	// Check current directory first
-	if _, err := os.Stat("config.yaml"); err == nil {
-		configPath = "config.yaml"
-	} else {
-		// Check home directory
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("could not get home directory: %w", err)
-		}
-		configPath = filepath.Join(home, ".s9s", "config.yaml")
-	}
-
-	// Read the config file
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read config file %s: %w", configPath, err)
 	}
 
-	// Parse the YAML
 	var config map[string]interface{}
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("could not parse YAML: %w", err)
 	}
 
-	// Extract the observability plugin config
+	return extractObservabilityConfig(config)
+}
+
+func findS9sConfigPath() string {
+	if _, err := os.Stat("config.yaml"); err == nil {
+		return "config.yaml"
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return filepath.Join(".s9s", "config.yaml")
+	}
+	return filepath.Join(home, ".s9s", "config.yaml")
+}
+
+func extractObservabilityConfig(config map[string]interface{}) (map[string]interface{}, error) {
 	plugins, ok := config["plugins"].([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("no plugins section in config")
 	}
 
-	// Find the observability plugin
 	for _, p := range plugins {
-		plugin, ok := p.(map[string]interface{})
-		if !ok {
-			continue
+		pluginConfig := findObservabilityPlugin(p)
+		if pluginConfig != nil {
+			return pluginConfig, nil
 		}
-
-		name, ok := plugin["name"].(string)
-		if !ok || name != "observability" {
-			continue
-		}
-
-		// Return the plugin's config section
-		pluginConfig, ok := plugin["config"].(map[string]interface{})
-		if !ok {
-			return make(map[string]interface{}), nil
-		}
-
-		return pluginConfig, nil
 	}
 
 	return nil, fmt.Errorf("observability plugin not found in config")
+}
+
+func findObservabilityPlugin(p interface{}) map[string]interface{} {
+	plugin, ok := p.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	name, ok := plugin["name"].(string)
+	if !ok || name != "observability" {
+		return nil
+	}
+
+	pluginConfig, ok := plugin["config"].(map[string]interface{})
+	if !ok {
+		return make(map[string]interface{})
+	}
+
+	return pluginConfig
 }
