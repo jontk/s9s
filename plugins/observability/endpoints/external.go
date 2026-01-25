@@ -79,7 +79,7 @@ func NewExternalAPI(
 	var validator *security.RequestValidator
 	if config.Enabled && config.Validation.Enabled {
 		var err error
-		validator, err = security.NewRequestValidator(config.Validation)
+		validator, err = security.NewRequestValidator(&config.Validation)
 		if err != nil {
 			// Log error but don't fail initialization
 			validator = nil

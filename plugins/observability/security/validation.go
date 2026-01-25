@@ -57,7 +57,7 @@ func DefaultValidationConfig() ValidationConfig {
 }
 
 // NewRequestValidator creates a new request validator
-func NewRequestValidator(config ValidationConfig) (*RequestValidator, error) {
+func NewRequestValidator(config *ValidationConfig) (*RequestValidator, error) {
 	// Validate configuration
 	if config.MaxQueryLength <= 0 {
 		config.MaxQueryLength = 10000
@@ -80,7 +80,7 @@ func NewRequestValidator(config ValidationConfig) (*RequestValidator, error) {
 	}
 
 	return &RequestValidator{
-		config: config,
+		config: *config,
 	}, nil
 }
 
