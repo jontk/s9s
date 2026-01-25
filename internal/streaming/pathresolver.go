@@ -157,53 +157,78 @@ func (pr *PathResolver) parseNodeList(nodeList string) []string {
 
 // expandNodeRange expands SLURM node range notation like "node[1-3]" to ["node1", "node2", "node3"]
 func (pr *PathResolver) expandNodeRange(nodeRange string) []string {
-	// Simple implementation - in production, you'd want more robust parsing
-	// This handles basic cases like "node[1-3]"
-
-	var nodes []string
-
 	// Find bracket positions
 	startBracket := strings.Index(nodeRange, "[")
 	endBracket := strings.Index(nodeRange, "]")
 
-	if startBracket == -1 || endBracket == -1 || startBracket >= endBracket {
-		// Not a valid range, return as-is
+	if !pr.isValidNodeRangeBrackets(startBracket, endBracket) {
 		return []string{nodeRange}
 	}
 
 	prefix := nodeRange[:startBracket]
 	rangeStr := nodeRange[startBracket+1 : endBracket]
 
-	// Handle simple numeric ranges like "1-3"
-	if strings.Contains(rangeStr, "-") {
-		rangeParts := strings.Split(rangeStr, "-")
-		if len(rangeParts) == 2 {
-			// Parse start and end numbers
-			var start, end int
-			n1, err1 := fmt.Sscanf(rangeParts[0], "%d", &start)
-			n2, err2 := fmt.Sscanf(rangeParts[1], "%d", &end)
-			if n1 == 1 && err1 == nil && n2 == 1 && err2 == nil {
-				for i := start; i <= end; i++ {
-					nodes = append(nodes, fmt.Sprintf("%s%d", prefix, i))
-				}
-				return nodes
-			}
-		}
+	// Try different parsing strategies
+	if result := pr.parseNumericRange(prefix, rangeStr); len(result) > 0 {
+		return result
 	}
 
-	// Handle comma-separated values like "1,3,5"
-	if strings.Contains(rangeStr, ",") {
-		values := strings.Split(rangeStr, ",")
-		for _, value := range values {
-			value = strings.TrimSpace(value)
-			nodes = append(nodes, prefix+value)
-		}
-		return nodes
+	if result := pr.parseCommaSeparatedRange(prefix, rangeStr); len(result) > 0 {
+		return result
 	}
 
-	// Single value like "node[1]"
-	nodes = append(nodes, prefix+rangeStr)
+	return pr.parseSingleValueRange(prefix, rangeStr)
+}
+
+// isValidNodeRangeBrackets checks if bracket positions are valid
+func (pr *PathResolver) isValidNodeRangeBrackets(startBracket, endBracket int) bool {
+	return startBracket != -1 && endBracket != -1 && startBracket < endBracket
+}
+
+// parseNumericRange handles numeric ranges like "1-3"
+func (pr *PathResolver) parseNumericRange(prefix, rangeStr string) []string {
+	if !strings.Contains(rangeStr, "-") {
+		return nil
+	}
+
+	rangeParts := strings.Split(rangeStr, "-")
+	if len(rangeParts) != 2 {
+		return nil
+	}
+
+	var start, end int
+	n1, err1 := fmt.Sscanf(rangeParts[0], "%d", &start)
+	n2, err2 := fmt.Sscanf(rangeParts[1], "%d", &end)
+
+	if n1 != 1 || err1 != nil || n2 != 1 || err2 != nil {
+		return nil
+	}
+
+	var nodes []string
+	for i := start; i <= end; i++ {
+		nodes = append(nodes, fmt.Sprintf("%s%d", prefix, i))
+	}
 	return nodes
+}
+
+// parseCommaSeparatedRange handles comma-separated values like "1,3,5"
+func (pr *PathResolver) parseCommaSeparatedRange(prefix, rangeStr string) []string {
+	if !strings.Contains(rangeStr, ",") {
+		return nil
+	}
+
+	values := strings.Split(rangeStr, ",")
+	nodes := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		nodes = append(nodes, prefix+value)
+	}
+	return nodes
+}
+
+// parseSingleValueRange handles single values like "node[1]"
+func (pr *PathResolver) parseSingleValueRange(prefix, rangeStr string) []string {
+	return []string{prefix + rangeStr}
 }
 
 // ValidateOutputPath checks if an output path is accessible
