@@ -93,59 +93,51 @@ func (pv *PerformanceView) Init(ctx context.Context) error {
 
 // handleInput processes keyboard input for the performance view
 func (pv *PerformanceView) handleInput(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyF1:
-		pv.showHelp()
-		return nil
-	case tcell.KeyF5:
-		pv.refresh()
-		return nil
-	case tcell.KeyCtrlS:
-		pv.toggleMonitoring()
-		return nil
-	case tcell.KeyCtrlR:
-		pv.toggleAutoRefresh()
-		return nil
-	case tcell.KeyCtrlP:
-		pv.showProfilerReport()
-		return nil
-	case tcell.KeyCtrlO:
-		pv.showOptimizerSettings()
-		return nil
-	case tcell.KeyCtrlE:
-		pv.exportMetrics()
+	if handler, ok := pv.keyHandlers()[event.Key()]; ok {
+		handler()
 		return nil
 	}
 
-	switch event.Rune() {
-	case 's', 'S':
-		pv.toggleMonitoring()
-		return nil
-	case 'r', 'R':
-		pv.toggleAutoRefresh()
-		return nil
-	case 'p', 'P':
-		pv.showProfilerReport()
-		return nil
-	case 'o', 'O':
-		pv.showOptimizerSettings()
-		return nil
-	case 'e', 'E':
-		pv.exportMetrics()
-		return nil
-	case 'h', 'H':
-		pv.showHelp()
-		return nil
-	case '+':
-		pv.increaseRefreshRate()
-		return nil
-	case '-':
-		pv.decreaseRefreshRate()
+	if handler, ok := pv.runeHandlers()[event.Rune()]; ok {
+		handler()
 		return nil
 	}
 
 	// Pass through to dashboard
 	return event
+}
+
+// keyHandlers returns a map of function key handlers
+func (pv *PerformanceView) keyHandlers() map[tcell.Key]func() {
+	return map[tcell.Key]func(){
+		tcell.KeyF1:    pv.showHelp,
+		tcell.KeyF5:    pv.refresh,
+		tcell.KeyCtrlS: pv.toggleMonitoring,
+		tcell.KeyCtrlR: pv.toggleAutoRefresh,
+		tcell.KeyCtrlP: pv.showProfilerReport,
+		tcell.KeyCtrlO: pv.showOptimizerSettings,
+		tcell.KeyCtrlE: pv.exportMetrics,
+	}
+}
+
+// runeHandlers returns a map of rune handlers
+func (pv *PerformanceView) runeHandlers() map[rune]func() {
+	return map[rune]func(){
+		's': pv.toggleMonitoring,
+		'S': pv.toggleMonitoring,
+		'r': pv.toggleAutoRefresh,
+		'R': pv.toggleAutoRefresh,
+		'p': pv.showProfilerReport,
+		'P': pv.showProfilerReport,
+		'o': pv.showOptimizerSettings,
+		'O': pv.showOptimizerSettings,
+		'e': pv.exportMetrics,
+		'E': pv.exportMetrics,
+		'h': pv.showHelp,
+		'H': pv.showHelp,
+		'+': pv.increaseRefreshRate,
+		'-': pv.decreaseRefreshRate,
+	}
 }
 
 // toggleMonitoring toggles performance monitoring on/off

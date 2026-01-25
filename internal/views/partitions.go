@@ -1000,7 +1000,31 @@ func (v *PartitionsView) formatWaitTimeAnalytics() string {
 		return analytics.String()
 	}
 
-	// Calculate cluster-wide statistics
+	totalPending, totalRunning, allWaitTimes, longestWait := v.calculateClusterStats()
+
+	// Cluster summary
+	v.writeClusterSummary(&analytics, totalPending, totalRunning, longestWait, allWaitTimes)
+
+	// Per-partition breakdown
+	analytics.WriteString("\n[teal]Per-Partition Breakdown:[white]\n")
+	analytics.WriteString("[yellow]Partition          Pending  Running  Avg Wait    Max Wait     Status[white]\n")
+	analytics.WriteString("─────────────────────────────────────────────────────────────────────\n")
+
+	for _, partition := range v.partitions {
+		info := v.queueInfo[partition.Name]
+		if info == nil {
+			continue
+		}
+		analytics.WriteString(v.formatPartitionRow(partition.Name, info))
+	}
+
+	analytics.WriteString("\n[gray]Last updated: " + time.Now().Format("15:04:05") + "[white]")
+
+	return analytics.String()
+}
+
+// calculateClusterStats calculates cluster-wide queue statistics
+func (v *PartitionsView) calculateClusterStats() (int, int, []time.Duration, time.Duration) {
 	var totalPending, totalRunning int
 	var allWaitTimes []time.Duration
 	var longestWait time.Duration
@@ -1015,12 +1039,15 @@ func (v *PartitionsView) formatWaitTimeAnalytics() string {
 			longestWait = info.LongestWait
 		}
 	}
+	return totalPending, totalRunning, allWaitTimes, longestWait
+}
 
-	// Cluster summary
-	analytics.WriteString("[teal]Cluster Summary:[white]\n")
-	analytics.WriteString(fmt.Sprintf("[yellow]  Total Pending Jobs:[white] %d\n", totalPending))
-	analytics.WriteString(fmt.Sprintf("[yellow]  Total Running Jobs:[white] %d\n", totalRunning))
-	analytics.WriteString(fmt.Sprintf("[yellow]  Cluster-wide Longest Wait:[white] %s\n", FormatTimeDuration(longestWait)))
+// writeClusterSummary writes cluster summary to the analytics output
+func (v *PartitionsView) writeClusterSummary(w *strings.Builder, totalPending, totalRunning int, longestWait time.Duration, allWaitTimes []time.Duration) {
+	w.WriteString("[teal]Cluster Summary:[white]\n")
+	w.WriteString(fmt.Sprintf("[yellow]  Total Pending Jobs:[white] %d\n", totalPending))
+	w.WriteString(fmt.Sprintf("[yellow]  Total Running Jobs:[white] %d\n", totalRunning))
+	w.WriteString(fmt.Sprintf("[yellow]  Cluster-wide Longest Wait:[white] %s\n", FormatTimeDuration(longestWait)))
 
 	if len(allWaitTimes) > 0 {
 		var totalWait time.Duration
@@ -1028,64 +1055,55 @@ func (v *PartitionsView) formatWaitTimeAnalytics() string {
 			totalWait += wait
 		}
 		avgClusterWait := totalWait / time.Duration(len(allWaitTimes))
-		analytics.WriteString(fmt.Sprintf("[yellow]  Average Wait Across Partitions:[white] %s\n", FormatTimeDuration(avgClusterWait)))
+		w.WriteString(fmt.Sprintf("[yellow]  Average Wait Across Partitions:[white] %s\n", FormatTimeDuration(avgClusterWait)))
+	}
+}
+
+// formatPartitionRow formats a single partition row for analytics output
+func (v *PartitionsView) formatPartitionRow(partitionName string, info *dao.QueueInfo) string {
+	name := partitionName
+	if len(name) > 18 {
+		name = name[:15] + "..."
+	}
+	name = fmt.Sprintf("%-18s", name)
+
+	pending := fmt.Sprintf("%7d", info.PendingJobs)
+	running := fmt.Sprintf("%7d", info.RunningJobs)
+
+	avgWait := v.formatDurationField(info.AverageWait, 10)
+	maxWait := v.formatDurationField(info.LongestWait, 10)
+
+	statusColor, status := v.assessPartitionStatus(info)
+
+	return fmt.Sprintf("%s %s %s %s %s [%s]%s[white]\n",
+		name, pending, running, avgWait, maxWait, statusColor, status)
+}
+
+// formatDurationField formats a duration field with default value
+func (v *PartitionsView) formatDurationField(dur time.Duration, width int) string {
+	if dur > 0 {
+		return fmt.Sprintf("%*s", width, FormatTimeDuration(dur))
+	}
+	return fmt.Sprintf("%*s", width, "-")
+}
+
+// assessPartitionStatus assesses the status of a partition based on queue information
+func (v *PartitionsView) assessPartitionStatus(info *dao.QueueInfo) (string, string) {
+	statusColor := "green"
+	status := "OK"
+
+	if info.LongestWait.Hours() > 24 {
+		status = "CRITICAL"
+		statusColor = "red"
+	} else if info.LongestWait.Hours() > 6 {
+		status = "WARNING"
+		statusColor = "yellow"
+	} else if info.PendingJobs > info.RunningJobs*2 {
+		status = "BACKLOG"
+		statusColor = "orange"
 	}
 
-	// Per-partition breakdown
-	analytics.WriteString("\n[teal]Per-Partition Breakdown:[white]\n")
-	analytics.WriteString("[yellow]Partition          Pending  Running  Avg Wait    Max Wait     Status[white]\n")
-	analytics.WriteString("─────────────────────────────────────────────────────────────────────\n")
-
-	for _, partition := range v.partitions {
-		info := v.queueInfo[partition.Name]
-		if info == nil {
-			continue
-		}
-
-		name := partition.Name
-		if len(name) > 18 {
-			name = name[:15] + "..."
-		}
-		name = fmt.Sprintf("%-18s", name)
-
-		pending := fmt.Sprintf("%7d", info.PendingJobs)
-		running := fmt.Sprintf("%7d", info.RunningJobs)
-
-		var avgWait string
-		if info.AverageWait > 0 {
-			avgWait = fmt.Sprintf("%10s", FormatTimeDuration(info.AverageWait))
-		} else {
-			avgWait = fmt.Sprintf("%10s", "-")
-		}
-		var maxWait string
-		if info.LongestWait > 0 {
-			maxWait = fmt.Sprintf("%10s", FormatTimeDuration(info.LongestWait))
-		} else {
-			maxWait = fmt.Sprintf("%10s", "-")
-		}
-
-		// Status assessment
-		status := "OK"
-		statusColor := "green"
-		switch {
-		case info.LongestWait.Hours() > 24:
-			status = "CRITICAL"
-			statusColor = "red"
-		case info.LongestWait.Hours() > 6:
-			status = "WARNING"
-			statusColor = "yellow"
-		case info.PendingJobs > info.RunningJobs*2:
-			status = "BACKLOG"
-			statusColor = "orange"
-		}
-
-		analytics.WriteString(fmt.Sprintf("%s %s %s %s %s [%s]%s[white]\n",
-			name, pending, running, avgWait, maxWait, statusColor, status))
-	}
-
-	analytics.WriteString("\n[gray]Last updated: " + time.Now().Format("15:04:05") + "[white]")
-
-	return analytics.String()
+	return statusColor, status
 }
 
 // showAdvancedFilter shows the advanced filter bar

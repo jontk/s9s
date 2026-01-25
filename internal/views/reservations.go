@@ -219,20 +219,7 @@ func (v *ReservationsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		v.showGlobalSearch()
 		return nil
 	case tcell.KeyRune:
-		switch event.Rune() {
-		case 'R':
-			go func() { _ = v.Refresh() }()
-			return nil
-		case '/':
-			v.app.SetFocus(v.filterInput)
-			return nil
-		case 'a', 'A':
-			v.toggleActiveFilter()
-			return nil
-		case 'f', 'F':
-			v.toggleFutureFilter()
-			return nil
-		}
+		return v.handleRuneKey(event)
 	case tcell.KeyEnter:
 		v.showReservationDetails()
 		return nil
@@ -243,6 +230,25 @@ func (v *ReservationsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		}
 	}
 
+	return event
+}
+
+// handleRuneKey handles rune key presses
+func (v *ReservationsView) handleRuneKey(event *tcell.EventKey) *tcell.EventKey {
+	switch event.Rune() {
+	case 'R':
+		go func() { _ = v.Refresh() }()
+		return nil
+	case '/':
+		v.app.SetFocus(v.filterInput)
+		return nil
+	case 'a', 'A':
+		v.toggleActiveFilter()
+		return nil
+	case 'f', 'F':
+		v.toggleFutureFilter()
+		return nil
+	}
 	return event
 }
 
