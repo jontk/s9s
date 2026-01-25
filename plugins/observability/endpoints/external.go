@@ -69,7 +69,7 @@ func NewExternalAPI(
 	historicalCollector *historical.HistoricalDataCollector,
 	historicalAnalyzer *historical.HistoricalAnalyzer,
 	efficiencyAnalyzer *analysis.ResourceEfficiencyAnalyzer,
-	config Config,
+	config *Config,
 ) *ExternalAPI {
 	var rateLimiter *security.RateLimiter
 	if config.Enabled && (config.RateLimit.RequestsPerMinute > 0 || config.RateLimit.EnableGlobalLimit) {

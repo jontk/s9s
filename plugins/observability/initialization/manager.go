@@ -326,7 +326,7 @@ func (m *Manager) initExternalAPI(components *Components) error {
 		components.HistoricalCollector,
 		components.HistoricalAnalyzer,
 		components.EfficiencyAnalyzer,
-		apiConfig,
+		&apiConfig,
 	)
 	components.ExternalAPI = externalAPI
 
