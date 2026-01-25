@@ -608,11 +608,11 @@ func (e *Engine) loadRules() error {
 }
 
 // AddRule adds a new alert rule
-func (e *Engine) AddRule(rule Rule) {
+func (e *Engine) AddRule(rule *Rule) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	e.rules = append(e.rules, rule)
+	e.rules = append(e.rules, *rule)
 }
 
 // RemoveRule removes an alert rule by name
