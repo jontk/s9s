@@ -286,63 +286,76 @@ func (pe *PerformanceExporter) exportCSV(data PerformanceReportData, outputPath 
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
-	// Write metadata
-	if err := writer.Write([]string{"Report Type", "Performance Report"}); err != nil {
+	// Write sections in order
+	if err := pe.writeCSVMetadata(writer, data); err != nil {
 		return err
 	}
-	if err := writer.Write([]string{"Generated", data.GeneratedAt.Format("2006-01-02 15:04:05")}); err != nil {
+	if err := pe.writeCSVSystemMetrics(writer, data); err != nil {
 		return err
 	}
-	if err := writer.Write([]string{"Period", data.ReportPeriod}); err != nil {
-		return err
-	}
-	if err := writer.Write([]string{}); err != nil { // Empty line
+	if err := pe.writeCSVOperationStats(writer, data); err != nil {
 		return err
 	}
 
-	// System Metrics
-	if err := writer.Write([]string{"System Metrics"}); err != nil {
-		return err
-	}
-	if err := writer.Write([]string{"Metric", "Value"}); err != nil {
-		return err
-	}
-	if err := writer.Write([]string{"CPU Usage", fmt.Sprintf("%.2f%%", data.SystemMetrics.CPUUsage)}); err != nil {
-		return err
-	}
-	if err := writer.Write([]string{"Memory Usage", fmt.Sprintf("%.2f%%", data.SystemMetrics.MemoryUsage)}); err != nil {
-		return err
-	}
-	if err := writer.Write([]string{"Memory Used", formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryUsed))}); err != nil {
-		return err
-	}
-	if err := writer.Write([]string{"Memory Total", formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryTotal))}); err != nil {
-		return err
-	}
-	if err := writer.Write([]string{"Goroutines", fmt.Sprintf("%d", data.SystemMetrics.GoroutineCount)}); err != nil {
-		return err
-	}
-	if err := writer.Write([]string{"Response Time", data.SystemMetrics.ResponseTime.String()}); err != nil {
-		return err
-	}
-	if err := writer.Write([]string{}); err != nil { // Empty line
-		return err
+	return nil
+}
+
+// writeCSVMetadata writes metadata section to CSV
+func (pe *PerformanceExporter) writeCSVMetadata(writer *csv.Writer, data PerformanceReportData) error {
+	rows := [][]string{
+		{"Report Type", "Performance Report"},
+		{"Generated", data.GeneratedAt.Format("2006-01-02 15:04:05")},
+		{"Period", data.ReportPeriod},
+		{}, // Empty line
 	}
 
-	// Operation Statistics
+	for _, row := range rows {
+		if err := writer.Write(row); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// writeCSVSystemMetrics writes system metrics section to CSV
+func (pe *PerformanceExporter) writeCSVSystemMetrics(writer *csv.Writer, data PerformanceReportData) error {
+	rows := [][]string{
+		{"System Metrics"},
+		{"Metric", "Value"},
+		{"CPU Usage", fmt.Sprintf("%.2f%%", data.SystemMetrics.CPUUsage)},
+		{"Memory Usage", fmt.Sprintf("%.2f%%", data.SystemMetrics.MemoryUsage)},
+		{"Memory Used", formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryUsed))},
+		{"Memory Total", formatBytes(mathutil.Uint64ToInt64(data.SystemMetrics.MemoryTotal))},
+		{"Goroutines", fmt.Sprintf("%d", data.SystemMetrics.GoroutineCount)},
+		{"Response Time", data.SystemMetrics.ResponseTime.String()},
+		{}, // Empty line
+	}
+
+	for _, row := range rows {
+		if err := writer.Write(row); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// writeCSVOperationStats writes operation statistics section to CSV
+func (pe *PerformanceExporter) writeCSVOperationStats(writer *csv.Writer, data PerformanceReportData) error {
 	if err := writer.Write([]string{"Operation Statistics"}); err != nil {
 		return err
 	}
 	if err := writer.Write([]string{"Operation", "Count", "Average Time", "Total Time"}); err != nil {
 		return err
 	}
+
 	for _, op := range data.OperationStats {
-		if err := writer.Write([]string{
+		row := []string{
 			op.Name,
 			fmt.Sprintf("%d", op.Count),
 			op.AverageTime.String(),
 			op.TotalTime.String(),
-		}); err != nil {
+		}
+		if err := writer.Write(row); err != nil {
 			return err
 		}
 	}
