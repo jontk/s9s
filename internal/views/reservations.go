@@ -211,45 +211,45 @@ func (v *ReservationsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	switch event.Key() {
-	case tcell.KeyF3:
-		v.showAdvancedFilter()
+	if handler, ok := v.reservationsKeyHandlers()[event.Key()]; ok {
+		handler()
 		return nil
-	case tcell.KeyCtrlF:
-		v.showGlobalSearch()
-		return nil
-	case tcell.KeyRune:
-		return v.handleRuneKey(event)
-	case tcell.KeyEnter:
-		v.showReservationDetails()
-		return nil
-	case tcell.KeyEsc:
-		if v.filterInput.HasFocus() {
-			v.app.SetFocus(v.table.Table)
+	}
+
+	if event.Key() == tcell.KeyRune {
+		if handler, ok := v.reservationsRuneHandlers()[event.Rune()]; ok {
+			handler()
 			return nil
 		}
+	}
+
+	if event.Key() == tcell.KeyEsc && v.filterInput.HasFocus() {
+		v.app.SetFocus(v.table.Table)
+		return nil
 	}
 
 	return event
 }
 
-// handleRuneKey handles rune key presses
-func (v *ReservationsView) handleRuneKey(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Rune() {
-	case 'R':
-		go func() { _ = v.Refresh() }()
-		return nil
-	case '/':
-		v.app.SetFocus(v.filterInput)
-		return nil
-	case 'a', 'A':
-		v.toggleActiveFilter()
-		return nil
-	case 'f', 'F':
-		v.toggleFutureFilter()
-		return nil
+// reservationsKeyHandlers returns a map of function key handlers
+func (v *ReservationsView) reservationsKeyHandlers() map[tcell.Key]func() {
+	return map[tcell.Key]func(){
+		tcell.KeyF3:    v.showAdvancedFilter,
+		tcell.KeyCtrlF: v.showGlobalSearch,
+		tcell.KeyEnter: v.showReservationDetails,
 	}
-	return event
+}
+
+// reservationsRuneHandlers returns a map of rune handlers
+func (v *ReservationsView) reservationsRuneHandlers() map[rune]func() {
+	return map[rune]func(){
+		'R': func() { go func() { _ = v.Refresh() }() },
+		'/': func() { v.app.SetFocus(v.filterInput) },
+		'a': v.toggleActiveFilter,
+		'A': v.toggleActiveFilter,
+		'f': v.toggleFutureFilter,
+		'F': v.toggleFutureFilter,
+	}
 }
 
 // OnFocus handles focus events

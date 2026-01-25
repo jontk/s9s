@@ -143,55 +143,11 @@ func (v *StreamingPreferencesView) buildUI() {
 // savePreferences saves the current form values
 func (v *StreamingPreferencesView) savePreferences() {
 	err := v.prefsManager.UpdatePreferences(func(prefs *preferences.StreamingPreferences) {
-		// General settings
-		prefs.AutoStartForRunningJobs = v.form.GetFormItemByLabel("Auto-start streaming for running jobs").(*tview.Checkbox).IsChecked()
-		prefs.DefaultAutoScroll = v.form.GetFormItemByLabel("Default auto-scroll").(*tview.Checkbox).IsChecked()
-		prefs.ShowTimestamps = v.form.GetFormItemByLabel("Show timestamps").(*tview.Checkbox).IsChecked()
-
-		_, prefs.ExportFormat = v.form.GetFormItemByLabel("Export format").(*tview.DropDown).GetCurrentOption()
-
-		// Performance settings
-		if val, err := strconv.Atoi(v.form.GetFormItemByLabel("Max concurrent streams").(*tview.InputField).GetText()); err == nil {
-			prefs.MaxConcurrentStreams = val
-		}
-		if val, err := strconv.Atoi(v.form.GetFormItemByLabel("Buffer size (lines)").(*tview.InputField).GetText()); err == nil {
-			prefs.BufferSizeLines = val
-		}
-		if val, err := strconv.Atoi(v.form.GetFormItemByLabel("Poll interval (seconds)").(*tview.InputField).GetText()); err == nil {
-			prefs.PollIntervalSeconds = val
-		}
-		if val, err := strconv.Atoi(v.form.GetFormItemByLabel("Max memory (MB)").(*tview.InputField).GetText()); err == nil {
-			prefs.MaxMemoryMB = val
-		}
-		if val, err := strconv.Atoi(v.form.GetFormItemByLabel("File check interval (ms)").(*tview.InputField).GetText()); err == nil {
-			prefs.FileCheckIntervalMs = val
-		}
-
-		// Remote streaming settings
-		prefs.EnableRemoteStreaming = v.form.GetFormItemByLabel("Enable remote streaming").(*tview.Checkbox).IsChecked()
-		if val, err := strconv.Atoi(v.form.GetFormItemByLabel("SSH timeout (seconds)").(*tview.InputField).GetText()); err == nil {
-			prefs.SSHTimeout = val
-		}
-		if val, err := strconv.Atoi(v.form.GetFormItemByLabel("Remote buffer size").(*tview.InputField).GetText()); err == nil {
-			prefs.RemoteBufferSize = val
-		}
-
-		// Display settings
-		_, prefs.MultiStreamGridSize = v.form.GetFormItemByLabel("Multi-stream grid size").(*tview.DropDown).GetCurrentOption()
-		if val, err := strconv.Atoi(v.form.GetFormItemByLabel("Stream panel height").(*tview.InputField).GetText()); err == nil {
-			prefs.StreamPanelHeight = val
-		}
-		prefs.ShowBufferStats = v.form.GetFormItemByLabel("Show buffer statistics").(*tview.Checkbox).IsChecked()
-
-		// Advanced settings
-		prefs.EnableCompression = v.form.GetFormItemByLabel("Enable compression").(*tview.Checkbox).IsChecked()
-		if val, err := strconv.Atoi(v.form.GetFormItemByLabel("Stream history days").(*tview.InputField).GetText()); err == nil {
-			prefs.StreamHistoryDays = val
-		}
-		prefs.AutoCleanupInactive = v.form.GetFormItemByLabel("Auto-cleanup inactive streams").(*tview.Checkbox).IsChecked()
-		if val, err := strconv.Atoi(v.form.GetFormItemByLabel("Inactive timeout (minutes)").(*tview.InputField).GetText()); err == nil {
-			prefs.InactiveTimeoutMinutes = val
-		}
+		v.updateGeneralSettings(prefs)
+		v.updatePerformanceSettings(prefs)
+		v.updateRemoteSettings(prefs)
+		v.updateDisplaySettings(prefs)
+		v.updateAdvancedSettings(prefs)
 	})
 
 	if err != nil {
@@ -213,6 +169,58 @@ func (v *StreamingPreferencesView) savePreferences() {
 			v.close()
 		})
 	}()
+}
+
+// updateGeneralSettings updates general preference settings
+func (v *StreamingPreferencesView) updateGeneralSettings(prefs *preferences.StreamingPreferences) {
+	prefs.AutoStartForRunningJobs = v.getCheckboxValue("Auto-start streaming for running jobs")
+	prefs.DefaultAutoScroll = v.getCheckboxValue("Default auto-scroll")
+	prefs.ShowTimestamps = v.getCheckboxValue("Show timestamps")
+	_, prefs.ExportFormat = v.form.GetFormItemByLabel("Export format").(*tview.DropDown).GetCurrentOption()
+}
+
+// updatePerformanceSettings updates performance preference settings
+func (v *StreamingPreferencesView) updatePerformanceSettings(prefs *preferences.StreamingPreferences) {
+	prefs.MaxConcurrentStreams = v.getIntField("Max concurrent streams")
+	prefs.BufferSizeLines = v.getIntField("Buffer size (lines)")
+	prefs.PollIntervalSeconds = v.getIntField("Poll interval (seconds)")
+	prefs.MaxMemoryMB = v.getIntField("Max memory (MB)")
+	prefs.FileCheckIntervalMs = v.getIntField("File check interval (ms)")
+}
+
+// updateRemoteSettings updates remote streaming preference settings
+func (v *StreamingPreferencesView) updateRemoteSettings(prefs *preferences.StreamingPreferences) {
+	prefs.EnableRemoteStreaming = v.getCheckboxValue("Enable remote streaming")
+	prefs.SSHTimeout = v.getIntField("SSH timeout (seconds)")
+	prefs.RemoteBufferSize = v.getIntField("Remote buffer size")
+}
+
+// updateDisplaySettings updates display preference settings
+func (v *StreamingPreferencesView) updateDisplaySettings(prefs *preferences.StreamingPreferences) {
+	_, prefs.MultiStreamGridSize = v.form.GetFormItemByLabel("Multi-stream grid size").(*tview.DropDown).GetCurrentOption()
+	prefs.StreamPanelHeight = v.getIntField("Stream panel height")
+	prefs.ShowBufferStats = v.getCheckboxValue("Show buffer statistics")
+}
+
+// updateAdvancedSettings updates advanced preference settings
+func (v *StreamingPreferencesView) updateAdvancedSettings(prefs *preferences.StreamingPreferences) {
+	prefs.EnableCompression = v.getCheckboxValue("Enable compression")
+	prefs.StreamHistoryDays = v.getIntField("Stream history days")
+	prefs.AutoCleanupInactive = v.getCheckboxValue("Auto-cleanup inactive streams")
+	prefs.InactiveTimeoutMinutes = v.getIntField("Inactive timeout (minutes)")
+}
+
+// getIntField retrieves an integer field value from the form, returning 0 on error
+func (v *StreamingPreferencesView) getIntField(label string) int {
+	if val, err := strconv.Atoi(v.form.GetFormItemByLabel(label).(*tview.InputField).GetText()); err == nil {
+		return val
+	}
+	return 0
+}
+
+// getCheckboxValue retrieves a checkbox value from the form
+func (v *StreamingPreferencesView) getCheckboxValue(label string) bool {
+	return v.form.GetFormItemByLabel(label).(*tview.Checkbox).IsChecked()
 }
 
 // resetToDefaults resets all preferences to default values

@@ -217,27 +217,8 @@ func (v *SSHTerminalView) setupEventHandlers() {
 			v.connectToSelectedNode()
 			return nil
 		case tcell.KeyRune:
-			switch event.Rune() {
-			case 'c', 'C':
-				v.createNewConnection()
-				return nil
-			case 'i', 'I':
-				v.showNodeInfo()
-				return nil
-			case 't', 'T':
-				v.openTerminalSession()
-				return nil
-			case 's', 'S':
-				v.showSystemInfo()
-				return nil
-			case 'm', 'M':
-				v.monitorSession()
-				return nil
-			case 'x', 'X':
-				v.closeSelectedSession()
-				return nil
-			case 'r', 'R':
-				v.refreshSessions()
+			if handler, ok := v.terminalRuneHandlers()[event.Rune()]; ok {
+				handler()
 				return nil
 			}
 		}
@@ -248,6 +229,26 @@ func (v *SSHTerminalView) setupEventHandlers() {
 	v.sessionList.SetSelectedFunc(func(_ int, _, _ string, _ rune) {
 		v.connectToSelectedNode()
 	})
+}
+
+// terminalRuneHandlers returns a map of rune handlers
+func (v *SSHTerminalView) terminalRuneHandlers() map[rune]func() {
+	return map[rune]func(){
+		'c': v.createNewConnection,
+		'C': v.createNewConnection,
+		'i': v.showNodeInfo,
+		'I': v.showNodeInfo,
+		't': v.openTerminalSession,
+		'T': v.openTerminalSession,
+		's': v.showSystemInfo,
+		'S': v.showSystemInfo,
+		'm': v.monitorSession,
+		'M': v.monitorSession,
+		'x': v.closeSelectedSession,
+		'X': v.closeSelectedSession,
+		'r': v.refreshSessions,
+		'R': v.refreshSessions,
+	}
 }
 
 // connectToSelectedNode connects to the currently selected node
