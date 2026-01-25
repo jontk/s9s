@@ -452,51 +452,69 @@ func (av *AlertsView) SetKeyHandler() {
 	av.flex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyRune:
-			switch event.Rune() {
-			case 'a', 'A':
-				// Acknowledge current alert
-				index := av.list.GetCurrentItem()
-				alerts := av.manager.GetAlerts()
-				if index >= 0 && index < len(alerts) {
-					av.manager.AcknowledgeAlert(alerts[index].ID)
-					av.refreshAlerts()
-				}
-				return nil
-			case 'd', 'D':
-				// Dismiss current alert
-				index := av.list.GetCurrentItem()
-				alerts := av.manager.GetAlerts()
-				if index >= 0 && index < len(alerts) {
-					av.manager.DismissAlert(alerts[index].ID)
-					av.refreshAlerts()
-				}
-				return nil
-			case 'c', 'C':
-				// Clear all alerts
-				av.manager.ClearAllAlerts()
-				av.refreshAlerts()
-				return nil
-			case 'r', 'R':
-				// Refresh alerts
-				av.refreshAlerts()
-				return nil
-			case 's', 'S':
-				// Show notification settings
-				// Import cycle prevented - notification settings moved to separate package
-				// The parent component (app.go) will handle showing notification settings
+			if av.handleAlertRune(event.Rune()) {
 				return nil
 			}
 		case tcell.KeyTab:
-			// Switch focus between list and details
-			if av.app.GetFocus() == av.list {
-				av.app.SetFocus(av.detailView)
-			} else {
-				av.app.SetFocus(av.list)
-			}
+			av.handleTabNavigation()
 			return nil
 		}
 		return event
 	})
+}
+
+// handleAlertRune handles character shortcuts for alert management
+func (av *AlertsView) handleAlertRune(r rune) bool {
+	switch r {
+	case 'a', 'A':
+		av.acknowledgeCurrentAlert()
+		return true
+	case 'd', 'D':
+		av.dismissCurrentAlert()
+		return true
+	case 'c', 'C':
+		av.manager.ClearAllAlerts()
+		av.refreshAlerts()
+		return true
+	case 'r', 'R':
+		av.refreshAlerts()
+		return true
+	case 's', 'S':
+		// Show notification settings
+		// Import cycle prevented - notification settings moved to separate package
+		// The parent component (app.go) will handle showing notification settings
+		return true
+	}
+	return false
+}
+
+// acknowledgeCurrentAlert acknowledges the current alert
+func (av *AlertsView) acknowledgeCurrentAlert() {
+	index := av.list.GetCurrentItem()
+	alerts := av.manager.GetAlerts()
+	if index >= 0 && index < len(alerts) {
+		av.manager.AcknowledgeAlert(alerts[index].ID)
+		av.refreshAlerts()
+	}
+}
+
+// dismissCurrentAlert dismisses the current alert
+func (av *AlertsView) dismissCurrentAlert() {
+	index := av.list.GetCurrentItem()
+	alerts := av.manager.GetAlerts()
+	if index >= 0 && index < len(alerts) {
+		av.manager.DismissAlert(alerts[index].ID)
+		av.refreshAlerts()
+	}
+}
+
+// handleTabNavigation switches focus between list and details
+func (av *AlertsView) handleTabNavigation() {
+	if av.app.GetFocus() == av.list {
+		av.app.SetFocus(av.detailView)
+	} else {
+		av.app.SetFocus(av.list)
+	}
 }
 
 // SetPages sets the pages reference for modal navigation
