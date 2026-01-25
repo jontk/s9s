@@ -797,82 +797,79 @@ func (v *ObservabilityView) getJobDetailsFromSlurm(_ context.Context, jobIDs []s
 		return details
 	}
 
-	// Try to use the SLURM client to get job information
 	logging.Debug("observability-view", "SLURM client type: %T", v.slurmClient)
 
-	// Try different type assertions for the SLURM client
-	var slurmClient dao.SlurmClient
-	var ok bool
-
-	// First try direct interface
-	if slurmClient, ok = v.slurmClient.(dao.SlurmClient); ok {
-		logging.Debug("observability-view", "SLURM client implements dao.SlurmClient interface")
-	} else if adapter, ok := v.slurmClient.(*dao.SlurmAdapter); ok {
-		// If it's a SlurmAdapter, it should implement SlurmClient
-		slurmClient = adapter
-		logging.Debug("observability-view", "SLURM client is SlurmAdapter, casting to interface")
-	} else {
+	slurmClient := v.resolveSlurmClient()
+	if slurmClient == nil {
 		logging.Debug("observability-view", "SLURM client does not support job listing interface")
 		return details
 	}
 
-	if client := slurmClient; client != nil {
-		logging.Debug("observability-view", "Querying SLURM for job details")
-
-		// Get job manager from SLURM client
-		jobMgr := client.Jobs()
-		if jobMgr == nil {
-			logging.Error("observability-view", "SLURM client returned nil job manager")
-			return details
-		}
-
-		// Query for each job ID
-		for _, jobID := range jobIDs {
-			job, err := jobMgr.Get(jobID)
-			if err != nil {
-				logging.Debug("observability-view", "Failed to get job %s from SLURM: %v", jobID, err)
-				continue
-			}
-
-			if job != nil {
-				// Convert SLURM job to our JobInfo structure
-				info := models.JobInfo{
-					JobName:  job.Name,
-					User:     job.User,
-					State:    job.State,
-					NodeList: strings.Split(job.NodeList, ","),
-				}
-
-				// Parse start time if available
-				if job.StartTime != nil {
-					info.StartTime = *job.StartTime
-				}
-
-				// Log the raw job data to understand what we're getting
-				logging.Debug("observability-view", "SLURM job data: ID=%s, Name=%s, User=%s, State=%s, NodeCount=%d, Command=%s",
-					job.ID, job.Name, job.User, job.State, job.NodeCount, job.Command)
-
-				// For now, use NodeCount as CPU allocation until we can get actual CPU data from SLURM
-				// This is a limitation of the current dao.Job struct not having NumCPUs field
-				if job.NodeCount > 0 {
-					// Use 1 CPU per node as a more conservative estimate
-					// TODO: Update dao.Job struct to include NumCPUs from SLURM API
-					info.AllocatedCPUs = job.NodeCount // Assume 1 CPU per node for now
-				}
-
-				details[jobID] = info
-
-				logging.Debug("observability-view", "Got SLURM details for job %s: user=%s, state=%s, nodes=%d",
-					jobID, info.User, info.State, job.NodeCount)
-			}
-		}
-
-		logging.Info("observability-view", "Retrieved SLURM details for %d jobs", len(details))
-	} else {
-		logging.Debug("observability-view", "SLURM client does not support job listing interface")
+	logging.Debug("observability-view", "Querying SLURM for job details")
+	jobMgr := slurmClient.Jobs()
+	if jobMgr == nil {
+		logging.Error("observability-view", "SLURM client returned nil job manager")
+		return details
 	}
 
+	for _, jobID := range jobIDs {
+		info := v.fetchJobInfoFromSlurm(jobID, jobMgr)
+		if info != nil {
+			details[jobID] = *info
+		}
+	}
+
+	logging.Info("observability-view", "Retrieved SLURM details for %d jobs", len(details))
 	return details
+}
+
+func (v *ObservabilityView) resolveSlurmClient() dao.SlurmClient {
+	if client, ok := v.slurmClient.(dao.SlurmClient); ok {
+		logging.Debug("observability-view", "SLURM client implements dao.SlurmClient interface")
+		return client
+	}
+
+	if adapter, ok := v.slurmClient.(*dao.SlurmAdapter); ok {
+		logging.Debug("observability-view", "SLURM client is SlurmAdapter, casting to interface")
+		return adapter
+	}
+
+	return nil
+}
+
+func (v *ObservabilityView) fetchJobInfoFromSlurm(jobID string, jobMgr dao.JobManager) *models.JobInfo {
+	job, err := jobMgr.Get(jobID)
+	if err != nil {
+		logging.Debug("observability-view", "Failed to get job %s from SLURM: %v", jobID, err)
+		return nil
+	}
+
+	if job == nil {
+		return nil
+	}
+
+	info := models.JobInfo{
+		JobName:  job.Name,
+		User:     job.User,
+		State:    job.State,
+		NodeList: strings.Split(job.NodeList, ","),
+	}
+
+	if job.StartTime != nil {
+		info.StartTime = *job.StartTime
+	}
+
+	logging.Debug("observability-view", "SLURM job data: ID=%s, Name=%s, User=%s, State=%s, NodeCount=%d, Command=%s",
+		job.ID, job.Name, job.User, job.State, job.NodeCount, job.Command)
+
+	if job.NodeCount > 0 {
+		info.AllocatedCPUs = job.NodeCount
+	}
+
+	logging.Debug("observability-view", "Got SLURM details for job %s: user=%s, state=%s, nodes=%d",
+		jobID, info.User, info.State, job.NodeCount)
+
+	return &info
 }
 
 // discoverJobsFromPrometheus discovers running jobs from Prometheus metrics
