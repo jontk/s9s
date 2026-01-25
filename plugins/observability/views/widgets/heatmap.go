@@ -371,27 +371,51 @@ func (h *HeatmapWidget) InputHandler() func(event *tcell.EventKey, setFocus func
 			return
 		}
 
-		switch event.Key() {
-		case tcell.KeyUp:
-			if h.selectedRow > 0 {
-				h.selectedRow--
-			}
-		case tcell.KeyDown:
-			if h.selectedRow < len(h.rows)-1 {
-				h.selectedRow++
-			}
-		case tcell.KeyLeft:
-			if h.selectedCol > 0 {
-				h.selectedCol--
-			}
-		case tcell.KeyRight:
-			if h.selectedCol < len(h.cols)-1 {
-				h.selectedCol++
-			}
-		case tcell.KeyEnter:
-			// Could trigger a callback here
+		keyHandlers := map[tcell.Key]func(){
+			tcell.KeyUp:    h.handleKeyUp,
+			tcell.KeyDown:  h.handleKeyDown,
+			tcell.KeyLeft:  h.handleKeyLeft,
+			tcell.KeyRight: h.handleKeyRight,
+			tcell.KeyEnter: h.handleKeyEnter,
+		}
+
+		if handler, ok := keyHandlers[event.Key()]; ok {
+			handler()
 		}
 	})
+}
+
+// handleKeyUp moves selection up
+func (h *HeatmapWidget) handleKeyUp() {
+	if h.selectedRow > 0 {
+		h.selectedRow--
+	}
+}
+
+// handleKeyDown moves selection down
+func (h *HeatmapWidget) handleKeyDown() {
+	if h.selectedRow < len(h.rows)-1 {
+		h.selectedRow++
+	}
+}
+
+// handleKeyLeft moves selection left
+func (h *HeatmapWidget) handleKeyLeft() {
+	if h.selectedCol > 0 {
+		h.selectedCol--
+	}
+}
+
+// handleKeyRight moves selection right
+func (h *HeatmapWidget) handleKeyRight() {
+	if h.selectedCol < len(h.cols)-1 {
+		h.selectedCol++
+	}
+}
+
+// handleKeyEnter handles Enter key press
+func (h *HeatmapWidget) handleKeyEnter() {
+	// Could trigger a callback here
 }
 
 // GetSelectedCell returns the currently selected cell
