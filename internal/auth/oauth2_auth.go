@@ -145,11 +145,7 @@ func (o *OAuth2Authenticator) Initialize(_ context.Context, config AuthConfig) e
 
 // Authenticate performs OAuth2 authentication flow
 func (o *OAuth2Authenticator) Authenticate(ctx context.Context, config AuthConfig) (*Token, error) {
-	provider := config.GetString("provider")
-	if provider == "" {
-		provider = "custom"
-	}
-
+	provider := o.resolveProvider(config)
 	debug.Logger.Printf("Starting OAuth2 authentication flow for provider: %s", provider)
 
 	// Get OAuth2 endpoints
@@ -158,20 +154,62 @@ func (o *OAuth2Authenticator) Authenticate(ctx context.Context, config AuthConfi
 		return nil, fmt.Errorf("failed to get OAuth2 endpoints: %w", err)
 	}
 
-	// Generate state and PKCE parameters
+	// Generate authentication parameters
+	state, codeVerifier, codeChallenge, err := o.generateAuthParameters()
+	if err != nil {
+		return nil, err
+	}
+
+	// Setup callback server
+	redirectURI, callbackPath, err := o.extractRedirectURI(config)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := o.startCallbackServer(redirectURI, state, callbackPath); err != nil {
+		return nil, fmt.Errorf("failed to start callback server: %w", err)
+	}
+	defer o.stopCallbackServer()
+
+	// Build and open authorization URL
+	authURL, err := o.buildAuthorizationURL(authEndpoint, config, state, codeChallenge, redirectURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build authorization URL: %w", err)
+	}
+
+	o.openBrowserForAuth(authURL)
+
+	// Wait for callback or timeout
+	return o.waitForCallback(ctx, tokenEndpoint, codeVerifier, redirectURI, config)
+}
+
+// resolveProvider returns the provider name or "custom" as default
+func (o *OAuth2Authenticator) resolveProvider(config AuthConfig) string {
+	provider := config.GetString("provider")
+	if provider == "" {
+		return "custom"
+	}
+	return provider
+}
+
+// generateAuthParameters generates state, code verifier, and code challenge
+func (o *OAuth2Authenticator) generateAuthParameters() (string, string, string, error) {
 	state, err := o.generateRandomString(32)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate state: %w", err)
+		return "", "", "", fmt.Errorf("failed to generate state: %w", err)
 	}
 
 	codeVerifier, err := o.generateRandomString(43)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate code verifier: %w", err)
+		return "", "", "", fmt.Errorf("failed to generate code verifier: %w", err)
 	}
 
 	codeChallenge := o.generateCodeChallenge(codeVerifier)
+	return state, codeVerifier, codeChallenge, nil
+}
 
-	// Start local callback server
+// extractRedirectURI extracts the redirect URI and callback path from config
+func (o *OAuth2Authenticator) extractRedirectURI(config AuthConfig) (string, string, error) {
 	redirectURI := config.GetString("redirect_uri")
 	if redirectURI == "" {
 		redirectURI = "http://localhost:8080/callback"
@@ -182,26 +220,21 @@ func (o *OAuth2Authenticator) Authenticate(ctx context.Context, config AuthConfi
 		callbackPath = u.Path
 	}
 
-	if err := o.startCallbackServer(redirectURI, state, callbackPath); err != nil {
-		return nil, fmt.Errorf("failed to start callback server: %w", err)
-	}
-	defer o.stopCallbackServer()
+	return redirectURI, callbackPath, nil
+}
 
-	// Build authorization URL
-	authURL, err := o.buildAuthorizationURL(authEndpoint, config, state, codeChallenge, redirectURI)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build authorization URL: %w", err)
-	}
-
-	// Open browser
+// openBrowserForAuth prints auth URL and attempts to open browser
+func (o *OAuth2Authenticator) openBrowserForAuth(authURL string) {
 	fmt.Printf("Opening browser for OAuth2 authentication...\n")
 	fmt.Printf("If the browser doesn't open automatically, visit: %s\n", authURL)
 
 	if err := o.openBrowser(authURL); err != nil {
 		debug.Logger.Printf("Failed to open browser automatically: %v", err)
 	}
+}
 
-	// Wait for callback or timeout
+// waitForCallback waits for the OAuth2 callback with timeout
+func (o *OAuth2Authenticator) waitForCallback(ctx context.Context, tokenEndpoint, codeVerifier, redirectURI string, config AuthConfig) (*Token, error) {
 	select {
 	case result := <-o.resultChan:
 		if result.err != nil {
