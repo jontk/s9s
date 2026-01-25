@@ -308,8 +308,12 @@ func (vm *ViewManager) AddView(view View) error {
 	vm.views[name] = view
 	vm.viewOrder = append(vm.viewOrder, name)
 
-	// Set the app and pages reference if the view supports it
-	// Try to set app via type assertion to views that embed BaseView
+	vm.setViewReferences(view)
+	return nil
+}
+
+// setViewReferences sets app and pages references on views that support it
+func (vm *ViewManager) setViewReferences(view View) {
 	switch v := view.(type) {
 	case *JobsView:
 		v.BaseView.SetApp(vm.app)
@@ -348,8 +352,6 @@ func (vm *ViewManager) AddView(view View) error {
 			v.pages = vm.pages
 		}
 	}
-
-	return nil
 }
 
 // GetView returns a view by name
