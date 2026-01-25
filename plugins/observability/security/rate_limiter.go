@@ -249,47 +249,54 @@ func RateLimitMiddleware(rateLimiter *RateLimiter, config RateLimitConfig) func(
 func extractClientID(r *http.Request, config RateLimitConfig) string {
 	switch config.ClientIDMethod {
 	case "ip":
-		// Extract IP from X-Forwarded-For or RemoteAddr
-		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-			// Use first IP in X-Forwarded-For chain
-			if ips := strings.Split(xff, ","); len(ips) > 0 {
-				return strings.TrimSpace(ips[0])
-			}
-		}
-		// Fallback to RemoteAddr (remove port)
-		if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-			return host
-		}
-		return r.RemoteAddr
-
+		return extractClientIPID(r)
 	case "token":
-		// Extract from Authorization header
-		auth := r.Header.Get("Authorization")
-		if strings.HasPrefix(auth, "Bearer ") {
-			return strings.TrimPrefix(auth, "Bearer ")
-		}
-		return "anonymous"
-
+		return extractClientTokenID(r)
 	case "user-agent":
-		userAgent := r.Header.Get("User-Agent")
-		if userAgent == "" {
-			return "unknown-agent"
-		}
-		return userAgent
-
+		return extractClientUserAgentID(r)
 	case "header":
-		if config.ClientIDHeader != "" {
-			headerValue := r.Header.Get(config.ClientIDHeader)
-			if headerValue != "" {
-				return headerValue
-			}
-		}
-		return "unknown-header"
-
+		return extractClientHeaderID(r, config.ClientIDHeader)
 	default:
-		// Default to IP-based identification
-		return extractClientID(r, RateLimitConfig{ClientIDMethod: "ip"})
+		return extractClientIPID(r)
 	}
+}
+
+func extractClientIPID(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if ips := strings.Split(xff, ","); len(ips) > 0 {
+			return strings.TrimSpace(ips[0])
+		}
+	}
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	return r.RemoteAddr
+}
+
+func extractClientTokenID(r *http.Request) string {
+	auth := r.Header.Get("Authorization")
+	if strings.HasPrefix(auth, "Bearer ") {
+		return strings.TrimPrefix(auth, "Bearer ")
+	}
+	return "anonymous"
+}
+
+func extractClientUserAgentID(r *http.Request) string {
+	userAgent := r.Header.Get("User-Agent")
+	if userAgent == "" {
+		return "unknown-agent"
+	}
+	return userAgent
+}
+
+func extractClientHeaderID(r *http.Request, headerName string) string {
+	if headerName != "" {
+		headerValue := r.Header.Get(headerName)
+		if headerValue != "" {
+			return headerValue
+		}
+	}
+	return "unknown-header"
 }
 
 // writeRateLimitError writes a rate limit exceeded response
