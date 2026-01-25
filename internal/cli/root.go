@@ -198,7 +198,7 @@ func validateConfiguration(cfg *config.Config, cmd *cobra.Command) error {
 }
 
 // runApplicationWithShutdown runs the application and handles graceful shutdown
-func runApplicationWithShutdown(ctx context.Context, cancel context.CancelFunc, sigChan chan os.Signal, s9sApp *app.S9s) error {
+func runApplicationWithShutdown(_ context.Context, cancel context.CancelFunc, sigChan chan os.Signal, s9sApp *app.S9s) error {
 	errChan := make(chan error, 1)
 
 	go func() {

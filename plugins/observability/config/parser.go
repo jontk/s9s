@@ -109,15 +109,6 @@ func (p *Parser) parseFloatField(key string, target *float64) {
 	}
 }
 
-// parseStringArrayField parses a string array field from config and assigns it if present
-func (p *Parser) parseStringArrayField(key string, target *[]string) {
-	if val, ok := p.getValue(key); ok {
-		if arr, err := p.parseStringArray(val); err == nil {
-			*target = arr
-		}
-	}
-}
-
 // parsePrometheusConfig parses Prometheus-specific configuration
 	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parsePrometheusConfig(config *PrometheusConfig) error {
