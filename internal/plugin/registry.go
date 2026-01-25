@@ -174,10 +174,31 @@ func (r *Registry) GetDependencyOrder() ([]string, error) {
 	defer r.mu.RUnlock()
 
 	// Build dependency graph
+	graph, inDegree, err := r.buildDependencyGraph()
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize queue with nodes having no incoming edges
+	queue := r.findInitialNodes(inDegree)
+
+	// Process queue using Kahn's algorithm
+	result := r.processTopologicalSort(graph, inDegree, queue)
+
+	// Check for cycles
+	if len(result) != len(r.plugins) {
+		return nil, fmt.Errorf("circular dependency detected in plugins")
+	}
+
+	return result, nil
+}
+
+// buildDependencyGraph constructs the dependency graph
+func (r *Registry) buildDependencyGraph() (map[string][]string, map[string]int, error) {
 	graph := make(map[string][]string)
 	inDegree := make(map[string]int)
 
-	// Initialize graph
+	// Initialize graph nodes
 	for name := range r.plugins {
 		graph[name] = []string{}
 		inDegree[name] = 0
@@ -187,56 +208,68 @@ func (r *Registry) GetDependencyOrder() ([]string, error) {
 	for name, deps := range r.requires {
 		for _, dep := range deps {
 			if _, exists := r.plugins[dep]; !exists {
-				return nil, fmt.Errorf("plugin %s requires non-existent plugin %s", name, dep)
+				return nil, nil, fmt.Errorf("plugin %s requires non-existent plugin %s", name, dep)
 			}
 			graph[dep] = append(graph[dep], name)
 			inDegree[name]++
 		}
 	}
 
-	// Topological sort using Kahn's algorithm
-	var result []string
-	queue := []string{}
+	return graph, inDegree, nil
+}
 
-	// Find all nodes with no incoming edges
+// findInitialNodes returns all nodes with no incoming edges
+func (r *Registry) findInitialNodes(inDegree map[string]int) []string {
+	var queue []string
 	for name, degree := range inDegree {
 		if degree == 0 {
 			queue = append(queue, name)
 		}
 	}
 
-	// Sort initial queue by priority if plugins implement Prioritizable
+	// Sort by priority
 	sort.Slice(queue, func(i, j int) bool {
 		return r.comparePriority(queue[i], queue[j])
 	})
 
-	// Process queue
+	return queue
+}
+
+// processTopologicalSort processes the queue using Kahn's algorithm
+func (r *Registry) processTopologicalSort(graph map[string][]string, inDegree map[string]int, queue []string) []string {
+	var result []string
+
 	for len(queue) > 0 {
-		// Dequeue
+		// Process current node
 		current := queue[0]
 		queue = queue[1:]
 		result = append(result, current)
 
 		// Process neighbors
-		neighbors := graph[current]
-		sort.Slice(neighbors, func(i, j int) bool {
-			return r.comparePriority(neighbors[i], neighbors[j])
-		})
+		neighbors := r.sortNeighbors(graph[current])
+		queue = r.processNeighbors(neighbors, inDegree, queue)
+	}
 
-		for _, neighbor := range neighbors {
-			inDegree[neighbor]--
-			if inDegree[neighbor] == 0 {
-				queue = append(queue, neighbor)
-			}
+	return result
+}
+
+// sortNeighbors sorts neighbor nodes by priority
+func (r *Registry) sortNeighbors(neighbors []string) []string {
+	sort.Slice(neighbors, func(i, j int) bool {
+		return r.comparePriority(neighbors[i], neighbors[j])
+	})
+	return neighbors
+}
+
+// processNeighbors updates in-degrees and queue for dependent nodes
+func (r *Registry) processNeighbors(neighbors []string, inDegree map[string]int, queue []string) []string {
+	for _, neighbor := range neighbors {
+		inDegree[neighbor]--
+		if inDegree[neighbor] == 0 {
+			queue = append(queue, neighbor)
 		}
 	}
-
-	// Check for cycles
-	if len(result) != len(r.plugins) {
-		return nil, fmt.Errorf("circular dependency detected in plugins")
-	}
-
-	return result, nil
+	return queue
 }
 
 // GetMetadata returns metadata for a plugin
