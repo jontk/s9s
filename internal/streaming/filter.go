@@ -232,23 +232,45 @@ func (fc *FilterChain) Apply(line string, timestamp time.Time) (bool, map[string
 	matchCount := 0
 
 	for _, filter := range fc.Filters {
-		matched, indices := filter.Match(line, timestamp)
+		matched := fc.processFilter(filter, line, timestamp, matches)
 		if matched {
 			matchCount++
-			if indices != nil && filter.Highlight {
-				matches[filter.ID] = indices
-			}
 		}
 
-		// Short-circuit evaluation
-		if fc.Mode == ChainModeOR && matched {
-			return true, matches
-		}
-		if fc.Mode == ChainModeAND && !matched {
+		// Short-circuit evaluation based on mode
+		if shouldShortCircuit := fc.shouldShortCircuit(matched); shouldShortCircuit {
+			if fc.Mode == ChainModeOR {
+				return true, matches
+			}
 			return false, nil
 		}
 	}
 
+	return fc.evaluateFinalResult(matchCount, matches)
+}
+
+// processFilter processes a single filter and records matches
+func (fc *FilterChain) processFilter(filter *StreamFilter, line string, timestamp time.Time, matches map[string][]int) bool {
+	matched, indices := filter.Match(line, timestamp)
+	if matched && indices != nil && filter.Highlight {
+		matches[filter.ID] = indices
+	}
+	return matched
+}
+
+// shouldShortCircuit determines if processing should stop early
+func (fc *FilterChain) shouldShortCircuit(matched bool) bool {
+	if fc.Mode == ChainModeOR && matched {
+		return true
+	}
+	if fc.Mode == ChainModeAND && !matched {
+		return true
+	}
+	return false
+}
+
+// evaluateFinalResult returns the final result based on mode
+func (fc *FilterChain) evaluateFinalResult(matchCount int, matches map[string][]int) (bool, map[string][]int) {
 	// For AND mode, all filters must match
 	if fc.Mode == ChainModeAND {
 		return matchCount == len(fc.Filters), matches
