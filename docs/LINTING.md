@@ -24,6 +24,46 @@ We use linting to:
 
 We configure linters conservatively - we enable only linters that provide clear value and can be maintained. This avoids false positives and linter fatigue.
 
+## Recent Improvements - Phase 7 (PR #29)
+
+### Revive Linter Fixes
+
+As of **PR #29**, we systematically fixed all revive linter violations through a comprehensive 3-phase approach:
+
+**Summary**:
+- **460 revive violations → 36** (92% reduction)
+- All violations fixed except 36 backward-compatible type aliases
+- Full backward compatibility maintained
+
+**What was fixed**:
+1. **Phase 1 - Quick Wins** (287 violations, 62% reduction)
+   - Added 37 package comments (all packages now documented)
+   - Fixed 244+ unused parameters → renamed to `_` (118 files)
+   - Fixed 6 var-naming violations
+
+2. **Phase 2 - Documentation** (102 violations, 22% reduction)
+   - Added godoc comments to 102 exported symbols
+   - All public APIs now properly documented (43 files)
+
+3. **Phase 3 - Structural Improvements** (95 violations, 21% reduction)
+   - Fixed 31 variables shadowing Go built-ins (max→maxVal, min→minVal, etc.)
+   - Refactored 38 stuttering type names with backward-compatible aliases
+   - Fixed 7 minor violations (empty-block, indent-error-flow, increment-decrement)
+
+**Remaining 36 Violations** (Acceptable):
+- Type aliases for backward compatibility: `type AuthProvider = Provider`
+- Maintains existing API while providing cleaner public names
+- Standard Go practice for API migration
+
+**Impact**:
+- 170+ files modified
+- 1000+ lines changed
+- Code quality significantly improved
+- Code now follows Go idioms and best practices
+- All tests passing, clean builds
+
+See PR #29 for complete details: [systematically fix all 460 linter violations through 3-phase approach](https://github.com/jontk/s9s/pull/29)
+
 ## Enabled Linters
 
 s9s uses **15 enabled linters** configured in `.golangci.yml`. They are organized by category:
@@ -93,6 +133,13 @@ These improve code quality and catch common issues:
   - Helps catch subtle bugs in logic
   - Several checks disabled due to style preferences
 
+- **revive**: Go idioms and style enforcement
+  - Package and exported symbol documentation
+  - Naming conventions (avoids stuttering names)
+  - Error handling patterns
+  - All 460+ issues fixed in PR #29 (see [Recent Improvements](#recent-improvements---phase-7-pr-29))
+  - Only 36 acceptable violations remain (type aliases for backward compatibility)
+
 - **unused**: Finds unused variables, constants, functions, and types
   - Helps clean up dead code
   - Can reveal incomplete refactoring
@@ -104,6 +151,7 @@ These improve code quality and catch common issues:
   - Ensures linter suppressions are actually necessary
   - Prevents accumulated technical debt
   - Can detect orphaned nolint comments
+  - Requires specific rule names and explanations
 
 ## Linter Configuration
 

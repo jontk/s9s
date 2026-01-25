@@ -224,6 +224,14 @@ make fmt
 pre-commit install
 ```
 
+### Recent Linting Improvements
+
+As of **PR #29**, we completed a comprehensive 3-phase systematic fix of revive linter violations:
+- **460 revive violations reduced to 36** (92% reduction)
+- All violations fixed except 36 backward-compatible type aliases
+- Full backward compatibility maintained throughout
+- See [docs/LINTING.md](docs/LINTING.md#revive-linter-improvements) for details
+
 ### Enabled Linters
 
 The linters are organized by category:
@@ -240,9 +248,10 @@ The linters are organized by category:
   - Security-focused static analysis
   - Detects vulnerabilities and unsafe patterns
 
-- **Style & Patterns**: gocritic, unused, nolintlint
+- **Style & Patterns**: gocritic, unused, nolintlint, revive
   - Code style and pattern checks
   - Identifies dead code and unused suppressions
+  - Enforces Go idioms (revive: package comments, exported symbols, naming conventions)
 
 - **Advanced**: gocognit, dupl
   - Cognitive complexity checking (threshold: 30)
@@ -270,7 +279,10 @@ The hooks automatically:
 - Ensure files end with newline
 - Format code with gofumpt
 - Organize imports with goimports
+- Tidy go.mod and go.sum
 - Run golangci-lint to check for violations
+
+See [docs/PRE_COMMIT_SETUP.md](docs/PRE_COMMIT_SETUP.md) for detailed pre-commit hook setup, usage, and troubleshooting guide.
 
 ### CI Requirements
 

@@ -2,7 +2,6 @@
 // The API supports Prometheus queries, historical data analysis, resource efficiency metrics,
 // and subscription management. All endpoints are protected by configurable security layers
 // including authentication, rate limiting, request validation, and audit logging.
-//nolint:revive // var-naming: Package name is intentional for API-specific functionality
 package api
 
 import (

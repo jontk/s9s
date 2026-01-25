@@ -1,4 +1,3 @@
-//nolint:revive // var-naming: Package name is intentional for error type organization
 package errors
 
 import (
