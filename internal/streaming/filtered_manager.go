@@ -304,48 +304,67 @@ func (fsm *FilteredStreamManager) StreamWithContext(ctx context.Context, jobID, 
 	// Create filtered channel
 	filteredChan := make(chan StreamEvent, 100)
 
-	go func() {
-		defer close(filteredChan)
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case event, ok := <-eventChan:
-				if !ok {
-					return
-				}
-
-				// Apply filters to the event
-				if event.EventType == StreamEventNewOutput {
-					filteredNewLines := make([]string, 0)
-					for _, line := range event.NewLines {
-						matched, _ := fsm.filterManager.ApplyActiveFilters(line, event.Timestamp)
-						if matched {
-							filteredNewLines = append(filteredNewLines, line)
-						}
-					}
-					event.NewLines = filteredNewLines
-
-					// Only send if there are matching lines
-					if len(filteredNewLines) > 0 {
-						select {
-						case filteredChan <- event:
-						case <-ctx.Done():
-							return
-						}
-					}
-				} else {
-					// Always send non-content events
-					select {
-					case filteredChan <- event:
-					case <-ctx.Done():
-						return
-					}
-				}
-			}
-		}
-	}()
+	go fsm.streamEventProcessor(ctx, eventChan, filteredChan)
 
 	return filteredChan, nil
+}
+
+// streamEventProcessor processes events from the source channel and sends filtered events to the output channel
+func (fsm *FilteredStreamManager) streamEventProcessor(ctx context.Context, eventChan <-chan StreamEvent, filteredChan chan StreamEvent) {
+	defer close(filteredChan)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case event, ok := <-eventChan:
+			if !ok {
+				return
+			}
+			fsm.processStreamEvent(ctx, event, filteredChan)
+		}
+	}
+}
+
+// processStreamEvent handles filtering and sending of a single stream event
+func (fsm *FilteredStreamManager) processStreamEvent(ctx context.Context, event StreamEvent, filteredChan chan StreamEvent) {
+	if event.EventType == StreamEventNewOutput {
+		fsm.processOutputEvent(ctx, event, filteredChan)
+	} else {
+		fsm.processOtherEvent(ctx, event, filteredChan)
+	}
+}
+
+// processOutputEvent filters output event lines and sends if matching lines exist
+func (fsm *FilteredStreamManager) processOutputEvent(ctx context.Context, event StreamEvent, filteredChan chan StreamEvent) {
+	filteredNewLines := fsm.filterEventLines(event.NewLines, event.Timestamp)
+	if len(filteredNewLines) > 0 {
+		event.NewLines = filteredNewLines
+		fsm.sendToFilteredChannel(ctx, event, filteredChan)
+	}
+}
+
+// processOtherEvent sends non-output events directly
+func (fsm *FilteredStreamManager) processOtherEvent(ctx context.Context, event StreamEvent, filteredChan chan StreamEvent) {
+	fsm.sendToFilteredChannel(ctx, event, filteredChan)
+}
+
+// filterEventLines applies active filters to event lines
+func (fsm *FilteredStreamManager) filterEventLines(lines []string, timestamp time.Time) []string {
+	filtered := make([]string, 0)
+	for _, line := range lines {
+		matched, _ := fsm.filterManager.ApplyActiveFilters(line, timestamp)
+		if matched {
+			filtered = append(filtered, line)
+		}
+	}
+	return filtered
+}
+
+// sendToFilteredChannel sends an event to the filtered channel, respecting context cancellation
+func (fsm *FilteredStreamManager) sendToFilteredChannel(ctx context.Context, event StreamEvent, filteredChan chan StreamEvent) {
+	select {
+	case filteredChan <- event:
+	case <-ctx.Done():
+	}
 }
