@@ -196,40 +196,45 @@ func (v *FilteredJobOutputView) handleInput(event *tcell.EventKey) *tcell.EventK
 		}
 	}
 
-	switch event.Key() {
-	case tcell.KeyEsc:
-		v.close()
-		return nil
-	case tcell.KeyF5:
-		v.refresh()
+	if handler, ok := v.keyHandlers()[event.Key()]; ok {
+		handler()
 		return nil
 	}
 
-	switch event.Rune() {
-	case 'f', 'F':
-		v.toggleFilters()
-		return nil
-	case 's', 'S':
-		v.toggleSearch()
-		return nil
-	case 'a', 'A':
-		v.toggleAutoScroll()
-		return nil
-	case 'r', 'R':
-		v.refresh()
-		return nil
-	case 'e', 'E':
-		v.exportOutput()
-		return nil
-	case 'c', 'C':
-		v.clearFilters()
-		return nil
-	case 't', 'T':
-		v.switchOutputType()
+	if handler, ok := v.runeHandlers()[event.Rune()]; ok {
+		handler()
 		return nil
 	}
 
 	return event
+}
+
+// keyHandlers returns a map of function key handlers
+func (v *FilteredJobOutputView) keyHandlers() map[tcell.Key]func() {
+	return map[tcell.Key]func(){
+		tcell.KeyEsc: v.close,
+		tcell.KeyF5:  v.refresh,
+	}
+}
+
+// runeHandlers returns a map of rune handlers
+func (v *FilteredJobOutputView) runeHandlers() map[rune]func() {
+	return map[rune]func(){
+		'f': v.toggleFilters,
+		'F': v.toggleFilters,
+		's': v.toggleSearch,
+		'S': v.toggleSearch,
+		'a': v.toggleAutoScroll,
+		'A': v.toggleAutoScroll,
+		'r': v.refresh,
+		'R': v.refresh,
+		'e': v.exportOutput,
+		'E': v.exportOutput,
+		'c': v.clearFilters,
+		'C': v.clearFilters,
+		't': v.switchOutputType,
+		'T': v.switchOutputType,
+	}
 }
 
 // startStream starts the filtered output stream

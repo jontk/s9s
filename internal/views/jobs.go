@@ -1008,47 +1008,7 @@ func (v *JobsView) showJobActions() {
 	jobName := data[1]
 	state := data[4]
 
-	// Create action menu based on job state
-	var actions []string
-	var handlers []func()
-
-	// Always available actions
-	actions = append(actions, "View Details")
-	handlers = append(handlers, v.showJobDetails)
-
-	actions = append(actions, "View Output")
-	handlers = append(handlers, v.showJobOutput)
-
-	actions = append(actions, "View Dependencies")
-	handlers = append(handlers, v.showJobDependencies)
-
-	// State-specific actions
-	if strings.Contains(state, dao.JobStateRunning) || strings.Contains(state, dao.JobStatePending) {
-		actions = append(actions, "Cancel Job")
-		handlers = append(handlers, v.cancelSelectedJob)
-	}
-
-	if strings.Contains(state, dao.JobStatePending) {
-		actions = append(actions, "Hold Job")
-		handlers = append(handlers, v.holdSelectedJob)
-	}
-
-	if strings.Contains(state, dao.JobStateSuspended) {
-		actions = append(actions, "Release Job")
-		handlers = append(handlers, v.releaseSelectedJob)
-	}
-
-	if strings.Contains(state, dao.JobStateCompleted) || strings.Contains(state, dao.JobStateFailed) || strings.Contains(state, dao.JobStateCancelled) {
-		actions = append(actions, "Requeue Job")
-		handlers = append(handlers, v.requeueSelectedJob)
-	}
-
-	actions = append(actions, "Cancel")
-	handlers = append(handlers, func() {
-		if v.pages != nil {
-			v.pages.RemovePage("job-actions")
-		}
-	})
+	actions, handlers := v.buildJobActions(state)
 
 	// Create action menu
 	list := tview.NewList()
@@ -1090,6 +1050,52 @@ func (v *JobsView) showJobActions() {
 	if v.pages != nil {
 		v.pages.AddPage("job-actions", centeredModal, true, true)
 	}
+}
+
+// buildJobActions builds the list of available actions based on job state
+func (v *JobsView) buildJobActions(state string) ([]string, []func()) {
+	var actions []string
+	var handlers []func()
+
+	// Always available actions
+	actions = append(actions, "View Details")
+	handlers = append(handlers, v.showJobDetails)
+
+	actions = append(actions, "View Output")
+	handlers = append(handlers, v.showJobOutput)
+
+	actions = append(actions, "View Dependencies")
+	handlers = append(handlers, v.showJobDependencies)
+
+	// State-specific actions
+	if strings.Contains(state, dao.JobStateRunning) || strings.Contains(state, dao.JobStatePending) {
+		actions = append(actions, "Cancel Job")
+		handlers = append(handlers, v.cancelSelectedJob)
+	}
+
+	if strings.Contains(state, dao.JobStatePending) {
+		actions = append(actions, "Hold Job")
+		handlers = append(handlers, v.holdSelectedJob)
+	}
+
+	if strings.Contains(state, dao.JobStateSuspended) {
+		actions = append(actions, "Release Job")
+		handlers = append(handlers, v.releaseSelectedJob)
+	}
+
+	if strings.Contains(state, dao.JobStateCompleted) || strings.Contains(state, dao.JobStateFailed) || strings.Contains(state, dao.JobStateCancelled) {
+		actions = append(actions, "Requeue Job")
+		handlers = append(handlers, v.requeueSelectedJob)
+	}
+
+	actions = append(actions, "Cancel")
+	handlers = append(handlers, func() {
+		if v.pages != nil {
+			v.pages.RemovePage("job-actions")
+		}
+	})
+
+	return actions, handlers
 }
 
 // toggleStateFilter toggles job state filter
