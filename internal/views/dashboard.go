@@ -848,112 +848,134 @@ func (v *DashboardView) generateAdvancedAnalytics() string {
 
 	analytics.WriteString("[yellow]Advanced Cluster Analytics[white]\n\n")
 
-	// Resource efficiency analysis
-	analytics.WriteString("[teal]Resource Efficiency Analysis:[white]\n")
-	if v.clusterMetrics != nil {
-		cpuEfficiency := v.clusterMetrics.CPUUsage
-		memEfficiency := v.clusterMetrics.MemoryUsage
-		overallEfficiency := (cpuEfficiency + memEfficiency) / 2
-
-		analytics.WriteString(fmt.Sprintf("[yellow]  CPU Efficiency:[white] %.1f%% %s\n", cpuEfficiency, v.getEfficiencyAssessment(cpuEfficiency)))
-		analytics.WriteString(fmt.Sprintf("[yellow]  Memory Efficiency:[white] %.1f%% %s\n", memEfficiency, v.getEfficiencyAssessment(memEfficiency)))
-		analytics.WriteString(fmt.Sprintf("[yellow]  Overall Efficiency:[white] %.1f%% %s\n", overallEfficiency, v.getEfficiencyAssessment(overallEfficiency)))
-	}
-
-	// Job analysis
-	if len(v.jobs) > 0 {
-		analytics.WriteString("\n[teal]Job Analysis:[white]\n")
-
-		// Job states distribution
-		stateStats := make(map[string]int)
-		totalJobs := len(v.jobs)
-
-		for _, job := range v.jobs {
-			stateStats[job.State]++
-		}
-
-		for state, count := range stateStats {
-			percentage := float64(count) * 100.0 / float64(totalJobs)
-			color := dao.GetJobStateColor(state)
-			analytics.WriteString(fmt.Sprintf("[yellow]  %s:[white] [%s]%d[white] (%.1f%%)\n", state, color, count, percentage))
-		}
-
-		// Wait time analysis
-		now := time.Now()
-		var waitTimes []time.Duration
-		for _, job := range v.jobs {
-			if job.State == dao.JobStatePending {
-				waitTimes = append(waitTimes, now.Sub(job.SubmitTime))
-			}
-		}
-
-		if len(waitTimes) > 0 {
-			analytics.WriteString("\n[teal]Wait Time Analysis:[white]\n")
-
-			// Calculate statistics
-			var totalWait time.Duration
-			var maxWait time.Duration
-			for _, wait := range waitTimes {
-				totalWait += wait
-				if wait > maxWait {
-					maxWait = wait
-				}
-			}
-			avgWait := totalWait / time.Duration(len(waitTimes))
-
-			analytics.WriteString(fmt.Sprintf("[yellow]  Average Wait Time:[white] %s\n", FormatDurationDetailed(avgWait)))
-			analytics.WriteString(fmt.Sprintf("[yellow]  Maximum Wait Time:[white] %s\n", FormatDurationDetailed(maxWait)))
-			analytics.WriteString(fmt.Sprintf("[yellow]  Jobs Waiting >1h:[white] %d\n", v.countJobsWaitingLongerThan(time.Hour)))
-			analytics.WriteString(fmt.Sprintf("[yellow]  Jobs Waiting >24h:[white] %d\n", v.countJobsWaitingLongerThan(24*time.Hour)))
-		}
-	}
-
-	// Node analysis
-	if len(v.nodes) > 0 {
-		analytics.WriteString("\n[teal]Node Analysis:[white]\n")
-
-		stateStats := make(map[string]int)
-		totalCPUs := 0
-		allocatedCPUs := 0
-		totalMemory := int64(0)
-		allocatedMemory := int64(0)
-
-		for _, node := range v.nodes {
-			stateStats[node.State]++
-			totalCPUs += node.CPUsTotal
-			allocatedCPUs += node.CPUsAllocated
-			totalMemory += node.MemoryTotal
-			allocatedMemory += node.MemoryAllocated
-		}
-
-		for state, count := range stateStats {
-			percentage := float64(count) * 100.0 / float64(len(v.nodes))
-			color := dao.GetNodeStateColor(state)
-			analytics.WriteString(fmt.Sprintf("[yellow]  %s:[white] [%s]%d[white] (%.1f%%)\n", state, color, count, percentage))
-		}
-
-		if totalCPUs > 0 {
-			cpuUtilization := float64(allocatedCPUs) * 100.0 / float64(totalCPUs)
-			analytics.WriteString(fmt.Sprintf("[yellow]  CPU Utilization:[white] %.1f%% (%d/%d cores)\n", cpuUtilization, allocatedCPUs, totalCPUs))
-		}
-
-		if totalMemory > 0 {
-			memUtilization := float64(allocatedMemory) * 100.0 / float64(totalMemory)
-			analytics.WriteString(fmt.Sprintf("[yellow]  Memory Utilization:[white] %.1f%% (%s/%s)\n",
-				memUtilization, FormatMemory(allocatedMemory), FormatMemory(totalMemory)))
-		}
-	}
-
-	// Recommendations
-	analytics.WriteString("\n[teal]Recommendations:[white]\n")
-	recommendations := v.generateRecommendations()
-	for _, rec := range recommendations {
-		analytics.WriteString(fmt.Sprintf("[yellow]  •[white] %s\n", rec))
-	}
-
+	v.appendEfficiencyAnalysis(&analytics)
+	v.appendJobAnalysis(&analytics)
+	v.appendNodeAnalysis(&analytics)
+	v.appendRecommendations(&analytics)
 	analytics.WriteString(fmt.Sprintf("\n[gray]Generated: %s[white]", time.Now().Format("2006-01-02 15:04:05")))
 
 	return analytics.String()
+}
+
+// appendEfficiencyAnalysis appends resource efficiency analysis section
+func (v *DashboardView) appendEfficiencyAnalysis(w *strings.Builder) {
+	w.WriteString("[teal]Resource Efficiency Analysis:[white]\n")
+	if v.clusterMetrics == nil {
+		return
+	}
+
+	cpuEfficiency := v.clusterMetrics.CPUUsage
+	memEfficiency := v.clusterMetrics.MemoryUsage
+	overallEfficiency := (cpuEfficiency + memEfficiency) / 2
+
+	w.WriteString(fmt.Sprintf("[yellow]  CPU Efficiency:[white] %.1f%% %s\n", cpuEfficiency, v.getEfficiencyAssessment(cpuEfficiency)))
+	w.WriteString(fmt.Sprintf("[yellow]  Memory Efficiency:[white] %.1f%% %s\n", memEfficiency, v.getEfficiencyAssessment(memEfficiency)))
+	w.WriteString(fmt.Sprintf("[yellow]  Overall Efficiency:[white] %.1f%% %s\n", overallEfficiency, v.getEfficiencyAssessment(overallEfficiency)))
+}
+
+// appendJobAnalysis appends job analysis section
+func (v *DashboardView) appendJobAnalysis(w *strings.Builder) {
+	if len(v.jobs) == 0 {
+		return
+	}
+
+	w.WriteString("\n[teal]Job Analysis:[white]\n")
+	v.appendJobStateDistribution(w)
+	v.appendWaitTimeAnalysis(w)
+}
+
+// appendJobStateDistribution appends job state distribution analysis
+func (v *DashboardView) appendJobStateDistribution(w *strings.Builder) {
+	stateStats := make(map[string]int)
+	totalJobs := len(v.jobs)
+
+	for _, job := range v.jobs {
+		stateStats[job.State]++
+	}
+
+	for state, count := range stateStats {
+		percentage := float64(count) * 100.0 / float64(totalJobs)
+		color := dao.GetJobStateColor(state)
+		w.WriteString(fmt.Sprintf("[yellow]  %s:[white] [%s]%d[white] (%.1f%%)\n", state, color, count, percentage))
+	}
+}
+
+// appendWaitTimeAnalysis appends wait time analysis section
+func (v *DashboardView) appendWaitTimeAnalysis(w *strings.Builder) {
+	now := time.Now()
+	var waitTimes []time.Duration
+	for _, job := range v.jobs {
+		if job.State == dao.JobStatePending {
+			waitTimes = append(waitTimes, now.Sub(job.SubmitTime))
+		}
+	}
+
+	if len(waitTimes) == 0 {
+		return
+	}
+
+	w.WriteString("\n[teal]Wait Time Analysis:[white]\n")
+
+	var totalWait, maxWait time.Duration
+	for _, wait := range waitTimes {
+		totalWait += wait
+		if wait > maxWait {
+			maxWait = wait
+		}
+	}
+	avgWait := totalWait / time.Duration(len(waitTimes))
+
+	w.WriteString(fmt.Sprintf("[yellow]  Average Wait Time:[white] %s\n", FormatDurationDetailed(avgWait)))
+	w.WriteString(fmt.Sprintf("[yellow]  Maximum Wait Time:[white] %s\n", FormatDurationDetailed(maxWait)))
+	w.WriteString(fmt.Sprintf("[yellow]  Jobs Waiting >1h:[white] %d\n", v.countJobsWaitingLongerThan(time.Hour)))
+	w.WriteString(fmt.Sprintf("[yellow]  Jobs Waiting >24h:[white] %d\n", v.countJobsWaitingLongerThan(24*time.Hour)))
+}
+
+// appendNodeAnalysis appends node analysis section
+func (v *DashboardView) appendNodeAnalysis(w *strings.Builder) {
+	if len(v.nodes) == 0 {
+		return
+	}
+
+	w.WriteString("\n[teal]Node Analysis:[white]\n")
+
+	stateStats := make(map[string]int)
+	totalCPUs, allocatedCPUs := 0, 0
+	var totalMemory, allocatedMemory int64
+
+	for _, node := range v.nodes {
+		stateStats[node.State]++
+		totalCPUs += node.CPUsTotal
+		allocatedCPUs += node.CPUsAllocated
+		totalMemory += node.MemoryTotal
+		allocatedMemory += node.MemoryAllocated
+	}
+
+	for state, count := range stateStats {
+		percentage := float64(count) * 100.0 / float64(len(v.nodes))
+		color := dao.GetNodeStateColor(state)
+		w.WriteString(fmt.Sprintf("[yellow]  %s:[white] [%s]%d[white] (%.1f%%)\n", state, color, count, percentage))
+	}
+
+	if totalCPUs > 0 {
+		cpuUtilization := float64(allocatedCPUs) * 100.0 / float64(totalCPUs)
+		w.WriteString(fmt.Sprintf("[yellow]  CPU Utilization:[white] %.1f%% (%d/%d cores)\n", cpuUtilization, allocatedCPUs, totalCPUs))
+	}
+
+	if totalMemory > 0 {
+		memUtilization := float64(allocatedMemory) * 100.0 / float64(totalMemory)
+		w.WriteString(fmt.Sprintf("[yellow]  Memory Utilization:[white] %.1f%% (%s/%s)\n",
+			memUtilization, FormatMemory(allocatedMemory), FormatMemory(totalMemory)))
+	}
+}
+
+// appendRecommendations appends recommendations section
+func (v *DashboardView) appendRecommendations(w *strings.Builder) {
+	w.WriteString("\n[teal]Recommendations:[white]\n")
+	recommendations := v.generateRecommendations()
+	for _, rec := range recommendations {
+		w.WriteString(fmt.Sprintf("[yellow]  •[white] %s\n", rec))
+	}
 }
 
 // showHealthCheck shows health check modal
