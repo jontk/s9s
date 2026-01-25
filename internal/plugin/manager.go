@@ -145,21 +145,46 @@ func (m *Manager) DisablePlugin(name string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	// Validate plugin exists and is enabled
+	plugin, state, err := m.getAndValidatePlugin(name)
+	if err != nil {
+		return err
+	}
+
+	// Check if other plugins depend on this one
+	if err := m.checkPluginDependencies(name); err != nil {
+		return err
+	}
+
+	// Perform disable operations
+	m.performPluginDisable(name, plugin, state)
+
+	debug.Logger.Printf("Disabled plugin: %s", name)
+	return nil
+}
+
+// getAndValidatePlugin retrieves a plugin and validates it's enabled
+func (m *Manager) getAndValidatePlugin(name string) (Plugin, PluginState, error) {
 	plugin, exists := m.plugins[name]
 	if !exists {
-		return fmt.Errorf("plugin %s not found", name)
+		return nil, PluginState{}, fmt.Errorf("plugin %s not found", name)
 	}
 
 	state := m.states[name]
 	if !state.Enabled {
-		return fmt.Errorf("plugin %s not enabled", name)
+		return nil, state, fmt.Errorf("plugin %s not enabled", name)
 	}
 
-	// Check if other plugins depend on this one
+	return plugin, state, nil
+}
+
+// checkPluginDependencies checks if other plugins depend on this one
+func (m *Manager) checkPluginDependencies(name string) error {
 	for otherName, otherPlugin := range m.plugins {
 		if otherName == name {
 			continue
 		}
+
 		otherState := m.states[otherName]
 		if !otherState.Enabled {
 			continue
@@ -172,7 +197,11 @@ func (m *Manager) DisablePlugin(name string) error {
 			}
 		}
 	}
+	return nil
+}
 
+// performPluginDisable handles lifecycle hooks and stopping the plugin
+func (m *Manager) performPluginDisable(name string, plugin Plugin, state PluginState) {
 	// Call lifecycle hook if implemented
 	if lifecycle, ok := plugin.(LifecycleAware); ok {
 		if err := lifecycle.OnDisable(m.ctx); err != nil {
@@ -183,16 +212,12 @@ func (m *Manager) DisablePlugin(name string) error {
 	// Stop plugin
 	if err := plugin.Stop(m.ctx); err != nil {
 		debug.Logger.Printf("Error stopping plugin %s: %v", name, err)
-		// Continue with disable even if stop fails
 	}
 
 	// Update state
 	state.Enabled = false
 	state.Running = false
 	m.states[name] = state
-
-	debug.Logger.Printf("Disabled plugin: %s", name)
-	return nil
 }
 
 // GetPlugin returns a plugin by name
