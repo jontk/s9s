@@ -371,13 +371,51 @@ func (a *APIAuthenticator) RefreshToken(ctx context.Context, token *Token) (*Tok
 
 	debug.Logger.Printf("Refreshing token using refresh token")
 
-	endpoint := a.config.GetString("refresh_endpoint")
-	if endpoint == "" {
-		// Use the same endpoint as authentication
-		endpoint = a.config.GetString("endpoint")
+	// Determine endpoint
+	endpoint := a.resolveRefreshEndpoint()
+
+	// Prepare and send refresh request
+	payloadBytes, err := a.prepareRefreshPayload(token)
+	if err != nil {
+		return nil, err
 	}
 
-	// Prepare refresh payload
+	statusCode, body, err := a.sendAPIRefreshRequest(ctx, endpoint, payloadBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check response status
+	if statusCode < 200 || statusCode >= 300 {
+		debug.Logger.Printf("Token refresh failed with status %d, re-authenticating", statusCode)
+		return a.Authenticate(ctx, a.config)
+	}
+
+	// Parse response and extract token
+	var responseData map[string]interface{}
+	if err := json.Unmarshal(body, &responseData); err != nil {
+		return nil, fmt.Errorf("failed to parse refresh response: %w", err)
+	}
+
+	newToken, err := a.extractToken(responseData, a.config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract refreshed token: %w", err)
+	}
+
+	debug.Logger.Printf("Successfully refreshed token, expires at: %v", newToken.ExpiresAt)
+	return newToken, nil
+}
+
+// resolveRefreshEndpoint returns the refresh endpoint with fallback to main endpoint
+func (a *APIAuthenticator) resolveRefreshEndpoint() string {
+	if endpoint := a.config.GetString("refresh_endpoint"); endpoint != "" {
+		return endpoint
+	}
+	return a.config.GetString("endpoint")
+}
+
+// prepareRefreshPayload builds the refresh token request payload
+func (a *APIAuthenticator) prepareRefreshPayload(token *Token) ([]byte, error) {
 	payload := map[string]interface{}{
 		"grant_type":    "refresh_token",
 		"refresh_token": token.RefreshToken,
@@ -391,48 +429,32 @@ func (a *APIAuthenticator) RefreshToken(ctx context.Context, token *Token) (*Tok
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal refresh payload: %w", err)
 	}
+	return payloadBytes, nil
+}
 
-	// Create HTTP request
+// sendAPIRefreshRequest sends the refresh request to the API endpoint
+func (a *APIAuthenticator) sendAPIRefreshRequest(ctx context.Context, endpoint string, payloadBytes []byte) (int, []byte, error) {
 	req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewReader(payloadBytes))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create refresh request: %w", err)
+		return 0, nil, fmt.Errorf("failed to create refresh request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "s9s/1.0")
 
-	// Execute request
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("refresh request failed: %w", err)
+		return 0, nil, fmt.Errorf("refresh request failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read refresh response: %w", err)
+		return 0, nil, fmt.Errorf("failed to read refresh response: %w", err)
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		debug.Logger.Printf("Token refresh failed with status %d, re-authenticating", resp.StatusCode)
-		return a.Authenticate(ctx, a.config)
-	}
-
-	// Parse response
-	var responseData map[string]interface{}
-	if err := json.Unmarshal(body, &responseData); err != nil {
-		return nil, fmt.Errorf("failed to parse refresh response: %w", err)
-	}
-
-	// Extract new token
-	newToken, err := a.extractToken(responseData, a.config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to extract refreshed token: %w", err)
-	}
-
-	debug.Logger.Printf("Successfully refreshed token, expires at: %v", newToken.ExpiresAt)
-	return newToken, nil
+	return resp.StatusCode, body, nil
 }
 
 // ValidateToken validates a token by checking its structure and expiration
