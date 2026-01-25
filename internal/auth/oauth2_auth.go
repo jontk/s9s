@@ -523,37 +523,17 @@ func (o *OAuth2Authenticator) sendTokenRequest(req *http.Request) ([]byte, error
 
 // extractExchangeTokenResponse extracts all token fields from exchange response
 func (o *OAuth2Authenticator) extractExchangeTokenResponse(response map[string]interface{}, config AuthConfig) (*Token, error) {
-	// Extract access token (required)
-	accessToken, ok := response["access_token"].(string)
-	if !ok || accessToken == "" {
-		return nil, fmt.Errorf("missing or invalid access_token in response")
+	// Extract and validate required access token
+	accessToken, err := o.extractRequiredAccessToken(response)
+	if err != nil {
+		return nil, err
 	}
 
-	// Extract refresh token (optional)
-	var refreshToken string
-	if rt, ok := response["refresh_token"].(string); ok {
-		refreshToken = rt
-	}
-
-	// Extract expiry (optional)
-	var expiresAt time.Time
-	if expiresIn, ok := response["expires_in"].(float64); ok {
-		expiresAt = time.Now().Add(time.Duration(expiresIn) * time.Second)
-	} else {
-		expiresAt = time.Now().Add(1 * time.Hour)
-	}
-
-	// Extract token type (optional)
-	tokenType := "Bearer"
-	if tt, ok := response["token_type"].(string); ok {
-		tokenType = tt
-	}
-
-	// Extract scopes (optional)
-	var scopes []string
-	if scopeStr, ok := response["scope"].(string); ok {
-		scopes = strings.Fields(scopeStr)
-	}
+	// Extract optional fields
+	refreshToken := o.extractRefreshToken(response)
+	expiresAt := o.extractExpiryTime(response)
+	tokenType := o.extractTokenType(response)
+	scopes := o.extractScopes(response)
 
 	return &Token{
 		AccessToken:  accessToken,
@@ -567,6 +547,47 @@ func (o *OAuth2Authenticator) extractExchangeTokenResponse(response map[string]i
 			"provider":    config.GetString("provider"),
 		},
 	}, nil
+}
+
+// extractRequiredAccessToken extracts the required access token from response
+func (o *OAuth2Authenticator) extractRequiredAccessToken(response map[string]interface{}) (string, error) {
+	accessToken, ok := response["access_token"].(string)
+	if !ok || accessToken == "" {
+		return "", fmt.Errorf("missing or invalid access_token in response")
+	}
+	return accessToken, nil
+}
+
+// extractRefreshToken extracts the optional refresh token from response
+func (o *OAuth2Authenticator) extractRefreshToken(response map[string]interface{}) string {
+	if rt, ok := response["refresh_token"].(string); ok {
+		return rt
+	}
+	return ""
+}
+
+// extractExpiryTime extracts the token expiry time from response
+func (o *OAuth2Authenticator) extractExpiryTime(response map[string]interface{}) time.Time {
+	if expiresIn, ok := response["expires_in"].(float64); ok {
+		return time.Now().Add(time.Duration(expiresIn) * time.Second)
+	}
+	return time.Now().Add(1 * time.Hour)
+}
+
+// extractTokenType extracts the token type from response with default
+func (o *OAuth2Authenticator) extractTokenType(response map[string]interface{}) string {
+	if tt, ok := response["token_type"].(string); ok {
+		return tt
+	}
+	return "Bearer"
+}
+
+// extractScopes extracts scopes from response
+func (o *OAuth2Authenticator) extractScopes(response map[string]interface{}) []string {
+	if scopeStr, ok := response["scope"].(string); ok {
+		return strings.Fields(scopeStr)
+	}
+	return nil
 }
 
 // RefreshToken refreshes an expired token using the refresh token
