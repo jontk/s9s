@@ -148,34 +148,34 @@ func (pv *PreferencesView) onCategorySelected(node *tview.TreeNode) {
 
 	category := ref.(string)
 
-	// Clear form
 	pv.form.Clear(true)
+	pv.showCategorySettings(category)
+	pv.addFormButtons()
+}
 
-	switch category {
-	case "general":
-		pv.showGeneralSettings()
-	case "display":
-		pv.showDisplaySettings()
-	case "colors":
-		pv.showColorSettings()
-	case "keybindings":
-		pv.showKeyBindings()
-	case "filters":
-		pv.showFilterSettings()
-	case "jobsubmission":
-		pv.showJobSubmissionSettings()
-	case "alerts":
-		pv.showAlertSettings()
-	case "performance":
-		pv.showPerformanceSettings()
-	default:
-		if strings.HasPrefix(category, "view:") {
-			viewName := strings.TrimPrefix(category, "view:")
-			pv.showViewSettings(viewName)
-		}
+// showCategorySettings displays settings for the selected category
+func (pv *PreferencesView) showCategorySettings(category string) {
+	handlers := map[string]func(){
+		"general":       pv.showGeneralSettings,
+		"display":       pv.showDisplaySettings,
+		"colors":        pv.showColorSettings,
+		"keybindings":   pv.showKeyBindings,
+		"filters":       pv.showFilterSettings,
+		"jobsubmission": pv.showJobSubmissionSettings,
+		"alerts":        pv.showAlertSettings,
+		"performance":   pv.showPerformanceSettings,
 	}
 
-	// Add save/cancel buttons
+	if handler, ok := handlers[category]; ok {
+		handler()
+	} else if strings.HasPrefix(category, "view:") {
+		viewName := strings.TrimPrefix(category, "view:")
+		pv.showViewSettings(viewName)
+	}
+}
+
+// addFormButtons adds save/cancel/reset buttons to the form
+func (pv *PreferencesView) addFormButtons() {
 	pv.form.
 		AddButton("Save", pv.save).
 		AddButton("Cancel", pv.cancel).
