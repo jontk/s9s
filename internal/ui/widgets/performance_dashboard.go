@@ -479,27 +479,7 @@ func (pd *PerformanceDashboard) generateTrendLine(data []float64, width int) str
 	for i := 0; i < len(data); i += step {
 		value := data[i]
 		height := int((value / maxVal) * 8)
-
-		switch height {
-		case 0:
-			line += "_"
-		case 1:
-			line += "▁"
-		case 2:
-			line += "▂"
-		case 3:
-			line += "▃"
-		case 4:
-			line += "▄"
-		case 5:
-			line += "▅"
-		case 6:
-			line += "▆"
-		case 7:
-			line += "▇"
-		default:
-			line += "█"
-		}
+		line += pd.getSparklineChar(height)
 
 		if len(line) >= width {
 			break
@@ -507,6 +487,15 @@ func (pd *PerformanceDashboard) generateTrendLine(data []float64, width int) str
 	}
 
 	return line
+}
+
+// getSparklineChar returns the appropriate sparkline character for a given height level
+func (pd *PerformanceDashboard) getSparklineChar(height int) string {
+	chars := []string{"_", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"}
+	if height < 0 || height >= len(chars) {
+		return "█"
+	}
+	return chars[height]
 }
 
 // calculateAverage calculates the average of a slice

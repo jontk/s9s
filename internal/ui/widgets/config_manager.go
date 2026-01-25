@@ -408,7 +408,22 @@ func (cm *ConfigManager) getNestedValue(obj interface{}, path []string) interfac
 		return nil
 	}
 
-	switch path[0] {
+	field := path[0]
+
+	// Try scalar fields first
+	if len(path) == 1 {
+		if result := cm.getConfigScalarValue(cfg, field); result != nil {
+			return result
+		}
+	}
+
+	// Handle nested structures
+	return cm.getConfigNestedValue(cfg, field, path[1:])
+}
+
+// getConfigScalarValue returns scalar config values
+func (cm *ConfigManager) getConfigScalarValue(cfg *config.Config, field string) interface{} {
+	switch field {
 	case "refreshRate":
 		return cfg.RefreshRate
 	case "maxRetries":
@@ -417,23 +432,29 @@ func (cm *ConfigManager) getNestedValue(obj interface{}, path []string) interfac
 		return cfg.CurrentContext
 	case "useMockClient":
 		return cfg.UseMockClient
+	}
+	return nil
+}
+
+// getConfigNestedValue returns nested config structures
+func (cm *ConfigManager) getConfigNestedValue(cfg *config.Config, field string, path []string) interface{} {
+	switch field {
 	case "ui":
-		if len(path) == 1 {
+		if len(path) == 0 {
 			return cfg.UI
 		}
-		return cm.getUIValue(&cfg.UI, path[1:])
+		return cm.getUIValue(&cfg.UI, path)
 	case "views":
-		if len(path) == 1 {
+		if len(path) == 0 {
 			return cfg.Views
 		}
-		return cm.getViewsValue(&cfg.Views, path[1:])
+		return cm.getViewsValue(&cfg.Views, path)
 	case "features":
-		if len(path) == 1 {
+		if len(path) == 0 {
 			return cfg.Features
 		}
-		return cm.getFeaturesValue(&cfg.Features, path[1:])
+		return cm.getFeaturesValue(&cfg.Features, path)
 	}
-
 	return nil
 }
 
@@ -448,7 +469,21 @@ func (cm *ConfigManager) setNestedValue(obj interface{}, path []string, value in
 		return
 	}
 
-	switch path[0] {
+	field := path[0]
+
+	// Try scalar fields
+	if len(path) == 1 {
+		cm.setConfigScalarValue(cfg, field, value)
+		return
+	}
+
+	// Handle nested structures
+	cm.setConfigNestedValue(cfg, field, path[1:], value)
+}
+
+// setConfigScalarValue sets scalar config values
+func (cm *ConfigManager) setConfigScalarValue(cfg *config.Config, field string, value interface{}) {
+	switch field {
 	case "refreshRate":
 		if v, ok := value.(string); ok {
 			cfg.RefreshRate = v
@@ -465,12 +500,18 @@ func (cm *ConfigManager) setNestedValue(obj interface{}, path []string, value in
 		if v, ok := value.(bool); ok {
 			cfg.UseMockClient = v
 		}
+	}
+}
+
+// setConfigNestedValue sets nested config structure values
+func (cm *ConfigManager) setConfigNestedValue(cfg *config.Config, field string, path []string, value interface{}) {
+	switch field {
 	case "ui":
-		cm.setUIValue(&cfg.UI, path[1:], value)
+		cm.setUIValue(&cfg.UI, path, value)
 	case "views":
-		cm.setViewsValue(&cfg.Views, path[1:], value)
+		cm.setViewsValue(&cfg.Views, path, value)
 	case "features":
-		cm.setFeaturesValue(&cfg.Features, path[1:], value)
+		cm.setFeaturesValue(&cfg.Features, path, value)
 	}
 }
 
