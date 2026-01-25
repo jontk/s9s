@@ -364,66 +364,16 @@ func (v *NodesView) updateTableGrouped() {
 
 // formatNodeRow formats a single node row
 func (v *NodesView) formatNodeRow(node *dao.Node) []string {
-	// Check if node is actually drained (has a reason) even if state only shows IDLE
-	displayState := node.State
-	isDrainedByReason := node.Reason != "" && node.Reason != "Not responding"
-
-	if node.State == "IDLE" && isDrainedByReason {
-		displayState = "IDLE+DRAIN"
-	}
+	displayState := v.getNodeDisplayState(node)
 	stateColor := dao.GetNodeStateColor(displayState)
 	coloredState := fmt.Sprintf("[%s]%s[white]", stateColor, displayState)
 
-	// CPU usage bar - dual view showing allocation vs actual load
-	// For CPU: allocated CPUs vs actual CPU load (if available)
-	cpuActualUsed := node.CPUsAllocated // Default to allocated if no load data
-	if node.CPULoad >= 0 {              // CPULoad can be 0 (valid idle state)
-		// CPULoad is the 1-minute load average
-		// Load average represents the number of processes waiting for CPU time
-		// Convert load average to equivalent "CPU cores being used"
-		cpuActualUsed = int(node.CPULoad + 0.5) // Round to nearest integer
-		if cpuActualUsed > node.CPUsTotal {
-			cpuActualUsed = node.CPUsTotal
-		}
-		if cpuActualUsed < 0 {
-			cpuActualUsed = 0
-		}
-	}
-	cpuUsage := v.createDualUsageBar(node.CPUsAllocated, cpuActualUsed, node.CPUsTotal)
-	// Show both allocation and actual load
-	var cpuUsageText string
-	if node.CPULoad >= 0 {
-		cpuUsageText = fmt.Sprintf("%s %d/%d (%.1f)", cpuUsage, node.CPUsAllocated, node.CPUsTotal, node.CPULoad)
-	} else {
-		cpuUsageText = fmt.Sprintf("%s %d/%d", cpuUsage, node.CPUsAllocated, node.CPUsTotal)
-	}
+	cpuUsageText := v.formatNodeCPUUsage(node)
+	memUsageText := v.formatNodeMemoryUsage(node)
 
-	// Memory usage bar - dual view showing allocation vs actual usage
-	// Calculate actual memory used from free memory
-	memActualUsed := int(node.MemoryTotal - node.MemoryFree)
-	if memActualUsed < 0 {
-		memActualUsed = int(node.MemoryAllocated) // Fallback to allocated
-	}
-	memUsage := v.createDualUsageBar(int(node.MemoryAllocated), memActualUsed, int(node.MemoryTotal))
-	memUsageText := fmt.Sprintf("%s %s/%s", memUsage, FormatMemory(node.MemoryAllocated), FormatMemory(node.MemoryTotal))
-
-	// Partitions
-	partitions := strings.Join(node.Partitions, ",")
-	if len(partitions) > 14 {
-		partitions = partitions[:11] + "..."
-	}
-
-	// Features
-	features := strings.Join(node.Features, ",")
-	if len(features) > 19 {
-		features = features[:16] + "..."
-	}
-
-	// Reason
-	reason := node.Reason
-	if len(reason) > 24 {
-		reason = reason[:21] + "..."
-	}
+	partitions := truncateString(strings.Join(node.Partitions, ","), 14, 11)
+	features := truncateString(strings.Join(node.Features, ","), 19, 16)
+	reason := truncateString(node.Reason, 24, 21)
 
 	return []string{
 		node.Name,
@@ -436,6 +386,63 @@ func (v *NodesView) formatNodeRow(node *dao.Node) []string {
 		features,
 		reason,
 	}
+}
+
+// getNodeDisplayState determines the display state for a node
+func (v *NodesView) getNodeDisplayState(node *dao.Node) string {
+	displayState := node.State
+	isDrainedByReason := node.Reason != "" && node.Reason != "Not responding"
+
+	if node.State == "IDLE" && isDrainedByReason {
+		displayState = "IDLE+DRAIN"
+	}
+
+	return displayState
+}
+
+// formatNodeCPUUsage formats CPU usage text for a node row
+func (v *NodesView) formatNodeCPUUsage(node *dao.Node) string {
+	cpuActualUsed := v.calculateCPUActualUsed(node)
+	cpuUsage := v.createDualUsageBar(node.CPUsAllocated, cpuActualUsed, node.CPUsTotal)
+
+	if node.CPULoad >= 0 {
+		return fmt.Sprintf("%s %d/%d (%.1f)", cpuUsage, node.CPUsAllocated, node.CPUsTotal, node.CPULoad)
+	}
+	return fmt.Sprintf("%s %d/%d", cpuUsage, node.CPUsAllocated, node.CPUsTotal)
+}
+
+// calculateCPUActualUsed calculates actual CPU usage from load average
+func (v *NodesView) calculateCPUActualUsed(node *dao.Node) int {
+	cpuActualUsed := node.CPUsAllocated
+	if node.CPULoad >= 0 {
+		cpuActualUsed = int(node.CPULoad + 0.5)
+		if cpuActualUsed > node.CPUsTotal {
+			cpuActualUsed = node.CPUsTotal
+		}
+		if cpuActualUsed < 0 {
+			cpuActualUsed = 0
+		}
+	}
+	return cpuActualUsed
+}
+
+// formatNodeMemoryUsage formats memory usage text for a node row
+func (v *NodesView) formatNodeMemoryUsage(node *dao.Node) string {
+	memActualUsed := int(node.MemoryTotal - node.MemoryFree)
+	if memActualUsed < 0 {
+		memActualUsed = int(node.MemoryAllocated)
+	}
+
+	memUsage := v.createDualUsageBar(int(node.MemoryAllocated), memActualUsed, int(node.MemoryTotal))
+	return fmt.Sprintf("%s %s/%s", memUsage, FormatMemory(node.MemoryAllocated), FormatMemory(node.MemoryTotal))
+}
+
+// truncateString truncates a string with ellipsis if it exceeds max length
+func truncateString(s string, maxLen, truncateLen int) string {
+	if len(s) > maxLen {
+		return s[:truncateLen] + "..."
+	}
+	return s
 }
 
 /*
@@ -712,49 +719,20 @@ func (v *NodesView) resumeSelectedNode() {
 		return
 	}
 
-	nodeName := data[0] // Still used for resume operation
+	nodeName := data[0]
 	state := data[1]
-	debug.Logger.Printf("resumeSelectedNode() - node: %s, state: %s", nodeName, state)
 
-	// Find the full node object to check reason
-	var node *dao.Node
-	v.mu.RLock()
-	for _, n := range v.nodes {
-		if n.Name == nodeName {
-			node = n
-			break
-		}
-	}
-	v.mu.RUnlock()
-
+	node := v.findNode(nodeName)
 	if node == nil {
 		debug.Logger.Printf("resumeSelectedNode() - node %s not found in node list", nodeName)
 		return
 	}
 
-	// Check if node can be resumed
-	// - State must contain DRAIN/DRAINING, OR
-	// - Node must have a reason (indicating it was drained)
-	cleanState := strings.ReplaceAll(strings.ReplaceAll(state, "[green]", ""), "[white]", "")
-	cleanState = strings.ReplaceAll(strings.ReplaceAll(cleanState, "[yellow]", ""), "[red]", "")
-	cleanState = strings.ReplaceAll(strings.ReplaceAll(cleanState, "[blue]", ""), "[orange]", "")
+	cleanState := v.cleanNodeState(state)
 	debug.Logger.Printf("resumeSelectedNode() - clean state: %s, reason: '%s'", cleanState, node.Reason)
 
-	isDrained := strings.Contains(cleanState, dao.NodeStateDrain) ||
-		strings.Contains(cleanState, dao.NodeStateDraining) ||
-		(node.Reason != "" && node.Reason != "Not responding")
-	if !isDrained {
-		// Show informative error message
-		if v.pages != nil {
-			errorModal := tview.NewModal().
-				SetText(fmt.Sprintf("Node %s is in state '%s' with no drain reason. Only drained nodes can be resumed.", nodeName, cleanState)).
-				AddButtons([]string{"OK"}).
-				SetDoneFunc(func(_ int, _ string) {
-					v.pages.RemovePage("error")
-					v.app.SetFocus(v.table.Table)
-				})
-			v.pages.AddPage("error", errorModal, true, true)
-		}
+	if !v.isNodeDrained(cleanState, node) {
+		v.showResumeError(nodeName, cleanState)
 		debug.Logger.Printf("resumeSelectedNode() - node %s cannot be resumed, state: %s, reason: %s", nodeName, cleanState, node.Reason)
 		return
 	}
@@ -771,6 +749,54 @@ func (v *NodesView) resumeSelectedNode() {
 		})
 
 	v.app.SetRoot(modal, true)
+}
+
+// findNode finds a node by name in the node list
+func (v *NodesView) findNode(nodeName string) *dao.Node {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
+	for _, n := range v.nodes {
+		if n.Name == nodeName {
+			return n
+		}
+	}
+	return nil
+}
+
+// cleanNodeState removes color codes from node state string
+func (v *NodesView) cleanNodeState(state string) string {
+	colorCodes := []string{"[green]", "[white]", "[yellow]", "[red]", "[blue]", "[orange]"}
+	cleanState := state
+
+	for _, code := range colorCodes {
+		cleanState = strings.ReplaceAll(cleanState, code, "")
+	}
+
+	return cleanState
+}
+
+// isNodeDrained checks if a node is in a drained state
+func (v *NodesView) isNodeDrained(cleanState string, node *dao.Node) bool {
+	return strings.Contains(cleanState, dao.NodeStateDrain) ||
+		strings.Contains(cleanState, dao.NodeStateDraining) ||
+		(node.Reason != "" && node.Reason != "Not responding")
+}
+
+// showResumeError shows an error modal for resume operation
+func (v *NodesView) showResumeError(nodeName, state string) {
+	if v.pages == nil {
+		return
+	}
+
+	errorModal := tview.NewModal().
+		SetText(fmt.Sprintf("Node %s is in state '%s' with no drain reason. Only drained nodes can be resumed.", nodeName, state)).
+		AddButtons([]string{"OK"}).
+		SetDoneFunc(func(_ int, _ string) {
+			v.pages.RemovePage("error")
+			v.app.SetFocus(v.table.Table)
+		})
+	v.pages.AddPage("error", errorModal, true, true)
 }
 
 // performResumeNode performs the node resume operation
