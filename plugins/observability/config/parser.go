@@ -307,6 +307,13 @@ func (p *Parser) parseCleanupInterval(key string, config *CacheConfig) {
 // parseMetricsConfig parses Metrics-specific configuration
 	//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseMetricsConfig(config *MetricsConfig) error {
+	p.parseNodeMetrics(config)
+	p.parseJobMetrics(config)
+	return nil
+}
+
+// parseNodeMetrics parses node-specific metrics configuration
+func (p *Parser) parseNodeMetrics(config *MetricsConfig) {
 	if val, ok := p.getValue("metrics.node.nodeLabel"); ok {
 		if str, ok := val.(string); ok {
 			config.Node.NodeLabel = str
@@ -324,7 +331,10 @@ func (p *Parser) parseMetricsConfig(config *MetricsConfig) error {
 			config.Node.EnabledMetrics = arr
 		}
 	}
+}
 
+// parseJobMetrics parses job-specific metrics configuration
+func (p *Parser) parseJobMetrics(config *MetricsConfig) {
 	if val, ok := p.getValue("metrics.job.enabled"); ok {
 		if b, err := p.parseBool(val); err == nil {
 			config.Job.Enabled = b
@@ -342,8 +352,6 @@ func (p *Parser) parseMetricsConfig(config *MetricsConfig) error {
 			config.Job.EnabledMetrics = arr
 		}
 	}
-
-	return nil
 }
 
 // parseSecurityConfig parses Security-specific configuration
