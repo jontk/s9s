@@ -572,28 +572,19 @@ func (nm *Manager) defaultSearch(query string) []string {
 // executeCommand executes a command from the command palette
 // Assumes lock is already held by caller (via handleCommandInput from HandleInput)
 func (nm *Manager) executeCommand(command string) {
-	// Parse and execute command
 	parts := strings.Fields(command)
 	if len(parts) == 0 {
 		return
 	}
 
 	cmd := strings.ToLower(parts[0])
+	args := parts[1:]
 
 	switch cmd {
 	case "go", "nav", "navigate":
-		if len(parts) >= 2 {
-			targetName := strings.Join(parts[1:], " ")
-			if targetID := nm.findTargetByName(targetName); targetID != "" {
-				_ = nm.navigateToTargetLocked(targetID, true)
-			}
-		}
+		nm.handleNavigate(args)
 	case "search", "find":
-		if len(parts) >= 2 {
-			query := strings.Join(parts[1:], " ")
-			nm.searchQuery = query
-			nm.performSearch()
-		}
+		nm.handleSearch(args)
 	case "help":
 		nm.ShowHelp()
 	case "back":
@@ -602,6 +593,25 @@ func (nm *Manager) executeCommand(command string) {
 		nm.GoForward()
 	case "refresh":
 		nm.RefreshCurrentTarget()
+	}
+}
+
+// handleNavigate handles navigation commands
+func (nm *Manager) handleNavigate(args []string) {
+	if len(args) >= 1 {
+		targetName := strings.Join(args, " ")
+		if targetID := nm.findTargetByName(targetName); targetID != "" {
+			_ = nm.navigateToTargetLocked(targetID, true)
+		}
+	}
+}
+
+// handleSearch handles search commands
+func (nm *Manager) handleSearch(args []string) {
+	if len(args) >= 1 {
+		query := strings.Join(args, " ")
+		nm.searchQuery = query
+		nm.performSearch()
 	}
 }
 
