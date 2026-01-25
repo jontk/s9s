@@ -160,34 +160,42 @@ func (v *HealthView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return event
 	}
 
-	switch event.Key() {
-	case tcell.KeyRune:
-		switch event.Rune() {
-		case 'a', 'A':
-			v.acknowledgeAlert()
-			return nil
-		case 'r':
-			v.resolveAlert()
-			return nil
-		case 'R':
-			go func() { _ = v.Refresh() }()
-			return nil
-		case 'c', 'C':
-			v.clearResolvedAlerts()
-			return nil
-		case 'h', 'H':
-			v.showHealthDetails()
-			return nil
-		case 's', 'S':
-			v.showHealthStats()
-			return nil
-		}
-	case tcell.KeyEnter:
-		v.showAlertDetails()
+	if handler, ok := v.healthKeyHandlers()[event.Key()]; ok {
+		handler()
 		return nil
 	}
 
+	if event.Key() == tcell.KeyRune {
+		if handler, ok := v.healthRuneHandlers()[event.Rune()]; ok {
+			handler()
+			return nil
+		}
+	}
+
 	return event
+}
+
+// healthKeyHandlers returns a map of function key handlers
+func (v *HealthView) healthKeyHandlers() map[tcell.Key]func() {
+	return map[tcell.Key]func(){
+		tcell.KeyEnter: v.showAlertDetails,
+	}
+}
+
+// healthRuneHandlers returns a map of rune handlers
+func (v *HealthView) healthRuneHandlers() map[rune]func() {
+	return map[rune]func(){
+		'a': v.acknowledgeAlert,
+		'A': v.acknowledgeAlert,
+		'r': v.resolveAlert,
+		'R': func() { go func() { _ = v.Refresh() }() },
+		'c': v.clearResolvedAlerts,
+		'C': v.clearResolvedAlerts,
+		'h': v.showHealthDetails,
+		'H': v.showHealthDetails,
+		's': v.showHealthStats,
+		'S': v.showHealthStats,
+	}
 }
 
 // OnFocus handles focus events

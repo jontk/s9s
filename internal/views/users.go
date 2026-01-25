@@ -210,36 +210,43 @@ func (v *UsersView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	switch event.Key() {
-	case tcell.KeyF3:
-		v.showAdvancedFilter()
+	if handler, ok := v.usersKeyHandlers()[event.Key()]; ok {
+		handler()
 		return nil
-	case tcell.KeyCtrlF:
-		v.showGlobalSearch()
-		return nil
-	case tcell.KeyRune:
-		switch event.Rune() {
-		case 'R':
-			go func() { _ = v.Refresh() }()
-			return nil
-		case '/':
-			v.app.SetFocus(v.filterInput)
-			return nil
-		case 'a', 'A':
-			v.toggleAdminFilter()
-			return nil
-		}
-	case tcell.KeyEnter:
-		v.showUserDetails()
-		return nil
-	case tcell.KeyEsc:
-		if v.filterInput.HasFocus() {
-			v.app.SetFocus(v.table.Table)
+	}
+
+	if event.Key() == tcell.KeyRune {
+		if handler, ok := v.usersRuneHandlers()[event.Rune()]; ok {
+			handler()
 			return nil
 		}
 	}
 
+	if event.Key() == tcell.KeyEsc && v.filterInput.HasFocus() {
+		v.app.SetFocus(v.table.Table)
+		return nil
+	}
+
 	return event
+}
+
+// usersKeyHandlers returns a map of function key handlers
+func (v *UsersView) usersKeyHandlers() map[tcell.Key]func() {
+	return map[tcell.Key]func(){
+		tcell.KeyF3:    v.showAdvancedFilter,
+		tcell.KeyCtrlF: v.showGlobalSearch,
+		tcell.KeyEnter: v.showUserDetails,
+	}
+}
+
+// usersRuneHandlers returns a map of rune handlers
+func (v *UsersView) usersRuneHandlers() map[rune]func() {
+	return map[rune]func(){
+		'R': func() { go func() { _ = v.Refresh() }() },
+		'/': func() { v.app.SetFocus(v.filterInput) },
+		'a': v.toggleAdminFilter,
+		'A': v.toggleAdminFilter,
+	}
 }
 
 // OnFocus handles focus events

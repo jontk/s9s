@@ -214,33 +214,41 @@ func (v *QoSView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	switch event.Key() {
-	case tcell.KeyF3:
-		v.showAdvancedFilter()
+	if handler, ok := v.qosKeyHandlers()[event.Key()]; ok {
+		handler()
 		return nil
-	case tcell.KeyCtrlF:
-		v.showGlobalSearch()
-		return nil
-	case tcell.KeyRune:
-		switch event.Rune() {
-		case 'R':
-			go func() { _ = v.Refresh() }()
-			return nil
-		case '/':
-			v.app.SetFocus(v.filterInput)
-			return nil
-		}
-	case tcell.KeyEnter:
-		v.showQoSDetails()
-		return nil
-	case tcell.KeyEsc:
-		if v.filterInput.HasFocus() {
-			v.app.SetFocus(v.table.Table)
+	}
+
+	if event.Key() == tcell.KeyRune {
+		if handler, ok := v.qosRuneHandlers()[event.Rune()]; ok {
+			handler()
 			return nil
 		}
 	}
 
+	if event.Key() == tcell.KeyEsc && v.filterInput.HasFocus() {
+		v.app.SetFocus(v.table.Table)
+		return nil
+	}
+
 	return event
+}
+
+// qosKeyHandlers returns a map of function key handlers
+func (v *QoSView) qosKeyHandlers() map[tcell.Key]func() {
+	return map[tcell.Key]func(){
+		tcell.KeyF3:    v.showAdvancedFilter,
+		tcell.KeyCtrlF: v.showGlobalSearch,
+		tcell.KeyEnter: v.showQoSDetails,
+	}
+}
+
+// qosRuneHandlers returns a map of rune handlers
+func (v *QoSView) qosRuneHandlers() map[rune]func() {
+	return map[rune]func(){
+		'R': func() { go func() { _ = v.Refresh() }() },
+		'/': func() { v.app.SetFocus(v.filterInput) },
+	}
 }
 
 // OnFocus handles focus events

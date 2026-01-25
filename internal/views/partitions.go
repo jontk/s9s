@@ -212,29 +212,32 @@ func (v *PartitionsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	// Dispatch to appropriate handler by key type
-	switch event.Key() {
-	case tcell.KeyF3:
-		v.showAdvancedFilter()
+	if handler, ok := v.partitionsKeyHandlers()[event.Key()]; ok {
+		handler()
 		return nil
-	case tcell.KeyCtrlF:
-		v.showGlobalSearch()
-		return nil
-	case tcell.KeyRune:
-		if handled := v.handleRuneCommand(event.Rune()); handled {
-			return nil
-		}
-	case tcell.KeyEnter:
-		v.showPartitionDetails()
-		return nil
-	case tcell.KeyEsc:
-		if v.filterInput.HasFocus() {
-			v.app.SetFocus(v.table.Table)
+	}
+
+	if event.Key() == tcell.KeyRune {
+		if v.handleRuneCommand(event.Rune()) {
 			return nil
 		}
 	}
 
+	if event.Key() == tcell.KeyEsc && v.filterInput.HasFocus() {
+		v.app.SetFocus(v.table.Table)
+		return nil
+	}
+
 	return event
+}
+
+// partitionsKeyHandlers returns a map of function key handlers
+func (v *PartitionsView) partitionsKeyHandlers() map[tcell.Key]func() {
+	return map[tcell.Key]func(){
+		tcell.KeyF3:    v.showAdvancedFilter,
+		tcell.KeyCtrlF: v.showGlobalSearch,
+		tcell.KeyEnter: v.showPartitionDetails,
+	}
 }
 
 func (v *PartitionsView) handleFilterInputFocus(event *tcell.EventKey) *tcell.EventKey {
