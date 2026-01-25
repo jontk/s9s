@@ -224,6 +224,21 @@ make fmt
 pre-commit install
 ```
 
+### Linting Gate (Automated Enforcement)
+
+All pull requests are automatically checked by our CI/CD pipeline. **Linting failures block merges** to ensure code quality.
+
+- ✅ Lint job runs on every push and PR
+- ✅ Build depends on lint passing
+- ✅ Branch protection requires lint check
+- ✅ Pre-commit hooks catch issues before push
+
+See [docs/CI_CD_SETUP.md](docs/CI_CD_SETUP.md) for complete CI/CD documentation including:
+- How the linting gate works
+- Troubleshooting failed CI checks
+- Branch protection rule configuration
+- Local testing before pushing
+
 ### Recent Linting Improvements
 
 As of **PR #29**, we completed a comprehensive 3-phase systematic fix of revive linter violations:
@@ -514,6 +529,9 @@ Look for issues labeled:
 - [tview Documentation](https://github.com/rivo/tview/wiki)
 - [SLURM Documentation](https://slurm.schedmd.com/documentation.html)
 - [s9s Architecture](docs/ARCHITECTURE.md)
+- [CI/CD Setup & Linting Gate](docs/CI_CD_SETUP.md)
+- [Linting Standards](docs/LINTING.md)
+- [Pre-commit Hook Setup](docs/PRE_COMMIT_SETUP.md)
 
 ## 🤝 Getting Help
 
