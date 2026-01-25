@@ -362,55 +362,31 @@ func (c *Components) Stop() error {
 	var errors []error
 
 	// Note: ExternalAPI.Stop needs a context, we'll handle this in the main plugin
-
-	// Stop historical collector
-	if c.HistoricalCollector != nil {
-		if err := c.HistoricalCollector.Stop(); err != nil {
-			errors = append(errors, fmt.Errorf("failed to stop historical collector: %w", err))
-		}
-	}
-
-	// Stop subscription persistence
-	if c.Persistence != nil {
-		c.Persistence.Stop()
-	}
-
-	// Stop subscription manager
-	if c.SubscriptionMgr != nil {
-		if err := c.SubscriptionMgr.Stop(); err != nil {
-			errors = append(errors, fmt.Errorf("failed to stop subscription manager: %w", err))
-		}
-	}
-
-	// Stop overlay manager
-	if c.OverlayMgr != nil {
-		if err := c.OverlayMgr.Stop(); err != nil {
-			errors = append(errors, fmt.Errorf("failed to stop overlay manager: %w", err))
-		}
-	}
-
-	// Stop metrics collector
-	if c.MetricsCollector != nil {
-		if err := c.MetricsCollector.Stop(); err != nil {
-			errors = append(errors, fmt.Errorf("failed to stop metrics collector: %w", err))
-		}
-	}
-
-	// Stop cached client
-	if c.CachedClient != nil {
-		c.CachedClient.Stop()
-	}
-
-	// Stop secrets manager
-	if c.SecretsManager != nil {
-		if err := c.SecretsManager.Stop(); err != nil {
-			errors = append(errors, fmt.Errorf("failed to stop secrets manager: %w", err))
-		}
-	}
+	c.stopErrorComponent(c.HistoricalCollector, "historical collector", &errors)
+	c.stopComponent(c.Persistence)
+	c.stopErrorComponent(c.SubscriptionMgr, "subscription manager", &errors)
+	c.stopErrorComponent(c.OverlayMgr, "overlay manager", &errors)
+	c.stopErrorComponent(c.MetricsCollector, "metrics collector", &errors)
+	c.stopComponent(c.CachedClient)
+	c.stopErrorComponent(c.SecretsManager, "secrets manager", &errors)
 
 	if len(errors) > 0 {
 		return fmt.Errorf("errors during shutdown: %v", errors)
 	}
 
 	return nil
+}
+
+func (c *Components) stopComponent(component interface{ Stop() }) {
+	if component != nil {
+		component.Stop()
+	}
+}
+
+func (c *Components) stopErrorComponent(component interface{ Stop() error }, name string, errors *[]error) {
+	if component != nil {
+		if err := component.Stop(); err != nil {
+			*errors = append(*errors, fmt.Errorf("failed to stop %s: %w", name, err))
+		}
+	}
 }

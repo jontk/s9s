@@ -84,35 +84,42 @@ func (jmc *JobMetricsCollector) extractResourceMetrics(metrics map[string]*TimeS
 		Timestamp: time.Now(),
 	}
 
-	// CPU metrics
+	jmc.extractCPUMetrics(&rm, metrics)
+	jmc.extractMemoryMetrics(&rm, metrics)
+
+	return rm
+}
+
+func (jmc *JobMetricsCollector) extractCPUMetrics(rm *ResourceMetrics, metrics map[string]*TimeSeries) {
 	if cpuUsage, ok := metrics["job_cpu_usage"]; ok && cpuUsage.Latest() != nil {
 		rm.CPU.Usage = cpuUsage.Latest().Value
 	}
 	if cpuThrottled, ok := metrics["job_cpu_throttled"]; ok && cpuThrottled.Latest() != nil {
 		rm.CPU.Throttled = cpuThrottled.Latest().Value
 	}
+}
 
-	// Memory metrics
+func (jmc *JobMetricsCollector) extractMemoryMetrics(rm *ResourceMetrics, metrics map[string]*TimeSeries) {
 	if memUsage, ok := metrics["job_memory_usage"]; ok && memUsage.Latest() != nil {
 		rm.Memory.Used = uint64(memUsage.Latest().Value)
 	}
 	if memLimit, ok := metrics["job_memory_limit"]; ok && memLimit.Latest() != nil {
-		// This is the cgroup limit, which might be different from SLURM allocation
-		limit := uint64(memLimit.Latest().Value)
-		rm.Memory.Limit = limit // Store the limit
-		if limit > 0 {
-			rm.Memory.Usage = float64(rm.Memory.Used) / float64(limit) * 100
-		}
+		jmc.setMemoryLimit(rm, memLimit)
 	}
 	if memCache, ok := metrics["job_memory_cache"]; ok && memCache.Latest() != nil {
 		rm.Memory.Cache = uint64(memCache.Latest().Value)
 	}
 	if memRSS, ok := metrics["job_memory_rss"]; ok && memRSS.Latest() != nil {
-		// RSS is often more accurate for actual memory usage
 		rm.Memory.Used = uint64(memRSS.Latest().Value)
 	}
+}
 
-	return rm
+func (jmc *JobMetricsCollector) setMemoryLimit(rm *ResourceMetrics, memLimit *TimeSeries) {
+	limit := uint64(memLimit.Latest().Value)
+	rm.Memory.Limit = limit
+	if limit > 0 {
+		rm.Memory.Usage = float64(rm.Memory.Used) / float64(limit) * 100
+	}
 }
 
 // UpdateJobInfo updates SLURM job information
