@@ -215,64 +215,76 @@ func (w *Wizard) setupCluster() error {
 
 // autoDetectCluster attempts to automatically detect SLURM cluster
 func (w *Wizard) autoDetectCluster() *config.ClusterConfig {
-	// Check for SLURM environment variables
 	slurmctlHost := os.Getenv("SLURM_CONTROLLER_HOST")
 	slurmConfDir := os.Getenv("SLURM_CONF_DIR")
 
-	// Check common SLURM paths
+	slurmConf := w.findSlurmConfig(slurmConfDir)
+	restEndpoint := w.detectRESTEndpoint(slurmctlHost)
+
+	if slurmConf != "" || restEndpoint != "" {
+		return w.buildClusterConfig(restEndpoint, slurmctlHost)
+	}
+
+	return nil
+}
+
+// findSlurmConfig locates SLURM configuration file
+func (w *Wizard) findSlurmConfig(slurmConfDir string) string {
+	if slurmConfDir != "" {
+		return filepath.Join(slurmConfDir, "slurm.conf")
+	}
+
 	commonPaths := []string{
 		"/etc/slurm/slurm.conf",
 		"/usr/local/etc/slurm.conf",
 		"/opt/slurm/etc/slurm.conf",
 	}
 
-	var slurmConf string
-	if slurmConfDir != "" {
-		slurmConf = filepath.Join(slurmConfDir, "slurm.conf")
-	} else {
-		for _, path := range commonPaths {
-			if _, err := os.Stat(path); err == nil {
-				slurmConf = path
-				break
-			}
+	for _, path := range commonPaths {
+		if _, err := os.Stat(path); err == nil {
+			return path
 		}
 	}
 
-	// Try to detect REST API endpoint
-	var restEndpoint string
+	return ""
+}
+
+// detectRESTEndpoint attempts to find a working REST API endpoint
+func (w *Wizard) detectRESTEndpoint(slurmctlHost string) string {
+	// Try controller host first
 	if slurmctlHost != "" {
-		restEndpoint = fmt.Sprintf("https://%s:6820", slurmctlHost)
+		endpoint := fmt.Sprintf("https://%s:6820", slurmctlHost)
+		return endpoint
 	}
 
-	// Check for local slurmrestd
-	if restEndpoint == "" {
-		// Try common local endpoints
-		candidates := []string{
-			"http://localhost:6820",
-			"https://localhost:6820",
-			"http://127.0.0.1:6820",
-		}
-		for _, endpoint := range candidates {
-			if w.testEndpoint(endpoint) {
-				restEndpoint = endpoint
-				break
-			}
-		}
+	// Try common local endpoints
+	candidates := []string{
+		"http://localhost:6820",
+		"https://localhost:6820",
+		"http://127.0.0.1:6820",
 	}
 
-	if slurmConf != "" || restEndpoint != "" {
-		endpoint := restEndpoint
-		if endpoint == "" && slurmctlHost != "" {
-			endpoint = fmt.Sprintf("http://%s:6820", slurmctlHost)
-		}
-		return &config.ClusterConfig{
-			Endpoint:   endpoint,
-			APIVersion: "v0.0.43",
-			Timeout:    "30s",
+	for _, endpoint := range candidates {
+		if w.testEndpoint(endpoint) {
+			return endpoint
 		}
 	}
 
-	return nil
+	return ""
+}
+
+// buildClusterConfig creates cluster configuration from detected values
+func (w *Wizard) buildClusterConfig(restEndpoint, slurmctlHost string) *config.ClusterConfig {
+	endpoint := restEndpoint
+	if endpoint == "" && slurmctlHost != "" {
+		endpoint = fmt.Sprintf("http://%s:6820", slurmctlHost)
+	}
+
+	return &config.ClusterConfig{
+		Endpoint:   endpoint,
+		APIVersion: "v0.0.43",
+		Timeout:    "30s",
+	}
 }
 
 // manualClusterConfig guides manual cluster configuration
