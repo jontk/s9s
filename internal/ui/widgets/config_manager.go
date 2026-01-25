@@ -210,27 +210,21 @@ func (cm *ConfigManager) addFormField(field config.ConfigField) {
 		label += "*"
 	}
 
-	switch field.Type {
-	case config.FieldTypeString:
-		cm.addStringField(label, field)
-	case config.FieldTypeInt:
-		cm.addIntField(label, field)
-	case config.FieldTypeBool:
-		cm.addBoolField(label, field)
-	case config.FieldTypeSelect:
-		cm.addSelectField(label, field)
-	case config.FieldTypeArray:
-		cm.addArrayField(label, field)
-	case config.FieldTypeDuration:
-		cm.addDurationField(label, field)
-	case config.FieldTypeContext:
-		cm.addContextField(field)
-	case config.FieldTypeShortcut:
-		cm.addShortcutField(field)
-	case config.FieldTypeAlias:
-		cm.addAliasField(field)
-	case config.FieldTypePlugin:
-		cm.addPluginField(field)
+	fieldAdders := map[config.FieldType]func(){
+		config.FieldTypeString:    func() { cm.addStringField(label, field) },
+		config.FieldTypeInt:       func() { cm.addIntField(label, field) },
+		config.FieldTypeBool:      func() { cm.addBoolField(label, field) },
+		config.FieldTypeSelect:    func() { cm.addSelectField(label, field) },
+		config.FieldTypeArray:     func() { cm.addArrayField(label, field) },
+		config.FieldTypeDuration:  func() { cm.addDurationField(label, field) },
+		config.FieldTypeContext:   func() { cm.addContextField(field) },
+		config.FieldTypeShortcut:  func() { cm.addShortcutField(field) },
+		config.FieldTypeAlias:     func() { cm.addAliasField(field) },
+		config.FieldTypePlugin:    func() { cm.addPluginField(field) },
+	}
+
+	if adder, ok := fieldAdders[field.Type]; ok {
+		adder()
 	}
 }
 
@@ -544,27 +538,46 @@ func (cm *ConfigManager) setUIValue(ui *config.UIConfig, path []string, value in
 		return
 	}
 
-	switch path[0] {
-	case "skin":
-		if v, ok := value.(string); ok {
-			ui.Skin = v
-		}
-	case "enableMouse":
-		if v, ok := value.(bool); ok {
-			ui.EnableMouse = v
-		}
-	case "logoless":
-		if v, ok := value.(bool); ok {
-			ui.Logoless = v
-		}
-	case "statusless":
-		if v, ok := value.(bool); ok {
-			ui.Statusless = v
-		}
-	case "noIcons":
-		if v, ok := value.(bool); ok {
-			ui.NoIcons = v
-		}
+	setters := map[string]func(){
+		"skin":        func() { cm.setUISkin(ui, value) },
+		"enableMouse": func() { cm.setUIMouse(ui, value) },
+		"logoless":    func() { cm.setUILogoless(ui, value) },
+		"statusless":  func() { cm.setUIStatusless(ui, value) },
+		"noIcons":     func() { cm.setUIIcons(ui, value) },
+	}
+
+	if setter, ok := setters[path[0]]; ok {
+		setter()
+	}
+}
+
+func (cm *ConfigManager) setUISkin(ui *config.UIConfig, value interface{}) {
+	if v, ok := value.(string); ok {
+		ui.Skin = v
+	}
+}
+
+func (cm *ConfigManager) setUIMouse(ui *config.UIConfig, value interface{}) {
+	if v, ok := value.(bool); ok {
+		ui.EnableMouse = v
+	}
+}
+
+func (cm *ConfigManager) setUILogoless(ui *config.UIConfig, value interface{}) {
+	if v, ok := value.(bool); ok {
+		ui.Logoless = v
+	}
+}
+
+func (cm *ConfigManager) setUIStatusless(ui *config.UIConfig, value interface{}) {
+	if v, ok := value.(bool); ok {
+		ui.Statusless = v
+	}
+}
+
+func (cm *ConfigManager) setUIIcons(ui *config.UIConfig, value interface{}) {
+	if v, ok := value.(bool); ok {
+		ui.NoIcons = v
 	}
 }
 
@@ -621,23 +634,39 @@ func (cm *ConfigManager) setJobsViewValue(jobs *config.JobsViewConfig, path []st
 		return
 	}
 
-	switch path[0] {
-	case "columns":
-		if v, ok := value.([]string); ok {
-			jobs.Columns = v
-		}
-	case "showOnlyActive":
-		if v, ok := value.(bool); ok {
-			jobs.ShowOnlyActive = v
-		}
-	case "defaultSort":
-		if v, ok := value.(string); ok {
-			jobs.DefaultSort = v
-		}
-	case "maxJobs":
-		if v, ok := value.(int); ok {
-			jobs.MaxJobs = v
-		}
+	setters := map[string]func(){
+		"columns":      func() { cm.setJobsColumns(jobs, value) },
+		"showOnlyActive": func() { cm.setJobsShowOnlyActive(jobs, value) },
+		"defaultSort":  func() { cm.setJobsDefaultSort(jobs, value) },
+		"maxJobs":      func() { cm.setJobsMaxJobs(jobs, value) },
+	}
+
+	if setter, ok := setters[path[0]]; ok {
+		setter()
+	}
+}
+
+func (cm *ConfigManager) setJobsColumns(jobs *config.JobsViewConfig, value interface{}) {
+	if v, ok := value.([]string); ok {
+		jobs.Columns = v
+	}
+}
+
+func (cm *ConfigManager) setJobsShowOnlyActive(jobs *config.JobsViewConfig, value interface{}) {
+	if v, ok := value.(bool); ok {
+		jobs.ShowOnlyActive = v
+	}
+}
+
+func (cm *ConfigManager) setJobsDefaultSort(jobs *config.JobsViewConfig, value interface{}) {
+	if v, ok := value.(string); ok {
+		jobs.DefaultSort = v
+	}
+}
+
+func (cm *ConfigManager) setJobsMaxJobs(jobs *config.JobsViewConfig, value interface{}) {
+	if v, ok := value.(int); ok {
+		jobs.MaxJobs = v
 	}
 }
 
