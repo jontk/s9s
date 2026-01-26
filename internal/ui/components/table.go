@@ -1,6 +1,8 @@
 package components
 
 import (
+	"fmt"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -127,8 +129,9 @@ func NewTable(config *TableConfig) *Table {
 			Foreground(tcell.ColorBlack))
 	}
 
-	// Set up input handling
-	table.SetInputCapture(table.handleInput)
+	// Note: InputCapture is NOT set here. Views handle all keyboard input in their OnKey methods.
+	// Setting InputCapture on the table was intercepting events before they could reach the view's OnKey.
+	// Instead, views should call table.handleInput manually if needed for navigation keys.
 
 	return table
 }
@@ -400,6 +403,13 @@ func (t *Table) handleInput(event *tcell.EventKey) *tcell.EventKey {
 	// Handle navigation keys
 	if t.handleNavigationKeys(event) {
 		return nil
+	}
+
+	// DEBUG: Log keys that are being returned
+	if keyName, ok := tcell.KeyNames[event.Key()]; ok {
+		if event.Key() == tcell.KeyEnter || event.Key() == tcell.KeyF2 {
+			fmt.Fprintf(os.Stderr, "DEBUG Table.handleInput: Returning unhandled key: %s (%d)\n", keyName, event.Key())
+		}
 	}
 
 	return event
