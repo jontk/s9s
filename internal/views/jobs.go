@@ -303,14 +303,14 @@ func (v *JobsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
+	// Handle by special key first
+	if handler, ok := v.jobsKeyHandlers()[event.Key()]; ok {
+		return handler(v, event)
+	}
+
 	// Handle by key type
 	if event.Key() == tcell.KeyRune {
 		return v.handleJobsViewRune(event)
-	}
-
-	// Handle by special key
-	if handler, ok := v.jobsKeyHandlers()[event.Key()]; ok {
-		return handler(v, event)
 	}
 
 	return event
