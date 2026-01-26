@@ -201,14 +201,15 @@ func (v *PartitionsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return event
 	}
 
-	// Handle filter input focus interactions
-	if result := v.handleFilterInputFocus(event); result != nil {
-		return result
-	}
-
 	// Handle other keyboard events
 	if result := v.handlePartitionKey(event); result != nil {
 		return result
+	}
+
+	// Handle filter input focus for ESC key only (after trying view handlers)
+	if event.Key() == tcell.KeyEsc && v.filterInput != nil && v.filterInput.HasFocus() {
+		v.app.SetFocus(v.table.Table)
+		return nil
 	}
 
 	return event
