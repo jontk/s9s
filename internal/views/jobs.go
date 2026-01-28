@@ -326,11 +326,11 @@ func (v *JobsView) handleJobsViewRune(event *tcell.EventKey) *tcell.EventKey {
 // jobsKeyHandlers returns a map of special keys to their handlers
 func (v *JobsView) jobsKeyHandlers() map[tcell.Key]func(*JobsView, *tcell.EventKey) *tcell.EventKey {
 	return map[tcell.Key]func(*JobsView, *tcell.EventKey) *tcell.EventKey{
-		tcell.KeyF1:     func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobActions(); return nil },
-		tcell.KeyF2:     func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobTemplateSelector(); return nil },
-		tcell.KeyF3:     func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
-		tcell.KeyCtrlF:  func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showGlobalSearch(); return nil },
-		tcell.KeyEnter:  func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobDetails(); return nil },
+		tcell.KeyF1:    func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobActions(); return nil },
+		tcell.KeyF2:    func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobTemplateSelector(); return nil },
+		tcell.KeyF3:    func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
+		tcell.KeyCtrlF: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showGlobalSearch(); return nil },
+		tcell.KeyEnter: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobDetails(); return nil },
 	}
 }
 
@@ -358,8 +358,14 @@ func (v *JobsView) jobsRuneHandlers() map[rune]func(*JobsView, *tcell.EventKey) 
 		'/': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.app.SetFocus(v.filterInput); return nil },
 		'a': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter("all"); return nil },
 		'A': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter("all"); return nil },
-		'p': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter(dao.JobStatePending); return nil },
-		'P': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter(dao.JobStatePending); return nil },
+		'p': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey {
+			v.toggleStateFilter(dao.JobStatePending)
+			return nil
+		},
+		'P': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey {
+			v.toggleStateFilter(dao.JobStatePending)
+			return nil
+		},
 		'u': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.promptUserFilter(); return nil },
 		'U': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.promptUserFilter(); return nil },
 		'v': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleMultiSelectMode(); return nil },

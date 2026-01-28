@@ -105,10 +105,10 @@ func TestTokenIsExpired(t *testing.T) {
 
 func TestTokenExpiresIn(t *testing.T) {
 	tests := []struct {
-		name         string
-		token        *Token
-		expectedMin  time.Duration
-		expectedMax  time.Duration
+		name          string
+		token         *Token
+		expectedMin   time.Duration
+		expectedMax   time.Duration
 		checkNegative bool
 	}{
 		{
@@ -117,7 +117,7 @@ func TestTokenExpiresIn(t *testing.T) {
 				AccessToken: "test-token",
 				ExpiresAt:   time.Now().Add(1 * time.Hour),
 			},
-			expectedMin: 59 * time.Minute,  // Allow some tolerance
+			expectedMin: 59 * time.Minute, // Allow some tolerance
 			expectedMax: 61 * time.Minute,
 		},
 		{

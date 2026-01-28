@@ -16,7 +16,7 @@ func TestCommandExecution(t *testing.T) {
 		{"jobs_short", "j", "jobs"},
 		{"nodes_short", "n", "nodes"},
 		{"partitions_short", "p", "partitions"},
-		{"help", "help", ""},   // May show modal
+		{"help", "help", ""},           // May show modal
 		{"refresh", "refresh", "jobs"}, // Should stay on current view
 	}
 

@@ -211,16 +211,16 @@ func (cm *ConfigManager) addFormField(field *config.ConfigField) {
 	}
 
 	fieldAdders := map[config.FieldType]func(){
-		config.FieldTypeString:    func() { cm.addStringField(label, field) },
-		config.FieldTypeInt:       func() { cm.addIntField(label, field) },
-		config.FieldTypeBool:      func() { cm.addBoolField(label, field) },
-		config.FieldTypeSelect:    func() { cm.addSelectField(label, field) },
-		config.FieldTypeArray:     func() { cm.addArrayField(label, field) },
-		config.FieldTypeDuration:  func() { cm.addDurationField(label, field) },
-		config.FieldTypeContext:   func() { cm.addContextField(field) },
-		config.FieldTypeShortcut:  func() { cm.addShortcutField(field) },
-		config.FieldTypeAlias:     func() { cm.addAliasField(field) },
-		config.FieldTypePlugin:    func() { cm.addPluginField(field) },
+		config.FieldTypeString:   func() { cm.addStringField(label, field) },
+		config.FieldTypeInt:      func() { cm.addIntField(label, field) },
+		config.FieldTypeBool:     func() { cm.addBoolField(label, field) },
+		config.FieldTypeSelect:   func() { cm.addSelectField(label, field) },
+		config.FieldTypeArray:    func() { cm.addArrayField(label, field) },
+		config.FieldTypeDuration: func() { cm.addDurationField(label, field) },
+		config.FieldTypeContext:  func() { cm.addContextField(field) },
+		config.FieldTypeShortcut: func() { cm.addShortcutField(field) },
+		config.FieldTypeAlias:    func() { cm.addAliasField(field) },
+		config.FieldTypePlugin:   func() { cm.addPluginField(field) },
 	}
 
 	if adder, ok := fieldAdders[field.Type]; ok {
@@ -635,10 +635,10 @@ func (cm *ConfigManager) setJobsViewValue(jobs *config.JobsViewConfig, path []st
 	}
 
 	setters := map[string]func(){
-		"columns":      func() { cm.setJobsColumns(jobs, value) },
+		"columns":        func() { cm.setJobsColumns(jobs, value) },
 		"showOnlyActive": func() { cm.setJobsShowOnlyActive(jobs, value) },
-		"defaultSort":  func() { cm.setJobsDefaultSort(jobs, value) },
-		"maxJobs":      func() { cm.setJobsMaxJobs(jobs, value) },
+		"defaultSort":    func() { cm.setJobsDefaultSort(jobs, value) },
+		"maxJobs":        func() { cm.setJobsMaxJobs(jobs, value) },
 	}
 
 	if setter, ok := setters[path[0]]; ok {

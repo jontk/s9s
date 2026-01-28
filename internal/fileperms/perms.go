@@ -7,10 +7,10 @@ import "os"
 // Common file permission modes with semantic names
 const (
 	// Directory permissions
-	DirDefault     os.FileMode = 0o755 // rwxr-xr-x - Default directory permissions
-	DirUserOnly    os.FileMode = 0o700 // rwx------ - User-only directory
-	DirGroupWrite  os.FileMode = 0o775 // rwxrwxr-x - Directory with group write
-	DirWorldWrite  os.FileMode = 0o777 // rwxrwxrwx - World-writable directory (use with caution)
+	DirDefault    os.FileMode = 0o755 // rwxr-xr-x - Default directory permissions
+	DirUserOnly   os.FileMode = 0o700 // rwx------ - User-only directory
+	DirGroupWrite os.FileMode = 0o775 // rwxrwxr-x - Directory with group write
+	DirWorldWrite os.FileMode = 0o777 // rwxrwxrwx - World-writable directory (use with caution)
 
 	// Regular file permissions
 	FileDefault    os.FileMode = 0o644 // rw-r--r-- - Default file permissions
@@ -20,21 +20,21 @@ const (
 	FileWorldWrite os.FileMode = 0o666 // rw-rw-rw- - World-writable file (use with caution)
 
 	// Secret/sensitive file permissions
-	SecretFile     os.FileMode = 0o600 // rw------- - Private keys, secrets
-	SecretDir      os.FileMode = 0o700 // rwx------ - Secret directories
+	SecretFile os.FileMode = 0o600 // rw------- - Private keys, secrets
+	SecretDir  os.FileMode = 0o700 // rwx------ - Secret directories
 
 	// Configuration file permissions
-	ConfigFile     os.FileMode = 0o640 // rw-r----- - Config files readable by group
-	ConfigDir      os.FileMode = 0o750 // rwxr-x--- - Config directories
+	ConfigFile os.FileMode = 0o640 // rw-r----- - Config files readable by group
+	ConfigDir  os.FileMode = 0o750 // rwxr-x--- - Config directories
 
 	// Log file permissions
-	LogFile        os.FileMode = 0o640 // rw-r----- - Log files readable by group
-	LogDir         os.FileMode = 0o750 // rwxr-x--- - Log directories
+	LogFile os.FileMode = 0o640 // rw-r----- - Log files readable by group
+	LogDir  os.FileMode = 0o750 // rwxr-x--- - Log directories
 
 	// SSH-related permissions
-	SSHPrivateKey  os.FileMode = 0o600 // rw------- - SSH private keys
-	SSHPublicKey   os.FileMode = 0o644 // rw-r--r-- - SSH public keys
-	SSHDir         os.FileMode = 0o700 // rwx------ - .ssh directory
+	SSHPrivateKey os.FileMode = 0o600 // rw------- - SSH private keys
+	SSHPublicKey  os.FileMode = 0o644 // rw-r--r-- - SSH public keys
+	SSHDir        os.FileMode = 0o700 // rwx------ - .ssh directory
 )
 
 // IsSecure checks if the given file mode is secure (user-only read/write)

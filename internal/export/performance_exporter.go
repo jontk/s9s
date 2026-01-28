@@ -120,10 +120,10 @@ const markdownReportTemplate = `# S9s Performance Report
 // TemplateData wraps PerformanceReportData with additional formatting
 type TemplateData struct {
 	*PerformanceReportData
-	MemoryUsedFormatted   string
-	MemoryTotalFormatted  string
-	Separator             string
-	GeneratedAt           string
+	MemoryUsedFormatted  string
+	MemoryTotalFormatted string
+	Separator            string
+	GeneratedAt          string
 }
 
 // ExportPerformanceReport exports a performance report in the specified format

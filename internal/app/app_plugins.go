@@ -12,6 +12,7 @@ import (
 
 // loadPlugins loads plugins from the configured plugin directories
 // Returns error for extensibility, currently always returns nil
+//
 //nolint:unparam // error parameter kept for future extensibility
 func (s *S9s) loadPlugins() error {
 	// Load plugins from the standard plugins directory
@@ -35,6 +36,7 @@ func (s *S9s) loadPlugins() error {
 
 // registerPluginViews registers all views from loaded plugins
 // Returns error for extensibility, currently always returns nil
+//
 //nolint:unparam // error parameter kept for future extensibility
 func (s *S9s) registerPluginViews() error {
 	// Get all plugin views

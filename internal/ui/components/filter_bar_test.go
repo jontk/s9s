@@ -112,28 +112,28 @@ func TestFilterBarHideWithoutCallback(_ *testing.T) {
 
 func TestFilterBarGetExamplesForView(t *testing.T) {
 	tests := []struct {
-		name         string
-		viewType     string
+		name              string
+		viewType          string
 		expectedSubstring string
 	}{
 		{
-			name:         "jobs view has job-specific examples",
-			viewType:     "jobs",
+			name:              "jobs view has job-specific examples",
+			viewType:          "jobs",
 			expectedSubstring: "state=running",
 		},
 		{
-			name:         "nodes view has node-specific examples",
-			viewType:     "nodes",
+			name:              "nodes view has node-specific examples",
+			viewType:          "nodes",
 			expectedSubstring: "state=idle",
 		},
 		{
-			name:         "partitions view has partition-specific examples",
-			viewType:     "partitions",
+			name:              "partitions view has partition-specific examples",
+			viewType:          "partitions",
 			expectedSubstring: "state=up",
 		},
 		{
-			name:         "unknown view has generic examples",
-			viewType:     "unknown",
+			name:              "unknown view has generic examples",
+			viewType:          "unknown",
 			expectedSubstring: "field=value",
 		},
 	}

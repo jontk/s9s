@@ -91,8 +91,8 @@ func TestValidateConfig(t *testing.T) {
 		errMsg  string
 	}{
 		{
-			name: "valid default config",
-			config: DefaultConfig,
+			name:    "valid default config",
+			config:  DefaultConfig,
 			wantErr: false,
 		},
 		{

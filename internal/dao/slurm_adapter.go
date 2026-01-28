@@ -403,6 +403,7 @@ func (j *jobManager) addFailedOutput(job *Job) string {
 }
 
 // addCancelledOutput returns output for cancelled jobs
+//
 //nolint:misspell // "cancelled" matches SLURM official job state spelling
 func (j *jobManager) addCancelledOutput() string {
 	return "Job was cancelled by user.\n"

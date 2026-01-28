@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jontk/s9s/internal/streaming"
 	"github.com/jontk/s9s/internal/fileperms"
+	"github.com/jontk/s9s/internal/streaming"
 )
 
 // StreamingPreferences represents user preferences for streaming functionality
@@ -177,7 +177,8 @@ func (m *StreamingPreferencesManager) UpdatePreferences(update func(*StreamingPr
 }
 
 // validatePreferences validates preference values
-	//nolint:unparam // Designed for future extensibility; currently always returns nil
+//
+//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (m *StreamingPreferencesManager) validatePreferences(prefs *StreamingPreferences) error {
 	m.validateNumericRanges(prefs)
 	m.validateGridSize(prefs)

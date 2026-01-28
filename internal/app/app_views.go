@@ -10,8 +10,8 @@ import (
 // initViews initializes all the views
 func (s *S9s) initViews() error {
 	viewRegistry := []struct {
-		name      string
-		register  func() error
+		name     string
+		register func() error
 	}{
 		{"jobs", s.registerJobsView},
 		{"nodes", s.registerNodesView},

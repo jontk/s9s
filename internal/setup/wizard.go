@@ -14,9 +14,9 @@ import (
 
 	"github.com/jontk/s9s/internal/config"
 	"github.com/jontk/s9s/internal/debug"
+	"github.com/jontk/s9s/internal/fileperms"
 	"golang.org/x/term"
 	"gopkg.in/yaml.v2"
-	"github.com/jontk/s9s/internal/fileperms"
 )
 
 // Wizard guides users through initial s9s configuration

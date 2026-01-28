@@ -6,11 +6,11 @@ import (
 
 func TestParseScontrolPingOutput(t *testing.T) {
 	tests := []struct {
-		name           string
-		input          string
-		expectedCount  int
-		expectedFirst  ScontrolResult
-		expectError    bool
+		name          string
+		input         string
+		expectedCount int
+		expectedFirst ScontrolResult
+		expectError   bool
 	}{
 		{
 			name:          "single primary controller UP",
@@ -184,12 +184,12 @@ func TestResultToCluster(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		result         ScontrolResult
-		expectNil      bool
-		expectedHost   string
-		expectedPort   int
-		minConfidence  float64
+		name          string
+		result        ScontrolResult
+		expectNil     bool
+		expectedHost  string
+		expectedPort  int
+		minConfidence float64
 	}{
 		{
 			name: "primary UP",

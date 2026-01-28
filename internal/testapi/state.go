@@ -9,11 +9,11 @@ import (
 
 // AppState represents the exportable state of the application
 type AppState struct {
-	CurrentView  string `json:"current_view"`
-	ModalOpen    bool   `json:"modal_open"`
-	ModalName    string `json:"modal_name"`
-	CmdVisible   bool   `json:"cmd_visible"`
-	ViewNames    []string `json:"view_names"`
+	CurrentView string   `json:"current_view"`
+	ModalOpen   bool     `json:"modal_open"`
+	ModalName   string   `json:"modal_name"`
+	CmdVisible  bool     `json:"cmd_visible"`
+	ViewNames   []string `json:"view_names"`
 }
 
 // StateExporter provides methods to export application state for testing

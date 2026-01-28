@@ -154,9 +154,9 @@ func DefaultConfig() *Config {
 				MaxJobs:        100,
 			},
 			Nodes: NodesViewConfig{
-				GroupBy:          "state",
-				ShowUtilization:  true,
-				MaxNodes:         100,
+				GroupBy:         "state",
+				ShowUtilization: true,
+				MaxNodes:        100,
 			},
 			Partitions: PartitionsViewConfig{
 				ShowQueueDepth: true,
@@ -168,10 +168,10 @@ func DefaultConfig() *Config {
 			Pulseye:   false,
 			Xray:      false,
 		},
-		Shortcuts:      []ShortcutConfig{},
-		Aliases:        make(map[string]string),
-		Plugins:        []PluginConfig{},
-		UseMockClient:  false,
+		Shortcuts:     []ShortcutConfig{},
+		Aliases:       make(map[string]string),
+		Plugins:       []PluginConfig{},
+		UseMockClient: false,
 		PluginSettings: PluginSettings{
 			EnableAll:     false,
 			PluginDir:     "",

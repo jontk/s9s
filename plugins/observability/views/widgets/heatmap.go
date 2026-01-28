@@ -157,13 +157,13 @@ func (h *HeatmapWidget) Draw(screen tcell.Screen) {
 }
 
 type heatmapLayout struct {
-	x                 int
-	y                 int
-	maxRowLabelWidth  int
-	colsToShow        int
-	rowsToShow        int
-	availableWidth    int
-	availableHeight   int
+	x                int
+	y                int
+	maxRowLabelWidth int
+	colsToShow       int
+	rowsToShow       int
+	availableWidth   int
+	availableHeight  int
 }
 
 func (h *HeatmapWidget) calculateHeatmapLayout(x, y, width, height int) *heatmapLayout {

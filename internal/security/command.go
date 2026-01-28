@@ -72,11 +72,11 @@ func ValidateCommandPath(cmdPath string) (string, error) {
 // AllowedCommands defines a whitelist of commands that are known to be safe
 // for specific operations. This provides defense in depth beyond path validation.
 var AllowedCommands = map[string][]string{
-	"slurm": {"scontrol", "squeue", "scancel", "sinfo", "sacct"},
-	"ssh":   {"ssh", "ssh-keygen", "ssh-add", "ssh-agent"},
-	"shell": {"bash", "sh", "zsh"},
+	"slurm":        {"scontrol", "squeue", "scancel", "sinfo", "sacct"},
+	"ssh":          {"ssh", "ssh-keygen", "ssh-add", "ssh-agent"},
+	"shell":        {"bash", "sh", "zsh"},
 	"notification": {"notify-send", "osascript"},
-	"editor": {"vi", "vim", "nvim", "nano", "emacs", "code", "subl"},
+	"editor":       {"vi", "vim", "nvim", "nano", "emacs", "code", "subl"},
 }
 
 // IsAllowedCommand checks if a command is in the whitelist for a given category.

@@ -260,9 +260,9 @@ func (v *NodesView) handleNodesViewRune(event *tcell.EventKey) *tcell.EventKey {
 // nodesKeyHandlers returns a map of special keys to their handlers
 func (v *NodesView) nodesKeyHandlers() map[tcell.Key]func(*NodesView, *tcell.EventKey) *tcell.EventKey {
 	return map[tcell.Key]func(*NodesView, *tcell.EventKey) *tcell.EventKey{
-		tcell.KeyF3:     func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
-		tcell.KeyCtrlF:  func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showGlobalSearch(); return nil },
-		tcell.KeyEnter:  func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showNodeDetails(); return nil },
+		tcell.KeyF3:    func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
+		tcell.KeyCtrlF: func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showGlobalSearch(); return nil },
+		tcell.KeyEnter: func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showNodeDetails(); return nil },
 	}
 }
 
@@ -278,10 +278,22 @@ func (v *NodesView) nodesRuneHandlers() map[rune]func(*NodesView, *tcell.EventKe
 		'/': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.app.SetFocus(v.filterInput); return nil },
 		'a': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter("all"); return nil },
 		'A': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter("all"); return nil },
-		'i': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter(dao.NodeStateIdle); return nil },
-		'I': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter(dao.NodeStateIdle); return nil },
-		'm': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter(dao.NodeStateMixed); return nil },
-		'M': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleStateFilter(dao.NodeStateMixed); return nil },
+		'i': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey {
+			v.toggleStateFilter(dao.NodeStateIdle)
+			return nil
+		},
+		'I': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey {
+			v.toggleStateFilter(dao.NodeStateIdle)
+			return nil
+		},
+		'm': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey {
+			v.toggleStateFilter(dao.NodeStateMixed)
+			return nil
+		},
+		'M': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey {
+			v.toggleStateFilter(dao.NodeStateMixed)
+			return nil
+		},
 		'p': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.promptPartitionFilter(); return nil },
 		'P': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.promptPartitionFilter(); return nil },
 		'g': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.promptGroupBy(); return nil },

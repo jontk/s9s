@@ -558,7 +558,8 @@ func (v *ObservabilityView) updateNodeCollector(nodeName string, metrics map[str
 }
 
 // fetchJobMetrics fetches job metrics from Prometheus
-	//nolint:unparam // Designed for future extensibility; currently always returns nil
+//
+//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (v *ObservabilityView) fetchJobMetrics(ctx context.Context) error {
 	jobs := v.getJobList(ctx)
 	logging.Info("observability-view", "Fetching metrics for %d jobs: %v", len(jobs), jobs)

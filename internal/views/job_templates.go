@@ -9,8 +9,8 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
-	"github.com/rivo/tview"
 	"github.com/jontk/s9s/internal/fileperms"
+	"github.com/rivo/tview"
 )
 
 // JobTemplate represents a saved job configuration

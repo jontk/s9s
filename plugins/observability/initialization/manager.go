@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/jontk/s9s/plugins/observability/analysis"
-	"github.com/jontk/s9s/plugins/observability/endpoints"
 	"github.com/jontk/s9s/plugins/observability/config"
+	"github.com/jontk/s9s/plugins/observability/endpoints"
 	"github.com/jontk/s9s/plugins/observability/historical"
 	"github.com/jontk/s9s/plugins/observability/metrics"
 	"github.com/jontk/s9s/plugins/observability/overlays"
@@ -67,8 +67,8 @@ func (m *Manager) InitializeComponents() (*Components, error) {
 	components := &Components{}
 
 	initializers := []struct {
-		name  string
-		fn    func(*Components) error
+		name string
+		fn   func(*Components) error
 	}{
 		{"secrets manager", m.initSecretsManager},
 		{"Prometheus client", m.initPrometheusClient},

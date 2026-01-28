@@ -273,15 +273,15 @@ func evaluateOperator(operator FilterOperator, value, expected interface{}) bool
 
 	// Map remaining operators to their evaluators
 	evaluators := map[FilterOperator]func() bool{
-		OpEquals:     func() bool { return compareEqual(value, expected) },
-		OpNotEquals:  func() bool { return !compareEqual(value, expected) },
-		OpContains:   func() bool { return contains(value, expected) },
+		OpEquals:      func() bool { return compareEqual(value, expected) },
+		OpNotEquals:   func() bool { return !compareEqual(value, expected) },
+		OpContains:    func() bool { return contains(value, expected) },
 		OpNotContains: func() bool { return !contains(value, expected) },
-		OpGreater:    func() bool { return compareGreater(value, expected) },
-		OpLess:       func() bool { return compareLess(value, expected) },
-		OpRegex:      func() bool { return matchRegex(value, expected) },
-		OpIn:         func() bool { return isIn(value, expected) },
-		OpNotIn:      func() bool { return !isIn(value, expected) },
+		OpGreater:     func() bool { return compareGreater(value, expected) },
+		OpLess:        func() bool { return compareLess(value, expected) },
+		OpRegex:       func() bool { return matchRegex(value, expected) },
+		OpIn:          func() bool { return isIn(value, expected) },
+		OpNotIn:       func() bool { return !isIn(value, expected) },
 	}
 
 	if evaluator, ok := evaluators[operator]; ok {

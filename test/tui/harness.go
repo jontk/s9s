@@ -62,8 +62,8 @@ func NewTUITestHarnessWithSize(t *testing.T, width, height int) *TUITestHarness 
 				MaxJobs:        100,
 			},
 			Nodes: config.NodesViewConfig{
-				GroupBy:          "state",
-				ShowUtilization:  true,
+				GroupBy:         "state",
+				ShowUtilization: true,
 			},
 		},
 		Features: config.FeaturesConfig{

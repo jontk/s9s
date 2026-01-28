@@ -110,7 +110,8 @@ func (p *Parser) parseFloatField(key string, target *float64) {
 }
 
 // parsePrometheusConfig parses Prometheus-specific configuration
-	//nolint:unparam // Designed for future extensibility; currently always returns nil
+//
+//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parsePrometheusConfig(config *PrometheusConfig) error {
 	p.parseStringField("prometheus.endpoint", &config.Endpoint)
 	p.parseDurationField("prometheus.timeout", &config.Timeout)
@@ -138,7 +139,8 @@ func (p *Parser) parsePrometheusConfig(config *PrometheusConfig) error {
 }
 
 // parseDisplayConfig parses Display-specific configuration
-	//nolint:unparam // Designed for future extensibility; currently always returns nil
+//
+//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseDisplayConfig(config *DisplayConfig) error {
 	p.parseRefreshInterval("display.refreshInterval", config)
 	p.parseShowOverlays("display.showOverlays", config)
@@ -204,7 +206,8 @@ func (p *Parser) parseDecimalPrecision(key string, config *DisplayConfig) {
 }
 
 // parseAlertsConfig parses Alerts-specific configuration
-	//nolint:unparam // Designed for future extensibility; currently always returns nil
+//
+//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseAlertsConfig(config *AlertConfig) error {
 	p.parseAlertsEnabled("alerts.enabled", config)
 	p.parseCheckInterval("alerts.checkInterval", config)
@@ -250,7 +253,8 @@ func (p *Parser) parseHistoryRetention(key string, config *AlertConfig) {
 }
 
 // parseCacheConfig parses Cache-specific configuration
-	//nolint:unparam // Designed for future extensibility; currently always returns nil
+//
+//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseCacheConfig(config *CacheConfig) error {
 	p.parseCacheEnabled("cache.enabled", config)
 	p.parseDefaultTTL("cache.defaultTTL", config)
@@ -296,7 +300,8 @@ func (p *Parser) parseCleanupInterval(key string, config *CacheConfig) {
 }
 
 // parseMetricsConfig parses Metrics-specific configuration
-	//nolint:unparam // Designed for future extensibility; currently always returns nil
+//
+//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseMetricsConfig(config *MetricsConfig) error {
 	p.parseNodeMetrics(config)
 	p.parseJobMetrics(config)
@@ -346,7 +351,8 @@ func (p *Parser) parseJobMetrics(config *MetricsConfig) {
 }
 
 // parseSecurityConfig parses Security-specific configuration
-	//nolint:unparam // Designed for future extensibility; currently always returns nil
+//
+//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseSecurityConfig(config *SecurityConfig) error {
 	// Parse secrets configuration
 	p.parseStringField("security.secrets.storageDir", &config.Secrets.StorageDir)
@@ -381,7 +387,8 @@ func (p *Parser) parseSecurityConfig(config *SecurityConfig) error {
 }
 
 // parseExternalAPIConfig parses ExternalAPI-specific configuration
-	//nolint:unparam // Designed for future extensibility; currently always returns nil
+//
+//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (p *Parser) parseExternalAPIConfig(config *endpoints.Config) error {
 	if val, ok := p.getValue("externalAPI.enabled"); ok {
 		if b, err := p.parseBool(val); err == nil {

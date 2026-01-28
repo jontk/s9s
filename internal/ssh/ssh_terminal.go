@@ -18,9 +18,9 @@ import (
 
 type SSHTerminal struct {
 	*tview.TextView
-	nodeID         string
-	hostname       string
-	username       string
+	nodeID   string
+	hostname string
+	username string
 	// TODO(lint): Review unused code - field sessionID is unused
 	// sessionID     string
 	cmd            *exec.Cmd

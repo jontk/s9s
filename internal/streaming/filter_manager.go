@@ -3,11 +3,11 @@ package streaming
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/jontk/s9s/internal/fileperms"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
-	"github.com/jontk/s9s/internal/fileperms"
 )
 
 // FilterManager manages filters and presets for streaming

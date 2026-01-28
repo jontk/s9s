@@ -69,10 +69,10 @@ func TestArrowKeyNavigation(t *testing.T) {
 		name string
 		key  int // tcell key codes
 	}{
-		{"down", 258},   // tcell.KeyDown
-		{"up", 259},     // tcell.KeyUp
-		{"right", 261},  // tcell.KeyRight
-		{"left", 260},   // tcell.KeyLeft
+		{"down", 258},  // tcell.KeyDown
+		{"up", 259},    // tcell.KeyUp
+		{"right", 261}, // tcell.KeyRight
+		{"left", 260},  // tcell.KeyLeft
 	}
 
 	for _, arrow := range arrowKeys {

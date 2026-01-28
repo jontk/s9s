@@ -3,9 +3,9 @@ package filters
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/jontk/s9s/internal/fileperms"
 	"os"
 	"path/filepath"
-	"github.com/jontk/s9s/internal/fileperms"
 )
 
 // FilterPreset represents a saved filter configuration

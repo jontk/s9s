@@ -12,7 +12,6 @@ import (
 	"github.com/jontk/s9s/internal/fileperms"
 )
 
-
 // ValidationError represents a configuration error
 type ValidationError struct {
 	Field       string

@@ -173,7 +173,7 @@ var jobStateColors = map[string]string{
 	"PENDING":     "yellow",
 	"COMPLETED":   "cyan",
 	"FAILED":      "red",
-	"CANCELED":   "gray",
+	"CANCELED":    "gray",
 	"SUSPENDED":   "orange",
 	"COMPLETING":  "blue",
 	"CONFIGURING": "yellow",

@@ -10,6 +10,7 @@ import (
 
 // initUI initializes the UI components
 // Returns error for extensibility, currently always returns nil
+//
 //nolint:unparam // error parameter kept for future extensibility
 func (s *S9s) initUI() error {
 	// Create alerts manager

@@ -241,7 +241,8 @@ func (v *JobOutputView) loadOutput() {
 }
 
 // getJobOutput retrieves actual job output (placeholder for real implementation)
-	//nolint:unparam // Designed for future extensibility; currently always returns nil
+//
+//nolint:unparam // Designed for future extensibility; currently always returns nil
 func (v *JobOutputView) getJobOutput() (string, error) {
 	// This would be implemented to read actual SLURM output files
 	// For now, return a placeholder

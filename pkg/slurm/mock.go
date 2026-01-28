@@ -179,16 +179,16 @@ func (m *MockClient) populateComputeNodes() {
 		}
 
 		m.nodes[fmt.Sprintf("node%03d", i)] = &dao.Node{
-			Name:             fmt.Sprintf("node%03d", i),
-			State:            state,
-			Partitions:       []string{"compute"},
-			CPUsTotal:        32,
-			CPUsAllocated:    m.getComputeNodeCPUsAllocated(state),
-			CPUsIdle:         m.getComputeNodeCPUsIdle(state),
-			MemoryTotal:      128 * 1024, // 128GB
-			MemoryAllocated:  m.getComputeNodeMemoryAllocated(state),
-			MemoryFree:       m.getComputeNodeMemoryFree(state),
-			Features:         []string{"avx2", "sse4.2"},
+			Name:            fmt.Sprintf("node%03d", i),
+			State:           state,
+			Partitions:      []string{"compute"},
+			CPUsTotal:       32,
+			CPUsAllocated:   m.getComputeNodeCPUsAllocated(state),
+			CPUsIdle:        m.getComputeNodeCPUsIdle(state),
+			MemoryTotal:     128 * 1024, // 128GB
+			MemoryAllocated: m.getComputeNodeMemoryAllocated(state),
+			MemoryFree:      m.getComputeNodeMemoryFree(state),
+			Features:        []string{"avx2", "sse4.2"},
 		}
 	}
 

@@ -89,14 +89,14 @@ func (s *S9s) handleRuneKey(event *tcell.EventKey, isModalOpen bool) *tcell.Even
 // globalKeyHandlers returns a map of special keys to their handlers
 func (s *S9s) globalKeyHandlers() map[tcell.Key]KeyHandler {
 	return map[tcell.Key]KeyHandler{
-		tcell.KeyCtrlC:  s.handleCtrlC,
-		tcell.KeyF1:     s.handleF1Help,
-		tcell.KeyF2:     s.handleF2Alerts,
-		tcell.KeyF3:     s.handleF3Preferences,
-		tcell.KeyF4:     s.handleF4LayoutSwitcher,
-		tcell.KeyF5:     s.handleF5Refresh,
-		tcell.KeyF10:    s.handleF10Configuration,
-		tcell.KeyTab:    s.handleTabNavigation,
+		tcell.KeyCtrlC:   s.handleCtrlC,
+		tcell.KeyF1:      s.handleF1Help,
+		tcell.KeyF2:      s.handleF2Alerts,
+		tcell.KeyF3:      s.handleF3Preferences,
+		tcell.KeyF4:      s.handleF4LayoutSwitcher,
+		tcell.KeyF5:      s.handleF5Refresh,
+		tcell.KeyF10:     s.handleF10Configuration,
+		tcell.KeyTab:     s.handleTabNavigation,
 		tcell.KeyBacktab: s.handleBacktabNavigation,
 	}
 }

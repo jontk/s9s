@@ -520,14 +520,14 @@ func (p *ObservabilityPlugin) Query(ctx context.Context, providerID string, para
 	}
 
 	queryHandlers := map[string]func(map[string]interface{}) (interface{}, error){
-		"historical-data":      p.queryHistoricalData,
-		"trend-analysis":       p.queryTrendAnalysis,
-		"anomaly-detection":    p.queryAnomalyDetection,
-		"seasonal-analysis":    p.querySeasonalAnalysis,
-		"resource-efficiency":  p.queryResourceEfficiency,
-		"cluster-efficiency":   p.queryClusterEfficiency,
-		"plugin-metrics":       p.queryPluginMetrics,
-		"secrets-manager":      p.querySecretsManager,
+		"historical-data":     p.queryHistoricalData,
+		"trend-analysis":      p.queryTrendAnalysis,
+		"anomaly-detection":   p.queryAnomalyDetection,
+		"seasonal-analysis":   p.querySeasonalAnalysis,
+		"resource-efficiency": p.queryResourceEfficiency,
+		"cluster-efficiency":  p.queryClusterEfficiency,
+		"plugin-metrics":      p.queryPluginMetrics,
+		"secrets-manager":     p.querySecretsManager,
 	}
 
 	handler, ok := queryHandlers[providerID]
