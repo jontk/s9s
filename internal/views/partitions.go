@@ -257,21 +257,6 @@ func (v *PartitionsView) partitionsKeyHandlers() map[tcell.Key]func() {
 	}
 }
 
-func (v *PartitionsView) handleFilterInputFocus(event *tcell.EventKey) *tcell.EventKey {
-	if v.filterInput == nil || !v.filterInput.HasFocus() {
-		return nil
-	}
-
-	if event.Key() == tcell.KeyEsc {
-		// ESC should return focus to table
-		v.app.SetFocus(v.table.Table)
-		return nil
-	}
-
-	// For all other keys, let the filter input handle them
-	return event
-}
-
 func (v *PartitionsView) handleRuneCommand(r rune) bool {
 	switch r {
 	case 'j', 'J':

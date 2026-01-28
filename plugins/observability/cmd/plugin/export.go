@@ -262,3 +262,12 @@ func findObservabilityPlugin(p interface{}) map[string]interface{} {
 
 	return pluginConfig
 }
+
+// main is a stub function required by Go since this file is in package main.
+// This file is a reference implementation for the plugin adapter and is not
+// meant to be compiled as a standalone executable. It is included here for
+// documentation and reference purposes.
+func main() {
+	panic("This plugin adapter is not meant to be built as a standalone executable. " +
+		"The NewPlugin() function should be called by the s9s plugin loader instead.")
+}
