@@ -22,11 +22,18 @@ func (s *S9s) setupKeyboardShortcuts() {
 		// Check if a modal is open
 		isModalOpen := s.pages.GetPageCount() > 1
 
-		// Try to handle by key type
-		switch event.Key() {
-		case tcell.KeyRune:
-			return s.handleRuneKey(event, isModalOpen)
-		case tcell.KeyEsc:
+		// Try to handle by key type - rune keys go to global rune handlers first
+		if event.Key() == tcell.KeyRune {
+			result := s.handleRuneKey(event, isModalOpen)
+			// If handler consumed the event (returned nil), we're done
+			if result == nil {
+				return nil
+			}
+			// If handler returned the event unhandled, fall through to special key and view handlers
+			event = result
+		}
+
+		if event.Key() == tcell.KeyEsc {
 			if s.cmdVisible {
 				s.hideCommandLine()
 				return nil
@@ -35,7 +42,13 @@ func (s *S9s) setupKeyboardShortcuts() {
 
 		// Try to handle by special key
 		if handler, ok := s.globalKeyHandlers()[event.Key()]; ok {
-			return handler(s, event)
+			result := handler(s, event)
+			// If handler consumed the event (returned nil), we're done
+			if result == nil {
+				return nil
+			}
+			// If handler returned the event unhandled, pass to view
+			event = result
 		}
 
 		// Pass to current view if not handled and no modal is open

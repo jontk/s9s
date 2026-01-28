@@ -40,6 +40,7 @@ func (s *S9s) registerJobsView() error {
 	view := views.NewJobsView(s.client)
 	view.SetApp(s.app)
 	view.SetStatusBar(s.statusBar)
+	view.SetPages(s.pages)
 	return s.addViewToApp("jobs", view)
 }
 
@@ -47,6 +48,7 @@ func (s *S9s) registerJobsView() error {
 func (s *S9s) registerNodesView() error {
 	view := views.NewNodesView(s.client)
 	view.SetApp(s.app)
+	view.SetPages(s.pages)
 	return s.addViewToApp("nodes", view)
 }
 
@@ -54,6 +56,7 @@ func (s *S9s) registerNodesView() error {
 func (s *S9s) registerPartitionsView() error {
 	view := views.NewPartitionsView(s.client)
 	view.SetApp(s.app)
+	view.SetPages(s.pages)
 	return s.addViewToApp("partitions", view)
 }
 

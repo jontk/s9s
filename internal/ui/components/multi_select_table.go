@@ -38,8 +38,8 @@ func NewMultiSelectTable(config *TableConfig) *MultiSelectTable {
 		selectAllState:  0,
 	}
 
-	// Override input handling for multi-select
-	mst.SetInputCapture(mst.handleMultiSelectInput)
+	// Note: InputCapture is NOT set here. Views handle all keyboard input in their OnKey methods.
+	// The base Table also doesn't set InputCapture anymore to allow View.OnKey to work correctly.
 
 	return mst
 }

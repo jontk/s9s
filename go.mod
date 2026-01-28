@@ -6,12 +6,12 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/golang-jwt/jwt/v5 v5.3.0
-	github.com/jontk/slurm-client v0.0.0-20260120203936-9a591aebce8a
+	github.com/jontk/slurm-client v0.2.3
 	github.com/rivo/tview v0.0.0-20250625164341-a4a78f1e05cb
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/zalando/go-keyring v0.2.6
 	golang.org/x/crypto v0.40.0
 	golang.org/x/term v0.33.0

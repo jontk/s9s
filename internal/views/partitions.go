@@ -201,14 +201,15 @@ func (v *PartitionsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return event
 	}
 
-	// Handle filter input focus interactions
-	if result := v.handleFilterInputFocus(event); result != nil {
-		return result
-	}
-
 	// Handle other keyboard events
 	if result := v.handlePartitionKey(event); result != nil {
 		return result
+	}
+
+	// Handle filter input focus for ESC key only (after trying view handlers)
+	if event.Key() == tcell.KeyEsc && v.filterInput != nil && v.filterInput.HasFocus() {
+		v.app.SetFocus(v.table.Table)
+		return nil
 	}
 
 	return event
@@ -254,21 +255,6 @@ func (v *PartitionsView) partitionsKeyHandlers() map[tcell.Key]func() {
 		tcell.KeyCtrlF: v.showGlobalSearch,
 		tcell.KeyEnter: v.showPartitionDetails,
 	}
-}
-
-func (v *PartitionsView) handleFilterInputFocus(event *tcell.EventKey) *tcell.EventKey {
-	if v.filterInput == nil || !v.filterInput.HasFocus() {
-		return nil
-	}
-
-	if event.Key() == tcell.KeyEsc {
-		// ESC should return focus to table
-		v.app.SetFocus(v.table.Table)
-		return nil
-	}
-
-	// For all other keys, let the filter input handle them
-	return event
 }
 
 func (v *PartitionsView) handleRuneCommand(r rune) bool {
