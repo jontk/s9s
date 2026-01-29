@@ -196,19 +196,19 @@ func (v *PartitionsView) Hints() []string {
 
 // OnKey handles keyboard events
 func (v *PartitionsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
-	// Check if a modal is open
-	if v.isModalOpen() {
-		return event
-	}
-
-	// If filter input has focus, only handle ESC to unfocus it
-	// All other keys should be handled by the filter input itself
+	// Always prioritize filter input handling if it has focus
+	// This allows the filter to maintain focus even when modals are present
 	if v.filterInput != nil && v.filterInput.HasFocus() {
 		if event.Key() == tcell.KeyEsc {
 			v.app.SetFocus(v.table.Table)
 			return nil
 		}
-		// Let filter input handle all other keys
+		// Let the filter handle all keys when it has focus
+		return event
+	}
+
+	// If a modal is open (and filter doesn't have focus), let it handle keys
+	if v.isModalOpen() {
 		return event
 	}
 

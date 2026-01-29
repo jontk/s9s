@@ -199,20 +199,20 @@ func (v *UsersView) Hints() []string {
 
 // OnKey handles keyboard events
 func (v *UsersView) OnKey(event *tcell.EventKey) *tcell.EventKey {
-	// Check if a modal is open - if so, don't process view shortcuts
-	if v.pages != nil && v.pages.GetPageCount() > 1 {
-		return event // Let modal handle it
-	}
-
-	// If filter input has focus, only handle ESC to unfocus it
-	// All other keys should be handled by the filter input itself
+	// Always prioritize filter input handling if it has focus
+	// This allows the filter to maintain focus even when modals are present
 	if v.filterInput != nil && v.filterInput.HasFocus() {
 		if event.Key() == tcell.KeyEsc {
 			v.app.SetFocus(v.table.Table)
 			return nil
 		}
-		// Let filter input handle all other keys
+		// Let the filter handle all keys when it has focus
 		return event
+	}
+
+	// If a modal is open (and filter doesn't have focus), let it handle keys
+	if v.pages != nil && v.pages.GetPageCount() > 1 {
+		return event // Let modal handle it
 	}
 
 	// Handle advanced filter mode

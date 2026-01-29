@@ -13,9 +13,9 @@ currentContext: rocky9
 contexts:
   - name: rocky9
     cluster:
-      endpoint: "http://rocky9.ar.jontk.com:6820"
-      token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njk3MTk1NTUsImlhdCI6MTc2OTcxNzc1NSwic3VuIjoicm9vdCJ9.bCgWztgfeXd5MHkwi2PwsXicIN0Mhp1JgPdXblYdAHQ"
-      apiVersion: v0.0.43
+      endpoint: "http://rocky9.ar.jontk.com:6820/"
+      token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njk3MjMzNDgsImlhdCI6MTc2OTcyMTU0OCwic3VuIjoicm9vdCJ9.AQnKxaYBESvgmKwXNK9ge9dT5I6c4EL4LqkeHdCioCQ"
+      # apiVersion: v0.0.44 # Let it auto-detect
       insecure: true
       timeout: 30s
     readOnly: false

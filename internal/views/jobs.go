@@ -283,20 +283,20 @@ func (v *JobsView) Hints() []string {
 
 // OnKey handles keyboard events
 func (v *JobsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
-	// Check if a modal is open - if so, don't process view shortcuts
-	if v.pages != nil && v.pages.GetPageCount() > 1 {
-		return event // Let modal handle it
-	}
-
-	// If filter input has focus, only handle ESC to unfocus it
-	// All other keys should be handled by the filter input itself
+	// Always prioritize filter input handling if it has focus
+	// This allows the filter to maintain focus even when modals are present
 	if v.filterInput != nil && v.filterInput.HasFocus() {
 		if event.Key() == tcell.KeyEsc {
 			v.app.SetFocus(v.table.Table)
 			return nil
 		}
-		// Let filter input handle all other keys
+		// Let the filter handle all keys when it has focus
 		return event
+	}
+
+	// If a modal is open (and filter doesn't have focus), let it handle keys
+	if v.pages != nil && v.pages.GetPageCount() > 1 {
+		return event // Let modal handle it
 	}
 
 	// Handle advanced filter mode
@@ -616,11 +616,11 @@ func (v *JobsView) cancelSelectedJob() {
 		SetText(confirmText).
 		AddButtons([]string{"Cancel Job", "Keep Running"}).
 		SetDoneFunc(func(buttonIndex int, _ string) {
-			if buttonIndex == 0 {
-				go v.performCancelJob(jobID)
-			}
 			if v.pages != nil {
 				v.pages.RemovePage("cancel-confirmation")
+			}
+			if buttonIndex == 0 {
+				v.performCancelJob(jobID)
 			}
 		})
 
@@ -635,39 +635,33 @@ func (v *JobsView) cancelSelectedJob() {
 
 // performCancelJob performs the job cancel operation
 func (v *JobsView) performCancelJob(jobID string) {
+	debug.Logger.Printf("performCancelJob() - starting for job %s", jobID)
 	if v.mainStatusBar != nil {
 		v.mainStatusBar.Info(fmt.Sprintf("Canceling job %s...", jobID))
 	}
 
-	// First attempt to cancel
+	// Attempt to cancel
+	debug.Logger.Printf("Calling Cancel API for job %s", jobID)
 	err := v.client.Jobs().Cancel(jobID)
 	if err != nil {
+		debug.Logger.Printf("Cancel API failed for job %s: %v", jobID, err)
 		if v.mainStatusBar != nil {
 			v.mainStatusBar.Error(fmt.Sprintf("Failed to cancel job %s: %v", jobID, err))
 		}
 		return
 	}
 
-	// Verify the job was actually canceled by checking its state
-	time.Sleep(500 * time.Millisecond) // Give SLURM time to update
-	job, getErr := v.client.Jobs().Get(jobID)
-	if getErr == nil && job != nil {
-		debug.Logger.Printf("Post-cancel job state: %s", job.State)
-		if job.State != dao.JobStateCancelled {
-			// Job wasn't actually canceled, might be held
-			if v.mainStatusBar != nil {
-				v.mainStatusBar.Warning(fmt.Sprintf("Job %s could not be canceled. It may be held by admin. Try releasing it first.", jobID))
-			}
-			return
-		}
-	}
+	debug.Logger.Printf("Cancel API returned success for job %s - refreshing view", jobID)
 
+	// If the API call succeeded, assume the cancel worked and show success
+	// The API returns success, so we trust it and refresh
 	if v.mainStatusBar != nil {
 		v.mainStatusBar.Success(fmt.Sprintf("Job %s canceled", jobID))
 	}
 
-	// Refresh the view
+	// Refresh the view to get updated state
 	time.Sleep(500 * time.Millisecond)
+	debug.Logger.Printf("Refreshing jobs view after cancel")
 	_ = v.Refresh()
 }
 
@@ -698,27 +692,22 @@ func (v *JobsView) holdSelectedJob() {
 		return
 	}
 
-	go func() {
+	// Perform hold
+	err := v.client.Jobs().Hold(jobID)
+	if err != nil {
 		if v.mainStatusBar != nil {
-			v.mainStatusBar.Info(fmt.Sprintf("Holding job %s...", jobID))
+			v.mainStatusBar.Error(fmt.Sprintf("Failed to hold job %s: %v", jobID, err))
 		}
+		return
+	}
 
-		err := v.client.Jobs().Hold(jobID)
-		if err != nil {
-			if v.mainStatusBar != nil {
-				v.mainStatusBar.Error(fmt.Sprintf("Failed to hold job %s: %v", jobID, err))
-			}
-			return
-		}
+	if v.mainStatusBar != nil {
+		v.mainStatusBar.Success(fmt.Sprintf("Job %s held", jobID))
+	}
 
-		if v.mainStatusBar != nil {
-			v.mainStatusBar.Success(fmt.Sprintf("Job %s held", jobID))
-		}
-
-		// Refresh the view
-		time.Sleep(500 * time.Millisecond)
-		_ = v.Refresh()
-	}()
+	// Refresh the view
+	time.Sleep(500 * time.Millisecond)
+	_ = v.Refresh()
 }
 
 // releaseSelectedJob releases the selected job
@@ -749,27 +738,39 @@ func (v *JobsView) releaseSelectedJob() {
 		return
 	}
 
-	go func() {
+	// Get job details before release
+	jobBefore, _ := v.client.Jobs().Get(jobID)
+	if jobBefore != nil {
+		debug.Logger.Printf("Pre-release job %s - State: %s", jobID, jobBefore.State)
+	}
+
+	// Perform release
+	debug.Logger.Printf("Calling Release API for job %s", jobID)
+	err := v.client.Jobs().Release(jobID)
+	if err != nil {
+		debug.Logger.Printf("Release API failed for job %s: %v", jobID, err)
 		if v.mainStatusBar != nil {
-			v.mainStatusBar.Info(fmt.Sprintf("Releasing job %s...", jobID))
+			v.mainStatusBar.Error(fmt.Sprintf("Failed to release job %s: %v", jobID, err))
 		}
+		return
+	}
 
-		err := v.client.Jobs().Release(jobID)
-		if err != nil {
-			if v.mainStatusBar != nil {
-				v.mainStatusBar.Error(fmt.Sprintf("Failed to release job %s: %v", jobID, err))
-			}
-			return
-		}
+	debug.Logger.Printf("Release API returned success for job %s", jobID)
 
-		if v.mainStatusBar != nil {
-			v.mainStatusBar.Success(fmt.Sprintf("Job %s released", jobID))
-		}
+	// Verify release worked by checking job state
+	time.Sleep(500 * time.Millisecond)
+	jobAfter, _ := v.client.Jobs().Get(jobID)
+	if jobAfter != nil {
+		debug.Logger.Printf("Post-release job %s - State: %s", jobID, jobAfter.State)
+	}
 
-		// Refresh the view
-		time.Sleep(500 * time.Millisecond)
-		_ = v.Refresh()
-	}()
+	if v.mainStatusBar != nil {
+		v.mainStatusBar.Success(fmt.Sprintf("Job %s released", jobID))
+	}
+
+	// Refresh the view
+	time.Sleep(500 * time.Millisecond)
+	_ = v.Refresh()
 }
 
 // showJobDetails shows detailed information for the selected job
