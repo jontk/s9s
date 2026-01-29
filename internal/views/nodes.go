@@ -677,9 +677,6 @@ func (v *NodesView) drainSelectedNode() {
 			if reason == "" {
 				reason = "Manual drain"
 			}
-			if v.pages != nil {
-				v.pages.RemovePage("drain-input")
-			}
 			go v.performDrainNode(nodeName, reason)
 		}
 	})
@@ -708,6 +705,12 @@ func (v *NodesView) drainSelectedNode() {
 
 // performDrainNode performs the node drain operation
 func (v *NodesView) performDrainNode(nodeName, reason string) {
+	// Remove the drain input modal first
+	if v.pages != nil {
+		v.pages.RemovePage("drain-input")
+	}
+
+	// Perform the drain operation
 	err := v.client.Nodes().Drain(nodeName, reason)
 	if err != nil {
 		// Show error modal
@@ -732,13 +735,14 @@ func (v *NodesView) performDrainNode(nodeName, reason string) {
 			SetDoneFunc(func(_ int, _ string) {
 				v.pages.RemovePage("success")
 				v.app.SetFocus(v.table.Table)
+				// Refresh the view after modal is closed
+				go v.Refresh()
 			})
 		v.pages.AddPage("success", successModal, true, true)
+	} else {
+		// If no pages manager, refresh directly
+		go v.Refresh()
 	}
-
-	// Refresh the view
-	time.Sleep(500 * time.Millisecond)
-	_ = v.Refresh()
 }
 
 // resumeSelectedNode resumes the selected node
@@ -1291,6 +1295,7 @@ func (v *NodesView) promptPartitionFilter() {
 			if v.pages != nil {
 				v.pages.RemovePage("partition-filter")
 			}
+			// Refresh the view after modal is closed
 			go func() { _ = v.Refresh() }()
 		}
 	})
