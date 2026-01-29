@@ -1175,29 +1175,33 @@ func (v *JobsView) toggleAutoRefresh() {
 
 // showBatchOperations shows batch operations menu
 func (v *JobsView) showBatchOperations() {
-	debug.Logger.Printf("showBatchOperations() called, batchOpsView: %v", v.batchOpsView != nil)
-	// Get currently selected jobs or allow manual selection
+	debug.Logger.Printf("showBatchOperations() called, multiSelectMode=%v, batchOpsView=%v", v.multiSelectMode, v.batchOpsView != nil)
+
 	var selectedJobs []string
 	var selectedJobsData []map[string]interface{}
 
-	// Check if any jobs are already selected
-	if len(v.selectedJobs) > 0 {
-		v.mu.RLock()
-		for _, job := range v.jobs {
-			if v.selectedJobs[job.ID] {
-				selectedJobs = append(selectedJobs, job.ID)
+	// If in multi-select mode, get all selected jobs from the table
+	if v.multiSelectMode {
+		allSelectedData := v.table.GetAllSelectedData()
+		debug.Logger.Printf("Multi-select mode: found %d selected rows", len(allSelectedData))
+
+		for _, rowData := range allSelectedData {
+			if len(rowData) > 0 {
+				selectedJobs = append(selectedJobs, rowData[0])
 				jobData := map[string]interface{}{
-					"name":  job.Name,
-					"state": job.State,
-					"user":  job.User,
+					"name":  rowData[1],
+					"state": rowData[4],
+					"user":  rowData[2],
 				}
 				selectedJobsData = append(selectedJobsData, jobData)
 			}
 		}
-		v.mu.RUnlock()
-	} else {
-		// If no jobs selected, use currently highlighted job
+	}
+
+	// If no jobs selected from multi-select, use currently highlighted job
+	if len(selectedJobs) == 0 {
 		data := v.table.GetSelectedData()
+		debug.Logger.Printf("No multi-select jobs, using highlighted job: %d columns", len(data))
 		if len(data) > 0 {
 			selectedJobs = append(selectedJobs, data[0])
 			jobData := map[string]interface{}{
@@ -1209,23 +1213,26 @@ func (v *JobsView) showBatchOperations() {
 		}
 	}
 
+	debug.Logger.Printf("showBatchOperations collected %d jobs for batch ops", len(selectedJobs))
+
 	// Initialize batch operations view if not already done
 	if v.batchOpsView == nil && v.app != nil {
-		debug.Logger.Printf("Initializing batchOpsView in showBatchOperations")
+		debug.Logger.Printf("Initializing batchOpsView")
 		v.batchOpsView = NewBatchOperationsView(v.client, v.app)
 		if v.pages != nil {
 			v.batchOpsView.SetPages(v.pages)
 		}
 	}
 
-	// Use the new batch operations view
+	// Use the batch operations view
 	if v.batchOpsView != nil && len(selectedJobs) > 0 {
+		debug.Logger.Printf("Showing batch operations with %d jobs", len(selectedJobs))
 		v.batchOpsView.ShowBatchOperations(selectedJobs, selectedJobsData, func() {
 			// Refresh the jobs view after batch operations complete
 			go func() { _ = v.Refresh() }()
 		})
 	} else {
-		// Show job selection menu if no jobs selected
+		debug.Logger.Printf("No jobs selected, showing job selection menu")
 		v.showJobSelectionMenu()
 	}
 }
@@ -1305,8 +1312,6 @@ func (v *JobsView) toggleRowSelection() {
 	// Toggle the row in the multi-select table
 	v.table.ToggleRow(currentRow)
 
-	// Sync ALL selected rows with v.selectedJobs map
-	syncMultiSelectWithJobsMap(v)
 }
 
 // selectAllJobs selects all jobs in multi-select mode
@@ -1315,28 +1320,8 @@ func (v *JobsView) selectAllJobs() {
 		return
 	}
 
-	// Also select all in the multi-select table
+	// Select all in the multi-select table
 	v.table.SelectAll()
-
-	// Sync all selected rows with v.selectedJobs map
-	syncMultiSelectWithJobsMap(v)
-}
-
-// syncMultiSelectWithJobsMap syncs the multi-select table's selected rows with the v.selectedJobs map
-func syncMultiSelectWithJobsMap(v *JobsView) {
-	// Get all selected row data from the multi-select table
-	allSelectedData := v.table.GetAllSelectedData()
-
-	// Clear the selectedJobs map and rebuild from selected rows
-	v.selectedJobs = make(map[string]bool)
-
-	// For each selected row, extract the job ID (first column) and add to selectedJobs
-	for _, rowData := range allSelectedData {
-		if len(rowData) > 0 {
-			jobID := rowData[0] // Job ID is in the first column
-			v.selectedJobs[jobID] = true
-		}
-	}
 }
 
 // selectJobsByState selects all jobs in a given state
