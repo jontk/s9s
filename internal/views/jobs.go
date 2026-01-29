@@ -866,7 +866,12 @@ func (v *JobsView) formatJobDetails(job *dao.Job) string {
 	}
 
 	details.WriteString(fmt.Sprintf("[yellow]Working Dir:[white] %s\n", job.WorkingDir))
-	details.WriteString(fmt.Sprintf("[yellow]Command:[white] %s\n", job.Command))
+
+	// Note: SLURM API doesn't return the actual command/script, only job metadata
+	// For job details, see StdOut file path below
+	if job.Command != "" {
+		details.WriteString(fmt.Sprintf("[yellow]Command:[white] %s\n", job.Command))
+	}
 
 	if job.StdOut != "" {
 		details.WriteString(fmt.Sprintf("[yellow]StdOut:[white] %s\n", job.StdOut))
