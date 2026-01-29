@@ -322,12 +322,14 @@ func (v *JobsView) jobsKeyHandlers() map[tcell.Key]func(*JobsView, *tcell.EventK
 		tcell.KeyF3:    func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
 		tcell.KeyCtrlF: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showGlobalSearch(); return nil },
 		tcell.KeyEnter: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobDetails(); return nil },
+		tcell.KeyCtrlA: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.selectAllJobs(); return nil },
 	}
 }
 
 // jobsRuneHandlers returns a map of rune keys to their handlers
 func (v *JobsView) jobsRuneHandlers() map[rune]func(*JobsView, *tcell.EventKey) *tcell.EventKey {
 	return map[rune]func(*JobsView, *tcell.EventKey) *tcell.EventKey{
+		' ': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleRowSelection(); return nil },
 		'c': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.cancelSelectedJob(); return nil },
 		'C': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.cancelSelectedJob(); return nil },
 		'h': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.holdSelectedJob(); return nil },
@@ -1289,6 +1291,42 @@ func (v *JobsView) closeBatchMenu() {
 	if v.pages != nil {
 		v.pages.RemovePage("batch-operations")
 	}
+}
+
+// toggleRowSelection toggles the selection state of the currently highlighted row
+func (v *JobsView) toggleRowSelection() {
+	if !v.multiSelectMode {
+		return
+	}
+
+	// Get the current row index from the table
+	currentRow, _ := v.table.Table.GetSelection()
+
+	// Toggle the row in the multi-select table
+	v.table.ToggleRow(currentRow)
+
+	// Sync with selectedJobs map for compatibility
+	data := v.table.GetSelectedData()
+	if len(data) > 0 {
+		jobID := data[0]
+		v.selectedJobs[jobID] = !v.selectedJobs[jobID]
+	}
+}
+
+// selectAllJobs selects all jobs in multi-select mode
+func (v *JobsView) selectAllJobs() {
+	if !v.multiSelectMode {
+		return
+	}
+
+	v.mu.RLock()
+	for _, job := range v.jobs {
+		v.selectedJobs[job.ID] = true
+	}
+	v.mu.RUnlock()
+
+	// Also select all in the multi-select table
+	v.table.SelectAll()
 }
 
 // selectJobsByState selects all jobs in a given state
