@@ -43,8 +43,6 @@ type JobsView struct {
 	batchOpsView        *BatchOperationsView
 	multiSelectMode     bool
 	selectionStatusText *tview.TextView
-	loadingManager      *components.LoadingManager
-	loadingWrapper      *components.LoadingWrapper
 	mainStatusBar       *components.StatusBar // Reference to main app status bar
 }
 
@@ -67,12 +65,6 @@ func (v *JobsView) SetPages(pages *tview.Pages) {
 // SetApp sets the application reference
 func (v *JobsView) SetApp(app *tview.Application) {
 	v.app = app
-
-	// Initialize loading manager
-	if v.pages != nil {
-		v.loadingManager = components.NewLoadingManager(app, v.pages)
-		v.loadingWrapper = components.NewLoadingWrapper(v.loadingManager, "jobs")
-	}
 
 	// Create filter bar now that we have app reference
 	v.filterBar = components.NewFilterBar("jobs", app)
@@ -191,13 +183,7 @@ func (v *JobsView) Refresh() error {
 	v.SetRefreshing(true)
 	defer v.SetRefreshing(false)
 
-	// Show loading indicator for operations that might take time
-	if v.loadingWrapper != nil {
-		return v.loadingWrapper.WithLoading("Refreshing jobs...", func() error {
-			return v.refreshInternal()
-		})
-	}
-
+	// Refresh silently without modal - refreshes happen frequently and users don't need to see them
 	return v.refreshInternal()
 }
 
