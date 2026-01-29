@@ -255,21 +255,8 @@ func (w *JobSubmissionWizard) setupJobFormHandlers(form *tview.Form, job *dao.Jo
 				w.showError(err.Error())
 			}
 			return nil
-		case tcell.KeyTab:
-			// Handle TAB for field navigation within form
-			fieldItem, _ := form.GetFocusedItemIndex()
-			// Move to next field or button
-			form.SetFocus(fieldItem + 1)
-			return nil
-		case tcell.KeyBacktab:
-			// Handle Shift+TAB for reverse field navigation
-			fieldItem, _ := form.GetFocusedItemIndex()
-			if fieldItem > 0 {
-				form.SetFocus(fieldItem - 1)
-			}
-			return nil
 		}
-		// Let other keys propagate to form's default handling
+		// Let all other keys (including TAB) be handled by the form
 		return event
 	})
 }

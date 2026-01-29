@@ -40,15 +40,18 @@ func (s *S9s) setupKeyboardShortcuts() {
 			}
 		}
 
-		// Try to handle by special key
-		if handler, ok := s.globalKeyHandlers()[event.Key()]; ok {
-			result := handler(s, event)
-			// If handler consumed the event (returned nil), we're done
-			if result == nil {
-				return nil
+		// Try to handle by special key - but skip global handlers when modal is open
+		// to allow modal/form widgets to handle navigation keys like TAB
+		if !isModalOpen {
+			if handler, ok := s.globalKeyHandlers()[event.Key()]; ok {
+				result := handler(s, event)
+				// If handler consumed the event (returned nil), we're done
+				if result == nil {
+					return nil
+				}
+				// If handler returned the event unhandled, pass to view
+				event = result
 			}
-			// If handler returned the event unhandled, pass to view
-			event = result
 		}
 
 		// Pass to current view if not handled and no modal is open
@@ -58,6 +61,7 @@ func (s *S9s) setupKeyboardShortcuts() {
 			}
 		}
 
+		// When modal is open, let it handle the event (e.g., TAB for form navigation)
 		return event
 	})
 }
