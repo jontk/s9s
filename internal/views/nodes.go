@@ -677,16 +677,33 @@ func (v *NodesView) drainSelectedNode() {
 			if reason == "" {
 				reason = "Manual drain"
 			}
+			if v.pages != nil {
+				v.pages.RemovePage("drain-input")
+			}
 			go v.performDrainNode(nodeName, reason)
 		}
-		v.app.SetRoot(v.container, true)
 	})
 
 	input.SetBorder(true).
 		SetTitle(" Drain Node ").
 		SetTitleAlign(tview.AlignCenter)
 
-	v.app.SetRoot(input, true)
+	// Handle ESC key to close modal
+	input.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			if v.pages != nil {
+				v.pages.RemovePage("drain-input")
+			}
+			return nil
+		}
+		return event
+	})
+
+	// Use pages API instead of SetRoot for proper modal management
+	if v.pages != nil {
+		v.pages.AddPage("drain-input", input, true, true)
+		v.app.SetFocus(input)
+	}
 }
 
 // performDrainNode performs the node drain operation
@@ -1271,16 +1288,33 @@ func (v *NodesView) promptPartitionFilter() {
 	input.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
 			v.partFilter = input.GetText()
+			if v.pages != nil {
+				v.pages.RemovePage("partition-filter")
+			}
 			go func() { _ = v.Refresh() }()
 		}
-		v.app.SetRoot(v.container, true)
 	})
 
 	input.SetBorder(true).
 		SetTitle(" Partition Filter ").
 		SetTitleAlign(tview.AlignCenter)
 
-	v.app.SetRoot(input, true)
+	// Handle ESC key to close modal
+	input.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			if v.pages != nil {
+				v.pages.RemovePage("partition-filter")
+			}
+			return nil
+		}
+		return event
+	})
+
+	// Use pages API instead of SetRoot for proper modal management
+	if v.pages != nil {
+		v.pages.AddPage("partition-filter", input, true, true)
+		v.app.SetFocus(input)
+	}
 }
 
 // groupNodes groups nodes based on the current groupBy setting
