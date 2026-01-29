@@ -1324,19 +1324,17 @@ func (v *JobsView) selectAllJobs() {
 
 // syncMultiSelectWithJobsMap syncs the multi-select table's selected rows with the v.selectedJobs map
 func syncMultiSelectWithJobsMap(v *JobsView) {
-	// Get all selected row indices from the multi-select table
-	selectedRows := v.table.GetSelectedRows()
+	// Get all selected row data from the multi-select table
+	allSelectedData := v.table.GetAllSelectedData()
 
 	// Clear the selectedJobs map and rebuild from selected rows
 	v.selectedJobs = make(map[string]bool)
 
-	v.mu.RLock()
-	defer v.mu.RUnlock()
-
-	// For each selected row, add the corresponding job to selectedJobs
-	for _, rowIdx := range selectedRows {
-		if rowIdx >= 0 && rowIdx < len(v.jobs) {
-			v.selectedJobs[v.jobs[rowIdx].ID] = true
+	// For each selected row, extract the job ID (first column) and add to selectedJobs
+	for _, rowData := range allSelectedData {
+		if len(rowData) > 0 {
+			jobID := rowData[0] // Job ID is in the first column
+			v.selectedJobs[jobID] = true
 		}
 	}
 }
