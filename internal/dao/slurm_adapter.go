@@ -45,6 +45,8 @@ func NewSlurmAdapter(ctx context.Context, cfg *config.ClusterConfig) (*SlurmAdap
 	// Create client options
 	opts := []slurm.ClientOption{
 		slurm.WithConfig(slurmCfg),
+		// Use adapter implementation instead of wrapper for better job management
+		slurm.WithUseAdapters(true),
 	}
 
 	// Add authentication if token is provided
@@ -58,18 +60,23 @@ func NewSlurmAdapter(ctx context.Context, cfg *config.ClusterConfig) (*SlurmAdap
 	var err error
 
 	if cfg.APIVersion != "" {
+		debug.Logger.Printf("Creating SLURM client with explicit version: %s", cfg.APIVersion)
 		slurmClient, err = slurm.NewClientWithVersion(ctx, cfg.APIVersion, opts...)
 	} else {
 		// Auto-detect version
+		debug.Logger.Printf("Creating SLURM client with auto-detected version")
 		slurmClient, err = slurm.NewClient(ctx, opts...)
 	}
 
 	if err != nil {
+		debug.Logger.Printf("Failed to create SLURM client: %v", err)
 		return nil, errs.Wrap(err, errs.ErrorTypeNetwork, "failed to create SLURM client").
 			WithContext("component", "dao").
 			WithContext("endpoint", cfg.Endpoint).
 			WithContext("timeout", timeout.String())
 	}
+
+	debug.Logger.Printf("SLURM client created successfully")
 
 	return &SlurmAdapter{
 		client: slurmClient,
@@ -170,21 +177,37 @@ type jobManager struct {
 func (j *jobManager) List(opts *ListJobsOptions) (*JobList, error) {
 	debug.Logger.Printf("Jobs List() called at %s", time.Now().Format("15:04:05.000"))
 	// Convert options to slurm-client format
+	// Note: slurm-client's ListJobsOptions only supports: UserID, States, Partition, Limit, Offset
+	// For other filters (Users, Partitions, Accounts), the adapter will apply client-side filtering
 	clientOpts := &slurm.ListJobsOptions{}
 	if opts != nil {
 		clientOpts.States = opts.States
 		clientOpts.Limit = opts.Limit
 		clientOpts.Offset = opts.Offset
-		// Note: Users, Partitions, Accounts may need to be handled differently
-		// depending on the actual slurm-client API
+		// Note: If we need per-user filtering, convert first user to UserID
+		// For now, we pass empty and let adapter handle in applyClientSideFilters()
+		debug.Logger.Printf("List options - States: %v, Limit: %d, Offset: %d", clientOpts.States, clientOpts.Limit, clientOpts.Offset)
 	}
+
+	// DEBUG: Log what we're passing to the adapter
+	debug.Logger.Printf("DEBUG: Calling adapter with clientOpts: States=%v, Limit=%d, Offset=%d",
+		clientOpts.States, clientOpts.Limit, clientOpts.Offset)
 
 	// Call the client
 	result, err := j.client.List(j.ctx, clientOpts)
 	debug.Logger.Printf("Jobs List() returned at %s", time.Now().Format("15:04:05.000"))
 	if err != nil {
+		debug.Logger.Printf("Jobs List() error: %v", err)
 		return nil, errs.SlurmAPI("list jobs", err)
 	}
+
+	if result == nil {
+		debug.Logger.Printf("Jobs List() returned nil result")
+		return &JobList{Jobs: []*Job{}, Total: 0}, nil
+	}
+
+	debug.Logger.Printf("DEBUG: Result object - type: %T, Jobs length: %d, Total: %d", result, len(result.Jobs), result.Total)
+	debug.Logger.Printf("Jobs List() returned %d jobs, total: %d", len(result.Jobs), result.Total)
 
 	// Convert to our types
 	jobs := make([]*Job, len(result.Jobs))
@@ -199,10 +222,17 @@ func (j *jobManager) List(opts *ListJobsOptions) (*JobList, error) {
 }
 
 func (j *jobManager) Get(id string) (*Job, error) {
+	debug.Logger.Printf("JobManager.Get() called for job %s", id)
 	job, err := j.client.Get(j.ctx, id)
 	if err != nil {
+		debug.Logger.Printf("JobManager.Get() error: %v", err)
 		return nil, errs.DAOError("get", "job", err).WithContext("job_id", id)
 	}
+	if job == nil {
+		debug.Logger.Printf("JobManager.Get() returned nil job for %s", id)
+		return nil, nil
+	}
+	debug.Logger.Printf("JobManager.Get() returned job: ID=%s, State=%s", job.ID, job.State)
 	return convertJob(job), nil
 }
 

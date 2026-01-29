@@ -106,6 +106,7 @@ func (gs *GlobalSearch) Show(pages *tview.Pages, onSelect func(result SearchResu
 			}
 			return nil
 		case tcell.KeyEnter:
+			// Handle Enter from results list
 			if gs.resultsList.HasFocus() {
 				idx := gs.resultsList.GetCurrentItem()
 				if idx >= 0 && idx < len(gs.results) {
@@ -114,6 +115,19 @@ func (gs *GlobalSearch) Show(pages *tview.Pages, onSelect func(result SearchResu
 					}
 					pages.RemovePage("global-search")
 				}
+			}
+			return nil
+		}
+		return event
+	})
+
+	// Handle Enter key in search input
+	gs.searchInput.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEnter {
+			// Select first result if available
+			if len(gs.results) > 0 && gs.onSelect != nil {
+				gs.onSelect(gs.results[0])
+				pages.RemovePage("global-search")
 			}
 			return nil
 		}

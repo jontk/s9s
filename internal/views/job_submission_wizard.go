@@ -256,6 +256,7 @@ func (w *JobSubmissionWizard) setupJobFormHandlers(form *tview.Form, job *dao.Jo
 			}
 			return nil
 		}
+		// Let the form handle Tab and other navigation keys naturally
 		return event
 	})
 }

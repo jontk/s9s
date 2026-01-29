@@ -14,13 +14,29 @@ type KeyHandler func(*S9s, *tcell.EventKey) *tcell.EventKey
 // setupKeyboardShortcuts configures the global keyboard input capture
 func (s *S9s) setupKeyboardShortcuts() {
 	s.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		// Handle command mode - pass through
+		// Handle command mode - pass through to allow command line input
 		if s.cmdVisible {
 			return event
 		}
 
 		// Check if a modal is open
 		isModalOpen := s.pages.GetPageCount() > 1
+
+		// If a modal is open, only handle ESC to close it, let the modal handle other keys
+		if isModalOpen {
+			if event.Key() == tcell.KeyEsc {
+				// Try to close the topmost modal page
+				if s.pages.GetPageCount() > 1 {
+					pageName, _ := s.pages.GetFrontPage()
+					if pageName != "" {
+						s.pages.RemovePage(pageName)
+						return nil
+					}
+				}
+			}
+			// Modal is open, let it handle all other keys
+			return event
+		}
 
 		// Try to handle by key type - rune keys go to global rune handlers first
 		if event.Key() == tcell.KeyRune {
@@ -40,7 +56,7 @@ func (s *S9s) setupKeyboardShortcuts() {
 			}
 		}
 
-		// Try to handle by special key
+		// Try to handle by special key (only when no modal is open)
 		if handler, ok := s.globalKeyHandlers()[event.Key()]; ok {
 			result := handler(s, event)
 			// If handler consumed the event (returned nil), we're done
@@ -51,11 +67,9 @@ func (s *S9s) setupKeyboardShortcuts() {
 			event = result
 		}
 
-		// Pass to current view if not handled and no modal is open
-		if !isModalOpen {
-			if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
-				return currentView.OnKey(event)
-			}
+		// Pass to current view
+		if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
+			return currentView.OnKey(event)
 		}
 
 		return event

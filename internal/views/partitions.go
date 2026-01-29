@@ -196,7 +196,18 @@ func (v *PartitionsView) Hints() []string {
 
 // OnKey handles keyboard events
 func (v *PartitionsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
-	// Check if a modal is open
+	// Always prioritize filter input handling if it has focus
+	// This allows the filter to maintain focus even when modals are present
+	if v.filterInput != nil && v.filterInput.HasFocus() {
+		if event.Key() == tcell.KeyEsc {
+			v.app.SetFocus(v.table.Table)
+			return nil
+		}
+		// Let the filter handle all keys when it has focus
+		return event
+	}
+
+	// If a modal is open (and filter doesn't have focus), let it handle keys
 	if v.isModalOpen() {
 		return event
 	}
@@ -204,12 +215,6 @@ func (v *PartitionsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 	// Handle other keyboard events
 	if result := v.handlePartitionKey(event); result != nil {
 		return result
-	}
-
-	// Handle filter input focus for ESC key only (after trying view handlers)
-	if event.Key() == tcell.KeyEsc && v.filterInput != nil && v.filterInput.HasFocus() {
-		v.app.SetFocus(v.table.Table)
-		return nil
 	}
 
 	return event
@@ -236,12 +241,6 @@ func (v *PartitionsView) handlePartitionKey(event *tcell.EventKey) *tcell.EventK
 
 	// Handle rune commands
 	if event.Key() == tcell.KeyRune && v.handleRuneCommand(event.Rune()) {
-		return nil
-	}
-
-	// Handle ESC in filter input
-	if event.Key() == tcell.KeyEsc && v.filterInput.HasFocus() {
-		v.app.SetFocus(v.table.Table)
 		return nil
 	}
 

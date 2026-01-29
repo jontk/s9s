@@ -218,7 +218,18 @@ func (v *NodesView) Hints() []string {
 
 // OnKey handles keyboard events
 func (v *NodesView) OnKey(event *tcell.EventKey) *tcell.EventKey {
-	// Check if a modal is open - if so, don't process view shortcuts
+	// Always prioritize filter input handling if it has focus
+	// This allows the filter to maintain focus even when modals are present
+	if v.filterInput != nil && v.filterInput.HasFocus() {
+		if event.Key() == tcell.KeyEsc {
+			v.app.SetFocus(v.table.Table)
+			return nil
+		}
+		// Let the filter handle all keys when it has focus
+		return event
+	}
+
+	// If a modal is open (and filter doesn't have focus), let it handle keys
 	if v.pages != nil && v.pages.GetPageCount() > 1 {
 		return event // Let modal handle it
 	}
@@ -237,12 +248,6 @@ func (v *NodesView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 	// Handle by key type
 	if event.Key() == tcell.KeyRune {
 		return v.handleNodesViewRune(event)
-	}
-
-	// Handle filter input focus for ESC key only
-	if event.Key() == tcell.KeyEsc && v.filterInput != nil && v.filterInput.HasFocus() {
-		v.app.SetFocus(v.table.Table)
-		return nil
 	}
 
 	return event

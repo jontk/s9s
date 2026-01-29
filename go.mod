@@ -59,3 +59,6 @@ require (
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 )
+
+// Use local slurm-client for development
+replace github.com/jontk/slurm-client => ../slurm-client
