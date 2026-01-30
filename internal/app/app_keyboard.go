@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/views"
+	"github.com/rivo/tview"
 )
 
 // KeyHandler is a function that handles a keyboard event
@@ -88,6 +89,13 @@ func (s *S9s) handleRuneKey(event *tcell.EventKey, isModalOpen bool) *tcell.Even
 
 	// If modal is open, pass through (except for colon already handled)
 	if isModalOpen {
+		return event
+	}
+
+	// Check if an input field has focus - if so, let the input handle all rune keys
+	// This prevents global shortcuts (like 1,2,3 for view switching) from
+	// interrupting filter input
+	if s.hasInputFieldFocus() {
 		return event
 	}
 
@@ -222,4 +230,25 @@ func (s *S9s) makeViewSwitchHandler(viewName string) KeyHandler {
 		s.switchToView(viewName)
 		return nil
 	}
+}
+
+// hasInputFieldFocus checks if the currently focused primitive is an input field
+// that should receive all character input (filter fields, text inputs, etc.)
+func (s *S9s) hasInputFieldFocus() bool {
+	focused := s.app.GetFocus()
+	if focused == nil {
+		return false
+	}
+
+	// Check for InputField (filter inputs, text inputs)
+	if _, ok := focused.(*tview.InputField); ok {
+		return true
+	}
+
+	// Check for TextArea (multi-line text inputs)
+	if _, ok := focused.(*tview.TextArea); ok {
+		return true
+	}
+
+	return false
 }
