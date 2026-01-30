@@ -173,7 +173,7 @@ func (v *AccountsView) Hints() []string {
 		"[yellow]Ctrl+F[white] Search",
 		"[yellow]1-9[white] Sort",
 		"[yellow]R[white] Refresh",
-		"[yellow]h[white] Show Hierarchy",
+		"[yellow]H[white] Show Hierarchy",
 	}
 
 	if v.isAdvancedMode {
@@ -236,7 +236,6 @@ func (v *AccountsView) accountsRuneHandlers() map[rune]func() {
 	return map[rune]func(){
 		'R': func() { go func() { _ = v.Refresh() }() },
 		'/': func() { v.app.SetFocus(v.filterInput) },
-		'h': v.showAccountHierarchy,
 		'H': v.showAccountHierarchy,
 	}
 }

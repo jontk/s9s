@@ -105,7 +105,7 @@ func (v *BatchOperationsView) buildUI() {
 
 	// Add available operations
 	v.operationList.AddItem("Cancel Jobs", "Cancel all selected jobs", 'c', func() { v.executeOperation(BatchCancel) })
-	v.operationList.AddItem("Hold Jobs", "Put all selected jobs on hold", 'h', func() { v.executeOperation(BatchHold) })
+	v.operationList.AddItem("Hold Jobs", "Put all selected jobs on hold", 'H', func() { v.executeOperation(BatchHold) })
 	v.operationList.AddItem("Release Jobs", "Release all selected jobs from hold", 'r', func() { v.executeOperation(BatchRelease) })
 	v.operationList.AddItem("Requeue Jobs", "Requeue all selected jobs", 'q', func() { v.executeOperation(BatchRequeue) })
 	v.operationList.AddItem("Delete Jobs", "Delete all selected jobs", 'd', func() { v.executeOperation(BatchDelete) })

@@ -148,7 +148,7 @@ func (v *HealthView) Hints() []string {
 		"[yellow]r[white] Resolve Alert",
 		"[yellow]c[white] Clear Resolved",
 		"[yellow]R[white] Refresh",
-		"[yellow]h[white] Health Details",
+		"[yellow]H[white] Health Details",
 		"[yellow]s[white] Health Stats",
 	}
 }
@@ -191,7 +191,6 @@ func (v *HealthView) healthRuneHandlers() map[rune]func() {
 		'R': func() { go func() { _ = v.Refresh() }() },
 		'c': v.clearResolvedAlerts,
 		'C': v.clearResolvedAlerts,
-		'h': v.showHealthDetails,
 		'H': v.showHealthDetails,
 		's': v.showHealthStats,
 		'S': v.showHealthStats,

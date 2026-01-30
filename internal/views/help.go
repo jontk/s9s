@@ -109,7 +109,7 @@ func (v *HelpView) generateHelpContent() string {
 	help.WriteString("[teal::b]Jobs View:[white::-]\n")
 	help.WriteString("  [yellow]Enter[white]        Show job details\n")
 	help.WriteString("  [yellow]k[white]            Kill selected job\n")
-	help.WriteString("  [yellow]h[white]            Hold/release job\n")
+	help.WriteString("  [yellow]H[white]            Hold/release job\n")
 	help.WriteString("  [yellow]c[white]            Cancel job\n")
 	help.WriteString("  [yellow]s[white]            Submit new job\n")
 	help.WriteString("  [yellow]/[white]            Filter jobs\n")
