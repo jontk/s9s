@@ -135,18 +135,20 @@ func (li *LoadingIndicator) SetMessage(message string) {
 
 // LoadingManager manages loading indicators across views
 type LoadingManager struct {
-	indicators map[string]*LoadingIndicator
-	pages      *tview.Pages
-	app        *tview.Application
-	mu         sync.RWMutex
+	indicators    map[string]*LoadingIndicator
+	pages         *tview.Pages
+	app           *tview.Application
+	mu            sync.RWMutex
+	previousFocus map[string]tview.Primitive // Track focus before showing loading
 }
 
 // NewLoadingManager creates a new loading manager
 func NewLoadingManager(app *tview.Application, pages *tview.Pages) *LoadingManager {
 	return &LoadingManager{
-		indicators: make(map[string]*LoadingIndicator),
-		pages:      pages,
-		app:        app,
+		indicators:    make(map[string]*LoadingIndicator),
+		pages:         pages,
+		app:           app,
+		previousFocus: make(map[string]tview.Primitive),
 	}
 }
 
@@ -161,6 +163,11 @@ func (lm *LoadingManager) Show(viewName, message string) {
 		lm.indicators[viewName] = indicator
 	}
 
+	// Save current focus before showing the loading indicator
+	if lm.app != nil {
+		lm.previousFocus[viewName] = lm.app.GetFocus()
+	}
+
 	indicator.Show(message)
 
 	if lm.pages != nil {
@@ -171,9 +178,11 @@ func (lm *LoadingManager) Show(viewName, message string) {
 
 // Hide hides the loading indicator for the given view
 func (lm *LoadingManager) Hide(viewName string) {
-	lm.mu.RLock()
+	lm.mu.Lock()
 	indicator, exists := lm.indicators[viewName]
-	lm.mu.RUnlock()
+	previousFocus := lm.previousFocus[viewName]
+	delete(lm.previousFocus, viewName)
+	lm.mu.Unlock()
 
 	if !exists {
 		return
@@ -184,6 +193,11 @@ func (lm *LoadingManager) Hide(viewName string) {
 	if lm.pages != nil {
 		modalName := "loading_" + viewName
 		lm.pages.RemovePage(modalName)
+	}
+
+	// Restore focus to where it was before showing the loading indicator
+	if lm.app != nil && previousFocus != nil {
+		lm.app.SetFocus(previousFocus)
 	}
 }
 

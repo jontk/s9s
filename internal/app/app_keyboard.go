@@ -57,15 +57,23 @@ func (s *S9s) setupKeyboardShortcuts() {
 			}
 		}
 
-		// Try to handle by special key (only when no modal is open)
+		// Check if an input field has focus - if so, skip global special key handlers
+		// (except Ctrl+C for safety). This allows filter fields to receive all input.
+		inputHasFocus := s.hasInputFieldFocus()
+
+		// Try to handle by special key (only when no modal is open and no input has focus)
+		// Ctrl+C is always handled globally for safety
 		if handler, ok := s.globalKeyHandlers()[event.Key()]; ok {
-			result := handler(s, event)
-			// If handler consumed the event (returned nil), we're done
-			if result == nil {
-				return nil
+			// Always allow Ctrl+C, skip other global handlers when input has focus
+			if event.Key() == tcell.KeyCtrlC || !inputHasFocus {
+				result := handler(s, event)
+				// If handler consumed the event (returned nil), we're done
+				if result == nil {
+					return nil
+				}
+				// If handler returned the event unhandled, pass to view
+				event = result
 			}
-			// If handler returned the event unhandled, pass to view
-			event = result
 		}
 
 		// Pass to current view
