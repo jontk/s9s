@@ -1593,17 +1593,20 @@ func (v *NodesView) showGlobalSearch() {
 		case "job":
 			// Switch to jobs view and focus on the selected job
 			if job, ok := result.Data.(*dao.Job); ok {
-				// Schedule the job focus after the view switch completes
-				jobID := job.ID
-				v.SwitchToView("jobs")
-				// Queue the focus operation to happen after view switch
-				if v.app != nil {
+				// Queue the view switch and focus after the modal closes
+				if v.app != nil && v.viewMgr != nil {
+					jobID := job.ID
 					v.app.QueueUpdateDraw(func() {
-						if jobsView, err := v.viewMgr.GetView("jobs"); err == nil {
-							if jv, ok := jobsView.(*JobsView); ok {
-								jv.focusOnJob(jobID)
+						// Now that modal is closed, switch view and focus
+						v.SwitchToView("jobs")
+						// Focus the job after the view is ready
+						v.app.QueueUpdateDraw(func() {
+							if jobsView, err := v.viewMgr.GetView("jobs"); err == nil {
+								if jv, ok := jobsView.(*JobsView); ok {
+									jv.focusOnJob(jobID)
+								}
 							}
-						}
+						})
 					})
 				}
 			}

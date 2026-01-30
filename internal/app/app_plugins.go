@@ -137,3 +137,13 @@ func (p *PluginViewAdapter) Stop() error {
 	// Plugin views don't have Stop, so this is a no-op
 	return nil
 }
+
+// SetSwitchViewFn sets the callback function to switch to another view
+func (p *PluginViewAdapter) SetSwitchViewFn(fn func(string)) {
+	// Plugin views don't support view switching, so this is a no-op
+}
+
+// SwitchToView switches to another view
+func (p *PluginViewAdapter) SwitchToView(viewName string) {
+	// Plugin views don't support view switching, so this is a no-op
+}

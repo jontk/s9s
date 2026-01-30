@@ -127,10 +127,7 @@ func (s *S9s) addViewToApp(name string, view views.View) error {
 	}
 
 	// Set the switch view callback so views can switch to other views
-	baseView, ok := view.(interface{ SetSwitchViewFn(func(string)) })
-	if ok {
-		baseView.SetSwitchViewFn(s.switchToView)
-	}
+	view.SetSwitchViewFn(s.switchToView)
 
 	s.contentPages.AddPage(name, view.Render(), true, false)
 	return nil

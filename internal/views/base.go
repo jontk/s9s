@@ -47,6 +47,12 @@ type View interface {
 
 	// Stop cleanly shuts down the view
 	Stop() error
+
+	// SetSwitchViewFn sets the callback function to switch to another view
+	SetSwitchViewFn(func(string))
+
+	// SwitchToView switches to another view
+	SwitchToView(string)
 }
 
 // BaseView provides common functionality for all views
