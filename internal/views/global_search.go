@@ -258,10 +258,12 @@ func (gs *GlobalSearch) searchJobs(query string, results chan<- SearchResult, ca
 			score := gs.calculateJobScore(job, queryLower)
 			if score > 0 {
 				jobCount++
+				// Format: Job ID as name, with user/state/partition in description
+				displayName := fmt.Sprintf("%s (%s)", job.ID, job.Name)
 				results <- SearchResult{
 					Type:        "job",
 					ID:          job.ID,
-					Name:        job.Name,
+					Name:        displayName,
 					Description: fmt.Sprintf("User: %s | State: %s | Partition: %s", job.User, job.State, job.Partition),
 					Score:       score,
 					Data:        job,

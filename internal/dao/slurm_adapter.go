@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"fmt"
+	osuser "os/user"
 	"strings"
 	"time"
 
@@ -704,10 +705,21 @@ func convertJob(job *slurm.Job) *Job {
 		exitCode = &job.ExitCode
 	}
 
+	// Prefer UserName if available, fall back to UserID with system lookup
+	username := job.UserName
+	if username == "" {
+		// Try to resolve numeric UID to username via system call
+		if u, err := osuser.LookupId(job.UserID); err == nil {
+			username = u.Username
+		} else {
+			username = job.UserID // Fall back to raw ID
+		}
+	}
+
 	return &Job{
 		ID:         job.ID,
 		Name:       job.Name,
-		User:       job.UserID,
+		User:       username,
 		Account:    "", // Not available in basic Job struct
 		Partition:  job.Partition,
 		State:      job.State,
