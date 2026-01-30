@@ -119,9 +119,10 @@ func (gs *GlobalSearch) Show(pages *tview.Pages, onSelect func(result SearchResu
 					result := gs.results[idx]
 					fmt.Fprintf(os.Stderr, "[DEBUG] GlobalSearch: Calling onSelect with result type=%s, name=%s\n", result.Type, result.Name)
 					if gs.onSelect != nil {
+						// Call the callback, which will handle closing the modal
 						gs.onSelect(result)
 					}
-					pages.RemovePage("global-search")
+					// Don't remove the page here - let the callback handle it
 				}
 			}
 			return nil
@@ -138,7 +139,7 @@ func (gs *GlobalSearch) Show(pages *tview.Pages, onSelect func(result SearchResu
 				result := gs.results[0]
 				fmt.Fprintf(os.Stderr, "[DEBUG] GlobalSearch: Calling onSelect with first result type=%s, name=%s\n", result.Type, result.Name)
 				gs.onSelect(result)
-				pages.RemovePage("global-search")
+				// Don't remove the page here - let the callback handle it
 			}
 			return nil
 		}

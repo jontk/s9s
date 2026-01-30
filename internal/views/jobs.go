@@ -1637,6 +1637,11 @@ func (v *JobsView) showGlobalSearch() {
 	v.globalSearch.Show(v.pages, func(result SearchResult) {
 		// Handle search result selection
 		fmt.Fprintf(os.Stderr, "[JOBS CALLBACK] Callback executing! Result type=%s, name=%s\n", result.Type, result.Name)
+
+		// Close the search modal first
+		fmt.Fprintf(os.Stderr, "[JOBS CALLBACK] Removing search modal\n")
+		v.pages.RemovePage("global-search")
+
 		fmt.Fprintf(os.Stderr, "[JOBS CALLBACK] About to enter switch statement\n")
 		debug.Logger.Printf("[JobsView] Search result selected: type=%s\n", result.Type)
 		switch result.Type {
@@ -1644,6 +1649,7 @@ func (v *JobsView) showGlobalSearch() {
 			fmt.Fprintf(os.Stderr, "[JOBS CALLBACK] Matched job case\n")
 			// Focus on the selected job
 			if job, ok := result.Data.(*dao.Job); ok {
+				fmt.Fprintf(os.Stderr, "[JOBS CALLBACK] Focusing on job: %s\n", job.ID)
 				debug.Logger.Printf("[JobsView] Focusing on job: %s\n", job.ID)
 				v.focusOnJob(job.ID)
 			}
@@ -1659,7 +1665,7 @@ func (v *JobsView) showGlobalSearch() {
 					debug.Logger.Printf("[JobsView] SwitchViewFn is set: %v\n", v.switchViewFn != nil)
 					v.app.QueueUpdateDraw(func() {
 						debug.Logger.Printf("[JobsView] Executing queued view switch\n")
-						// Now that modal is closed, switch view and focus
+						// Switch view
 						v.SwitchToView("nodes")
 						// Focus the node after the view is ready
 						v.app.QueueUpdateDraw(func() {
