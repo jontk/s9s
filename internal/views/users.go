@@ -412,9 +412,6 @@ func (v *UsersView) onFilterDone(_ tcell.Key) {
 func (v *UsersView) toggleAdminFilter() {
 	v.showAdminsOnly = !v.showAdminsOnly
 	v.updateTable()
-	if v.app != nil {
-		v.app.QueueUpdateDraw(func() {})
-	}
 }
 
 // showUserDetails shows detailed information for the selected user
