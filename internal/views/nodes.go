@@ -1629,10 +1629,13 @@ func (v *NodesView) focusOnNode(nodeName string) {
 		if node.Name == nodeName {
 			// Select the row in the table
 			v.table.Select(i, 0)
-			// Note: Status bar update removed since individual view status bars are no longer used
+
+			// Return focus to the table so user can interact with it and see the selection
+			if v.app != nil && v.table != nil && v.table.Table != nil {
+				v.app.SetFocus(v.table.Table)
+			}
+
 			return
 		}
 	}
-
-	// Note: Status bar update removed since individual view status bars are no longer used
 }
