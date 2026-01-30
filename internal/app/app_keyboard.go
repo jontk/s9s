@@ -136,6 +136,8 @@ func (s *S9s) globalRuneHandlers() map[rune]KeyHandler {
 	return map[rune]KeyHandler{
 		':': s.handleColonCommand,
 		'?': s.handleQuestionHelp,
+		'h': s.handlePreviousView,
+		'l': s.handleNextView,
 		'1': s.makeViewSwitchHandler("jobs"),
 		'2': s.makeViewSwitchHandler("nodes"),
 		'3': s.makeViewSwitchHandler("partitions"),
@@ -213,6 +215,18 @@ func (s *S9s) handleTabNavigation(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 
 func (s *S9s) handleBacktabNavigation(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	_ = s.viewMgr.PreviousView()
+	s.updateCurrentView()
+	return nil
+}
+
+func (s *S9s) handlePreviousView(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
+	_ = s.viewMgr.PreviousView()
+	s.updateCurrentView()
+	return nil
+}
+
+func (s *S9s) handleNextView(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
+	_ = s.viewMgr.NextView()
 	s.updateCurrentView()
 	return nil
 }
