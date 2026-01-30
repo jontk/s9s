@@ -3,6 +3,8 @@ package views
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -1150,12 +1152,28 @@ func (v *NodesView) showSSHOptionsModal(nodeName string) {
 	}
 }
 
-// sshToTerminal opens SSH in a new terminal (placeholder implementation)
+// sshToTerminal opens SSH connection directly in the current terminal
+// This suspends s9s, runs SSH, and returns when the session ends
 func (v *NodesView) sshToTerminal(nodeName string) {
-	// This would actually open SSH in external terminal
-	// For now, show a notification about the SSH command
-	message := fmt.Sprintf("SSH command to run:\n\nssh %s\n\nNote: This would normally open in a new terminal window.", nodeName)
-	v.showNotification("SSH Terminal", message)
+	// Suspend s9s application to free the terminal
+	v.app.Suspend(func() {
+		// Create SSH command
+		cmd := exec.Command("ssh", nodeName)
+
+		// Give SSH direct control of stdin/stdout/stderr
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		// Run SSH
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "\nSSH connection error: %v\n", err)
+		}
+
+		// Show brief message before resuming
+		fmt.Println("\nReturning to s9s...")
+		time.Sleep(500 * time.Millisecond)
+	})
 }
 
 // testSSHConnection tests SSH connectivity to the node
