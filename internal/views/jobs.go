@@ -3,6 +3,7 @@ package views
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -1632,23 +1633,29 @@ func (v *JobsView) showGlobalSearch() {
 
 	v.globalSearch.Show(v.pages, func(result SearchResult) {
 		// Handle search result selection
+		fmt.Fprintf(os.Stderr, "[DEBUG] Search result selected: type=%s\n", result.Type)
 		switch result.Type {
 		case "job":
 			// Focus on the selected job
 			if job, ok := result.Data.(*dao.Job); ok {
+				fmt.Fprintf(os.Stderr, "[DEBUG] Focusing on job: %s\n", job.ID)
 				v.focusOnJob(job.ID)
 			}
 		case "node":
 			// Switch to nodes view and focus on the selected node
 			if node, ok := result.Data.(*dao.Node); ok {
+				fmt.Fprintf(os.Stderr, "[DEBUG] Switching to nodes view for node: %s\n", node.Name)
 				// Queue the view switch and focus after the modal closes
 				if v.app != nil && v.viewMgr != nil {
 					nodeName := node.Name
+					fmt.Fprintf(os.Stderr, "[DEBUG] SwitchViewFn is set: %v\n", v.switchViewFn != nil)
 					v.app.QueueUpdateDraw(func() {
+						fmt.Fprintf(os.Stderr, "[DEBUG] Executing queued view switch\n")
 						// Now that modal is closed, switch view and focus
 						v.SwitchToView("nodes")
 						// Focus the node after the view is ready
 						v.app.QueueUpdateDraw(func() {
+							fmt.Fprintf(os.Stderr, "[DEBUG] Executing queued node focus\n")
 							if nodesView, err := v.viewMgr.GetView("nodes"); err == nil {
 								if nv, ok := nodesView.(*NodesView); ok {
 									nv.focusOnNode(nodeName)

@@ -3,6 +3,7 @@ package views
 import (
 	"context"
 	"fmt"
+	"os"
 	"reflect"
 	"time"
 
@@ -124,8 +125,13 @@ func (v *BaseView) SetSwitchViewFn(fn func(string)) {
 
 // SwitchToView switches to another view using the registered callback
 func (v *BaseView) SwitchToView(viewName string) {
+	fmt.Fprintf(os.Stderr, "[DEBUG] SwitchToView called: currentView=%s, targetView=%s, hasFn=%v\n", v.name, viewName, v.switchViewFn != nil)
 	if v.switchViewFn != nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG] Calling switchViewFn\n")
 		v.switchViewFn(viewName)
+		fmt.Fprintf(os.Stderr, "[DEBUG] switchViewFn returned\n")
+	} else {
+		fmt.Fprintf(os.Stderr, "[DEBUG] ERROR: switchViewFn is nil!\n")
 	}
 }
 
