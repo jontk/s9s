@@ -3,11 +3,11 @@ package views
 import (
 	"context"
 	"fmt"
-	"os"
 	"reflect"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/jontk/s9s/internal/debug"
 	"github.com/rivo/tview"
 )
 
@@ -125,13 +125,13 @@ func (v *BaseView) SetSwitchViewFn(fn func(string)) {
 
 // SwitchToView switches to another view using the registered callback
 func (v *BaseView) SwitchToView(viewName string) {
-	fmt.Fprintf(os.Stderr, "[DEBUG] SwitchToView called: currentView=%s, targetView=%s, hasFn=%v\n", v.name, viewName, v.switchViewFn != nil)
+	debug.Logger.Printf("[BaseView] SwitchToView called: currentView=%s, targetView=%s, hasFn=%v\n", v.name, viewName, v.switchViewFn != nil)
 	if v.switchViewFn != nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG] Calling switchViewFn\n")
+		debug.Logger.Printf("[BaseView] Calling switchViewFn\n")
 		v.switchViewFn(viewName)
-		fmt.Fprintf(os.Stderr, "[DEBUG] switchViewFn returned\n")
+		debug.Logger.Printf("[BaseView] switchViewFn returned\n")
 	} else {
-		fmt.Fprintf(os.Stderr, "[DEBUG] ERROR: switchViewFn is nil!\n")
+		debug.Logger.Printf("[BaseView] ERROR: switchViewFn is nil!\n")
 	}
 }
 

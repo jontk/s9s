@@ -1584,29 +1584,29 @@ func (v *NodesView) showGlobalSearch() {
 
 	v.globalSearch.Show(v.pages, func(result SearchResult) {
 		// Handle search result selection
-		fmt.Fprintf(os.Stderr, "[DEBUG] Search result selected: type=%s\n", result.Type)
+		debug.Logger.Printf("[NodesView] Search result selected: type=%s\n", result.Type)
 		switch result.Type {
 		case "node":
 			// Focus on the selected node
 			if node, ok := result.Data.(*dao.Node); ok {
-				fmt.Fprintf(os.Stderr, "[DEBUG] Focusing on node: %s\n", node.Name)
+				debug.Logger.Printf("[NodesView] Focusing on node: %s\n", node.Name)
 				v.focusOnNode(node.Name)
 			}
 		case "job":
 			// Switch to jobs view and focus on the selected job
 			if job, ok := result.Data.(*dao.Job); ok {
-				fmt.Fprintf(os.Stderr, "[DEBUG] Switching to jobs view for job: %s\n", job.ID)
+				debug.Logger.Printf("[NodesView] Switching to jobs view for job: %s\n", job.ID)
 				// Queue the view switch and focus after the modal closes
 				if v.app != nil && v.viewMgr != nil {
 					jobID := job.ID
-					fmt.Fprintf(os.Stderr, "[DEBUG] SwitchViewFn is set: %v\n", v.switchViewFn != nil)
+					debug.Logger.Printf("[NodesView] SwitchViewFn is set: %v\n", v.switchViewFn != nil)
 					v.app.QueueUpdateDraw(func() {
-						fmt.Fprintf(os.Stderr, "[DEBUG] Executing queued view switch\n")
+						debug.Logger.Printf("[NodesView] Executing queued view switch\n")
 						// Now that modal is closed, switch view and focus
 						v.SwitchToView("jobs")
 						// Focus the job after the view is ready
 						v.app.QueueUpdateDraw(func() {
-							fmt.Fprintf(os.Stderr, "[DEBUG] Executing queued job focus\n")
+							debug.Logger.Printf("[NodesView] Executing queued job focus\n")
 							if jobsView, err := v.viewMgr.GetView("jobs"); err == nil {
 								if jv, ok := jobsView.(*JobsView); ok {
 									jv.focusOnJob(jobID)
