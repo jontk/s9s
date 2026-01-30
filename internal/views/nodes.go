@@ -337,10 +337,24 @@ func (v *NodesView) updateTable() {
 
 // updateTableFlat updates the table with flat node data
 func (v *NodesView) updateTableFlat() {
-	// Apply advanced filter if active
+	// Apply partition filter client-side for immediate feedback
 	filteredNodes := v.nodes
+	if v.partFilter != "" {
+		var partFiltered []*dao.Node
+		for _, node := range filteredNodes {
+			for _, part := range node.Partitions {
+				if part == v.partFilter {
+					partFiltered = append(partFiltered, node)
+					break
+				}
+			}
+		}
+		filteredNodes = partFiltered
+	}
+
+	// Apply advanced filter if active
 	if v.advancedFilter != nil && len(v.advancedFilter.Expressions) > 0 {
-		filteredNodes = v.applyAdvancedFilter(v.nodes)
+		filteredNodes = v.applyAdvancedFilter(filteredNodes)
 	}
 
 	data := make([][]string, len(filteredNodes))
@@ -706,13 +720,19 @@ func (v *NodesView) SetFilterText(text string) {
 
 // SetPartitionFilter sets the partition filter using the filter input (no debounce)
 func (v *NodesView) SetPartitionFilter(partition string) {
-	// Set the filter input to "p:partition" which triggers onFilterChange
+	// Set the filter input to "p:partition"
 	filterText := "p:" + partition
 	if v.filterInput != nil {
 		v.filterInput.SetText(filterText)
 	}
-	// Use immediate refresh (no debounce) when called programmatically
-	v.onFilterChangeDebounced(filterText, false)
+
+	// Set partition filter and immediately update table with existing data
+	v.partFilter = partition
+	v.table.SetFilter("")
+	v.updateTable() // Immediate client-side filtering
+
+	// Also trigger API refresh for fresh data
+	go func() { _ = v.Refresh() }()
 }
 
 // onFilterDone handles filter input completion

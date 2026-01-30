@@ -452,10 +452,21 @@ func (v *JobsView) updateTable() {
 	v.mu.RLock()
 	defer v.mu.RUnlock()
 
-	// Apply advanced filter if active
+	// Apply partition filter client-side for immediate feedback
 	filteredJobs := v.jobs
+	if v.partFilter != "" {
+		var partFiltered []*dao.Job
+		for _, job := range filteredJobs {
+			if job.Partition == v.partFilter {
+				partFiltered = append(partFiltered, job)
+			}
+		}
+		filteredJobs = partFiltered
+	}
+
+	// Apply advanced filter if active
 	if v.advancedFilter != nil && len(v.advancedFilter.Expressions) > 0 {
-		filteredJobs = v.applyAdvancedFilter(v.jobs)
+		filteredJobs = v.applyAdvancedFilter(filteredJobs)
 	}
 
 	data := make([][]string, len(filteredJobs))
@@ -634,13 +645,19 @@ func (v *JobsView) SetFilterText(text string) {
 
 // SetPartitionFilter sets the partition filter using the filter input (no debounce)
 func (v *JobsView) SetPartitionFilter(partition string) {
-	// Set the filter input to "p:partition" which triggers onFilterChange
+	// Set the filter input to "p:partition"
 	filterText := "p:" + partition
 	if v.filterInput != nil {
 		v.filterInput.SetText(filterText)
 	}
-	// Use immediate refresh (no debounce) when called programmatically
-	v.onFilterChangeDebounced(filterText, false)
+
+	// Set partition filter and immediately update table with existing data
+	v.partFilter = partition
+	v.table.SetFilter("")
+	v.updateTable() // Immediate client-side filtering
+
+	// Also trigger API refresh for fresh data
+	go func() { _ = v.Refresh() }()
 }
 
 // onFilterDone handles filter input completion
