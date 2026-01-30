@@ -211,6 +211,11 @@ func (v *NodesView) Hints() []string {
 		"Bar: █=Used ▒=Alloc ▱=Free",
 	}
 
+	// Show partition filter status and clear option
+	if v.partFilter != "" {
+		hints = append([]string{fmt.Sprintf("[cyan]Partition: %s[white]", v.partFilter), "[yellow]x[white] Clear Filter"}, hints...)
+	}
+
 	if v.isAdvancedMode {
 		hints = append([]string{"[yellow]ESC[white] Exit Adv Filter"}, hints...)
 	}
@@ -306,6 +311,8 @@ func (v *NodesView) nodesRuneHandlers() map[rune]func(*NodesView, *tcell.EventKe
 		'g': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.promptGroupBy(); return nil },
 		'G': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.promptGroupBy(); return nil },
 		' ': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleGroupExpansion(); return nil },
+		'x': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.ClearPartitionFilter(); return nil },
+		'X': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.ClearPartitionFilter(); return nil },
 	}
 }
 
@@ -655,6 +662,14 @@ func (v *NodesView) SetFilterText(text string) {
 func (v *NodesView) SetPartitionFilter(partition string) {
 	v.partFilter = partition
 	go func() { _ = v.Refresh() }()
+}
+
+// ClearPartitionFilter clears the partition filter and refreshes the view
+func (v *NodesView) ClearPartitionFilter() {
+	if v.partFilter != "" {
+		v.partFilter = ""
+		go func() { _ = v.Refresh() }()
+	}
 }
 
 // onFilterDone handles filter input completion

@@ -262,6 +262,11 @@ func (v *JobsView) Hints() []string {
 		"[yellow]R[white] Refresh",
 	}
 
+	// Show partition filter status and clear option
+	if v.partFilter != "" {
+		hints = append([]string{fmt.Sprintf("[cyan]Partition: %s[white]", v.partFilter), "[yellow]x[white] Clear Filter"}, hints...)
+	}
+
 	if v.isAdvancedMode {
 		hints = append([]string{"[yellow]ESC[white] Exit Adv Filter"}, hints...)
 	}
@@ -371,6 +376,8 @@ func (v *JobsView) jobsRuneHandlers() map[rune]func(*JobsView, *tcell.EventKey) 
 		'U': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.promptUserFilter(); return nil },
 		'v': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleMultiSelectMode(); return nil },
 		'V': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleMultiSelectMode(); return nil },
+		'x': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.ClearPartitionFilter(); return nil },
+		'X': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.ClearPartitionFilter(); return nil },
 	}
 }
 
@@ -583,6 +590,14 @@ func (v *JobsView) SetFilterText(text string) {
 func (v *JobsView) SetPartitionFilter(partition string) {
 	v.partFilter = partition
 	go func() { _ = v.Refresh() }()
+}
+
+// ClearPartitionFilter clears the partition filter and refreshes the view
+func (v *JobsView) ClearPartitionFilter() {
+	if v.partFilter != "" {
+		v.partFilter = ""
+		go func() { _ = v.Refresh() }()
+	}
 }
 
 // onFilterDone handles filter input completion
