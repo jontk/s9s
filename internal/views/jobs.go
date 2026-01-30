@@ -1638,9 +1638,24 @@ func (v *JobsView) showGlobalSearch() {
 			if job, ok := result.Data.(*dao.Job); ok {
 				v.focusOnJob(job.ID)
 			}
+		case "node":
+			// Switch to nodes view and focus on the selected node
+			if node, ok := result.Data.(*dao.Node); ok {
+				if v.viewMgr != nil {
+					// Switch to nodes view
+					if err := v.viewMgr.SetCurrentView("nodes"); err == nil {
+						// Get the nodes view and focus on the node
+						if nodesView, err := v.viewMgr.GetView("nodes"); err == nil {
+							// Call focusOnNode on the nodes view
+							if nv, ok := nodesView.(*NodesView); ok {
+								nv.focusOnNode(node.Name)
+							}
+						}
+					}
+				}
+			}
 		default:
 			// For other types, just close the search
-			// Note: Status bar update removed since individual view status bars are no longer used
 		}
 	})
 }

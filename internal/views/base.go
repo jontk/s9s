@@ -56,6 +56,7 @@ type BaseView struct {
 	title      string
 	app        *tview.Application
 	pages      *tview.Pages
+	viewMgr    *ViewManager
 	refreshing bool
 	lastError  error
 }
@@ -97,6 +98,16 @@ func (v *BaseView) SetApp(app *tview.Application) {
 // GetApp returns the tview application reference
 func (v *BaseView) GetApp() *tview.Application {
 	return v.app
+}
+
+// SetViewManager sets the view manager reference
+func (v *BaseView) SetViewManager(viewMgr *ViewManager) {
+	v.viewMgr = viewMgr
+}
+
+// GetViewManager returns the view manager reference
+func (v *BaseView) GetViewManager() *ViewManager {
+	return v.viewMgr
 }
 
 // IsRefreshing returns true if the view is currently refreshing
@@ -332,6 +343,11 @@ func (vm *ViewManager) setViewReferences(view View) {
 		if pagesField.IsNil() {
 			pagesField.Set(reflect.ValueOf(vm.pages))
 		}
+	}
+
+	// Set viewMgr field if view has it
+	if viewMgrField := rv.FieldByName("viewMgr"); viewMgrField.IsValid() && viewMgrField.CanSet() {
+		viewMgrField.Set(reflect.ValueOf(vm))
 	}
 }
 
