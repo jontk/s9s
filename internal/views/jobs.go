@@ -28,6 +28,7 @@ type JobsView struct {
 	stateFilter         []string
 	userFilter          string
 	partFilter          string
+	filterDebounce      *time.Timer
 	container           *tview.Flex
 	filterInput         *tview.InputField
 	statusBar           *tview.TextView
@@ -566,30 +567,61 @@ func (v *JobsView) onSort(_ int, _ bool) {
 
 // onFilterChange handles filter input changes
 func (v *JobsView) onFilterChange(text string) {
+	v.onFilterChangeDebounced(text, true)
+}
+
+// onFilterChangeDebounced handles filter changes with optional debouncing
+func (v *JobsView) onFilterChangeDebounced(text string, debounce bool) {
 	v.filter = text
 
 	// Check for partition filter syntax: "p:name" or "partition:name"
 	lowerText := strings.ToLower(text)
+	var newPartFilter string
+
 	if strings.HasPrefix(lowerText, "p:") {
-		v.partFilter = strings.TrimPrefix(text, text[:2]) // Keep original case
-		v.table.SetFilter("")                              // Clear table filter, we filter at data level
-		go func() { _ = v.Refresh() }()
-		return
+		newPartFilter = strings.TrimPrefix(text, text[:2]) // Keep original case
+	} else if strings.HasPrefix(lowerText, "partition:") {
+		newPartFilter = strings.TrimPrefix(text, text[:10]) // Keep original case
 	}
-	if strings.HasPrefix(lowerText, "partition:") {
-		v.partFilter = strings.TrimPrefix(text, text[:10]) // Keep original case
-		v.table.SetFilter("")
-		go func() { _ = v.Refresh() }()
+
+	// If partition filter syntax detected
+	if newPartFilter != "" || strings.HasPrefix(lowerText, "p:") || strings.HasPrefix(lowerText, "partition:") {
+		v.table.SetFilter("") // Clear table filter, we filter at data level
+
+		// Only refresh if partition filter actually changed
+		if v.partFilter != newPartFilter {
+			v.partFilter = newPartFilter
+			v.scheduleFilterRefresh(debounce)
+		}
 		return
 	}
 
 	// Clear partition filter if no prefix
 	if v.partFilter != "" {
 		v.partFilter = ""
-		go func() { _ = v.Refresh() }()
+		v.scheduleFilterRefresh(debounce)
 	}
 
 	v.table.SetFilter(text)
+}
+
+// scheduleFilterRefresh schedules a refresh with optional debouncing
+func (v *JobsView) scheduleFilterRefresh(debounce bool) {
+	// Cancel any pending debounced refresh
+	if v.filterDebounce != nil {
+		v.filterDebounce.Stop()
+		v.filterDebounce = nil
+	}
+
+	if debounce {
+		// Debounce: wait 300ms before refreshing
+		v.filterDebounce = time.AfterFunc(300*time.Millisecond, func() {
+			_ = v.Refresh()
+		})
+	} else {
+		// Immediate refresh
+		go func() { _ = v.Refresh() }()
+	}
 }
 
 // SetFilterText sets the filter input text programmatically
@@ -600,14 +632,15 @@ func (v *JobsView) SetFilterText(text string) {
 	v.onFilterChange(text)
 }
 
-// SetPartitionFilter sets the partition filter using the filter input
+// SetPartitionFilter sets the partition filter using the filter input (no debounce)
 func (v *JobsView) SetPartitionFilter(partition string) {
 	// Set the filter input to "p:partition" which triggers onFilterChange
 	filterText := "p:" + partition
 	if v.filterInput != nil {
 		v.filterInput.SetText(filterText)
 	}
-	v.onFilterChange(filterText)
+	// Use immediate refresh (no debounce) when called programmatically
+	v.onFilterChangeDebounced(filterText, false)
 }
 
 // onFilterDone handles filter input completion
