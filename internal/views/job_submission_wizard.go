@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -12,21 +13,29 @@ import (
 
 // JobSubmissionWizard provides an interactive interface for submitting jobs
 type JobSubmissionWizard struct {
-	client    dao.SlurmClient
-	app       *tview.Application
-	pages     *tview.Pages
-	form      *tview.Form
-	templates map[string]*dao.JobTemplate
-	onSubmit  func(jobID string)
-	onCancel  func()
+	client     dao.SlurmClient
+	app        *tview.Application
+	pages      *tview.Pages
+	form       *tview.Form
+	templates  map[string]*dao.JobTemplate
+	onSubmit   func(jobID string)
+	onCancel   func()
+	workingDir string // Current working directory at application start
 }
 
 // NewJobSubmissionWizard creates a new job submission wizard
 func NewJobSubmissionWizard(client dao.SlurmClient, app *tview.Application) *JobSubmissionWizard {
+	// Get current working directory at application start
+	workingDir, err := os.Getwd()
+	if err != nil {
+		workingDir = "" // Fallback to empty if error
+	}
+
 	return &JobSubmissionWizard{
-		client:    client,
-		app:       app,
-		templates: initializeTemplates(),
+		client:     client,
+		app:        app,
+		templates:  initializeTemplates(),
+		workingDir: workingDir,
 	}
 }
 
@@ -110,14 +119,19 @@ func (w *JobSubmissionWizard) showJobForm(template *dao.JobTemplate) {
 
 	// Initialize job from template or defaults
 	job := &dao.JobSubmission{
-		TimeLimit: "01:00:00",
-		Memory:    "4G",
-		CPUs:      1,
-		Nodes:     1,
+		TimeLimit:  "01:00:00",
+		Memory:     "4G",
+		CPUs:       1,
+		Nodes:      1,
+		WorkingDir: w.workingDir, // Default to current working directory
 	}
 
 	if template != nil {
 		job = &template.JobSubmission
+		// If template doesn't specify working directory, use current directory
+		if job.WorkingDir == "" {
+			job.WorkingDir = w.workingDir
+		}
 		form.SetTitle(fmt.Sprintf(" Submit Job - %s ", template.Name))
 	} else {
 		form.SetTitle(" Submit Job - Custom ")
