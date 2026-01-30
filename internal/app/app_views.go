@@ -88,6 +88,7 @@ func (s *S9s) registerAccountsView() error {
 func (s *S9s) registerUsersView() error {
 	view := views.NewUsersView(s.client)
 	view.SetApp(s.app)
+	view.SetStatusBar(s.statusBar)
 	view.SetPages(s.pages)
 	return s.addViewToApp("users", view)
 }

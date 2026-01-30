@@ -34,6 +34,7 @@ type UsersView struct {
 	isAdvancedMode bool
 	globalSearch   *GlobalSearch
 	showAdminsOnly bool
+	mainStatusBar  *components.StatusBar
 }
 
 // SetPages sets the pages reference for modal handling
@@ -43,6 +44,11 @@ func (v *UsersView) SetPages(pages *tview.Pages) {
 	if v.filterBar != nil {
 		v.filterBar.SetPages(pages)
 	}
+}
+
+// SetStatusBar sets the main status bar reference
+func (v *UsersView) SetStatusBar(statusBar *components.StatusBar) {
+	v.mainStatusBar = statusBar
 }
 
 // SetApp sets the application reference
@@ -412,6 +418,14 @@ func (v *UsersView) onFilterDone(_ tcell.Key) {
 func (v *UsersView) toggleAdminFilter() {
 	v.showAdminsOnly = !v.showAdminsOnly
 	v.updateTable()
+
+	if v.mainStatusBar != nil {
+		if v.showAdminsOnly {
+			v.mainStatusBar.Info("Showing admins/operators only")
+		} else {
+			v.mainStatusBar.Info("Showing all users")
+		}
+	}
 }
 
 // showUserDetails shows detailed information for the selected user
