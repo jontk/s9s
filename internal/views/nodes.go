@@ -1622,20 +1622,43 @@ func (v *NodesView) showSSHTerminalManager(nodeName string) {
 // focusOnNode focuses the table on a specific node
 func (v *NodesView) focusOnNode(nodeName string) {
 	v.mu.RLock()
-	defer v.mu.RUnlock()
-
-	// Find the node in our node list
+	nodeIdx := -1
 	for i, node := range v.nodes {
 		if node.Name == nodeName {
-			// Select the row in the table
-			v.table.Select(i, 0)
+			nodeIdx = i
+			break
+		}
+	}
+	v.mu.RUnlock()
 
-			// Return focus to the table so user can interact with it and see the selection
-			if v.app != nil && v.table != nil && v.table.Table != nil {
+	if nodeIdx == -1 {
+		return // Node not found
+	}
+
+	// Clear any active filters to ensure the node is visible in the table
+	if v.table != nil {
+		v.table.SetFilter("")
+	}
+
+	// Clear the filter input field
+	if v.filterInput != nil {
+		v.filterInput.SetText("")
+	}
+
+	// Clear advanced filters
+	v.advancedFilter = nil
+	v.isAdvancedMode = false
+
+	// Select the row in the table
+	v.table.Select(nodeIdx, 0)
+
+	// Queue a redraw to ensure the selection is visible after search modal is removed
+	if v.app != nil {
+		v.app.QueueUpdateDraw(func() {
+			// Ensure focus is on the table and selection is visible
+			if v.table != nil && v.table.Table != nil {
 				v.app.SetFocus(v.table.Table)
 			}
-
-			return
-		}
+		})
 	}
 }
