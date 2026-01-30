@@ -782,13 +782,17 @@ func (v *NodesView) resumeSelectedNode() {
 		SetText(fmt.Sprintf("Resume node %s?", nodeName)).
 		AddButtons([]string{"Yes", "No"}).
 		SetDoneFunc(func(buttonIndex int, _ string) {
+			if v.pages != nil {
+				v.pages.RemovePage("resume-confirm")
+			}
 			if buttonIndex == 0 {
 				go v.performResumeNode(nodeName)
 			}
-			v.app.SetRoot(v.container, true)
 		})
 
-	v.app.SetRoot(modal, true)
+	if v.pages != nil {
+		v.pages.AddPage("resume-confirm", modal, true, true)
+	}
 }
 
 // findNode finds a node by name in the node list
@@ -841,38 +845,49 @@ func (v *NodesView) showResumeError(nodeName, state string) {
 
 // performResumeNode performs the node resume operation
 func (v *NodesView) performResumeNode(nodeName string) {
+	// Remove the resume confirmation modal via app queue to ensure thread safety
+	if v.pages != nil && v.app != nil {
+		v.app.QueueUpdateDraw(func() {
+			v.pages.RemovePage("resume-confirm")
+		})
+	}
+
+	// Perform the resume operation
 	err := v.client.Nodes().Resume(nodeName)
-	if err != nil {
-		// Log the error for debugging
-		if v.pages != nil {
-			// Show error modal
-			errorModal := tview.NewModal().
-				SetText(fmt.Sprintf("Failed to resume node %s: %v", nodeName, err)).
-				AddButtons([]string{"OK"}).
-				SetDoneFunc(func(_ int, _ string) {
-					v.pages.RemovePage("error")
-					v.app.SetFocus(v.table.Table)
-				})
-			v.pages.AddPage("error", errorModal, true, true)
-		}
-		return
-	}
 
-	// Show success message
-	if v.pages != nil {
-		successModal := tview.NewModal().
-			SetText(fmt.Sprintf("Node %s resumed successfully", nodeName)).
-			AddButtons([]string{"OK"}).
-			SetDoneFunc(func(_ int, _ string) {
-				v.pages.RemovePage("success")
-				v.app.SetFocus(v.table.Table)
-			})
-		v.pages.AddPage("success", successModal, true, true)
-	}
+	// Handle result via app queue to ensure thread safety
+	if v.app != nil {
+		v.app.QueueUpdateDraw(func() {
+			if err != nil {
+				// Show error modal
+				if v.pages != nil {
+					errorModal := tview.NewModal().
+						SetText(fmt.Sprintf("Failed to resume node %s: %v", nodeName, err)).
+						AddButtons([]string{"OK"}).
+						SetDoneFunc(func(_ int, _ string) {
+							v.pages.RemovePage("error")
+							v.app.SetFocus(v.table.Table)
+						})
+					v.pages.AddPage("error", errorModal, true, true)
+				}
+				return
+			}
 
-	// Refresh the view
-	time.Sleep(500 * time.Millisecond)
-	_ = v.Refresh()
+			// Show success message
+			if v.pages != nil {
+				successModal := tview.NewModal().
+					SetText(fmt.Sprintf("Node %s resumed successfully", nodeName)).
+					AddButtons([]string{"OK"}).
+					SetDoneFunc(func(_ int, _ string) {
+						v.pages.RemovePage("success")
+						v.app.SetFocus(v.table.Table)
+						// Refresh the view after modal is closed
+						go v.Refresh()
+					})
+				v.pages.AddPage("success", successModal, true, true)
+			}
+		})
+	}
 }
 
 // showNodeDetails shows detailed information for the selected node
