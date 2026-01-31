@@ -289,6 +289,40 @@ docs-serve:
 	@echo "Starting documentation server..."
 	godoc -http=:6060
 
+# Demo targets
+.PHONY: demos demo-overview demo-clean
+
+# Generate all VHS demos
+demos: build
+	@echo "Generating all VHS demos..."
+	@if ! command -v vhs >/dev/null 2>&1; then \
+		echo "Error: vhs is not installed. Install with: go install github.com/charmbracelet/vhs@latest"; \
+		exit 1; \
+	fi
+	@for tape in demos/*.tape; do \
+		if [ "$$tape" != "demos/common.tape" ]; then \
+			echo "Recording: $$tape"; \
+			vhs "$$tape"; \
+		fi; \
+	done
+	@echo "All demos generated in demos/output/"
+
+# Generate overview demo only
+demo-overview: build
+	@echo "Generating overview demo..."
+	@if ! command -v vhs >/dev/null 2>&1; then \
+		echo "Error: vhs is not installed. Install with: go install github.com/charmbracelet/vhs@latest"; \
+		exit 1; \
+	fi
+	vhs demos/overview.tape
+	@echo "Overview demo generated: demos/output/overview.gif"
+
+# Clean demo outputs
+demo-clean:
+	@echo "Cleaning demo outputs..."
+	@rm -rf demos/output/*
+	@echo "Demo outputs cleaned"
+
 # Help target
 help:
 	@echo "S9S Terminal UI - Available Make Targets:"
@@ -345,6 +379,11 @@ help:
 	@echo "Documentation Targets:"
 	@echo "  docs          - Generate documentation"
 	@echo "  docs-serve    - Serve documentation on localhost:6060"
+	@echo ""
+	@echo "Demo Targets:"
+	@echo "  demos         - Generate all VHS demo recordings"
+	@echo "  demo-overview - Generate overview demo only"
+	@echo "  demo-clean    - Clean demo output files"
 	@echo ""
 	@echo "Environment Variables:"
 	@echo "  VERSION       - Override version (default: git describe)"
