@@ -20,7 +20,7 @@ func SafeUint64ToInt(val uint64) (int, error) {
 // On overflow, returns the maximum int64 value and an error.
 func SafeUint64ToInt64(val uint64) (int64, error) {
 	if val > math.MaxInt64 {
-		return math.MaxInt64, fmt.Errorf("overflow: uint64 value %d exceeds max int64 %d", val, math.MaxInt64)
+		return math.MaxInt64, fmt.Errorf("overflow: uint64 value %d exceeds max int64", val)
 	}
 	return int64(val), nil
 }
