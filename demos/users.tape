@@ -17,27 +17,49 @@ Sleep 2s
 
 # Switch to Users view (key 7)
 Type "7"
-Sleep 2s
+Sleep 1500ms
 
 # Navigate through users
 Down
-Sleep 500ms
+Sleep 300ms
 Down
-Sleep 500ms
+Sleep 300ms
 
-# Show user details
+# Show user details (Enter)
 Enter
 Sleep 2s
 Escape
+Sleep 500ms
+
+# Toggle admin filter - show admins only (a key)
+Type "a"
+Sleep 1500ms
+
+# Toggle back to show all users
+Type "a"
 Sleep 1s
 
-# Toggle admin filter (a key)
-Type "a"
-Sleep 2s
-
-# Toggle back
-Type "a"
+# Quick filter by name
+Type "/"
+Sleep 300ms
+Type "admin"
 Sleep 1s
+Escape
+Sleep 500ms
+
+# Sort by different columns
+Type "2"
+Sleep 1s
+Type "3"
+Sleep 1s
+Type "1"
+Sleep 500ms
+
+# Advanced filter (F3)
+F3
+Sleep 1500ms
+Escape
+Sleep 500ms
 
 # Exit
 Type "q"

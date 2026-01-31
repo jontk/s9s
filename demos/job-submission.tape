@@ -18,45 +18,82 @@ Type "./build/s9s"
 Enter
 Sleep 2s
 
-# Open job submission (s key)
-Type "s"
+# First show job templates (F2)
+F2
 Sleep 2s
 
-# Select template (e.g., Basic Batch Job)
+# Navigate through templates
 Down
-Sleep 500ms
+Sleep 300ms
+Down
+Sleep 300ms
+Up
+Sleep 300ms
+
+# Select a template
 Enter
 Sleep 2s
 
+# Now in job submission form
 # Fill in job name
-Type "my-demo-job"
+Type "simulation-job"
 Tab
 Sleep 500ms
+
+# Skip to script content (Tab through fields)
+Tab
+Sleep 300ms
 
 # Add script content
 Type "#!/bin/bash"
 Enter
-Type "echo 'Hello SLURM'"
-Tab
+Type "#SBATCH --nodes=4"
+Enter
+Type "#SBATCH --ntasks-per-node=16"
+Enter
+Enter
+Type "srun ./my_simulation"
 Sleep 1s
 
-# Navigate through fields
+# Navigate through other fields
 Tab
-Sleep 500ms
+Sleep 300ms
 Tab
-Sleep 500ms
+Sleep 300ms
+Tab
+Sleep 300ms
 
-# Preview the job script
-Tab
+# Show preview of the job script
 Tab
 Tab
 Enter
 Sleep 3s
 Escape
+Sleep 500ms
+
+# Cancel this submission
+Escape
+Sleep 500ms
+
+# Open job submission directly (s key)
+Type "s"
+Sleep 1500ms
+
+# Quick submit without template
+Type "quick-test"
+Tab
+Sleep 300ms
+Tab
+Sleep 300ms
+Type "echo 'Hello World'"
 Sleep 1s
 
 # Cancel and exit
 Escape
-Sleep 1s
+Sleep 500ms
+Escape
+Sleep 500ms
+
+# Exit
 Type "q"
 Sleep 500ms

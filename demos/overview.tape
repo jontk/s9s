@@ -21,63 +21,74 @@ Sleep 500ms
 Enter
 Sleep 2s
 
-# Show Jobs view (default - key 1)
-Sleep 2s
+# Jobs view (default - key 1) - show job details
+Down
+Sleep 200ms
+Enter
+Sleep 1500ms
+Escape
+Sleep 300ms
 
-# Navigate to Nodes (key 2)
+# Nodes view (key 2) - show resource bars
 Type "2"
 Sleep 1500ms
 
-# Navigate to Partitions (key 3)
+# Partitions view (key 3) - show queue analytics
 Type "3"
 Sleep 1500ms
 
-# Navigate to Reservations (key 4)
+# Reservations view (key 4)
 Type "4"
-Sleep 1500ms
+Sleep 1200ms
 
-# Navigate to QoS (key 5)
+# QoS view (key 5) - show priority colors
 Type "5"
-Sleep 1500ms
+Sleep 1200ms
 
-# Navigate to Accounts (key 6)
+# Accounts view (key 6)
 Type "6"
-Sleep 1500ms
+Sleep 1200ms
 
-# Navigate to Users (key 7)
+# Users view (key 7)
 Type "7"
-Sleep 1500ms
+Sleep 1200ms
 
-# Navigate to Dashboard (key 8)
+# Dashboard view (key 8) - cluster overview
 Type "8"
-Sleep 2s
-
-# Navigate to Health (key 9)
-Type "9"
-Sleep 2s
-
-# Show Global Search (Ctrl+F)
-Ctrl+F
-Sleep 1s
-Type "compute"
 Sleep 1500ms
-Escape
-Sleep 500ms
 
-# Back to Jobs (key 1)
-Type "1"
-Sleep 1s
+# Health view (key 9) - alerts and monitoring
+Type "9"
+Sleep 1500ms
 
-# Show filtering (simple text filter)
-Type "/"
+# Demonstrate Global Search (Ctrl+F)
+Ctrl+F
 Sleep 500ms
-Type "RUNNING"
+Type "compute"
 Sleep 1s
+Down
+Sleep 200ms
 Enter
 Sleep 1500ms
 
-# Clear filter and exit
+# Back to Jobs for filtering demo
+Type "1"
+Sleep 800ms
+
+# Quick filter (/)
+Type "/"
+Sleep 300ms
+Type "RUNNING"
+Sleep 800ms
 Escape
-Sleep 500ms
+Sleep 300ms
+
+# Show help (?)
+Type "?"
+Sleep 2s
+Escape
+Sleep 300ms
+
+# Exit
 Type "q"
 Sleep 500ms

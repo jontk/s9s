@@ -15,37 +15,78 @@ Type "./build/s9s"
 Enter
 Sleep 2s
 
-# Switch to Nodes view
+# Switch to Nodes view (key 2)
 Type "2"
-Sleep 2s
+Sleep 1500ms
 
-# Navigate to a node
+# Navigate to a node and show details
 Down
-Sleep 500ms
+Sleep 300ms
 Down
-Sleep 500ms
-
-# Show node details
+Sleep 300ms
 Enter
 Sleep 2s
 Escape
+Sleep 500ms
+
+# Filter by state - show idle nodes only
+Type "i"
+Sleep 1500ms
+
+# Show mixed state nodes
+Type "m"
+Sleep 1500ms
+
+# Show all states
+Type "a"
 Sleep 1s
 
-# Show grouping options and select "partition"
+# Group by partition
 Type "g"
-Sleep 1s
+Sleep 500ms
 Type "2"
-Sleep 2s
+Sleep 1500ms
+
+# Toggle group expansion with Space
+Down
+Sleep 300ms
+Space
+Sleep 1s
+Space
+Sleep 500ms
+
+# Group by state
+Type "g"
+Sleep 500ms
+Type "3"
+Sleep 1500ms
+
+# Back to no grouping
+Type "g"
+Sleep 500ms
+Type "1"
+Sleep 1s
 
 # Filter by partition
-Type "/"
+Type "p"
 Sleep 500ms
-Type "p:compute"
+Type "compute"
 Enter
-Sleep 2s
+Sleep 1500ms
 
-# Clear and exit
+# Clear partition filter
+Type "p"
+Sleep 500ms
+Ctrl+U
+Enter
+Sleep 500ms
+
+# Show SSH options (s key)
+Type "s"
+Sleep 2s
 Escape
-Sleep 1s
+Sleep 500ms
+
+# Exit
 Type "q"
 Sleep 500ms

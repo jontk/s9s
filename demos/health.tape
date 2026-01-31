@@ -17,18 +17,46 @@ Sleep 2s
 
 # Switch to Health view (key 9)
 Type "9"
-Sleep 2s
+Sleep 1500ms
 
 # Navigate through alerts
 Down
-Sleep 500ms
+Sleep 300ms
 Down
+Sleep 300ms
+
+# Show alert details (Enter)
+Enter
+Sleep 2s
+Escape
 Sleep 500ms
 
 # Show health statistics (s key)
 Type "s"
 Sleep 3s
 Escape
+Sleep 500ms
+
+# Show detailed health check information (H key)
+Type "H"
+Sleep 3s
+Escape
+Sleep 500ms
+
+# Acknowledge an alert (a key)
+Type "a"
+Sleep 1500ms
+
+# Resolve an alert (r key)
+Type "r"
+Sleep 1500ms
+
+# Clear old resolved alerts (c key)
+Type "c"
+Sleep 1500ms
+
+# Refresh health data
+Type "R"
 Sleep 1s
 
 # Exit
