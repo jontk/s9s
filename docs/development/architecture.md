@@ -1,4 +1,24 @@
-# s9s Architecture
+# s9s Architecture Guide
+
+Comprehensive architecture documentation for s9s, covering system design, patterns, and component interactions.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture Diagram](#architecture-diagram)
+- [Core Components](#core-components)
+- [Key Design Patterns](#key-design-patterns)
+- [Data Flow](#data-flow)
+- [Configuration Management](#configuration-management)
+- [State Management](#state-management)
+- [Concurrency Model](#concurrency-model)
+- [Error Handling](#error-handling)
+- [Security Considerations](#security-considerations)
+- [Performance Optimization](#performance-optimization)
+- [Testing Architecture](#testing-architecture)
+- [Extension Points](#extension-points)
+- [Development Guidelines](#development-guidelines)
+- [Debugging](#debugging)
 
 ## Overview
 
@@ -44,7 +64,7 @@ s9s follows a modular, layered architecture designed for maintainability, testab
 
 ## Core Components
 
-### 1. Application Layer (`cmd/s9s/`)
+### 1. Application Layer (cmd/s9s/)
 
 The entry point of the application that:
 - Parses command-line arguments
@@ -62,7 +82,7 @@ func main() {
 }
 ```
 
-### 2. Views Layer (`internal/views/`)
+### 2. Views Layer (internal/views/)
 
 Views implement the UI for different resources:
 
@@ -83,7 +103,7 @@ type View interface {
 }
 ```
 
-### 3. UI Components (`internal/ui/`)
+### 3. UI Components (internal/ui/)
 
 Reusable UI components:
 
@@ -93,7 +113,7 @@ Reusable UI components:
 - **LoadingManager**: Loading state management
 - **Modal dialogs**: Confirmations, forms, etc.
 
-### 4. Data Access Objects (`internal/dao/`)
+### 4. Data Access Objects (internal/dao/)
 
 Abstracts SLURM operations with clean interfaces:
 
@@ -115,7 +135,7 @@ type JobManager interface {
 }
 ```
 
-### 5. SLURM Adapter (`internal/dao/slurm_adapter.go`)
+### 5. SLURM Adapter (internal/dao/slurm_adapter.go)
 
 Bridges the DAO interfaces with the actual SLURM client:
 - Handles API version compatibility
@@ -123,7 +143,7 @@ Bridges the DAO interfaces with the actual SLURM client:
 - Implements retry logic
 - Provides error translation
 
-### 6. Mock Implementation (`pkg/slurm/mock.go`)
+### 6. Mock Implementation (pkg/slurm/mock.go)
 
 Full SLURM simulator for development:
 - Simulates job lifecycle
@@ -133,7 +153,7 @@ Full SLURM simulator for development:
 
 ## Key Design Patterns
 
-### 1. Interface Segregation
+### Interface Segregation
 
 Each manager interface is focused on a single resource type:
 ```go
@@ -145,7 +165,7 @@ type NodeManager interface {
 }
 ```
 
-### 2. Dependency Injection
+### Dependency Injection
 
 Views receive dependencies through constructors:
 ```go
@@ -157,7 +177,7 @@ func NewJobsView(client dao.SlurmClient) *JobsView {
 }
 ```
 
-### 3. Observer Pattern
+### Observer Pattern
 
 Views can subscribe to refresh events:
 ```go
@@ -166,7 +186,7 @@ type RefreshObserver interface {
 }
 ```
 
-### 4. Command Pattern
+### Command Pattern
 
 User actions are encapsulated as commands:
 ```go
@@ -178,19 +198,19 @@ type Command interface {
 
 ## Data Flow
 
-### 1. User Input Flow
+### User Input Flow
 ```
-User Input → View Handler → Validation → DAO Call → SLURM API → Response → UI Update
-```
-
-### 2. Refresh Flow
-```
-Timer/Manual Trigger → View.Refresh() → DAO.List() → Parse Response → Update Table → Render
+User Input -> View Handler -> Validation -> DAO Call -> SLURM API -> Response -> UI Update
 ```
 
-### 3. Error Handling Flow
+### Refresh Flow
 ```
-Error Occurs → Log Error → User-Friendly Message → Status Bar Display → Optional Retry
+Timer/Manual Trigger -> View.Refresh() -> DAO.List() -> Parse Response -> Update Table -> Render
+```
+
+### Error Handling Flow
+```
+Error Occurs -> Log Error -> User-Friendly Message -> Status Bar Display -> Optional Retry
 ```
 
 ## Configuration Management
@@ -269,7 +289,7 @@ go func() {
 }()
 ```
 
-## Error Handling Strategy
+## Error Handling
 
 ### Error Types
 
@@ -449,6 +469,12 @@ Built-in diagnostics:
 - Performance metrics
 - Error rate monitoring
 
----
+## Related Documentation
+
+- [Setup Guide](setup.md) - Development environment setup
+- [Testing Guide](testing.md) - Testing strategies and practices
+- [Contributing Guide](contributing.md) - Contribution process
+- [Linting Standards](linting.md) - Code quality requirements
+- [CI/CD Setup](ci-cd.md) - Continuous integration configuration
 
 This architecture provides a solid foundation for a maintainable, extensible terminal UI application while keeping the codebase organized and testable.

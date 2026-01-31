@@ -10,6 +10,7 @@ This document explains the s9s CI/CD pipeline, linting enforcement, and how to c
 - [Branch Protection Rules](#branch-protection-rules)
 - [Local Testing Before Push](#local-testing-before-push)
 - [Troubleshooting](#troubleshooting)
+- [Best Practices](#best-practices)
 
 ## Overview
 
@@ -31,27 +32,27 @@ All checks must pass before code can be merged to main.
 │   Trigger   │ (push to main/develop, PR to main)
 └──────┬──────┘
        │
-       ├─→ ┌──────────────────────┐
-       │   │  Lint Job (5-8 min)  │ ◄── BLOCKS BUILD IF FAILS
+       ├─> ┌──────────────────────┐
+       │   │  Lint Job (5-8 min)  │ <-- BLOCKS BUILD IF FAILS
        │   │ - golangci-lint      │
        │   │ - 15 linters         │
        │   └──────────┬───────────┘
        │              │
-       ├─→ ┌──────────▼────────────┐
-       │   │ Test Job (8-15 min)   │ ◄── BLOCKS BUILD IF FAILS
+       ├─> ┌──────────v────────────┐
+       │   │ Test Job (8-15 min)   │ <-- BLOCKS BUILD IF FAILS
        │   │ - Go 1.23 & 1.24      │
        │   │ - Race detector       │
        │   │ - Coverage upload     │
        │   └──────────┬────────────┘
        │              │
-       │   ┌──────────▼────────────────────────┐
+       │   ┌──────────v────────────────────────┐
        │   │ Build Job (5-10 min) - DEPENDS ON │
-       │   │ - Linux x86_64, arm64             │ ◄── ONLY RUNS IF
+       │   │ - Linux x86_64, arm64             │ <-- ONLY RUNS IF
        │   │ - macOS x86_64, arm64             │     LINT & TEST PASS
        │   │ - Windows x86_64                  │
        │   └──────────┬────────────────────────┘
        │              │
-       └─→ ┌──────────▼─────────────┐
+       └─> ┌──────────v─────────────┐
            │ Security Job (3-5 min) │
            │ - Trivy scanner        │
            │ - Gosec scanner        │
@@ -82,9 +83,9 @@ jobs:
 **What this does**:
 - Checks out your code
 - Sets up Go 1.24 environment
-- Installs golangci-lint v2.3.0 (matches local version from CONTRIBUTING.md)
+- Installs golangci-lint v2.3.0
 - Runs all 15 enabled linters with 10-minute timeout
-- **Fails the job if ANY linting violation is found**
+- Fails the job if ANY linting violation is found
 
 #### Build Job Dependencies
 ```yaml
@@ -117,12 +118,13 @@ The CI enforces the same linters as `.golangci.yml`:
 - `gocritic` - Code patterns and style
 - `unused` - Dead code detection
 - `nolintlint` - Validate nolint directives
+- `revive` - Go idioms enforcement
 
 **Advanced**:
 - `gocognit` - Cognitive complexity (threshold: 50)
 - `dupl` - Code duplication (threshold: 150 lines)
 
-See `.golangci.yml` and [docs/LINTING.md](LINTING.md) for complete configuration.
+See `.golangci.yml` and [Linting Standards](linting.md) for complete configuration.
 
 ## Linting Gate
 
@@ -143,8 +145,8 @@ A **linting gate** is an automated enforcement mechanism that prevents code merg
 
 2. **GitHub Actions runs automatically**
    - Lint job runs: `golangci-lint run --timeout 10m`
-   - If lint fails: Red X ❌ shown on PR
-   - If lint passes: Green checkmark ✓ shown on PR
+   - If lint fails: Red X shown on PR
+   - If lint passes: Green checkmark shown on PR
 
 3. **PR cannot be merged until lint passes**
    - With branch protection enabled (see below)
@@ -160,7 +162,7 @@ A **linting gate** is an automated enforcement mechanism that prevents code merg
    ```
 
 5. **Lint job runs again**
-   - All checks now pass ✓
+   - All checks now pass
    - Merge button becomes enabled
    - Code can be merged
 
@@ -168,9 +170,9 @@ A **linting gate** is an automated enforcement mechanism that prevents code merg
 
 The linting gate is **ALREADY IMPLEMENTED** in `.github/workflows/ci.yml`:
 
-✅ Lint job runs on every push and PR
-✅ Build job depends on lint job passing
-✅ Build cannot run if lint fails
+- Lint job runs on every push and PR
+- Build job depends on lint job passing
+- Build cannot run if lint fails
 
 **Next Step**: Configure branch protection rules to formally require the lint check (see below).
 
@@ -194,7 +196,7 @@ The linting gate is **ALREADY IMPLEMENTED** in `.github/workflows/ci.yml`:
 
 1. **Go to Repository Settings**
    - Navigate to: https://github.com/jontk/s9s/settings/branches
-   - Or: Click "Settings" → "Branches" in left sidebar
+   - Or: Click "Settings" > "Branches" in left sidebar
 
 2. **Add Rule for `main` Branch**
    - Click "Add rule"
@@ -203,41 +205,23 @@ The linting gate is **ALREADY IMPLEMENTED** in `.github/workflows/ci.yml`:
 
 3. **Configure Required Status Checks**
    - Scroll to "Require status checks to pass before merging"
-   - Enable: ☑ "Require branches to be up to date before merging"
+   - Enable: "Require branches to be up to date before merging"
    - Search and select required checks:
-     - ☑ Lint
-     - ☑ Test
-     - ☑ Security Scan (optional but recommended)
+     - Lint
+     - Test
+     - Security Scan (optional but recommended)
 
 4. **Require Pull Request Reviews** (recommended)
-   - Enable: ☑ "Require pull request reviews before merging"
+   - Enable: "Require pull request reviews before merging"
    - Approvals required: 1
-   - Enable: ☑ "Dismiss stale pull request approvals when new commits are pushed"
+   - Enable: "Dismiss stale pull request approvals when new commits are pushed"
 
 5. **Additional Security Options** (recommended)
-   - Enable: ☑ "Require signed commits"
-   - Enable: ☑ "Require status checks to pass before merging"
+   - Enable: "Require signed commits"
+   - Enable: "Require status checks to pass before merging"
 
 6. **Save Rules**
    - Click "Save changes" button
-
-#### Example Screenshot Reference
-
-The settings page should look like:
-```
-Rules for main
-├─ Require status checks to pass before merging
-│  ├─ Require branches to be up to date before merging ✓
-│  └─ Status checks that must pass:
-│     ├─ Lint ✓
-│     ├─ Test ✓
-│     └─ Build ✓
-├─ Require pull request reviews before merging
-│  └─ Required number of approvals before merge: 1
-├─ Require status checks to pass before merging
-│  └─ Require branches to be up to date before merging ✓
-└─ Require signed commits ✓
-```
 
 ### Verify Configuration
 
@@ -253,7 +237,7 @@ After enabling branch protection:
 
 2. **Check GitHub PR page**
    - Should show: "1 failing check" (Lint job)
-   - Merge button should be disabled (grayed out)
+   - Merge button should be disabled
    - Message: "Status checks failing"
 
 3. **Fix the error**
@@ -264,9 +248,9 @@ After enabling branch protection:
    ```
 
 4. **Verify merge becomes available**
-   - All checks now pass ✓
+   - All checks now pass
    - Merge button becomes enabled
-   - Can now merge the PR (or close it)
+   - Can now merge the PR
 
 ## Local Testing Before Push
 
@@ -284,7 +268,7 @@ pre-commit install
 # - golangci-lint (full linting)
 ```
 
-See [docs/PRE_COMMIT_SETUP.md](PRE_COMMIT_SETUP.md) for detailed setup guide.
+See [docs/PRE_COMMIT_SETUP.md](../../docs/PRE_COMMIT_SETUP.md) for detailed setup guide.
 
 ### Manual Testing
 
@@ -332,21 +316,21 @@ git push origin feature/my-feature
 
 **Unused variable**:
 ```go
-// ❌ Wrong - golangci-lint will flag as 'unused'
+// Wrong - golangci-lint will flag as 'unused'
 var unusedVar string
 
-// ✅ Right - Use underscore for intentionally unused
+// Right - Use underscore for intentionally unused
 _ = unusedVar
 ```
 
 **Unused function parameter**:
 ```go
-// ❌ Wrong - parameter 'ctx' not used
+// Wrong - parameter 'ctx' not used
 func processJob(ctx context.Context) error {
     return nil
 }
 
-// ✅ Right - rename to underscore
+// Right - rename to underscore
 func processJob(_ context.Context) error {
     return nil
 }
@@ -354,10 +338,10 @@ func processJob(_ context.Context) error {
 
 **Missing error check**:
 ```go
-// ❌ Wrong - error returned but not checked
+// Wrong - error returned but not checked
 file.Close()
 
-// ✅ Right - check error
+// Right - check error
 if err := file.Close(); err != nil {
     return fmt.Errorf("failed to close file: %w", err)
 }
@@ -365,11 +349,11 @@ if err := file.Close(); err != nil {
 
 **Unclosed HTTP body**:
 ```go
-// ❌ Wrong - response body not closed
+// Wrong - response body not closed
 resp, _ := http.Get(url)
 data := resp.Body  // bodyclose violation
 
-// ✅ Right - defer close
+// Right - defer close
 resp, err := http.Get(url)
 if err != nil {
     return err
@@ -379,10 +363,10 @@ defer resp.Body.Close()  // Ensures body is closed
 
 **Error wrapping**:
 ```go
-// ❌ Wrong - old error wrapping format
+// Wrong - old error wrapping format
 return errors.New(fmt.Sprintf("error: %s", err.Error()))
 
-// ✅ Right - use %w for proper error chaining
+// Right - use %w for proper error chaining
 return fmt.Errorf("failed operation: %w", err)
 ```
 
@@ -390,12 +374,12 @@ return fmt.Errorf("failed operation: %w", err)
 
 ### Lint Job Fails on PR
 
-**Problem**: PR shows red ❌ on "Lint" check
+**Problem**: PR shows red X on "Lint" check
 
 **Solution**:
 
 1. **View the CI logs**
-   - Click on the red ❌ next to "Lint"
+   - Click on the red X next to "Lint"
    - Click "Details" to see full error messages
 
 2. **Identify the violation**
@@ -465,7 +449,7 @@ if err != nil {
 - Must have explanation: `// nolint:rulename // explanation`
 - nolintlint linter validates these directives
 
-See [docs/LINTING.md](LINTING.md#using-nolint-directives) for complete guidelines.
+See [Linting Standards](linting.md#using-nolint-directives) for complete guidelines.
 
 ### Merge Blocked by Status Checks
 
@@ -488,22 +472,13 @@ See [docs/LINTING.md](LINTING.md#using-nolint-directives) for complete guideline
    ```
 
 2. **If tests are failing**:
-   - Click on red ❌ next to "Test"
+   - Click on red X next to "Test"
    - Click "Details" to see test output
    - Fix the failing test locally
 
 3. **Wait for all checks to complete**
    - GitHub shows progress: "X of 3 checks passing"
-   - Once all show ✓, merge button becomes enabled
-
-### Pre-commit Hook Issues
-
-See [docs/PRE_COMMIT_SETUP.md#troubleshooting](PRE_COMMIT_SETUP.md#troubleshooting) for:
-- "pre-commit not found" error
-- Hooks not running before commit
-- "command not found" for gofumpt, goimports, etc.
-- Hook modified or removed files
-- Bypass hooks (not recommended)
+   - Once all show checkmark, merge button becomes enabled
 
 ## Best Practices
 
@@ -533,12 +508,12 @@ See [docs/PRE_COMMIT_SETUP.md#troubleshooting](PRE_COMMIT_SETUP.md#troubleshooti
 ### For Code Reviews
 
 1. **Check CI status before reviewing**
-   - All status checks should show ✓
+   - All status checks should show checkmark
    - Don't approve PRs with failing checks
 
 2. **Verify linting and tests**
-   - Ensure "Lint" and "Test" are green ✓
-   - Don't merge if CI red ❌
+   - Ensure "Lint" and "Test" are green
+   - Don't merge if CI red
 
 3. **Require updates before merge**
    - If branch becomes out of date with main
@@ -549,12 +524,11 @@ See [docs/PRE_COMMIT_SETUP.md#troubleshooting](PRE_COMMIT_SETUP.md#troubleshooti
 1. **Monitor CI performance**
    - Lint should take 5-8 minutes
    - If slower, investigate golangci-lint timeout issues
-   - If builds are slow, consider caching improvements
 
 2. **Keep dependencies current**
    - Update golangci-lint version quarterly
-   - Update Go version in `.github/workflows/ci.yml` and CONTRIBUTING.md
-   - Keep linter rule set updated per phase schedule
+   - Update Go version in `.github/workflows/ci.yml`
+   - Keep linter rule set updated
 
 3. **Archive old build artifacts**
    - Builds are uploaded as artifacts
@@ -562,14 +536,14 @@ See [docs/PRE_COMMIT_SETUP.md#troubleshooting](PRE_COMMIT_SETUP.md#troubleshooti
 
 ## Related Documentation
 
-- [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines and setup
-- [LINTING.md](LINTING.md) - Linting standards and rules
-- [PRE_COMMIT_SETUP.md](PRE_COMMIT_SETUP.md) - Pre-commit hook configuration
-- [.golangci.yml](../.golangci.yml) - Linting configuration
-- [.github/workflows/ci.yml](../.github/workflows/ci.yml) - CI/CD workflow
+- [CONTRIBUTING.md](contributing.md) - Contribution guidelines and setup
+- [LINTING.md](linting.md) - Linting standards and rules
+- [PRE_COMMIT_SETUP.md](../../docs/PRE_COMMIT_SETUP.md) - Pre-commit hook configuration
+- [.golangci.yml](../../.golangci.yml) - Linting configuration
+- [.github/workflows/ci.yml](../../.github/workflows/ci.yml) - CI/CD workflow
 
 ## Questions?
 
 - Check existing [GitHub Issues](https://github.com/jontk/s9s/issues)
 - Review [CI workflow logs](https://github.com/jontk/s9s/actions) for recent runs
-- Read [CONTRIBUTING.md](../CONTRIBUTING.md#linting-and-code-quality)
+- Read [Contributing Guide](contributing.md#linting-and-code-quality)

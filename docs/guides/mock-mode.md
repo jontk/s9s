@@ -1,6 +1,4 @@
-# Mock Mode Security Implementation
-
-## Overview
+# Mock Mode Guide
 
 s9s includes environment variable gating for mock mode to prevent accidental use in production environments while maintaining flexibility for development and testing.
 
@@ -9,12 +7,13 @@ s9s includes environment variable gating for mock mode to prevent accidental use
 ## Security Features
 
 ### Environment Variable Gating
+
 Mock mode requires `S9S_ENABLE_MOCK` environment variable to be set to specific values:
 
 ```bash
 # Allowed values (case insensitive)
 S9S_ENABLE_MOCK=development  # Recommended for development
-S9S_ENABLE_MOCK=testing      # For testing environments  
+S9S_ENABLE_MOCK=testing      # For testing environments
 S9S_ENABLE_MOCK=debug        # For debugging purposes
 S9S_ENABLE_MOCK=dev          # Short form for development
 S9S_ENABLE_MOCK=local        # For local usage
@@ -22,6 +21,7 @@ S9S_ENABLE_MOCK=true         # Generic enablement
 ```
 
 ### Production Environment Detection
+
 The system automatically detects production environments by checking:
 - `ENVIRONMENT=production`
 - `NODE_ENV=production`
@@ -29,6 +29,7 @@ The system automatically detects production environments by checking:
 - `RAILS_ENV=production`
 
 ### Production Safety Features
+
 When mock mode is requested in a production environment:
 1. **Warning Display**: Shows prominent warning about mock usage
 2. **Interactive Confirmation**: Requires explicit user confirmation
@@ -37,6 +38,7 @@ When mock mode is requested in a production environment:
 ## Usage Examples
 
 ### Development Setup
+
 ```bash
 # Set environment variable (permanent)
 echo 'export S9S_ENABLE_MOCK=development' >> ~/.bashrc
@@ -47,6 +49,7 @@ s9s --mock
 ```
 
 ### One-time Usage
+
 ```bash
 # Set for current session only
 export S9S_ENABLE_MOCK=development
@@ -57,6 +60,7 @@ S9S_ENABLE_MOCK=development s9s --mock
 ```
 
 ### Check Mock Status
+
 ```bash
 s9s mock status
 ```
@@ -64,12 +68,14 @@ s9s mock status
 ## CLI Commands
 
 ### Primary Mock Usage
+
 ```bash
 s9s --mock               # Use mock SLURM client (requires S9S_ENABLE_MOCK)
 s9s --no-mock           # Force real SLURM client (override config)
 ```
 
 ### Mock Utilities
+
 ```bash
 s9s mock status         # Show mock mode status and configuration
 ```
@@ -77,8 +83,9 @@ s9s mock status         # Show mock mode status and configuration
 ## Error Messages
 
 ### Mock Disabled
+
 ```
-❌ mock mode disabled
+Mock mode disabled
 
 To enable mock mode, set one of these environment variables:
   S9S_ENABLE_MOCK=development  # For development
@@ -92,8 +99,9 @@ Example:
 ```
 
 ### Production Warning
+
 ```
-🚨 WARNING: Mock SLURM client enabled in production environment!
+WARNING: Mock SLURM client enabled in production environment!
    This should only be used for debugging purposes.
    Mock mode provides simulated data, not real cluster information.
 
@@ -140,3 +148,9 @@ Tests cover:
 3. **Simplicity**: Single binary works across all environments
 4. **Visibility**: Clear status and configuration commands
 5. **Safety**: Multiple layers of protection for production environments
+
+## Related Guides
+
+- [Configuration Guide](../CONFIGURATION.md)
+- [Getting Started](../getting-started.md)
+- [Development Setup](./development-setup.md)

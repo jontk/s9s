@@ -31,7 +31,7 @@ hive-mind-prompt-*.txt
 .claude-flow/
 CLAUDE.md
 memory/
-docs/
+# docs/ - Documentation is now tracked in git! Only ignore generated docs if needed.
 s9s
 
 # Test artifacts

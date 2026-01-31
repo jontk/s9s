@@ -6,12 +6,14 @@ This document covers s9s linting standards, configuration, and best practices. L
 
 - [Linting Philosophy](#linting-philosophy)
 - [Enabled Linters](#enabled-linters)
+- [Linter Configuration](#linter-configuration)
 - [Running Linters](#running-linters)
 - [Fixing Lint Issues](#fixing-lint-issues)
 - [Pre-commit Hooks](#pre-commit-hooks)
 - [Disabled Linters](#disabled-linters)
 - [CI/CD Integration](#cicd-integration)
 - [Best Practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
 
 ## Linting Philosophy
 
@@ -31,38 +33,30 @@ We configure linters conservatively - we enable only linters that provide clear 
 As of **PR #29**, we systematically fixed all revive linter violations through a comprehensive 3-phase approach:
 
 **Summary**:
-- **460 revive violations → 36** (92% reduction)
+- **460 revive violations reduced to 36** (92% reduction)
 - All violations fixed except 36 backward-compatible type aliases
 - Full backward compatibility maintained
 
 **What was fixed**:
 1. **Phase 1 - Quick Wins** (287 violations, 62% reduction)
    - Added 37 package comments (all packages now documented)
-   - Fixed 244+ unused parameters → renamed to `_` (118 files)
+   - Fixed 244+ unused parameters (renamed to `_`)
    - Fixed 6 var-naming violations
 
 2. **Phase 2 - Documentation** (102 violations, 22% reduction)
    - Added godoc comments to 102 exported symbols
-   - All public APIs now properly documented (43 files)
+   - All public APIs now properly documented
 
 3. **Phase 3 - Structural Improvements** (95 violations, 21% reduction)
-   - Fixed 31 variables shadowing Go built-ins (max→maxVal, min→minVal, etc.)
+   - Fixed 31 variables shadowing Go built-ins
    - Refactored 38 stuttering type names with backward-compatible aliases
-   - Fixed 7 minor violations (empty-block, indent-error-flow, increment-decrement)
-
-**Remaining 36 Violations** (Acceptable):
-- Type aliases for backward compatibility: `type AuthProvider = Provider`
-- Maintains existing API while providing cleaner public names
-- Standard Go practice for API migration
+   - Fixed 7 minor violations
 
 **Impact**:
 - 170+ files modified
 - 1000+ lines changed
 - Code quality significantly improved
-- Code now follows Go idioms and best practices
 - All tests passing, clean builds
-
-See PR #29 for complete details: [systematically fix all 460 linter violations through 3-phase approach](https://github.com/jontk/s9s/pull/29)
 
 ## Enabled Linters
 
@@ -87,7 +81,7 @@ These catch critical errors that should never be ignored:
   - Dead code elimination
   - Example: `x = 5; x = 10` (first assignment wasted)
 
-- **staticcheck**: Comprehensive static analysis covering several categories
+- **staticcheck**: Comprehensive static analysis
   - Unused code detection
   - Unreachable code
   - Incorrect API usage
@@ -123,7 +117,6 @@ These improve code quality and catch common issues:
   - Detects security vulnerabilities
   - Checks for weak randomness, SQL injection, path traversal, etc.
   - Configured with exclusions for accepted patterns
-  - See [Disabled Linters](#disabled-linters) for details on exclusions
 
 ### Style and Pattern Linters
 
@@ -131,60 +124,66 @@ These improve code quality and catch common issues:
   - Detects code smells and anti-patterns
   - Diagnostic, performance, and style checks
   - Helps catch subtle bugs in logic
-  - Several checks disabled due to style preferences
 
 - **revive**: Go idioms and style enforcement
   - Package and exported symbol documentation
   - Naming conventions (avoids stuttering names)
   - Error handling patterns
-  - All 460+ issues fixed in PR #29 (see [Recent Improvements](#recent-improvements---phase-7-pr-29))
-  - Only 36 acceptable violations remain (type aliases for backward compatibility)
+  - All 460+ issues fixed in PR #29
+  - Only 36 acceptable violations remain
 
 - **unused**: Finds unused variables, constants, functions, and types
   - Helps clean up dead code
   - Can reveal incomplete refactoring
   - Works across package boundaries
 
-### Advanced Linters
-
 - **nolintlint**: Validates `//nolint` directives
   - Ensures linter suppressions are actually necessary
   - Prevents accumulated technical debt
-  - Can detect orphaned nolint comments
   - Requires specific rule names and explanations
+
+### Advanced Linters
+
+- **gocognit**: Cognitive complexity checking
+  - Measures how difficult code is to understand
+  - Threshold: 30 (allows moderate complexity)
+  - Helps identify hard-to-understand code
+
+- **dupl**: Code duplication detection
+  - Detects duplicated code blocks
+  - Threshold: 150 lines
+  - Helps identify abstraction opportunities
 
 ## Linter Configuration
 
 The `.golangci.yml` file contains our linter configuration with three main sections:
 
 ### run
+
 - **timeout**: 10m - Linting timeout (prevents hanging on large files)
 - **tests**: true - Include test files in linting
 - **skip-dirs**: Excludes vendor, .git, .github directories
 
 ### linters
+
 - **disable-all**: true - Start with all linters disabled, explicitly enable only those we want
-- **enable**: List of 15 enabled linters (described above)
+- **enable**: List of 15 enabled linters
 - **disable**: List of linters we deliberately don't use
 
 ### linters-settings
+
 Specific configuration for each linter:
 
 - **errcheck**: Checks type assertions, allows `_ = expr` for intentional ignores
-- **govet**: Enables shadow detection (shadows of parent scope variables)
+- **govet**: Enables shadow detection
 - **gosec**: Medium severity/confidence threshold with specific rule exclusions
-- **gocritic**: Enables diagnostic, performance, and style check tags; disables specific checks
+- **gocritic**: Enables diagnostic, performance, and style check tags
 - **errorlint**: Checks errorf with %w, type assertions, and error comparisons
 - **misspell**: US English locale
-- **gocognit**: Cognitive complexity minimum of 30 (allows complex but understandable code)
-- **nolintlint**: Validates nolint directives; disallows unused directives and requires no explanation
+- **gocognit**: Cognitive complexity minimum of 30
+- **nolintlint**: Validates nolint directives
 - **dupl**: Minimum 150 lines to consider as duplication
-- **containedctx**: Prevents context in struct fields (configured to skip tests)
-
-### issues
-- **exclude-files**: Excludes generated files (.pb.go, .gen.go)
-- **exclude-dirs**: Excludes vendor, third_party, testdata
-- **exclude-rules**: Specific exclusions for test files and known patterns
+- **containedctx**: Prevents context in struct fields
 
 ## Running Linters
 
@@ -226,40 +225,6 @@ golangci-lint run --new-from-rev=origin/main
 golangci-lint run --new
 ```
 
-### Pre-commit Hooks
-
-Pre-commit hooks automatically run before each commit:
-
-```bash
-# Install hooks (one-time setup)
-pre-commit install
-
-# Run all hooks manually
-pre-commit run --all-files
-
-# Run specific hook
-pre-commit run golangci-lint --all-files
-
-# Run hooks on changed files only
-pre-commit run
-
-# Skip hooks for emergency commit
-git commit --no-verify
-```
-
-Configured hooks run in this order:
-1. trailing-whitespace - Removes trailing spaces
-2. end-of-file-fixer - Ensures files end with newline
-3. check-yaml - Validates YAML syntax
-4. check-added-large-files - Prevents large files
-5. check-merge-conflict - Detects merge conflict markers
-6. detect-private-key - Prevents committing secrets
-7. mixed-line-ending - Enforces consistent line endings
-8. gofumpt - Format with gofumpt
-9. goimports - Organize imports
-10. go-mod-tidy - Tidy go.mod
-11. golangci-lint - Run full linting
-
 ## Fixing Lint Issues
 
 ### Understanding Linter Messages
@@ -268,7 +233,6 @@ Each linter message includes:
 - **File path and line number**: Where the issue is
 - **Linter name**: Which linter detected it (in parentheses)
 - **Issue description**: What the problem is
-- **Severity**: Usually implied (errors are critical, style is minor)
 
 Example:
 ```
@@ -338,7 +302,7 @@ return fmt.Errorf("failed: %w", err)
 
 ### When to Use `//nolint` Directives
 
-The `//nolint` directive suppresses specific linter warnings. **Use sparingly** - accumulated nolint directives are technical debt.
+The `//nolint` directive suppresses specific linter warnings. Use sparingly - accumulated nolint directives are technical debt.
 
 Valid reasons for nolint:
 - **Intentional patterns**: Code that intentionally violates a linter rule
@@ -349,15 +313,9 @@ Valid reasons for nolint:
 Invalid reasons:
 - **Laziness**: Just to avoid fixing code
 - **Disagreement**: Rather than having a team discussion
-- **Temporary**: "I'll fix it later" (usually never happens)
+- **Temporary**: "I'll fix it later"
 
 #### Proper Nolint Usage
-
-**Philosophy**: Use explicit `//nolint` directives at violation points with justification comments. This is better than project-wide exclusions because:
-- Reviewers see the reasoning inline, not buried in config
-- Each suppression is intentional and documented
-- Easy to track and incrementally fix issues
-- Enables nolintlint validation to prevent accumulating technical debt
 
 Always include:
 1. Specific linter name(s)
@@ -381,37 +339,6 @@ data, err := os.ReadFile(cachePath)
 //nolint:gosec // G204: ssh-keygen is a well-known system command, args are controlled
 cmd := exec.CommandContext(ctx, "ssh-keygen", args...)
 ```
-
-#### Nolint Validation
-
-The **`nolintlint`** linter enforces:
-- Specific rule names required (no blanket `//nolint`)
-- Explanations required (comments documenting the reason)
-- No unused directives (prevents accumulated technical debt)
-
-This ensures suppressions remain intentional and justified.
-
-## Global Exclusions vs. Nolint Directives
-
-We use a **hybrid approach**:
-
-### Project-wide Exclusions (Minimal)
-
-Only used for genuine false positives that apply everywhere:
-- **G204 (gosec)**: exec.Command flagged as unsafe when args are separated properly
-  - Our code validates command paths and passes args as separate strings
-  - This is a known false positive in gosec
-  - Single global exclusion prevents noise while still allowing nolint elsewhere
-
-### Nolint Directives (Primary)
-
-Security and linter violations are suppressed with explicit `//nolint` comments:
-- **G304 (gosec)**: File path operations - suppressed when paths are app-controlled
-- **G404 (gosec)**: Weak randomness - suppressed in specific contexts
-- **G101 (gosec)**: Hardcoded credentials - suppressed for test RSA keys
-- **Other rules**: Documented inline with justification
-
-**Advantage**: Code reviewers see the reasoning at the violation point, not hidden in config. Each suppression is intentional and can be tracked for removal.
 
 ## Pre-commit Hooks
 
@@ -449,117 +376,44 @@ git commit --no-verify
 ### What Hooks Do
 
 The hooks automatically:
-1. **Remove trailing whitespace** from all files
-2. **Ensure files end with newline**
-3. **Fix YAML syntax** issues (if applicable)
-4. **Detect large files** being added (prevents accidental commits)
-5. **Detect merge conflict** markers
-6. **Detect private keys** (prevents credential leaks)
-7. **Fix line endings** (enforces LF)
-8. **Format code with gofumpt** (modifies files)
-9. **Organize imports with goimports** (modifies files)
-10. **Tidy go.mod** (modifies files)
-11. **Run full golangci-lint** (checks for violations)
+1. Remove trailing whitespace from all files
+2. Ensure files end with newline
+3. Fix YAML syntax issues
+4. Detect large files being added
+5. Detect merge conflict markers
+6. Detect private keys (prevents credential leaks)
+7. Fix line endings (enforces LF)
+8. Format code with gofumpt
+9. Organize imports with goimports
+10. Tidy go.mod
+11. Run full golangci-lint
 
 If any hook fails, the commit is aborted. You must fix the issues and try again.
 
-### Recommended Workflow
-
-1. Make code changes
-2. Run `make fmt` to auto-fix formatting
-3. Run `make lint` to check for issues
-4. Fix any remaining issues manually
-5. Run `git add` to stage changes
-6. Run `git commit` - pre-commit hooks run automatically
-7. If hooks fail, fix issues and try commit again
-
 ## Disabled Linters
 
-Some linters are **disabled** because they require substantial refactoring or don't fit our project patterns. Below is the status of each disabled linter:
+Some linters are **disabled** because they require substantial refactoring or don't fit our project patterns.
 
 ### cyclop - Cyclomatic Complexity
 
-**Status**: Disabled (Phase 4)
+**Status**: Disabled
 
-**Reason**: Configuration issues and high issue count
-
-**Pre-existing issues**: 136 violations across the codebase
-
-**Details**:
-- Measures number of decision paths through a function
-- High cyclomatic complexity indicates functions that are hard to test and maintain
-- 136 issues is substantial and would require significant refactoring
-- Configuration in `.golangci.yml` had issues that prevented proper linting
-
-**Path to resolution**:
-- Configure complexity thresholds appropriately
-- Refactor functions with excessive decision paths
-- May re-enable in future phase when complexity is reduced
-
-### gocognit - Cognitive Complexity
-
-**Status**: Enabled (Phase 4)
-
-**Configuration**: `min-complexity: 30` (allows moderate cognitive complexity)
-
-**Details**:
-- Measures how difficult code is to understand (different from cyclomatic)
-- Fewer pre-existing violations than cyclop
-- Threshold of 30 is reasonable for existing codebase
-- Helps identify code that's hard to understand
+**Reason**: Configuration issues and high issue count (136 violations)
 
 ### containedctx - Context in Structs
 
-**Status**: Disabled (Phase 4)
+**Status**: Disabled
 
-**Reason**: Architectural pattern used throughout codebase
-
-**Pre-existing issues**: 22+ instances of context.Context stored in struct fields
-
-**Details**:
-- Recommends passing context.Context as a function parameter instead of storing in structs
-- Our application architecture uses context in struct fields for state management
-- Changing this would require significant refactoring throughout codebase
-- Not worth the cost given the pattern is consistently applied
-
-**Trade-off**:
-- Linter rule conflicts with project architecture
-- Context handling is consistent, even if it differs from linter recommendation
-- Re-enable only if architecture is significantly refactored
-
-### dupl - Code Duplication
-
-**Status**: Enabled (Phase 4)
-
-**Configuration**: `threshold: 150` (only flag large duplications)
-
-**Details**:
-- Detects duplicated code blocks of 150+ lines
-- Helps identify opportunities for abstraction
-- Some code duplication is acceptable (test data, similar patterns)
-- Test files are excluded from this check
+**Reason**: Architectural pattern used throughout codebase (22+ instances)
 
 ### gosec - Security Analysis
 
-**Status**: Enabled but heavily configured (Phase 2+)
+**Status**: Enabled but heavily configured
 
-**Details**:
-- Comprehensive security vulnerability detection
-- Configured with multiple rule exclusions
-- Excluded rules:
-  - **G204**: exec.Command with string arguments (false positive with safe arg separation)
-  - **G304**: File inclusion via variable (acceptable for app-controlled paths)
-  - **G115**: Integer overflow conversions (safe in metrics/test code)
-  - **G602**: Slice index out of range (false positives in test code)
-  - **G101**: Hardcoded credentials in tests (acceptable for test RSA keys)
-
-**Pre-existing issues**: 87 security issues in various forms
-
-**Current approach**:
-- Exclusions documented in `.golangci.yml`
-- Security-critical code has been audited
-- Remaining issues either false positives or low-risk patterns
-- Continued monitoring and incremental fixes
+**Excluded rules**:
+- **G204**: exec.Command flagged as unsafe (false positive with safe arg separation)
+- **G304**: File inclusion via variable (acceptable for app-controlled paths)
+- **G115**: Integer overflow conversions (safe in metrics/test code)
 
 ## CI/CD Integration
 
@@ -574,20 +428,11 @@ Linting is automatically run on all pull requests via GitHub Actions:
 ### PR Requirements
 
 All pull requests must:
-- ✅ Pass `golangci-lint run` with no new warnings
-- ✅ Have code formatted with `gofumpt`
-- ✅ Have imports organized with `goimports`
-- ✅ Have go.mod tidied with `go mod tidy`
-- ✅ Not introduce new linter violations
-
-### Local vs. CI Differences
-
-CI runs the full linter suite, while `--new-from-rev` checks only changed files. This means:
-
-- **Locally**: `golangci-lint run --new-from-rev=HEAD~1` (only changed files)
-- **CI**: `golangci-lint run` (all files) - detects if you accidentally reverted fixes
-
-Always run full linting before pushing: `golangci-lint run`
+- Pass `golangci-lint run` with no new warnings
+- Have code formatted with `gofumpt`
+- Have imports organized with `goimports`
+- Have go.mod tidied with `go mod tidy`
+- Not introduce new linter violations
 
 ## Best Practices
 
@@ -653,27 +498,6 @@ pre-commit install
 git commit -m "feat: add feature"
 ```
 
-### 7. Review Linting Errors Carefully
-
-Don't blindly suppress lint errors:
-
-```go
-// Bad - just suppress it
-rows.Close() // nolint:errcheck
-
-// Good - understand and handle the error
-if err := rows.Close(); err != nil {
-    return fmt.Errorf("failed to close rows: %w", err)
-}
-```
-
-### 8. Involve Team in Linter Decisions
-
-Linting rules affect the whole team:
-- Discuss before changing thresholds
-- Document decisions in `.golangci.yml` comments
-- Include linting changes in PRs with explanations
-
 ## Troubleshooting
 
 ### Linting Fails Locally but Passes in CI
@@ -728,4 +552,4 @@ Linting is essential for maintaining code quality in s9s. Our 15-linter configur
 3. **Pragmatic approach**: Disabled linters are disabled for good reasons
 4. **Continuous improvement**: Strive to resolve violations incrementally
 
-For questions or issues with linting, see [CONTRIBUTING.md](CONTRIBUTING.md#-linting-and-code-quality) or open an issue on GitHub.
+For questions or issues with linting, see [CONTRIBUTING.md](contributing.md) or open an issue on GitHub.

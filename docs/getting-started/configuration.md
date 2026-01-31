@@ -1,20 +1,50 @@
-# s9s Configuration Reference
+# Configuration Guide
 
-This document provides a comprehensive reference for configuring s9s.
+S9s offers extensive configuration options to customize your experience. This guide covers all configuration methods and options.
 
 ## Table of Contents
 
+- [Quick Start](#quick-start)
 - [Configuration Files](#configuration-files)
 - [Environment Variables](#environment-variables)
 - [Command-line Flags](#command-line-flags)
 - [Configuration Schema](#configuration-schema)
 - [Authentication Methods](#authentication-methods)
+- [UI and Display Configuration](#ui-and-display-configuration)
 - [Advanced Configuration](#advanced-configuration)
-- [Examples](#examples)
+- [Security Configuration](#security-configuration)
+- [Configuration Management](#configuration-management)
+- [Best Practices](#best-practices)
+
+## Quick Start
+
+Create a minimal configuration file at `~/.s9s/config.yaml`:
+
+```yaml
+clusters:
+  default:
+    url: https://slurm.example.com
+    auth:
+      method: token
+      token: ${SLURM_TOKEN}
+```
+
+Then run s9s:
+
+```bash
+export SLURM_TOKEN=your-token-here
+s9s
+```
+
+For testing without a real SLURM cluster:
+
+```bash
+s9s --mock --mock-jobs 200 --mock-nodes 100
+```
 
 ## Configuration Files
 
-s9s looks for configuration files in the following order (later files override earlier ones):
+S9s looks for configuration files in the following order (later files override earlier ones):
 
 1. `/etc/s9s/config.yaml` - System-wide configuration
 2. `~/.config/s9s/config.yaml` - User configuration (XDG standard)
@@ -40,7 +70,7 @@ clusters:
     auth:
       method: token
       token: ${SLURM_TOKEN}
-    
+
   development:
     url: https://slurm-dev.example.com
     auth:
@@ -53,6 +83,27 @@ preferences:
   theme: dark
   refresh_interval: 30s
   default_view: jobs
+```
+
+### Project-Specific Configuration
+
+Create `.s9s.yaml` in your project directory for project-specific settings:
+
+```yaml
+# Project-specific settings
+default_cluster: project-cluster
+
+clusters:
+  project-cluster:
+    url: https://project.slurm.local
+    auth:
+      method: token
+      token_file: ./.slurm-token
+
+preferences:
+  default_view: jobs
+  jobs:
+    default_filter: "user:${USER}"
 ```
 
 ## Environment Variables
@@ -68,6 +119,9 @@ All environment variables are prefixed with `S9S_`.
 | `S9S_LOG_FILE` | Debug log file path | `~/.s9s/debug.log` | `/var/log/s9s.log` |
 | `S9S_MOCK` | Enable mock mode | `false` | `true` |
 | `S9S_CLUSTER` | Default cluster name | First in config | `production` |
+| `S9S_THEME` | Color theme | `dark` | `light` |
+| `S9S_REFRESH_INTERVAL` | Auto-refresh interval | `30s` | `1m` |
+| `S9S_DEFAULT_VIEW` | Starting view | `jobs` | `nodes` |
 
 ### SLURM Connection Variables
 
@@ -87,11 +141,25 @@ All environment variables are prefixed with `S9S_`.
 
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
-| `S9S_THEME` | Color theme | `dark` | `light` |
-| `S9S_REFRESH_INTERVAL` | Auto-refresh interval | `30s` | `1m` |
-| `S9S_DEFAULT_VIEW` | Starting view | `jobs` | `nodes` |
 | `S9S_EDITOR` | External editor | `$EDITOR` or `vi` | `vim` |
 | `S9S_PAGER` | External pager | `$PAGER` or `less` | `more` |
+
+### Environment Variable Substitution
+
+Use `${VAR_NAME}` syntax in configuration files:
+
+```yaml
+clusters:
+  default:
+    url: ${SLURM_API_URL}
+    auth:
+      token: ${SLURM_TOKEN}
+
+# With defaults
+preferences:
+  theme: ${S9S_THEME:-dark}
+  refreshInterval: ${S9S_REFRESH:-5s}
+```
 
 ## Command-line Flags
 
@@ -163,24 +231,31 @@ clusters:
     timeout: duration        # Optional: Request timeout (default: 30s)
     retry_attempts: integer  # Optional: Retry attempts (default: 3)
     retry_delay: duration    # Optional: Retry delay (default: 1s)
-    
+
     # Authentication
     auth:
-      method: string         # Required: token|basic|cert
-      
+      method: string         # Required: token|basic|cert|oauth2
+
       # Token auth
       token: string          # Required for token auth
       token_file: string     # Alternative: read token from file
-      
+
       # Basic auth
       username: string       # Required for basic auth
       password: string       # Required for basic auth
-      
+
       # Certificate auth
       cert: string           # Required for cert auth
       key: string            # Required for cert auth
       ca: string             # Optional: CA certificate
-    
+
+      # OAuth2 auth
+      clientId: string       # OAuth2 client ID
+      clientSecret: string   # OAuth2 client secret
+      tokenURL: string       # OAuth2 token URL
+      scopes: [string]       # OAuth2 scopes
+      redirectURL: string    # OAuth2 redirect URL
+
     # TLS settings
     tls:
       insecure: boolean      # Skip verification (default: false)
@@ -194,18 +269,21 @@ preferences:
   refresh_interval: duration # Auto-refresh (default: 30s)
   default_view: string       # Starting view (default: jobs)
   show_hints: boolean        # Show keyboard hints (default: true)
-  
+  confirm_actions: boolean   # Confirm destructive actions (default: true)
+
   # Display settings
   time_format: string        # Time format (default: "15:04:05")
   date_format: string        # Date format (default: "2006-01-02")
-  
+  show_relative_time: boolean # Show relative times (default: true)
+  timezone: string           # Timezone (default: "UTC")
+
   # Table settings
   table:
     border: boolean          # Show borders (default: true)
     header: boolean          # Show headers (default: true)
     row_lines: boolean       # Show row lines (default: false)
     column_spacing: integer  # Column spacing (default: 1)
-  
+
   # Job view settings
   jobs:
     default_filter: string   # Default filter
@@ -213,24 +291,61 @@ preferences:
     columns: [string]        # Visible columns
     sort_by: string          # Default sort column
     sort_order: string       # asc|desc
-  
+
   # Node view settings
   nodes:
     show_offline: boolean    # Show offline nodes (default: true)
     group_by: string         # Group by partition|state|none
     columns: [string]        # Visible columns
-  
+
   # SSH settings
   ssh:
     command: string          # SSH command (default: ssh)
     options: [string]        # Additional SSH options
     user: string             # Default SSH user
-  
+    key_file: string         # SSH key file path
+    known_hosts_file: string # Known hosts file
+
   # Export settings
   export:
     default_format: string   # csv|json|yaml|markdown
     csv_separator: string    # CSV separator (default: ,)
     json_indent: integer     # JSON indent (default: 2)
+
+# Column configuration
+columns:
+  jobs:
+    - JobID
+    - Name
+    - User
+    - State
+  nodes:
+    - NodeName
+    - State
+    - CPULoad
+
+# Keyboard bindings
+keybindings:
+  global:
+    "ctrl+q": "quit"
+    "ctrl+s": "save"
+  jobs:
+    "d": "delete"
+
+# Filter presets
+filters:
+  my-jobs:
+    view: jobs
+    filter: "user:${USER}"
+
+# Notification settings
+notifications:
+  enabled: boolean
+  desktop: boolean
+  sound: boolean
+  webhook:
+    url: string
+    events: [string]
 
 # Logging settings
 logging:
@@ -239,7 +354,7 @@ logging:
   max_size: integer          # Max file size in MB
   max_backups: integer       # Number of backups
   max_age: integer           # Max age in days
-  
+
 # Performance settings
 performance:
   max_concurrent: integer    # Max concurrent operations
@@ -269,7 +384,8 @@ clusters:
       token_file: ~/.slurm/token  # From file
 ```
 
-Generate token:
+Generate a token:
+
 ```bash
 scontrol token
 export SLURM_TOKEN=<token>
@@ -304,6 +420,146 @@ clusters:
       ca: /path/to/ca.crt  # Optional
 ```
 
+### OAuth2 Authentication
+
+OAuth2-based authentication:
+
+```yaml
+clusters:
+  research:
+    url: https://research.example.edu:6820
+    auth:
+      method: oauth2
+      clientId: ${OAUTH_CLIENT_ID}
+      clientSecret: ${OAUTH_CLIENT_SECRET}
+      tokenURL: https://auth.example.edu/token
+      scopes: ["slurm.read", "slurm.write"]
+      redirectURL: http://localhost:8080/callback
+```
+
+## UI and Display Configuration
+
+### Basic UI Settings
+
+```yaml
+preferences:
+  # Theme settings
+  theme: dark|light|terminal|custom
+
+  # View settings
+  default_view: jobs|nodes|dashboard
+  refresh_interval: 5s|10s|30s|0 (disabled)
+
+  # Display options
+  show_relative_time: true|false
+  use_24hour_time: true|false
+  show_seconds: true|false
+  date_format: "2006-01-02 15:04:05"
+  timezone: "UTC"|"Local"|"America/New_York"
+
+  # Behavior
+  confirm_actions: true|false
+  auto_refresh: true|false
+  show_hints: true|false
+```
+
+### Column Configuration
+
+Customize visible columns per view:
+
+```yaml
+columns:
+  jobs:
+    - JobID
+    - Name
+    - User
+    - State
+    - Time
+    - Nodes
+    - Partition
+    - Priority
+    - QoS
+    - Account
+
+  nodes:
+    - NodeName
+    - State
+    - CPULoad
+    - Memory
+    - RealMemory
+    - AllocMemory
+    - FreeMem
+    - GPUs
+    - Jobs
+    - Features
+```
+
+### Custom Keybindings
+
+Override default shortcuts:
+
+```yaml
+keybindings:
+  # Global shortcuts (work everywhere)
+  global:
+    "ctrl+q": "quit"
+    "ctrl+s": "save"
+    "ctrl+/": "search"
+    "f1": "help"
+    "ctrl+\\": "toggle-sidebar"
+
+  # View-specific shortcuts
+  jobs:
+    "d": "delete"
+    "D": "delete --force"
+    "ctrl+c": "cancel"
+    "ctrl+h": "hold"
+    "ctrl+r": "release"
+
+  nodes:
+    "shift+d": "drain --reason='Maintenance'"
+    "shift+r": "resume"
+```
+
+### Built-in Themes
+
+- `dark` - Dark background, light text
+- `light` - Light background, dark text
+- `terminal` - Classic terminal green
+- `high-contrast` - Accessibility optimized
+
+### Custom Themes
+
+Create `~/.s9s/themes/custom.yaml`:
+
+```yaml
+name: "My Theme"
+colors:
+  # Base colors
+  background: "#1a1a1a"
+  foreground: "#e0e0e0"
+  selection: "#3a3a3a"
+  cursor: "#ffffff"
+
+  # UI elements
+  border: "#404040"
+  title: "#ffffff"
+  subtitle: "#b0b0b0"
+
+  # Status colors
+  success: "#50fa7b"
+  warning: "#f1fa8c"
+  error: "#ff5555"
+  info: "#8be9fd"
+
+  # Job states
+  running: "#50fa7b"
+  pending: "#f1fa8c"
+  failed: "#ff5555"
+  completed: "#8be9fd"
+  cancelled: "#ff79c6"
+```
+
 ## Advanced Configuration
 
 ### Multiple Clusters
@@ -317,13 +573,13 @@ clusters:
     auth:
       method: token
       token: ${PROD_SLURM_TOKEN}
-  
+
   development:
     url: https://dev-slurm.example.com
     auth:
       method: token
       token: ${DEV_SLURM_TOKEN}
-  
+
   testing:
     url: https://test-slurm.example.com
     auth:
@@ -333,6 +589,7 @@ clusters:
 ```
 
 Switch clusters:
+
 ```bash
 # Use flag
 s9s --cluster development
@@ -342,30 +599,127 @@ export S9S_CLUSTER=development
 s9s
 ```
 
-### Per-Project Configuration
+### Filter Presets
 
-Create `.s9s.yaml` in project directory:
+Create commonly used filters:
 
 ```yaml
-# Project-specific settings
-default_cluster: project-cluster
-
-clusters:
-  project-cluster:
-    url: https://project.slurm.local
-    auth:
-      method: token
-      token_file: ./.slurm-token
-
-preferences:
-  default_view: jobs
-  jobs:
-    default_filter: "user:${USER}"
+filters:
+  my-jobs:
+    view: jobs
+    filter: "user:${USER}"
+  gpu-jobs:
+    view: jobs
+    filter: "partition:gpu state:RUNNING"
+  failed-today:
+    view: jobs
+    filter: "state:FAILED time:>today"
 ```
 
-### Secure Configuration
+### Notification Settings
 
-For sensitive data:
+```yaml
+notifications:
+  enabled: true
+  desktop: true
+  sound: true
+  webhook:
+    url: https://slack.example.com/webhook
+    events:
+      - job_complete
+      - job_failed
+      - node_down
+```
+
+### Logging Configuration
+
+```yaml
+logging:
+  level: debug|info|warn|error
+  file: ~/.s9s/s9s.log
+  max_size: 100MB
+  max_backups: 3
+  max_age: 30d
+  compress: true
+
+  # Separate log levels
+  levels:
+    api: debug
+    ui: info
+    ssh: warn
+```
+
+### Performance Tuning
+
+```yaml
+performance:
+  # Connection pooling
+  max_idle_connections: 100
+  max_connections_per_host: 10
+  idle_connection_timeout: 90s
+
+  # Caching
+  cache:
+    enabled: true
+    size: 100MB
+    ttl: 60s
+    compression: true
+
+  # Request handling
+  request_timeout: 30s
+  response_timeout: 60s
+  keep_alive: 30s
+
+  # UI performance
+  virtual_scrolling: true
+  lazy_loading: true
+  debounce_delay: 300ms
+```
+
+### SSH Configuration
+
+```yaml
+preferences:
+  ssh:
+    command: ssh
+    user: ${USER}
+    key_file: ~/.ssh/id_rsa
+    known_hosts_file: ~/.ssh/known_hosts
+    compression: true
+    forward_agent: true
+    extra_args: "-o StrictHostKeyChecking=ask"
+```
+
+### Export Settings
+
+```yaml
+preferences:
+  export:
+    default_format: csv
+    default_path: ~/Documents/s9s-exports
+    include_headers: true
+    date_format: RFC3339
+    csv_separator: ","
+    json_indent: 2
+```
+
+## Security Configuration
+
+### Secure Token Storage
+
+Use system keyring (recommended):
+
+```yaml
+clusters:
+  secure:
+    url: https://slurm.example.com
+    auth:
+      method: token
+      token_provider: keyring
+      token_key: s9s-prod-token
+```
+
+### Best Practices for Sensitive Data
 
 1. **Use environment variables**:
    ```yaml
@@ -386,30 +740,58 @@ For sensitive data:
    ```bash
    chmod 600 ~/.s9s/config.yaml
    chmod 700 ~/.s9s
+   chmod 600 ~/.slurm/token
    ```
 
-### Custom Themes
+4. **Certificate validation**:
+   ```yaml
+   clusters:
+     strict:
+       url: https://slurm.example.com
+       tls:
+         insecure: false
+         ca_file: /etc/ssl/certs/ca-bundle.crt
+         verify_hostname: true
+         min_version: "1.2"
+   ```
 
-```yaml
-preferences:
-  theme: custom
-  custom_theme:
-    background: "#1e1e1e"
-    foreground: "#d4d4d4"
-    selection: "#264f78"
-    cursor: "#ffffff"
-    colors:
-      black: "#000000"
-      red: "#cd3131"
-      green: "#0dbc79"
-      yellow: "#e5e510"
-      blue: "#2472c8"
-      magenta: "#bc3fbc"
-      cyan: "#11a8cd"
-      white: "#e5e5e5"
+## Configuration Management
+
+### Validate Configuration
+
+```bash
+s9s config validate
+s9s config test --cluster production
 ```
 
-## Examples
+### Export/Import Configuration
+
+```bash
+# Export current config
+s9s config export > config-backup.yaml
+
+# Import configuration
+s9s config import config-backup.yaml
+
+# Merge configurations
+s9s config merge additional-config.yaml
+```
+
+### Configuration Wizard
+
+```bash
+# Interactive setup
+s9s setup
+
+# Guided cluster addition
+s9s config add-cluster
+
+# Update specific settings
+s9s config set preferences.theme dark
+s9s config set clusters.default.url https://new-url.com
+```
+
+## Configuration Examples
 
 ### Minimal Configuration
 
@@ -445,24 +827,24 @@ preferences:
   refresh_interval: 15s
   default_view: dashboard
   show_hints: true
-  
+
   time_format: "15:04:05"
   date_format: "Jan 02"
-  
+
   jobs:
     show_completed: false
     columns: ["ID", "Name", "User", "State", "Time"]
     sort_by: "Submit Time"
     sort_order: desc
-  
+
   nodes:
     show_offline: true
     group_by: partition
-  
+
   ssh:
     user: ${USER}
     options: ["-o", "StrictHostKeyChecking=no"]
-  
+
   export:
     default_format: csv
     csv_separator: ","
@@ -486,7 +868,6 @@ security:
 ### Development Configuration
 
 ```yaml
-# Development setup with mock data
 version: "1.0"
 
 preferences:
@@ -497,29 +878,12 @@ preferences:
 logging:
   level: debug
   file: ./s9s-debug.log
-
-# No clusters defined - will use mock mode
 ```
 
 Run with:
+
 ```bash
 s9s --mock --config dev-config.yaml
-```
-
-## Configuration Validation
-
-s9s validates configuration on startup:
-
-1. **Syntax validation**: YAML parsing
-2. **Schema validation**: Required fields, types
-3. **Connection validation**: Can connect to cluster
-4. **Permission validation**: Can perform basic operations
-
-Validation errors are reported clearly:
-```
-Error: Invalid configuration
-  - clusters.production.auth.method: must be one of: token, basic, cert
-  - preferences.refresh_interval: invalid duration format
 ```
 
 ## Migration Guide
@@ -558,6 +922,41 @@ s9s import squeue > ~/.s9s/config.yaml
 s9s import --from /etc/slurm/config.yaml
 ```
 
----
+## Configuration Validation
 
-For more information, see the [main documentation](https://s9s.dev/docs/configuration).
+S9s validates configuration on startup:
+
+1. **Syntax validation**: YAML parsing
+2. **Schema validation**: Required fields, types
+3. **Connection validation**: Can connect to cluster
+4. **Permission validation**: Can perform basic operations
+
+Validation errors are reported clearly:
+
+```
+Error: Invalid configuration
+  - clusters.production.auth.method: must be one of: token, basic, cert, oauth2
+  - preferences.refresh_interval: invalid duration format
+```
+
+## Best Practices
+
+1. **Use environment variables** for sensitive data
+2. **Version control** your config (exclude secrets with `.gitignore`)
+3. **Test changes** with `s9s config test`
+4. **Backup** before major changes
+5. **Use keyring** for token storage
+6. **Separate** dev/prod configurations
+7. **Document** custom settings
+8. **Set proper file permissions** on configuration files
+9. **Validate** configuration after changes
+10. **Keep tokens** in files with restricted permissions
+
+## Next Steps
+
+- See [Installation Guide](./installation.md) for setup instructions
+- Check [Quick Start](./quickstart.md) to get started
+- Explore [User Guide](../user-guide/index.md) for feature documentation
+- Learn about [SSH Integration](../guides/ssh-integration.md)
+- Set up [Notifications](../guides/notifications.md)
+- Create [Custom Themes](../guides/theming.md)
