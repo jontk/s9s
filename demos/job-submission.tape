@@ -18,23 +18,10 @@ Type "./build/s9s"
 Enter
 Sleep 2s
 
-# First show job templates (F2)
-F2
+# Open job submission directly (s key)
+Type "s"
 Sleep 2s
 
-# Navigate through templates
-Down
-Sleep 300ms
-Down
-Sleep 300ms
-Up
-Sleep 300ms
-
-# Select a template
-Enter
-Sleep 2s
-
-# Now in job submission form
 # Fill in job name
 Type "simulation-job"
 Tab

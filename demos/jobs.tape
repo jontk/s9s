@@ -90,12 +90,6 @@ Sleep 500ms
 Type "v"
 Sleep 500ms
 
-# Show job templates (F2)
-F2
-Sleep 2s
-Escape
-Sleep 500ms
-
 # Exit
 Type "q"
 Sleep 500ms

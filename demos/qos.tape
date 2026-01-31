@@ -53,12 +53,6 @@ Sleep 1s
 Escape
 Sleep 500ms
 
-# Advanced filter (F3)
-F3
-Sleep 1500ms
-Escape
-Sleep 500ms
-
 # Exit
 Type "q"
 Sleep 500ms
