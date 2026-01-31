@@ -9,6 +9,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/internal/performance"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -46,7 +47,7 @@ func NewExportDialog(exportType ExportType) *ExportDialog {
 
 // setupUI creates the dialog UI
 func (ed *ExportDialog) setupUI() {
-	ed.form = tview.NewForm()
+	ed.form = styles.StyleForm(tview.NewForm())
 	ed.form.SetBorder(true)
 	ed.form.SetBorderPadding(1, 1, 2, 2)
 	ed.form.SetTitle(ed.getExportTitle())
@@ -337,7 +338,7 @@ func (bd *BatchExportDialog) handleItemSelection(index int, mainText, _ string, 
 
 // setupExportForm initializes the export options form
 func (bd *BatchExportDialog) setupExportForm() {
-	bd.form = tview.NewForm()
+	bd.form = styles.StyleForm(tview.NewForm())
 	bd.form.SetBorder(true)
 	bd.form.SetTitle("Export Options")
 

@@ -15,6 +15,7 @@ import (
 	"github.com/jontk/s9s/internal/ssh"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -118,8 +119,8 @@ func NewNodesView(client dao.SlurmClient) *NodesView {
 	v.table.SetOnSelect(v.onNodeSelect)
 	v.table.SetOnSort(v.onSort)
 
-	// Create filter input
-	v.filterInput = tview.NewInputField().
+	// Create filter input with styled colors for visibility across themes
+	v.filterInput = styles.NewStyledInputField().
 		SetLabel("Filter: ").
 		SetFieldWidth(30).
 		SetChangedFunc(v.onFilterChange).
@@ -761,7 +762,7 @@ func (v *NodesView) drainSelectedNode() {
 	}
 
 	// Prompt for reason
-	input := tview.NewInputField().
+	input := styles.NewStyledInputField().
 		SetLabel("Drain reason: ").
 		SetFieldWidth(50)
 
@@ -1412,7 +1413,7 @@ func (v *NodesView) toggleStateFilter(state string) {
 
 // promptPartitionFilter prompts for partition filter
 func (v *NodesView) promptPartitionFilter() {
-	input := tview.NewInputField().
+	input := styles.NewStyledInputField().
 		SetLabel("Filter by partition: ").
 		SetFieldWidth(20).
 		SetText(v.partFilter)

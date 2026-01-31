@@ -13,6 +13,7 @@ import (
 	"github.com/jontk/s9s/internal/ssh"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/navigation"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -250,7 +251,7 @@ func (etv *EnhancedTerminalView) createNewTerminal() {
 
 // showNodeSelectionDialog shows a dialog to select a node for new terminal
 func (etv *EnhancedTerminalView) showNodeSelectionDialog() {
-	form := tview.NewForm()
+	form := styles.StyleForm(tview.NewForm())
 	form.SetBorder(true)
 	form.SetTitle(" New Terminal Connection ")
 	form.SetTitleAlign(tview.AlignCenter)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/streaming"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -46,8 +47,8 @@ func (fc *FilterControls) buildUI() {
 	// Filter input row
 	filterRow := tview.NewFlex().SetDirection(tview.FlexColumn)
 
-	// Filter type dropdown
-	fc.filterType = tview.NewDropDown()
+	// Filter type dropdown with styled colors for visibility
+	fc.filterType = styles.StyleDropDown(tview.NewDropDown())
 	fc.filterType.SetLabel("Type: ")
 	fc.filterType.SetOptions([]string{
 		"Keyword",
@@ -69,10 +70,9 @@ func (fc *FilterControls) buildUI() {
 	fc.filterType.SetCurrentOption(0)
 	fc.filterType.SetFieldWidth(15)
 
-	// Filter input field
-	fc.filterInput = tview.NewInputField()
+	// Filter input field with styled colors for visibility across themes
+	fc.filterInput = styles.NewStyledInputField()
 	fc.filterInput.SetLabel("Filter: ")
-	fc.filterInput.SetFieldBackgroundColor(tcell.ColorBlack)
 	fc.filterInput.SetPlaceholder("Enter filter pattern...")
 	fc.filterInput.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {

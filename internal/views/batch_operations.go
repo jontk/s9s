@@ -10,6 +10,7 @@ import (
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/internal/ui/components"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/jontk/s9s/pkg/slurm"
 	"github.com/rivo/tview"
 )
@@ -303,7 +304,7 @@ func (v *BatchOperationsView) getOperationName(operation BatchOperation) string 
 
 // setPriority shows priority input dialog
 func (v *BatchOperationsView) setPriority() {
-	form := tview.NewForm()
+	form := styles.StyleForm(tview.NewForm())
 	form.SetBorder(true)
 	form.SetTitle(" Set Job Priority ")
 	form.SetTitleAlign(tview.AlignCenter)

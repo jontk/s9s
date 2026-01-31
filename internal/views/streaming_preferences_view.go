@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/preferences"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -49,7 +50,7 @@ func (v *StreamingPreferencesView) buildUI() {
 	prefs := v.prefsManager.GetPreferences()
 
 	// Create form
-	v.form = tview.NewForm()
+	v.form = styles.StyleForm(tview.NewForm())
 	v.form.SetBorder(true)
 	v.form.SetTitle(" Streaming Preferences ")
 	v.form.SetTitleAlign(tview.AlignCenter)
@@ -312,8 +313,8 @@ func (v *HighlightPatternsView) buildUI() {
 	// Load current patterns
 	v.refreshPatterns()
 
-	// Create input field for new patterns
-	v.inputField = tview.NewInputField()
+	// Create input field for new patterns with styled colors for visibility
+	v.inputField = styles.NewStyledInputField()
 	v.inputField.SetLabel("Add pattern: ")
 	v.inputField.SetFieldWidth(30)
 	v.inputField.SetDoneFunc(func(key tcell.Key) {

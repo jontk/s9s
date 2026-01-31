@@ -10,6 +10,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/ssh"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -467,7 +468,7 @@ func (v *SSHTerminalView) getNodeStatus(hostname string) string {
 
 // showQuickConnectDialog shows a dialog to connect to a custom hostname
 func (v *SSHTerminalView) showQuickConnectDialog() {
-	form := tview.NewForm()
+	form := styles.StyleForm(tview.NewForm())
 	form.SetBorder(true)
 	form.SetTitle(" Quick Connect ")
 	form.SetTitleAlign(tview.AlignCenter)

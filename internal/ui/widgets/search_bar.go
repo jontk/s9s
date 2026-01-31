@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/streaming"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -59,10 +60,9 @@ func (sb *SearchBar) buildUI() {
 	// Search input row
 	searchRow := tview.NewFlex().SetDirection(tview.FlexColumn)
 
-	// Search input
-	sb.searchInput = tview.NewInputField()
+	// Search input with styled colors for visibility across themes
+	sb.searchInput = styles.NewStyledInputField()
 	sb.searchInput.SetLabel("Search: ")
-	sb.searchInput.SetFieldBackgroundColor(tcell.ColorBlack)
 	sb.searchInput.SetPlaceholder("Enter search pattern...")
 	sb.searchInput.SetDoneFunc(func(key tcell.Key) {
 		switch key {
@@ -109,10 +109,9 @@ func (sb *SearchBar) buildUI() {
 	sb.updateResultsView()
 
 	// Search options form (hidden by default)
-	sb.searchOptions = tview.NewForm()
+	sb.searchOptions = styles.StyleForm(tview.NewForm())
 	sb.searchOptions.SetBorder(true)
 	sb.searchOptions.SetTitle(" Search Options ")
-	sb.searchOptions.SetFieldBackgroundColor(tcell.ColorBlack)
 
 	sb.searchOptions.AddCheckbox("Case sensitive", sb.options.CaseSensitive, func(checked bool) {
 		sb.options.CaseSensitive = checked

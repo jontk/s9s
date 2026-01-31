@@ -12,6 +12,7 @@ import (
 	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -92,8 +93,8 @@ func NewQoSView(client dao.SlurmClient) *QoSView {
 	v.table.SetOnSelect(v.onQoSSelect)
 	v.table.SetOnSort(v.onSort)
 
-	// Create filter input
-	v.filterInput = tview.NewInputField().
+	// Create filter input with styled colors for visibility across themes
+	v.filterInput = styles.NewStyledInputField().
 		SetLabel("Filter: ").
 		SetFieldWidth(30).
 		SetChangedFunc(v.onFilterChange).

@@ -12,6 +12,7 @@ import (
 	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -135,8 +136,8 @@ func NewJobsView(client dao.SlurmClient) *JobsView {
 	v.table.SetOnSelectionChange(v.onSelectionChange)
 	v.table.SetOnRowToggle(v.onRowToggle)
 
-	// Create filter input
-	v.filterInput = tview.NewInputField().
+	// Create filter input with styled colors for visibility across themes
+	v.filterInput = styles.NewStyledInputField().
 		SetLabel("Filter: ").
 		SetFieldWidth(30).
 		SetChangedFunc(v.onFilterChange).
@@ -1221,7 +1222,7 @@ func (v *JobsView) toggleStateFilter(state string) {
 
 // promptUserFilter prompts for user filter
 func (v *JobsView) promptUserFilter() {
-	input := tview.NewInputField().
+	input := styles.NewStyledInputField().
 		SetLabel("Filter by user: ").
 		SetFieldWidth(20).
 		SetText(v.userFilter)

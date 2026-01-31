@@ -10,6 +10,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/fileperms"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -310,7 +311,7 @@ func (v *JobsView) loadJobTemplate(template *JobTemplate) {
 // showJobSubmissionFormWithTemplate shows job submission form pre-filled with template data
 func (v *JobsView) showJobSubmissionFormWithTemplate(template *dao.JobSubmission) {
 	// Create form with template values
-	form := tview.NewForm().
+	form := styles.StyleForm(tview.NewForm()).
 		AddInputField("Job Name", template.Name, 30, nil, nil).
 		AddInputField("Command", template.Command, 50, nil, nil).
 		AddInputField("Partition", template.Partition, 20, nil, nil).
@@ -478,7 +479,7 @@ func (v *JobsView) showSaveTemplateFormFromSubmission(jobSub *dao.JobSubmission)
 		v.templateManager = NewJobTemplateManager()
 	}
 
-	form := tview.NewForm().
+	form := styles.StyleForm(tview.NewForm()).
 		AddInputField("Template Name", jobSub.Name+"_template", 30, nil, nil).
 		AddInputField("Description", "Custom job template", 50, nil, nil)
 

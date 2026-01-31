@@ -1,0 +1,7 @@
+# VHS output files
+output/*.gif
+output/*.mp4
+output/*.webm
+
+# Keep the output directory structure
+!output/.gitkeep

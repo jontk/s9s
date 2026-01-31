@@ -11,6 +11,7 @@ import (
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -94,8 +95,8 @@ func NewPartitionsView(client dao.SlurmClient) *PartitionsView {
 	v.table.SetOnSelect(v.onPartitionSelect)
 	v.table.SetOnSort(v.onSort)
 
-	// Create filter input
-	v.filterInput = tview.NewInputField().
+	// Create filter input with styled colors for visibility across themes
+	v.filterInput = styles.NewStyledInputField().
 		SetLabel("Filter: ").
 		SetFieldWidth(30).
 		SetChangedFunc(v.onFilterChange).

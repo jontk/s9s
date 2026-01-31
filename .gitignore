@@ -41,6 +41,11 @@ test/e2e/*.jpg
 test/e2e/*.jpeg
 test/e2e/*.gif
 
+# Secrets management (auto-generated, environment-specific)
+**/data/secrets/
+.key_hint
+*.secret
+
 # Debug logs
 *-debug.log
 s9s-debug.log

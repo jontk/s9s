@@ -7,6 +7,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -41,8 +42,8 @@ func NewGlobalSearch(client dao.SlurmClient, app *tview.Application) *GlobalSear
 		results: []SearchResult{},
 	}
 
-	// Create search input
-	gs.searchInput = tview.NewInputField().
+	// Create search input with styled colors for visibility across themes
+	gs.searchInput = styles.NewStyledInputField().
 		SetLabel("Search: ").
 		SetFieldWidth(50).
 		SetChangedFunc(gs.onSearchChange).

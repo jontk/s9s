@@ -8,6 +8,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/streaming"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -362,7 +363,7 @@ func (v *StreamMonitorView) nextPanel() {
 // showAddStreamDialog shows dialog to add a new stream
 func (v *StreamMonitorView) showAddStreamDialog() {
 	// Create input form
-	form := tview.NewForm()
+	form := styles.StyleForm(tview.NewForm())
 	form.SetBorder(true)
 	form.SetTitle(" Add Stream ")
 	form.SetTitleAlign(tview.AlignCenter)
