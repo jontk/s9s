@@ -8,9 +8,11 @@ import (
 )
 
 // mockCmd represents the mock command group
+// Hidden from help as it's for development/testing only
 var mockCmd = &cobra.Command{
-	Use:   "mock",
-	Short: "Mock mode utilities and status",
+	Use:    "mock",
+	Short:  "Mock mode utilities and status",
+	Hidden: true,
 	Long: `Utilities for working with s9s mock mode.
 
 Mock mode provides simulated SLURM cluster data for development and testing.

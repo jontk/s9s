@@ -50,7 +50,6 @@ Features:
 • Vim-like navigation`,
 
 	Example: `  s9s                         # Launch interactive TUI
-  S9S_ENABLE_MOCK=dev s9s --mock  # Use mock SLURM for testing
   s9s setup                       # Run configuration wizard
   s9s setup --auto-discover      # Auto-discover clusters`,
 
@@ -73,6 +72,10 @@ func init() {
 	rootCmd.Flags().BoolVar(&useMock, "mock", false, "use mock SLURM client (requires S9S_ENABLE_MOCK)")
 	rootCmd.Flags().BoolVar(&noMock, "no-mock", false, "use real SLURM client (override config)")
 	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "show version information")
+
+	// Hide mock flags from help (development/testing only)
+	_ = rootCmd.Flags().MarkHidden("mock")
+	_ = rootCmd.Flags().MarkHidden("no-mock")
 	rootCmd.Flags().BoolVar(&noDiscovery, "no-discovery", false, "disable auto-discovery of slurmrestd endpoint and token")
 	rootCmd.Flags().StringVar(&discoveryTimeout, "discovery-timeout", "", "timeout for auto-discovery (e.g., 10s, 30s)")
 }
@@ -187,8 +190,7 @@ func validateConfiguration(cfg *config.Config, cmd *cobra.Command) error {
 		fmt.Printf("⚠️  No SLURM clusters configured.\n\n")
 		fmt.Printf("To get started:\n")
 		fmt.Printf("  1. Run the setup wizard: %s\n", cmd.Root().CommandPath()+" setup")
-		fmt.Printf("  2. Or use mock mode: %s\n", cmd.Root().CommandPath()+" --mock")
-		fmt.Printf("  3. Or manually edit: ~/.s9s/config.yaml\n\n")
+		fmt.Printf("  2. Or manually edit: ~/.s9s/config.yaml\n\n")
 
 		if !cfg.UseMockClient {
 			return fmt.Errorf("no clusters configured")
