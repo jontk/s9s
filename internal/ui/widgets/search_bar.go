@@ -109,10 +109,9 @@ func (sb *SearchBar) buildUI() {
 	sb.updateResultsView()
 
 	// Search options form (hidden by default)
-	sb.searchOptions = tview.NewForm()
+	sb.searchOptions = styles.StyleForm(tview.NewForm())
 	sb.searchOptions.SetBorder(true)
 	sb.searchOptions.SetTitle(" Search Options ")
-	sb.searchOptions.SetFieldBackgroundColor(tcell.ColorBlack)
 
 	sb.searchOptions.AddCheckbox("Case sensitive", sb.options.CaseSensitive, func(checked bool) {
 		sb.options.CaseSensitive = checked

@@ -240,7 +240,7 @@ func (fb *FilterBar) showPresets() {
 
 // showSavePresetDialog shows dialog to save current filter as preset
 func (fb *FilterBar) showSavePresetDialog() {
-	form := tview.NewForm()
+	form := styles.StyleForm(tview.NewForm())
 
 	var name, description string
 	var isGlobal bool

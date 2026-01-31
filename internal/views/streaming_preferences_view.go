@@ -50,7 +50,7 @@ func (v *StreamingPreferencesView) buildUI() {
 	prefs := v.prefsManager.GetPreferences()
 
 	// Create form
-	v.form = tview.NewForm()
+	v.form = styles.StyleForm(tview.NewForm())
 	v.form.SetBorder(true)
 	v.form.SetTitle(" Streaming Preferences ")
 	v.form.SetTitleAlign(tview.AlignCenter)

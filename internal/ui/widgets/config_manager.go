@@ -10,6 +10,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/config"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -84,13 +85,8 @@ func (cm *ConfigManager) initializeUI() {
 	cm.content.SetTitle(" Settings ")
 	cm.content.SetTitleAlign(tview.AlignCenter)
 
-	// Create form for configuration fields
-	cm.form = tview.NewForm()
-	cm.form.SetFieldBackgroundColor(tcell.ColorDefault)
-	cm.form.SetFieldTextColor(tcell.ColorWhite)
-	cm.form.SetLabelColor(tcell.ColorYellow)
-	cm.form.SetButtonBackgroundColor(tcell.ColorNavy)
-	cm.form.SetButtonTextColor(tcell.ColorWhite)
+	// Create form for configuration fields with theme-aware styling
+	cm.form = styles.StyleForm(tview.NewForm())
 
 	// Create status bar
 	cm.statusBar = tview.NewTextView()

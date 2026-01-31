@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -233,7 +234,7 @@ func (v *JobsView) buildWorkflowDiagram(jobID string, deps []JobDependency, reve
 
 // showAddDependencyForm shows form to add a new dependency
 func (v *JobsView) showAddDependencyForm(jobID string) {
-	depForm := tview.NewForm().
+	depForm := styles.StyleForm(tview.NewForm()).
 		AddInputField("Depends on Job ID", "", 20, nil, nil).
 		AddDropDown("Dependency Type", []string{"afterok", "afternotok", "afterany", "after"}, 0, nil)
 

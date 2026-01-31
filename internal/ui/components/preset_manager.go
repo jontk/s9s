@@ -5,6 +5,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/ui/filters"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -215,7 +216,7 @@ func (pm *PresetManagerUI) showDuplicatePresetDialog(preset filters.FilterPreset
 
 // showPresetForm shows the preset creation/editing form
 func (pm *PresetManagerUI) showPresetForm(preset filters.FilterPreset, title string, onSave func(filters.FilterPreset)) {
-	form := tview.NewForm()
+	form := styles.StyleForm(tview.NewForm())
 
 	var name, description, filterStr string
 	var isGlobal bool

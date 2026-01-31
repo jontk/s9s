@@ -8,6 +8,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -114,7 +115,7 @@ func (w *JobSubmissionWizard) showTemplateSelection() {
 
 // showJobForm shows the job submission form
 func (w *JobSubmissionWizard) showJobForm(template *dao.JobTemplate) {
-	form := tview.NewForm()
+	form := styles.StyleForm(tview.NewForm())
 	w.form = form
 
 	// Initialize job from template or defaults

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/preferences"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -48,7 +49,7 @@ func (pv *PreferencesView) buildUI() {
 	pv.buildCategoryTree()
 
 	// Create form for settings
-	pv.form = tview.NewForm()
+	pv.form = styles.StyleForm(tview.NewForm())
 	pv.form.SetBorder(true).SetTitle(" Settings ")
 
 	// Show general settings by default

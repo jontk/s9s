@@ -8,6 +8,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/notifications"
 	"github.com/jontk/s9s/internal/ui/components"
+	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
 
@@ -26,7 +27,7 @@ func NewNotificationSettingsView(manager interface{}, app *tview.Application, pa
 		manager: manager,
 		app:     app,
 		pages:   pages,
-		form:    tview.NewForm(),
+		form:    styles.StyleForm(tview.NewForm()),
 	}
 
 	v.buildForm()
