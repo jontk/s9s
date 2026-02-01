@@ -228,37 +228,22 @@ func TestFilterCombination(t *testing.T) {
 	v.futureFilterEnabled = true
 
 	// Past reservation - excluded by both filters
-	includePast := false
-	if v.activeFilterEnabled && v.isActiveReservation(past, now) {
-		includePast = true
-	}
-	if v.futureFilterEnabled && v.isFutureReservation(past, now) {
-		includePast = true
-	}
+	includePast := (v.activeFilterEnabled && v.isActiveReservation(past, now)) ||
+		(v.futureFilterEnabled && v.isFutureReservation(past, now))
 	if includePast {
 		t.Error("Expected past reservation to be excluded when both filters are on")
 	}
 
 	// Active reservation - included by active filter
-	includeActive := false
-	if v.activeFilterEnabled && v.isActiveReservation(active, now) {
-		includeActive = true
-	}
-	if v.futureFilterEnabled && v.isFutureReservation(active, now) {
-		includeActive = true
-	}
+	includeActive := (v.activeFilterEnabled && v.isActiveReservation(active, now)) ||
+		(v.futureFilterEnabled && v.isFutureReservation(active, now))
 	if !includeActive {
 		t.Error("Expected active reservation to be included when active filter is on")
 	}
 
 	// Future reservation - included by future filter
-	includeFuture := false
-	if v.activeFilterEnabled && v.isActiveReservation(future, now) {
-		includeFuture = true
-	}
-	if v.futureFilterEnabled && v.isFutureReservation(future, now) {
-		includeFuture = true
-	}
+	includeFuture := (v.activeFilterEnabled && v.isActiveReservation(future, now)) ||
+		(v.futureFilterEnabled && v.isFutureReservation(future, now))
 	if !includeFuture {
 		t.Error("Expected future reservation to be included when future filter is on")
 	}
