@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/jontk/s9s/plugins/observability/prometheus"
@@ -46,8 +47,9 @@ type DataCollector struct {
 	series   map[string]*MetricSeries
 	queries  map[string]string
 	mu       sync.RWMutex
-	running  bool
+	running  atomic.Bool   // Use atomic for thread-safe access
 	stopChan chan struct{}
+	wg       sync.WaitGroup // Track goroutines for clean shutdown
 }
 
 type HistoricalDataCollector = DataCollector
@@ -124,15 +126,17 @@ func NewHistoricalDataCollector(client *prometheus.CachedClient, config Collecto
 
 // Start starts the historical data collection
 func (hdc *HistoricalDataCollector) Start(ctx context.Context) error {
-	hdc.mu.Lock()
-	defer hdc.mu.Unlock()
-
-	if hdc.running {
+	// Use atomic compare-and-swap to ensure we only start once
+	if !hdc.running.CompareAndSwap(false, true) {
 		return fmt.Errorf("historical data collector is already running")
 	}
 
-	hdc.running = true
+	hdc.mu.Lock()
 	hdc.stopChan = make(chan struct{})
+	hdc.mu.Unlock()
+
+	// Start both goroutines and track them
+	hdc.wg.Add(2)
 
 	// Start collection loop
 	go hdc.collectionLoop(ctx)
@@ -149,18 +153,22 @@ func (hdc *HistoricalDataCollector) Stop() error {
 		return nil
 	}
 
-	hdc.mu.Lock()
-	defer hdc.mu.Unlock()
-
-	if !hdc.running {
+	// Use atomic compare-and-swap to ensure we only stop once
+	if !hdc.running.CompareAndSwap(true, false) {
 		return fmt.Errorf("historical data collector is not running")
 	}
 
-	hdc.running = false
+	hdc.mu.Lock()
 	close(hdc.stopChan)
+	hdc.mu.Unlock()
 
-	// Save current data (already holding lock)
+	// Wait for both goroutines to exit
+	hdc.wg.Wait()
+
+	// Save current data after goroutines have stopped
+	hdc.mu.Lock()
 	hdc.saveHistoricalDataLocked()
+	hdc.mu.Unlock()
 
 	return nil
 }
@@ -311,7 +319,7 @@ func (hdc *HistoricalDataCollector) GetCollectorStats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"running":            hdc.running,
+		"running":            hdc.running.Load(),
 		"metrics_count":      len(hdc.series),
 		"total_data_points":  totalDataPoints,
 		"collect_interval":   hdc.collectInterval.String(),
@@ -326,6 +334,7 @@ func (hdc *HistoricalDataCollector) GetCollectorStats() map[string]interface{} {
 
 // collectionLoop runs the data collection process
 func (hdc *HistoricalDataCollector) collectionLoop(ctx context.Context) {
+	defer hdc.wg.Done()
 	ticker := time.NewTicker(hdc.collectInterval)
 	defer ticker.Stop()
 
@@ -408,6 +417,7 @@ func (hdc *HistoricalDataCollector) collectData(ctx context.Context) {
 
 // cleanupLoop runs periodic cleanup of old data
 func (hdc *HistoricalDataCollector) cleanupLoop() {
+	defer hdc.wg.Done()
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 

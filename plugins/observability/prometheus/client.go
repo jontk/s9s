@@ -69,13 +69,15 @@ func NewClient(config *ClientConfig) (*Client, error) {
 
 	// Create HTTP client with custom transport
 	transport := &http.Transport{
-		TLSClientConfig:     tlsConfig,
-		MaxIdleConns:        100,
-		MaxIdleConnsPerHost: 10,
-		MaxConnsPerHost:     20, // Limit concurrent connections per host
-		IdleConnTimeout:     90 * time.Second,
-		DisableKeepAlives:   false,
-		DisableCompression:  false,
+		TLSClientConfig:       tlsConfig,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   10,
+		MaxConnsPerHost:       20, // Limit concurrent connections per host
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		DisableKeepAlives:     false,
+		DisableCompression:    false,
 	}
 
 	httpClient := &http.Client{

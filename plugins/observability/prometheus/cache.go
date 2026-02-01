@@ -38,7 +38,7 @@ type MetricCache struct {
 
 	// Lifecycle management
 	stopChan chan struct{}
-	stopped  bool
+	stopped  atomic.Bool // Use atomic for thread-safe access
 }
 
 // NewMetricCache creates a new metric cache
@@ -56,8 +56,8 @@ func NewMetricCache(defaultTTL time.Duration, maxSize int) *MetricCache {
 		maxSize:  maxSize,
 		keyGen:   NewCacheKeyGenerator(),
 		stopChan: make(chan struct{}),
-		stopped:  false,
 	}
+	cache.stopped.Store(false)
 
 	// Start cleanup goroutine
 	go cache.cleanupLoop()
@@ -251,11 +251,8 @@ func (mc *MetricCache) cleanup() {
 
 // Stop gracefully shuts down the cache cleanup goroutine
 func (mc *MetricCache) Stop() {
-	mc.mu.Lock()
-	defer mc.mu.Unlock()
-
-	if !mc.stopped {
-		mc.stopped = true
+	// Use atomic compare-and-swap to ensure we only close once
+	if mc.stopped.CompareAndSwap(false, true) {
 		close(mc.stopChan)
 	}
 }
