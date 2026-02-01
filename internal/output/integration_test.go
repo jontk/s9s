@@ -2,6 +2,7 @@ package output
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -287,5 +288,185 @@ func TestLocalFileReader_ReadRange_BeyondEOF(t *testing.T) {
 	// Should return only available content
 	if result != content {
 		t.Errorf("Content mismatch: got %q, want %q", result, content)
+	}
+}
+
+// TestLocalFileReader_TailFile_LargeFile tests tail on large files with seek
+func TestLocalFileReader_TailFile_LargeFile(t *testing.T) {
+	reader := NewLocalFileReader()
+
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "large.txt")
+
+	// Create a file > 1MB to trigger seek logic
+	var lines []string
+	for i := 1; i <= 20000; i++ {
+		lines = append(lines, fmt.Sprintf("Line %05d with some padding text to make it larger", i))
+	}
+	content := strings.Join(lines, "\n") + "\n"
+	err := os.WriteFile(testFile, []byte(content), 0600)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	ctx := context.Background()
+	result, err := reader.TailFile(ctx, testFile, 10)
+	if err != nil {
+		t.Fatalf("Failed to tail large file: %v", err)
+	}
+
+	// Should contain last lines
+	if !strings.Contains(result, "Line 20000") {
+		t.Error("Expected result to contain last line")
+	}
+
+	resultLines := strings.Split(strings.TrimSpace(result), "\n")
+	if len(resultLines) > 10 {
+		t.Errorf("Expected at most 10 lines, got %d", len(resultLines))
+	}
+}
+
+// TestLocalFileReader_HeadFile_Error tests error cases for HeadFile
+func TestLocalFileReader_HeadFile_Error(t *testing.T) {
+	reader := NewLocalFileReader()
+
+	ctx := context.Background()
+
+	// Test with non-existent file
+	_, err := reader.HeadFile(ctx, "/nonexistent/file.txt", 10)
+	if err == nil {
+		t.Error("Expected error for non-existent file")
+	}
+}
+
+// TestLocalFileReader_ReadRange_Error tests error cases for ReadRange
+func TestLocalFileReader_ReadRange_Error(t *testing.T) {
+	reader := NewLocalFileReader()
+
+	ctx := context.Background()
+
+	// Test with non-existent file
+	_, err := reader.ReadRange(ctx, "/nonexistent/file.txt", 0, 100)
+	if err == nil {
+		t.Error("Expected error for non-existent file")
+	}
+
+	// Test with cancelled context
+	cancelledCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err = reader.ReadRange(cancelledCtx, "/tmp/test.txt", 0, 100)
+	if err == nil {
+		t.Error("Expected error for cancelled context")
+	}
+}
+
+// TestJobOutputReader_SetCache_Integration tests SetCache integration
+func TestJobOutputReader_SetCache_Integration(t *testing.T) {
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "job_12345.out")
+	err := os.WriteFile(testFile, []byte("Content"), 0600)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	mockResolver := &mockPathResolver{
+		resolveFunc: func(jobID, outputType string) (string, bool, string, error) {
+			return testFile, false, "", nil
+		},
+	}
+
+	reader := NewJobOutputReader(mockResolver, nil)
+
+	// Set custom cache
+	customCache := NewOutputCache(10*time.Minute, 50)
+	reader.SetCache(customCache)
+
+	// Verify SetCache worked
+	if reader.cache != customCache {
+		t.Error("SetCache did not update cache reference")
+	}
+
+	ctx := context.Background()
+	opts := ReadOptions{CacheEnabled: true}
+
+	// Read to populate custom cache
+	_, err = reader.ReadPartial(ctx, "12345", "stdout", opts)
+	if err != nil {
+		t.Fatalf("Failed to read: %v", err)
+	}
+
+	// Verify entry in custom cache
+	stats := customCache.Stats()
+	if stats.Entries != 1 {
+		t.Errorf("Expected 1 entry in custom cache, got %d", stats.Entries)
+	}
+}
+
+// TestJobOutputReader_ReadPartial_HeadMode tests reading with head mode
+func TestJobOutputReader_ReadPartial_HeadMode(t *testing.T) {
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "job_12345.out")
+	var lines []string
+	for i := 1; i <= 100; i++ {
+		lines = append(lines, fmt.Sprintf("Line %03d: %s", i, strings.Repeat("X", 50)))
+	}
+	content := strings.Join(lines, "\n") + "\n"
+	err := os.WriteFile(testFile, []byte(content), 0600)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	mockResolver := &mockPathResolver{
+		resolveFunc: func(jobID, outputType string) (string, bool, string, error) {
+			return testFile, false, "", nil
+		},
+	}
+
+	reader := NewJobOutputReader(mockResolver, nil)
+	ctx := context.Background()
+
+	// Read with head mode (not tail)
+	opts := ReadOptions{
+		MaxBytes: 500,
+		MaxLines: 10,
+		TailMode: false, // Head mode
+	}
+
+	result, err := reader.ReadPartial(ctx, "12345", "stdout", opts)
+	if err != nil {
+		t.Fatalf("Failed to read with head mode: %v", err)
+	}
+
+	// Should have first lines
+	resultLines := strings.Split(strings.TrimSpace(result.Content), "\n")
+	if len(resultLines) > 10 {
+		t.Errorf("Expected at most 10 lines, got %d", len(resultLines))
+	}
+
+	// Verify it's the first lines
+	if !strings.Contains(resultLines[0], "Line 001") {
+		t.Errorf("Expected first line to contain 'Line 001', got: %s", resultLines[0])
+	}
+}
+
+// TestRemoteFileReader_HeadRemoteFile_Error tests error cases
+func TestRemoteFileReader_HeadRemoteFile_Error(t *testing.T) {
+	mockSSH := &mockSSHClient{
+		executeFunc: func(ctx context.Context, hostname, command string) (string, error) {
+			return "", fmt.Errorf("ssh: Connection refused")
+		},
+	}
+
+	reader := NewRemoteFileReader(mockSSH)
+	ctx := context.Background()
+
+	_, err := reader.HeadRemoteFile(ctx, "node01", "/path/to/file.txt", 10)
+	if err == nil {
+		t.Fatal("Expected SSH error, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "Connection refused") {
+		t.Errorf("Expected connection error, got: %v", err)
 	}
 }
