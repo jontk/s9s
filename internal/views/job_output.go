@@ -1,6 +1,7 @@
 package views
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/export"
+	"github.com/jontk/s9s/internal/output"
 	"github.com/jontk/s9s/internal/streaming"
 	"github.com/jontk/s9s/pkg/slurm"
 	"github.com/rivo/tview"
@@ -39,6 +41,9 @@ type JobOutputView struct {
 	outputBuffer  *streaming.CircularBuffer
 	streamToggle  *tview.Button
 	scrollToggle  *tview.Button
+
+	// Output reading
+	outputReader output.Reader
 }
 
 // NewJobOutputView creates a new job output view
@@ -50,18 +55,30 @@ func NewJobOutputView(client dao.SlurmClient, app *tview.Application) *JobOutput
 		defaultPath = homeDir + "/slurm_exports"
 	}
 
+	// Create output reader with path resolver
+	// Note: SSH client will be nil initially, so only local file reading will work
+	// Call SetOutputReader with a properly configured reader if SSH access is needed
+	pathResolver := streaming.NewPathResolver(client, nil)
+	outputReader := output.NewJobOutputReader(pathResolver, nil)
+
 	return &JobOutputView{
-		client:      client,
-		app:         app,
-		exporter:    export.NewJobOutputExporter(defaultPath),
-		autoScroll:  true, // Default to auto-scroll
-		isStreaming: false,
+		client:       client,
+		app:          app,
+		exporter:     export.NewJobOutputExporter(defaultPath),
+		autoScroll:   true, // Default to auto-scroll
+		isStreaming:  false,
+		outputReader: outputReader,
 	}
 }
 
 // SetStreamManager sets the stream manager for real-time streaming
 func (v *JobOutputView) SetStreamManager(streamManager *streaming.StreamManager) {
 	v.streamManager = streamManager
+}
+
+// SetOutputReader sets the output reader for reading job output files
+func (v *JobOutputView) SetOutputReader(reader output.Reader) {
+	v.outputReader = reader
 }
 
 // SetPages sets the pages manager for modal display
@@ -240,13 +257,41 @@ func (v *JobOutputView) loadOutput() {
 	}()
 }
 
-// getJobOutput retrieves actual job output (placeholder for real implementation)
-//
-//nolint:unparam // Designed for future extensibility; currently always returns nil
+// getJobOutput retrieves actual job output using the output reader
 func (v *JobOutputView) getJobOutput() (string, error) {
-	// This would be implemented to read actual SLURM output files
-	// For now, return a placeholder
-	return fmt.Sprintf("Output for job %s (%s) would be retrieved from SLURM output files.\n\nThis requires access to the job's stdout/stderr files on the cluster filesystem.", v.jobID, v.outputType), nil
+	// Check if output reader is configured
+	if v.outputReader == nil {
+		return "", fmt.Errorf("output reader not configured")
+	}
+
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Read job output with default options
+	opts := output.DefaultReadOptions()
+	content, err := v.outputReader.ReadPartial(ctx, v.jobID, v.outputType, opts)
+	if err != nil {
+		return "", fmt.Errorf("failed to read job output: %w", err)
+	}
+
+	// Format output with metadata
+	result := content.Content
+
+	// Add informational header if truncated
+	if content.Truncated {
+		header := fmt.Sprintf("[yellow]Note: Output truncated (%d lines shown, file size: %d bytes)[white]\n",
+			content.LinesRead, content.Metadata.Size)
+		if content.Metadata.IsLocal {
+			header += fmt.Sprintf("[gray]Source: Local file (%s)[white]\n", content.Metadata.Path)
+		} else {
+			header += fmt.Sprintf("[gray]Source: Remote node %s (%s)[white]\n", content.Metadata.NodeID, content.Metadata.Path)
+		}
+		header += fmt.Sprintf("[gray]Last modified: %s[white]\n\n", content.Metadata.ModTime.Format("2006-01-02 15:04:05"))
+		result = header + result
+	}
+
+	return result, nil
 }
 
 // generateMockOutput creates sample output for demonstration
