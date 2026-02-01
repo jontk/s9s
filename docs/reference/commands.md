@@ -2,6 +2,24 @@
 
 Complete reference of available S9S commands for efficient cluster management.
 
+## Command Mode
+
+Press `:` to enter command mode (vim-style). Commands support tab completion for both command names and arguments.
+
+### Using Tab Completion
+
+- **Command completion**: Type `:req` and press `Tab` to complete to `:requeue`
+- **Argument completion**: Type `:cancel ` and press `Tab` to see available job IDs
+- **Smart suggestions**: Completions are context-aware based on cached view data
+
+**Examples:**
+```
+:req<Tab>           → :requeue
+:requeue <Tab>      → Shows: 12345, 12346, 12347...
+:drain nod<Tab>     → Shows: node01, node02, node03...
+:q<Tab>             → Shows: q, qos, quit
+```
+
 ## Available Commands
 
 ### Navigation Commands
@@ -27,6 +45,28 @@ Complete reference of available S9S commands for efficient cluster management.
 | `:prefs` or `:preferences` | Show preferences | `:prefs` |
 | `:layout` or `:layouts` | Show layout switcher | `:layout` |
 | `:config` or `:configuration` or `:settings` | Show configuration | `:config` |
+
+### Job Management Commands
+| Command | Description | Example | Autocomplete |
+|---------|-------------|---------|--------------|
+| `:cancel JOBID` | Cancel a specific job | `:cancel 12345` | Job IDs from active jobs |
+| `:hold JOBID` | Hold a specific job | `:hold 12345` | Job IDs from active jobs |
+| `:release JOBID` | Release a held job | `:release 12345` | Job IDs from active jobs |
+| `:requeue JOBID` | Requeue a failed/completed job | `:requeue 12345` | Job IDs from active jobs |
+
+**Tab Completion:** After typing the command and pressing space, press `Tab` to see available job IDs from the currently loaded jobs view.
+
+**Note:** These commands operate on specific job IDs. For batch operations on selected jobs in the UI, use the keyboard shortcuts (`c`, `h`, `r`) described in the Interactive Operations section.
+
+### Node Management Commands
+| Command | Description | Example | Autocomplete |
+|---------|-------------|---------|--------------|
+| `:drain NODE [REASON]` | Drain a node (make unavailable for new jobs) | `:drain node01 maintenance` | Node names from active nodes |
+| `:resume NODE` | Resume a drained node | `:resume node01` | Node names from active nodes |
+
+**Tab Completion:** After typing the command and pressing space, press `Tab` to see available node names from the currently loaded nodes view.
+
+**Note:** The reason for draining is optional. If not provided, defaults to "Drained via s9s command".
 
 ### Filtering and Search
 | Command | Description | Example |

@@ -1738,6 +1738,17 @@ func (v *NodesView) showGlobalSearch() {
 	})
 }
 
+// GetNodeNames returns a list of all node names from cached data
+func (v *NodesView) GetNodeNames() []string {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	names := make([]string, len(v.nodes))
+	for i, node := range v.nodes {
+		names[i] = node.Name
+	}
+	return names
+}
+
 // showSSHTerminalManager shows the SSH terminal manager interface
 func (v *NodesView) showSSHTerminalManager(nodeName string) {
 	if v.sshTerminal == nil {

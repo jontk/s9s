@@ -226,9 +226,30 @@ s                # SSH to selected node
 W                # View wait time analytics
 ```
 
+## Command Mode
+
+Press `:` to enter vim-style command mode with intelligent tab completion:
+
+### Quick Examples
+```
+:cancel 12345      # Cancel job 12345
+:drain node01      # Drain node01
+:requeue 67890     # Requeue job 67890
+```
+
+### Tab Completion
+- Type `:req` and press `Tab` → completes to `:requeue`
+- Type `:cancel ` and press `Tab` → shows available job IDs
+- Type `:drain ` and press `Tab` → shows available node names
+
+Commands use cached data from views for instant autocomplete without API calls.
+
+See [Commands Reference](../reference/commands.md) for complete command documentation.
+
 ## Features
 
 - **Real-time updates** - Data refreshes automatically
+- **Command mode with autocomplete** - Vim-style `:` commands with Tab completion
 - **ASCII visualizations** - Resource usage shown with colored progress bars
 - **Advanced filtering** - Use `/` to filter data in any view or `F3` for advanced filters
 - **Sortable columns** - Use number keys `1-9` to sort

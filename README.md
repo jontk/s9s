@@ -37,6 +37,7 @@ s9s provides a terminal interface for managing SLURM clusters, inspired by the p
 - **Job Management**: Submit, cancel, hold, release, and monitor jobs
 - **Batch Operations**: Perform actions on multiple jobs simultaneously
 - **Advanced Filtering**: Powerful search and filter capabilities
+- **Command Mode with Autocomplete**: Vim-style `:` commands with Tab completion for commands and arguments
 - **SSH Integration**: Connect directly to compute nodes
 - **Export Capabilities**: Export data in CSV, JSON, Markdown, HTML formats
 - **Real-time Job Log Streaming**: Live job output monitoring with filtering
@@ -150,6 +151,26 @@ preferences:
 | `/` | Search |
 | `Tab` | Switch view |
 | `Ctrl+r` | Force refresh |
+
+#### Command Mode with Autocomplete
+
+Press `:` to enter vim-style command mode with intelligent Tab completion:
+
+```bash
+# Tab completes command names
+:req<Tab>          → :requeue
+
+# Tab shows available job IDs
+:cancel <Tab>      → Shows: 12345, 12346, 12347...
+
+# Tab shows available node names
+:drain <Tab>       → Shows: node01, node02, node03...
+
+# Full commands
+:cancel 12345      # Cancel job 12345
+:drain node01      # Drain node01
+:requeue 67890     # Requeue failed job
+```
 
 ### Jobs View
 

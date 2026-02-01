@@ -1791,6 +1791,17 @@ func (v *JobsView) showGlobalSearch() {
 	})
 }
 
+// GetJobIDs returns a list of all job IDs from cached data
+func (v *JobsView) GetJobIDs() []string {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	ids := make([]string, len(v.jobs))
+	for i, job := range v.jobs {
+		ids[i] = job.ID
+	}
+	return ids
+}
+
 // focusOnJob focuses the table on a specific job
 func (v *JobsView) focusOnJob(jobID string) {
 	v.mu.RLock()

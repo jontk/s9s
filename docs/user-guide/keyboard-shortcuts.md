@@ -384,12 +384,31 @@ s9s keyboard shortcuts are designed for:
 
 ## Vim-Style Commands
 
-Advanced users can use `:` for vim-style command mode:
+Press `:` to enter vim-style command mode with tab completion support:
 
+### Command Completion
+```
+:q<Tab>            - Shows: q, qos, quit
+:req<Tab>          - Completes to: requeue
+:dr<Tab>           - Completes to: drain
+```
+
+### Argument Completion
+```
+:cancel <Tab>      - Shows available job IDs
+:drain <Tab>       - Shows available node names
+:requeue <Tab>     - Shows available job IDs
+```
+
+### Common Commands
 ```
 :quit              - Exit application
 :refresh           - Refresh current view
 :help              - Show help
+:cancel JOBID      - Cancel specific job (with autocomplete)
+:drain NODE        - Drain specific node (with autocomplete)
 ```
+
+**How it works:** Completions are context-aware and use data from the currently loaded views, so you'll see real job IDs and node names from your cluster.
 
 See [Commands Reference](../../reference/commands.md) for full command list.
