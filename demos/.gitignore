@@ -1,7 +1,9 @@
-# VHS output files
-output/*.gif
+# VHS output files (videos only)
 output/*.mp4
 output/*.webm
+
+# GIFs are tracked via Git LFS (see .gitattributes at repo root)
+# This allows GIFs to be version controlled without bloating the repository
 
 # Keep the output directory structure
 !output/.gitkeep
