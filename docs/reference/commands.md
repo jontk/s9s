@@ -28,6 +28,24 @@ Complete reference of available S9S commands for efficient cluster management.
 | `:layout` or `:layouts` | Show layout switcher | `:layout` |
 | `:config` or `:configuration` or `:settings` | Show configuration | `:config` |
 
+### Job Management Commands
+| Command | Description | Example |
+|---------|-------------|---------|
+| `:cancel JOBID` | Cancel a specific job | `:cancel 12345` |
+| `:hold JOBID` | Hold a specific job | `:hold 12345` |
+| `:release JOBID` | Release a held job | `:release 12345` |
+| `:requeue JOBID` | Requeue a failed/completed job | `:requeue 12345` |
+
+**Note:** These commands operate on specific job IDs. For batch operations on selected jobs in the UI, use the keyboard shortcuts (`c`, `h`, `r`) described in the Interactive Operations section.
+
+### Node Management Commands
+| Command | Description | Example |
+|---------|-------------|---------|
+| `:drain NODE [REASON]` | Drain a node (make unavailable for new jobs) | `:drain node01 maintenance` |
+| `:resume NODE` | Resume a drained node | `:resume node01` |
+
+**Note:** The reason for draining is optional. If not provided, defaults to "Drained via s9s command".
+
 ### Filtering and Search
 | Command | Description | Example |
 |---------|-------------|---------|
