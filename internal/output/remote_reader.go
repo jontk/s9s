@@ -5,20 +5,23 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/jontk/s9s/internal/ssh"
 )
+
+// SSHExecutor defines the interface for SSH command execution
+type SSHExecutor interface {
+	ExecuteCommand(ctx context.Context, hostname, command string) (string, error)
+}
 
 // RemoteFileReader handles reading files via SSH
 type RemoteFileReader struct {
-	sshClient      *ssh.SSHClient
+	sshClient      SSHExecutor
 	maxTransfer    int64
 	timeout        time.Duration
 	useCompression bool
 }
 
 // NewRemoteFileReader creates a new remote file reader
-func NewRemoteFileReader(sshClient *ssh.SSHClient) *RemoteFileReader {
+func NewRemoteFileReader(sshClient SSHExecutor) *RemoteFileReader {
 	return &RemoteFileReader{
 		sshClient:      sshClient,
 		maxTransfer:    10 * 1024 * 1024, // 10MB max transfer

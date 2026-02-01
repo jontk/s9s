@@ -4,24 +4,41 @@ import (
 	"context"
 	"fmt"
 	"strings"
-
-	"github.com/jontk/s9s/internal/ssh"
-	"github.com/jontk/s9s/internal/streaming"
+	"time"
 )
+
+// PathResolver defines the interface for resolving job output paths
+type PathResolver interface {
+	ResolveOutputPath(jobID, outputType string) (path string, isRemote bool, nodeID string, err error)
+}
 
 // JobOutputReader orchestrates reading job output files
 type JobOutputReader struct {
-	pathResolver *streaming.PathResolver
+	pathResolver PathResolver
 	localReader  *LocalFileReader
 	remoteReader *RemoteFileReader
+	cache        *OutputCache
 }
 
 // NewJobOutputReader creates a new job output reader
-func NewJobOutputReader(pathResolver *streaming.PathResolver, sshClient *ssh.SSHClient) *JobOutputReader {
+func NewJobOutputReader(pathResolver PathResolver, sshClient SSHExecutor) *JobOutputReader {
 	return &JobOutputReader{
 		pathResolver: pathResolver,
 		localReader:  NewLocalFileReader(),
 		remoteReader: NewRemoteFileReader(sshClient),
+		cache:        NewOutputCache(5*time.Minute, 100), // 5 min TTL, 100 entries max
+	}
+}
+
+// SetCache sets a custom cache (useful for testing or custom cache configurations)
+func (r *JobOutputReader) SetCache(cache *OutputCache) {
+	r.cache = cache
+}
+
+// ClearCache clears the output cache
+func (r *JobOutputReader) ClearCache() {
+	if r.cache != nil {
+		r.cache.Clear()
 	}
 }
 
@@ -32,6 +49,14 @@ func (r *JobOutputReader) ReadJobOutput(ctx context.Context, jobID, outputType s
 
 // ReadPartial reads output with options
 func (r *JobOutputReader) ReadPartial(ctx context.Context, jobID, outputType string, opts ReadOptions) (*OutputContent, error) {
+	// Check cache if enabled and not forcing refresh
+	if opts.CacheEnabled && !opts.ForceRefresh && r.cache != nil {
+		cacheKey := GenerateCacheKey(jobID, outputType)
+		if cached, found := r.cache.Get(cacheKey); found {
+			return cached, nil
+		}
+	}
+
 	// Resolve file path using PathResolver
 	filePath, isRemote, nodeID, err := r.pathResolver.ResolveOutputPath(jobID, outputType)
 	if err != nil {
@@ -123,7 +148,7 @@ func (r *JobOutputReader) ReadPartial(ctx context.Context, jobID, outputType str
 		truncated = true
 	}
 
-	return &OutputContent{
+	result := &OutputContent{
 		Content:     content,
 		Metadata:    metadata,
 		Truncated:   truncated,
@@ -131,7 +156,15 @@ func (r *JobOutputReader) ReadPartial(ctx context.Context, jobID, outputType str
 		LinesRead:   linesRead,
 		BytesRead:   int64(len(content)),
 		Source:      source,
-	}, nil
+	}
+
+	// Store in cache if enabled
+	if opts.CacheEnabled && r.cache != nil {
+		cacheKey := GenerateCacheKey(jobID, outputType)
+		r.cache.Set(cacheKey, result, 0) // Use default TTL
+	}
+
+	return result, nil
 }
 
 // GetMetadata returns file metadata without reading content
