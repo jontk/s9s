@@ -258,15 +258,36 @@ Select multiple items:
 
 ## ⚡ Command Mode
 
-Press `:` to enter command mode (vim-style):
+Press `:` to enter command mode (vim-style) with intelligent autocomplete:
 
+### Basic Commands
 ```bash
 :help              # Show help
 :quit              # Exit s9s
 :view nodes        # Switch to nodes view
-:filter user:john  # Apply filter
 :refresh           # Force refresh
 ```
+
+### Commands with Autocomplete
+```bash
+# Tab completion for commands
+:req<Tab>          # Completes to :requeue
+:dr<Tab>           # Completes to :drain
+
+# Tab completion for arguments
+:cancel <Tab>      # Shows available job IDs
+:drain <Tab>       # Shows available node names
+:requeue <Tab>     # Shows available job IDs
+
+# Full examples
+:cancel 12345      # Cancel job 12345
+:drain node01      # Drain node01
+:requeue 67890     # Requeue failed job
+```
+
+**Pro Tip:** Autocomplete uses cached data from your views, so you'll see real job IDs and node names from your cluster without extra API calls.
+
+See [Commands Reference](../reference/commands.md) for complete command documentation.
 
 ## 🎨 Quick Customization
 

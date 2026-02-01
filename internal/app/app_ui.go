@@ -48,7 +48,8 @@ func (s *S9s) initUI() error {
 		SetLabel(":").
 		SetFieldBackgroundColor(tcell.ColorBlack).
 		SetFieldTextColor(tcell.ColorWhite).
-		SetDoneFunc(s.onCommandDone)
+		SetDoneFunc(s.onCommandDone).
+		SetAutocompleteFunc(s.getCompletions)
 	s.cmdLine.SetBorder(false)
 
 	// Create main layout with stable structure using contentPages
