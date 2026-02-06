@@ -1407,9 +1407,75 @@ func convertQoS(qos *slurm.QoS) *QoS {
 		graceTime = int(*qos.Limits.GraceTime) / 60 // Convert seconds to minutes
 	}
 
-	// Most max/min fields are deeply nested in Limits - using defaults for now
-	// These would require extensive navigation through the nested structure
-	// TODO: Map nested QoS limits fields when needed
+	// Navigate deeply nested Limits structure for max/min fields
+	var maxJobsPerUser, maxJobsPerAccount, maxSubmitJobsPerUser int
+	var maxCPUsPerUser, maxNodesPerUser int
+	var maxWallTime int
+	var maxMemoryPerUser int64
+	var minCPUs, minNodes int
+
+	if qos.Limits != nil && qos.Limits.Max != nil {
+		// MaxJobsPerUser: Limits.Max.Jobs.ActiveJobs.Per.User
+		if qos.Limits.Max.Jobs != nil && qos.Limits.Max.Jobs.ActiveJobs != nil &&
+			qos.Limits.Max.Jobs.ActiveJobs.Per != nil && qos.Limits.Max.Jobs.ActiveJobs.Per.User != nil {
+			maxJobsPerUser = int(*qos.Limits.Max.Jobs.ActiveJobs.Per.User)
+		}
+
+		// MaxJobsPerAccount: Limits.Max.Jobs.ActiveJobs.Per.Account
+		if qos.Limits.Max.Jobs != nil && qos.Limits.Max.Jobs.ActiveJobs != nil &&
+			qos.Limits.Max.Jobs.ActiveJobs.Per != nil && qos.Limits.Max.Jobs.ActiveJobs.Per.Account != nil {
+			maxJobsPerAccount = int(*qos.Limits.Max.Jobs.ActiveJobs.Per.Account)
+		}
+
+		// MaxSubmitJobsPerUser: Limits.Max.Jobs.Per.User
+		if qos.Limits.Max.Jobs != nil && qos.Limits.Max.Jobs.Per != nil &&
+			qos.Limits.Max.Jobs.Per.User != nil {
+			maxSubmitJobsPerUser = int(*qos.Limits.Max.Jobs.Per.User)
+		}
+
+		// MaxWallTime: Limits.Max.WallClock.Per.Job (in minutes)
+		if qos.Limits.Max.WallClock != nil && qos.Limits.Max.WallClock.Per != nil &&
+			qos.Limits.Max.WallClock.Per.Job != nil {
+			maxWallTime = int(*qos.Limits.Max.WallClock.Per.Job)
+		}
+
+		// MaxCPUsPerUser and MaxNodesPerUser from TRES.Per.User
+		if qos.Limits.Max.TRES != nil && qos.Limits.Max.TRES.Per != nil {
+			for _, tres := range qos.Limits.Max.TRES.Per.User {
+				switch tres.Type {
+				case "cpu":
+					if tres.Count != nil {
+						maxCPUsPerUser = int(*tres.Count)
+					}
+				case "node":
+					if tres.Count != nil {
+						maxNodesPerUser = int(*tres.Count)
+					}
+				case "mem":
+					if tres.Count != nil {
+						maxMemoryPerUser = int64(*tres.Count)
+					}
+				}
+			}
+		}
+	}
+
+	// MinCPUs and MinNodes from Limits.Min.TRES.Per.Job
+	if qos.Limits != nil && qos.Limits.Min != nil && qos.Limits.Min.TRES != nil &&
+		qos.Limits.Min.TRES.Per != nil {
+		for _, tres := range qos.Limits.Min.TRES.Per.Job {
+			switch tres.Type {
+			case "cpu":
+				if tres.Count != nil {
+					minCPUs = int(*tres.Count)
+				}
+			case "node":
+				if tres.Count != nil {
+					minNodes = int(*tres.Count)
+				}
+			}
+		}
+	}
 
 	return &QoS{
 		Name:                 name,
@@ -1417,15 +1483,15 @@ func convertQoS(qos *slurm.QoS) *QoS {
 		PreemptMode:          preemptMode,
 		Flags:                flags,
 		GraceTime:            graceTime,
-		MaxJobsPerUser:       0, // Not directly available in flat structure
-		MaxJobsPerAccount:    0, // Not directly available in flat structure
-		MaxSubmitJobsPerUser: 0, // Not directly available in flat structure
-		MaxCPUsPerUser:       0, // Not directly available in flat structure
-		MaxNodesPerUser:      0, // Not directly available in flat structure
-		MaxWallTime:          0, // Not directly available in flat structure
-		MaxMemoryPerUser:     0, // Not directly available in flat structure
-		MinCPUs:              0, // Not directly available in flat structure
-		MinNodes:             0, // Not directly available in flat structure
+		MaxJobsPerUser:       maxJobsPerUser,
+		MaxJobsPerAccount:    maxJobsPerAccount,
+		MaxSubmitJobsPerUser: maxSubmitJobsPerUser,
+		MaxCPUsPerUser:       maxCPUsPerUser,
+		MaxNodesPerUser:      maxNodesPerUser,
+		MaxWallTime:          maxWallTime,
+		MaxMemoryPerUser:     maxMemoryPerUser,
+		MinCPUs:              minCPUs,
+		MinNodes:             minNodes,
 	}
 }
 
