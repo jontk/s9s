@@ -30,10 +30,12 @@ type ReservationsView struct {
 	statusBar      *tview.TextView
 	app            *tview.Application
 	pages          *tview.Pages
-	filterBar      *components.FilterBar
-	advancedFilter *filters.Filter
-	isAdvancedMode bool
-	globalSearch   *GlobalSearch
+	filterBar           *components.FilterBar
+	advancedFilter      *filters.Filter
+	isAdvancedMode      bool
+	globalSearch        *GlobalSearch
+	activeFilterEnabled bool // true when showing only active reservations
+	futureFilterEnabled bool // true when showing only future reservations
 }
 
 // SetPages sets the pages reference for modal handling
@@ -173,8 +175,20 @@ func (v *ReservationsView) Hints() []string {
 		"[yellow]Ctrl+F[white] Search",
 		"[yellow]1-9[white] Sort",
 		"[yellow]R[white] Refresh",
-		"[yellow]a[white] Active Only",
-		"[yellow]f[white] Future Only",
+	}
+
+	// Show active filter status
+	if v.activeFilterEnabled {
+		hints = append(hints, "[yellow]a[green]✓[white] Active Only")
+	} else {
+		hints = append(hints, "[yellow]a[white] Active Only")
+	}
+
+	// Show future filter status
+	if v.futureFilterEnabled {
+		hints = append(hints, "[yellow]f[green]✓[white] Future Only")
+	} else {
+		hints = append(hints, "[yellow]f[white] Future Only")
 	}
 
 	if v.isAdvancedMode {
@@ -272,8 +286,31 @@ func (v *ReservationsView) updateTable() {
 		filteredReservations = v.applyAdvancedFilter(v.reservations)
 	}
 
-	data := make([][]string, 0, len(filteredReservations))
+	// Apply time-based filters (active/future)
 	now := time.Now()
+	if v.activeFilterEnabled || v.futureFilterEnabled {
+		var timeFiltered []*dao.Reservation
+		for _, res := range filteredReservations {
+			include := false
+
+			// Check active filter (OR logic with future filter)
+			if v.activeFilterEnabled && v.isActiveReservation(res, now) {
+				include = true
+			}
+
+			// Check future filter (OR logic with active filter)
+			if v.futureFilterEnabled && v.isFutureReservation(res, now) {
+				include = true
+			}
+
+			if include {
+				timeFiltered = append(timeFiltered, res)
+			}
+		}
+		filteredReservations = timeFiltered
+	}
+
+	data := make([][]string, 0, len(filteredReservations))
 
 	for _, res := range filteredReservations {
 		// Determine state color
@@ -438,14 +475,25 @@ func (v *ReservationsView) onFilterDone(_ tcell.Key) {
 
 // toggleActiveFilter toggles showing only active reservations
 func (v *ReservationsView) toggleActiveFilter() {
-	// TODO: Implement active filter
-	// Note: Filter status removed since individual view status bars are no longer used
+	v.activeFilterEnabled = !v.activeFilterEnabled
+	v.updateTable()
 }
 
 // toggleFutureFilter toggles showing only future reservations
 func (v *ReservationsView) toggleFutureFilter() {
-	// TODO: Implement future filter
-	// Note: Filter status removed since individual view status bars are no longer used
+	v.futureFilterEnabled = !v.futureFilterEnabled
+	v.updateTable()
+}
+
+// isActiveReservation returns true if reservation is currently active
+// A reservation is active when current time is at or after start time and before end time
+func (v *ReservationsView) isActiveReservation(res *dao.Reservation, now time.Time) bool {
+	return (now.After(res.StartTime) || now.Equal(res.StartTime)) && now.Before(res.EndTime)
+}
+
+// isFutureReservation returns true if reservation has not yet started
+func (v *ReservationsView) isFutureReservation(res *dao.Reservation, now time.Time) bool {
+	return now.Before(res.StartTime)
 }
 
 // showReservationDetails shows detailed information for the selected reservation
