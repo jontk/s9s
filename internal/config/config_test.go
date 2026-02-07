@@ -285,13 +285,13 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Equal(t, 100, cfg.PluginSettings.MaxMemoryMB)    // Aligned with setDefaults
 	assert.Equal(t, 25.0, cfg.PluginSettings.MaxCPUPercent) // Aligned with setDefaults
 
-	// Test Discovery defaults
-	assert.False(t, cfg.Discovery.Enabled)
-	assert.False(t, cfg.Discovery.EnableEndpoint)
-	assert.False(t, cfg.Discovery.EnableToken)
-	assert.Equal(t, "30s", cfg.Discovery.Timeout)
-	assert.Equal(t, 6820, cfg.Discovery.DefaultPort)
-	assert.Equal(t, "/usr/bin/scontrol", cfg.Discovery.ScontrolPath)
+	// Test Discovery defaults (aligned with setDefaults)
+	assert.True(t, cfg.Discovery.Enabled)                     // Aligned with setDefaults
+	assert.True(t, cfg.Discovery.EnableEndpoint)              // Aligned with setDefaults
+	assert.True(t, cfg.Discovery.EnableToken)                 // Aligned with setDefaults
+	assert.Equal(t, "10s", cfg.Discovery.Timeout)             // Aligned with setDefaults
+	assert.Equal(t, 6820, cfg.Discovery.DefaultPort)          // Same in both
+	assert.Equal(t, "scontrol", cfg.Discovery.ScontrolPath) // Aligned with setDefaults (binary name, not full path)
 
 	// Test collections are initialized
 	assert.NotNil(t, cfg.Contexts)

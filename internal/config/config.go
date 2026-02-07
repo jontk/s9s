@@ -188,12 +188,12 @@ func DefaultConfig() *Config {
 			MaxCPUPercent: 25.0, // Aligned with setDefaults
 		},
 		Discovery: DiscoveryConfig{
-			Enabled:        false,
-			EnableEndpoint: false,
-			EnableToken:    false,
-			Timeout:        "30s",
+			Enabled:        true,  // Aligned with setDefaults
+			EnableEndpoint: true,  // Aligned with setDefaults
+			EnableToken:    true,  // Aligned with setDefaults
+			Timeout:        "10s", // Aligned with setDefaults
 			DefaultPort:    6820,
-			ScontrolPath:   "/usr/bin/scontrol",
+			ScontrolPath:   "scontrol", // Aligned with setDefaults (binary name, not full path)
 		},
 	}
 }
