@@ -72,7 +72,10 @@ jobs:
     - name: Run tests
       run: |
         go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
-        
+
+    - name: Check coverage thresholds
+      run: ./scripts/check-coverage.sh
+
     - name: Upload coverage
       if: matrix.go == env.GO_VERSION
       uses: codecov/codecov-action@v4
