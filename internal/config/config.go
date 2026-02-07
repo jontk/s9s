@@ -131,9 +131,10 @@ type PluginSettings struct {
 }
 
 // DefaultConfig returns a configuration with sensible defaults
+// NOTE: These values must match setDefaults() to ensure consistent behavior
 func DefaultConfig() *Config {
 	return &Config{
-		RefreshRate:    "5s",
+		RefreshRate:    "2s", // Aligned with setDefaults
 		MaxRetries:     3,
 		CurrentContext: "default",
 		Contexts:       []ContextConfig{},
@@ -144,19 +145,19 @@ func DefaultConfig() *Config {
 			Statusless:  false,
 			Headless:    false,
 			NoIcons:     false,
-			EnableMouse: false,
+			EnableMouse: true, // Aligned with setDefaults
 		},
 		Views: ViewsConfig{
 			Jobs: JobsViewConfig{
-				Columns:        []string{"id", "name", "user", "account", "state", "partition", "nodes", "time"},
-				ShowOnlyActive: false,
-				DefaultSort:    "id",
-				MaxJobs:        100,
+				Columns:        []string{"id", "name", "user", "state", "time", "nodes", "priority"}, // Aligned with setDefaults
+				ShowOnlyActive: true,                                                                   // Aligned with setDefaults
+				DefaultSort:    "time",                                                                 // Aligned with setDefaults
+				MaxJobs:        1000,                                                                   // Aligned with setDefaults
 			},
 			Nodes: NodesViewConfig{
-				GroupBy:         "state",
+				GroupBy:         "partition", // Aligned with setDefaults
 				ShowUtilization: true,
-				MaxNodes:        100,
+				MaxNodes:        500, // Aligned with setDefaults
 			},
 			Partitions: PartitionsViewConfig{
 				ShowQueueDepth: true,
@@ -164,21 +165,27 @@ func DefaultConfig() *Config {
 			},
 		},
 		Features: FeaturesConfig{
-			Streaming: false,
-			Pulseye:   false,
+			Streaming: true,  // Aligned with setDefaults
+			Pulseye:   true,  // Aligned with setDefaults
 			Xray:      false,
 		},
 		Shortcuts:     []ShortcutConfig{},
-		Aliases:       make(map[string]string),
+		Aliases: map[string]string{ // Aligned with setDefaults
+			"ctx": "context",
+			"kj":  "kill job",
+			"dj":  "describe job",
+			"dn":  "describe node",
+			"sub": "submit job",
+		},
 		Plugins:       []PluginConfig{},
-		UseMockClient: false,
+		UseMockClient: true, // Aligned with setDefaults
 		PluginSettings: PluginSettings{
 			EnableAll:     false,
-			PluginDir:     "",
+			PluginDir:     "$HOME/.s9s/plugins", // Aligned with setDefaults
 			AutoDiscover:  true,
 			SafeMode:      false,
-			MaxMemoryMB:   512,
-			MaxCPUPercent: 50.0,
+			MaxMemoryMB:   100,  // Aligned with setDefaults
+			MaxCPUPercent: 25.0, // Aligned with setDefaults
 		},
 		Discovery: DiscoveryConfig{
 			Enabled:        false,

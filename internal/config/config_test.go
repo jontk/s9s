@@ -15,24 +15,25 @@ func TestLoadDefaults(t *testing.T) {
 	cfg := DefaultConfig()
 	require.NotNil(t, cfg)
 
-	// UI defaults
+	// UI defaults (aligned with setDefaults)
 	assert.Equal(t, "default", cfg.UI.Skin)
-	assert.False(t, cfg.UI.EnableMouse) // DefaultConfig uses false
+	assert.True(t, cfg.UI.EnableMouse)
 	assert.False(t, cfg.UI.Logoless)
 
-	// Views defaults (from DefaultConfig, not setDefaults viper)
-	assert.Equal(t, []string{"id", "name", "user", "account", "state", "partition", "nodes", "time"}, cfg.Views.Jobs.Columns)
-	assert.False(t, cfg.Views.Jobs.ShowOnlyActive) // DefaultConfig uses false
-	assert.Equal(t, "id", cfg.Views.Jobs.DefaultSort)
-	assert.Equal(t, 100, cfg.Views.Jobs.MaxJobs)
+	// Views defaults (aligned with setDefaults)
+	assert.Equal(t, []string{"id", "name", "user", "state", "time", "nodes", "priority"}, cfg.Views.Jobs.Columns)
+	assert.True(t, cfg.Views.Jobs.ShowOnlyActive)
+	assert.Equal(t, "time", cfg.Views.Jobs.DefaultSort)
+	assert.Equal(t, 1000, cfg.Views.Jobs.MaxJobs)
 
-	// Features defaults (from DefaultConfig, not setDefaults viper)
-	assert.False(t, cfg.Features.Streaming) // DefaultConfig uses false
-	assert.False(t, cfg.Features.Pulseye)   // DefaultConfig uses false
+	// Features defaults (aligned with setDefaults)
+	assert.True(t, cfg.Features.Streaming)
+	assert.True(t, cfg.Features.Pulseye)
 	assert.False(t, cfg.Features.Xray)
 
-	// Aliases (DefaultConfig creates empty map)
-	assert.Empty(t, cfg.Aliases)
+	// Aliases (aligned with setDefaults)
+	assert.Equal(t, "context", cfg.Aliases["ctx"])
+	assert.Equal(t, "kill job", cfg.Aliases["kj"])
 }
 
 func TestEnvironmentOverrides(t *testing.T) {
@@ -240,10 +241,11 @@ func TestDefaultConfig(t *testing.T) {
 	cfg := DefaultConfig()
 	require.NotNil(t, cfg)
 
-	// Test basic settings
-	assert.Equal(t, "5s", cfg.RefreshRate)
+	// Test basic settings (aligned with setDefaults)
+	assert.Equal(t, "2s", cfg.RefreshRate)
 	assert.Equal(t, 3, cfg.MaxRetries)
 	assert.Equal(t, "default", cfg.CurrentContext)
+	assert.True(t, cfg.UseMockClient)
 
 	// Test UI defaults
 	assert.Equal(t, "default", cfg.UI.Skin)
@@ -252,36 +254,36 @@ func TestDefaultConfig(t *testing.T) {
 	assert.False(t, cfg.UI.Statusless)
 	assert.False(t, cfg.UI.Headless)
 	assert.False(t, cfg.UI.NoIcons)
-	assert.False(t, cfg.UI.EnableMouse)
+	assert.True(t, cfg.UI.EnableMouse) // Aligned with setDefaults
 
 	// Test Views defaults
 	assert.NotNil(t, cfg.Views.Jobs)
-	assert.Equal(t, []string{"id", "name", "user", "account", "state", "partition", "nodes", "time"}, cfg.Views.Jobs.Columns)
-	assert.False(t, cfg.Views.Jobs.ShowOnlyActive)
-	assert.Equal(t, "id", cfg.Views.Jobs.DefaultSort)
-	assert.Equal(t, 100, cfg.Views.Jobs.MaxJobs)
+	assert.Equal(t, []string{"id", "name", "user", "state", "time", "nodes", "priority"}, cfg.Views.Jobs.Columns)
+	assert.True(t, cfg.Views.Jobs.ShowOnlyActive)  // Aligned with setDefaults
+	assert.Equal(t, "time", cfg.Views.Jobs.DefaultSort) // Aligned with setDefaults
+	assert.Equal(t, 1000, cfg.Views.Jobs.MaxJobs)       // Aligned with setDefaults
 
 	assert.NotNil(t, cfg.Views.Nodes)
-	assert.Equal(t, "state", cfg.Views.Nodes.GroupBy)
+	assert.Equal(t, "partition", cfg.Views.Nodes.GroupBy) // Aligned with setDefaults
 	assert.True(t, cfg.Views.Nodes.ShowUtilization)
-	assert.Equal(t, 100, cfg.Views.Nodes.MaxNodes)
+	assert.Equal(t, 500, cfg.Views.Nodes.MaxNodes) // Aligned with setDefaults
 
 	assert.NotNil(t, cfg.Views.Partitions)
 	assert.True(t, cfg.Views.Partitions.ShowQueueDepth)
 	assert.True(t, cfg.Views.Partitions.ShowWaitTime)
 
 	// Test Features defaults
-	assert.False(t, cfg.Features.Streaming)
-	assert.False(t, cfg.Features.Pulseye)
+	assert.True(t, cfg.Features.Streaming)  // Aligned with setDefaults
+	assert.True(t, cfg.Features.Pulseye)    // Aligned with setDefaults
 	assert.False(t, cfg.Features.Xray)
 
 	// Test Plugin Settings defaults
 	assert.False(t, cfg.PluginSettings.EnableAll)
-	assert.Empty(t, cfg.PluginSettings.PluginDir)
+	assert.Equal(t, "$HOME/.s9s/plugins", cfg.PluginSettings.PluginDir) // Aligned with setDefaults
 	assert.True(t, cfg.PluginSettings.AutoDiscover)
 	assert.False(t, cfg.PluginSettings.SafeMode)
-	assert.Equal(t, 512, cfg.PluginSettings.MaxMemoryMB)
-	assert.Equal(t, 50.0, cfg.PluginSettings.MaxCPUPercent)
+	assert.Equal(t, 100, cfg.PluginSettings.MaxMemoryMB)    // Aligned with setDefaults
+	assert.Equal(t, 25.0, cfg.PluginSettings.MaxCPUPercent) // Aligned with setDefaults
 
 	// Test Discovery defaults
 	assert.False(t, cfg.Discovery.Enabled)
@@ -297,12 +299,17 @@ func TestDefaultConfig(t *testing.T) {
 	assert.NotNil(t, cfg.Shortcuts)
 	assert.Empty(t, cfg.Shortcuts)
 	assert.NotNil(t, cfg.Aliases)
-	assert.Empty(t, cfg.Aliases)
+	// Aliases now have defaults (aligned with setDefaults)
+	assert.Equal(t, "context", cfg.Aliases["ctx"])
+	assert.Equal(t, "kill job", cfg.Aliases["kj"])
+	assert.Equal(t, "describe job", cfg.Aliases["dj"])
+	assert.Equal(t, "describe node", cfg.Aliases["dn"])
+	assert.Equal(t, "submit job", cfg.Aliases["sub"])
 	assert.NotNil(t, cfg.Plugins)
 	assert.Empty(t, cfg.Plugins)
 
-	// Test mock client default
-	assert.False(t, cfg.UseMockClient)
+	// Test mock client default (aligned with setDefaults)
+	assert.True(t, cfg.UseMockClient)
 }
 
 func TestValidateMockUsage(t *testing.T) {
