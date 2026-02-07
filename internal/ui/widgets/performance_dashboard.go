@@ -260,6 +260,7 @@ func (pd *PerformanceDashboard) Stop() {
 func (pd *PerformanceDashboard) updateLoop() {
 	pd.mu.RLock()
 	interval := pd.updateInterval
+	ctx := pd.ctx
 	pd.mu.RUnlock()
 
 	ticker := time.NewTicker(interval)
@@ -267,7 +268,7 @@ func (pd *PerformanceDashboard) updateLoop() {
 
 	for {
 		select {
-		case <-pd.ctx.Done():
+		case <-ctx.Done():
 			return
 		case <-ticker.C:
 			pd.updateMetrics()
