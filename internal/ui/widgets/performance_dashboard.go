@@ -256,6 +256,12 @@ func (pd *PerformanceDashboard) Stop() {
 	}
 }
 
+// Refresh triggers an immediate metrics update without restarting the monitoring loop
+// This is safe to call whether monitoring is running or not
+func (pd *PerformanceDashboard) Refresh() {
+	pd.updateMetrics()
+}
+
 // updateLoop runs the main update loop
 func (pd *PerformanceDashboard) updateLoop() {
 	pd.mu.RLock()

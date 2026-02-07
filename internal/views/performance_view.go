@@ -158,6 +158,20 @@ func (pv *PerformanceView) toggleMonitoring() {
 // toggleAutoRefresh toggles automatic refresh
 func (pv *PerformanceView) toggleAutoRefresh() {
 	pv.autoRefresh = !pv.autoRefresh
+
+	// Start or stop monitoring based on new state
+	if pv.dashboard != nil {
+		if pv.autoRefresh && pv.monitoringEnabled {
+			// Start monitoring
+			if err := pv.dashboard.Start(); err != nil {
+				logging.Warnf("Failed to start performance monitoring: %v", err)
+			}
+		} else {
+			// Stop monitoring
+			pv.dashboard.Stop()
+		}
+	}
+
 	pv.updateControlBar()
 }
 
@@ -360,8 +374,8 @@ func (pv *PerformanceView) Render() tview.Primitive {
 
 // OnFocus is called when the view gains focus
 func (pv *PerformanceView) OnFocus() error {
-	// Start monitoring when the view becomes active
-	if pv.monitoringEnabled && pv.dashboard != nil {
+	// Start monitoring when the view becomes active (only if auto-refresh is enabled)
+	if pv.monitoringEnabled && pv.autoRefresh && pv.dashboard != nil {
 		if err := pv.dashboard.Start(); err != nil {
 			logging.Warnf("Failed to start performance monitoring: %v", err)
 		}
@@ -380,15 +394,17 @@ func (pv *PerformanceView) OnLoseFocus() error {
 
 // Update refreshes the view data
 func (pv *PerformanceView) Update() error {
-	if pv.autoRefresh {
-		_ = pv.dashboard.Start()
+	if pv.autoRefresh && pv.dashboard != nil {
+		pv.dashboard.Refresh()
 	}
 	return nil
 }
 
 // Refresh manually refreshes the view
 func (pv *PerformanceView) Refresh() error {
-	_ = pv.dashboard.Start()
+	if pv.dashboard != nil {
+		pv.dashboard.Refresh()
+	}
 	return nil
 }
 
