@@ -519,7 +519,8 @@ func (v *DashboardView) updateTrendsPanel() {
 
 	content.WriteString("\n[teal]System Health Score:[white]\n")
 	healthScore := v.calculateHealthScore()
-	scoreColor := v.getHealthColor(fmt.Sprintf("%.0f%%", healthScore))
+	healthStatus := v.calculateHealthStatus()
+	scoreColor := v.getHealthColor(healthStatus)
 	scoreBar := v.createMiniBar(healthScore, scoreColor)
 	content.WriteString(fmt.Sprintf("Score: %s %.1f%%", scoreBar, healthScore))
 
