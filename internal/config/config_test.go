@@ -10,44 +10,58 @@ import (
 )
 
 func TestLoadDefaults(t *testing.T) {
-	// Skip this test for now since it depends on environment state
-	t.Skip("Skipping environment-dependent test")
+	// Test DefaultConfig() function directly to verify default values
+	// This doesn't require environment isolation as it doesn't read env vars
+	cfg := DefaultConfig()
+	require.NotNil(t, cfg)
 
-	// Clear environment variables
-	_ = os.Unsetenv("SLURM_REST_URL")
-	_ = os.Unsetenv("SLURM_JWT")
+	// UI defaults
+	assert.Equal(t, "default", cfg.UI.Skin)
+	assert.False(t, cfg.UI.EnableMouse) // DefaultConfig uses false
+	assert.False(t, cfg.UI.Logoless)
+
+	// Views defaults (from DefaultConfig, not setDefaults viper)
+	assert.Equal(t, []string{"id", "name", "user", "account", "state", "partition", "nodes", "time"}, cfg.Views.Jobs.Columns)
+	assert.False(t, cfg.Views.Jobs.ShowOnlyActive) // DefaultConfig uses false
+	assert.Equal(t, "id", cfg.Views.Jobs.DefaultSort)
+	assert.Equal(t, 100, cfg.Views.Jobs.MaxJobs)
+
+	// Features defaults (from DefaultConfig, not setDefaults viper)
+	assert.False(t, cfg.Features.Streaming) // DefaultConfig uses false
+	assert.False(t, cfg.Features.Pulseye)   // DefaultConfig uses false
+	assert.False(t, cfg.Features.Xray)
+
+	// Aliases (DefaultConfig creates empty map)
+	assert.Empty(t, cfg.Aliases)
+}
+
+func TestEnvironmentOverrides(t *testing.T) {
+	// Isolate environment from host
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("SLURM_REST_URL", "https://env-override.example.com:6820")
+	t.Setenv("SLURM_JWT", "env-token")
+	t.Setenv("SLURM_API_VERSION", "v0.0.42")
 
 	cfg, err := Load()
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
-	// UI defaults
-	assert.Equal(t, "default", cfg.UI.Skin)
-	assert.True(t, cfg.UI.EnableMouse)
-	assert.False(t, cfg.UI.Logoless)
-
-	// Views defaults
-	assert.Equal(t, []string{"id", "name", "user", "state", "time", "nodes", "priority"}, cfg.Views.Jobs.Columns)
-	assert.True(t, cfg.Views.Jobs.ShowOnlyActive)
-	assert.Equal(t, "time", cfg.Views.Jobs.DefaultSort)
-	assert.Equal(t, 1000, cfg.Views.Jobs.MaxJobs)
-
-	// Features defaults
-	assert.True(t, cfg.Features.Streaming)
-	assert.True(t, cfg.Features.Pulseye)
-	assert.False(t, cfg.Features.Xray)
-
-	// Aliases
-	assert.Equal(t, "context", cfg.Aliases["ctx"])
-	assert.Equal(t, "kill job", cfg.Aliases["kj"])
-}
-
-func TestEnvironmentOverrides(t *testing.T) {
-	// Skip this test for now since it depends on environment state
-	t.Skip("Skipping environment-dependent test")
+	// Verify environment overrides are applied
+	assert.Equal(t, "https://env-override.example.com:6820", cfg.Cluster.Endpoint)
+	assert.Equal(t, "env-token", cfg.Cluster.Token)
+	assert.Equal(t, "v0.0.42", cfg.Cluster.APIVersion)
+	assert.Equal(t, "default", cfg.CurrentContext)
 }
 
 func TestLoadWithYAMLFile(t *testing.T) {
+	// Isolate environment from host
+	t.Setenv("SLURM_REST_URL", "")
+	t.Setenv("S9S_SLURM_REST_URL", "")
+	t.Setenv("SLURM_JWT", "")
+	t.Setenv("S9S_SLURM_JWT", "")
+	t.Setenv("SLURM_API_VERSION", "")
+
 	// Create a temporary config file
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "config.yaml")
@@ -178,6 +192,13 @@ func TestGetContext(t *testing.T) {
 }
 
 func TestSaveToFile(t *testing.T) {
+	// Isolate environment from host
+	t.Setenv("SLURM_REST_URL", "")
+	t.Setenv("S9S_SLURM_REST_URL", "")
+	t.Setenv("SLURM_JWT", "")
+	t.Setenv("S9S_SLURM_JWT", "")
+	t.Setenv("SLURM_API_VERSION", "")
+
 	cfg := &Config{
 		RefreshRate:    "3s",
 		MaxRetries:     2,
@@ -319,23 +340,14 @@ func TestValidateMockUsage(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	// Save current environment
-	oldSlurmRestURL := os.Getenv("SLURM_REST_URL")
-	oldSlurmJWT := os.Getenv("SLURM_JWT")
-
-	// Ensure we have environment variables set for this test
-	if oldSlurmRestURL == "" {
-		_ = os.Setenv("SLURM_REST_URL", "http://localhost:6820")
-		defer func() {
-			_ = os.Unsetenv("SLURM_REST_URL")
-		}()
-	}
-	if oldSlurmJWT == "" {
-		_ = os.Setenv("SLURM_JWT", "test-token")
-		defer func() {
-			_ = os.Unsetenv("SLURM_JWT")
-		}()
-	}
+	// Isolate environment and set test values
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("SLURM_REST_URL", "http://localhost:6820")
+	t.Setenv("SLURM_JWT", "test-token")
+	t.Setenv("S9S_SLURM_REST_URL", "")
+	t.Setenv("S9S_SLURM_JWT", "")
+	t.Setenv("SLURM_API_VERSION", "")
 
 	// Test Load() function
 	cfg, err := Load()
@@ -352,22 +364,14 @@ func TestLoad(t *testing.T) {
 }
 
 func TestLoadWithEmptyPath(t *testing.T) {
-	// Ensure we have environment variables set for this test
-	oldSlurmRestURL := os.Getenv("SLURM_REST_URL")
-	oldSlurmJWT := os.Getenv("SLURM_JWT")
-
-	if oldSlurmRestURL == "" {
-		_ = os.Setenv("SLURM_REST_URL", "http://localhost:6820")
-		defer func() {
-			_ = os.Unsetenv("SLURM_REST_URL")
-		}()
-	}
-	if oldSlurmJWT == "" {
-		_ = os.Setenv("SLURM_JWT", "test-token")
-		defer func() {
-			_ = os.Unsetenv("SLURM_JWT")
-		}()
-	}
+	// Isolate environment and set test values
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("SLURM_REST_URL", "http://localhost:6820")
+	t.Setenv("SLURM_JWT", "test-token")
+	t.Setenv("S9S_SLURM_REST_URL", "")
+	t.Setenv("S9S_SLURM_JWT", "")
+	t.Setenv("SLURM_API_VERSION", "")
 
 	// Test that LoadWithPath("") works like Load()
 	cfg, err := LoadWithPath("")
@@ -392,6 +396,13 @@ func TestLoadWithNonExistentFile(t *testing.T) {
 }
 
 func TestConfigWithMultipleContexts(t *testing.T) {
+	// Isolate environment from host
+	t.Setenv("SLURM_REST_URL", "")
+	t.Setenv("S9S_SLURM_REST_URL", "")
+	t.Setenv("SLURM_JWT", "")
+	t.Setenv("S9S_SLURM_JWT", "")
+	t.Setenv("SLURM_API_VERSION", "")
+
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "multi-context.yaml")
 
@@ -444,6 +455,13 @@ contexts:
 }
 
 func TestConfigWithDiscoverySettings(t *testing.T) {
+	// Isolate environment from host
+	t.Setenv("SLURM_REST_URL", "")
+	t.Setenv("S9S_SLURM_REST_URL", "")
+	t.Setenv("SLURM_JWT", "")
+	t.Setenv("S9S_SLURM_JWT", "")
+	t.Setenv("SLURM_API_VERSION", "")
+
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "discovery-config.yaml")
 
@@ -482,6 +500,13 @@ discovery:
 }
 
 func TestConfigWithPluginSettings(t *testing.T) {
+	// Isolate environment from host
+	t.Setenv("SLURM_REST_URL", "")
+	t.Setenv("S9S_SLURM_REST_URL", "")
+	t.Setenv("SLURM_JWT", "")
+	t.Setenv("S9S_SLURM_JWT", "")
+	t.Setenv("SLURM_API_VERSION", "")
+
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "plugin-config.yaml")
 
