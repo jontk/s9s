@@ -706,9 +706,9 @@ func (i *infoManager) GetStats() (*ClusterMetrics, error) {
 		TotalNodes:  stats.TotalNodes,
 		ActiveNodes: stats.AllocatedNodes,
 		IdleNodes:   stats.IdleNodes,
-		DownNodes:   0,   // Not available in basic ClusterStats
+		DownNodes:   0,    // Not available in basic ClusterStats
 		CPUUsage:    cpuUsage,
-		MemoryUsage: 0.0, // Not available in basic ClusterStats (would require aggregating node data)
+		MemoryUsage: -1.0, // Not available in basic ClusterStats (would require aggregating node data) - use -1 to indicate unknown
 		LastUpdated: time.Now(),
 	}, nil
 }

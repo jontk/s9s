@@ -347,17 +347,37 @@ func (hm *HealthMonitor) checkUtilization(client dao.SlurmClient) *HealthCheck {
 
 	cpuUtil := metrics.CPUUsage
 	memUtil := metrics.MemoryUsage
+
+	// Determine max utilization (exclude memory if unknown)
 	maxUtil := cpuUtil
-	if memUtil > maxUtil {
+	memAvailable := memUtil >= 0.0 // Memory is unknown if < 0
+	if memAvailable && memUtil > maxUtil {
 		maxUtil = memUtil
 	}
 
-	hm.setCheckStatus(check, maxUtil, func(status HealthStatus) string {
-		return fmt.Sprintf("High resource utilization: CPU %.1f%%, Memory %.1f%% (max %.1f%%)",
-			cpuUtil, memUtil, maxUtil)
-	}, func() string {
-		return fmt.Sprintf("Resource utilization healthy: CPU %.1f%%, Memory %.1f%%", cpuUtil, memUtil)
-	})
+	// Format messages based on memory availability
+	var criticalMsg func(HealthStatus) string
+	var healthyMsg func() string
+
+	if memAvailable {
+		criticalMsg = func(status HealthStatus) string {
+			return fmt.Sprintf("High resource utilization: CPU %.1f%%, Memory %.1f%% (max %.1f%%)",
+				cpuUtil, memUtil, maxUtil)
+		}
+		healthyMsg = func() string {
+			return fmt.Sprintf("Resource utilization healthy: CPU %.1f%%, Memory %.1f%%", cpuUtil, memUtil)
+		}
+	} else {
+		// Memory unknown - only report CPU
+		criticalMsg = func(status HealthStatus) string {
+			return fmt.Sprintf("High CPU utilization: %.1f%% (memory data unavailable)", cpuUtil)
+		}
+		healthyMsg = func() string {
+			return fmt.Sprintf("CPU utilization healthy: %.1f%% (memory data unavailable)", cpuUtil)
+		}
+	}
+
+	hm.setCheckStatus(check, maxUtil, criticalMsg, healthyMsg)
 
 	return check
 }
