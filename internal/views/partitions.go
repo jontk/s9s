@@ -490,7 +490,7 @@ func (v *PartitionsView) calculateAllocatedCPUs(partitionName string) int {
 
 	// Find the partition to get CPUs per node ratio
 	v.mu.RLock()
-	var cpusPerNode float64 = 1.0 // default fallback
+	cpusPerNode := 1.0 // default fallback
 	for _, p := range v.partitions {
 		if p.Name == partitionName && p.TotalNodes > 0 {
 			cpusPerNode = float64(p.TotalCPUs) / float64(p.TotalNodes)
