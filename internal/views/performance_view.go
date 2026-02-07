@@ -62,7 +62,7 @@ func (pv *PerformanceView) Init(ctx context.Context) error {
 	pv.ctx = ctx
 
 	// Initialize dashboard
-	pv.dashboard = widgets.NewPerformanceDashboard(pv.profiler, pv.optimizer)
+	pv.dashboard = widgets.NewPerformanceDashboard(pv.profiler, pv.optimizer, pv.app)
 	pv.dashboard.SetUpdateInterval(pv.refreshInterval)
 
 	// Create control bar

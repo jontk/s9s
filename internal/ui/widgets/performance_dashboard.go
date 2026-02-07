@@ -23,6 +23,9 @@ type PerformanceDashboard struct {
 	profiler  *performance.Profiler
 	optimizer *performance.Optimizer
 
+	// Application reference for thread-safe UI updates
+	app *tview.Application
+
 	// UI Widgets
 	cpuChart     *tview.TextView
 	memoryChart  *tview.TextView
@@ -65,10 +68,11 @@ type PerformanceThresholds struct {
 }
 
 // NewPerformanceDashboard creates a new performance dashboard
-func NewPerformanceDashboard(profiler *performance.Profiler, optimizer *performance.Optimizer) *PerformanceDashboard {
+func NewPerformanceDashboard(profiler *performance.Profiler, optimizer *performance.Optimizer, app *tview.Application) *PerformanceDashboard {
 	pd := &PerformanceDashboard{
 		profiler:       profiler,
 		optimizer:      optimizer,
+		app:            app,
 		maxHistory:     50,
 		updateInterval: 1 * time.Second,
 		showAlerts:     true,
@@ -308,29 +312,33 @@ func (pd *PerformanceDashboard) updateMetrics() {
 	// Update CPU metrics
 	cpuUsage := pd.calculateCPUUsage(stats)
 	pd.addToHistory(&pd.cpuHistory, cpuUsage)
-	pd.updateCPUChart()
 
 	// Update Memory metrics
 	memUsage := pd.calculateMemoryUsage(&memStats)
 	pd.addToHistory(&pd.memoryHistory, memUsage)
-	pd.updateMemoryChart()
 
 	// Update Network metrics
 	netUsage := pd.calculateNetworkUsage(stats)
 	pd.addToHistory(&pd.networkHistory, netUsage)
-	pd.updateNetworkChart()
 
 	// Update Operations metrics
 	opsRate := pd.calculateOpsRate(stats)
 	pd.addToHistory(&pd.opsHistory, opsRate)
-	pd.updateOpsChart()
 
-	// Update detailed metrics table
-	pd.updateMetricsTable(cpuUsage, memUsage, netUsage, opsRate)
+	// Wrap all UI updates in QueueUpdateDraw to prevent race conditions
+	if pd.app != nil {
+		pd.app.QueueUpdateDraw(func() {
+			pd.updateCPUChart()
+			pd.updateMemoryChart()
+			pd.updateNetworkChart()
+			pd.updateOpsChart()
+			pd.updateMetricsTable(cpuUsage, memUsage, netUsage, opsRate)
 
-	// Check for alerts and recommendations
-	if pd.showAlerts {
-		pd.updateAlerts(cpuUsage, memUsage, netUsage, opsRate)
+			// Check for alerts and recommendations
+			if pd.showAlerts {
+				pd.updateAlerts(cpuUsage, memUsage, netUsage, opsRate)
+			}
+		})
 	}
 
 	// Auto-optimize if enabled

@@ -188,7 +188,7 @@ func (v *HealthView) healthRuneHandlers() map[rune]func() {
 		'a': v.acknowledgeAlert,
 		'A': v.acknowledgeAlert,
 		'r': v.resolveAlert,
-		'R': func() { go func() { _ = v.Refresh() }() },
+		'R': func() { _ = v.Refresh() },
 		'c': v.clearResolvedAlerts,
 		'C': v.clearResolvedAlerts,
 		'H': v.showHealthDetails,

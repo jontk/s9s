@@ -19,7 +19,7 @@ func TestPerformanceDashboard(t *testing.T) {
 	require.NotNil(t, optimizer)
 
 	// Create dashboard
-	dashboard := widgets.NewPerformanceDashboard(profiler, optimizer)
+	dashboard := widgets.NewPerformanceDashboard(profiler, optimizer, nil)
 	require.NotNil(t, dashboard)
 
 	t.Run("InitialState", func(t *testing.T) {
@@ -95,7 +95,7 @@ func TestPerformanceDashboardMetrics(t *testing.T) {
 	optimizer := performance.NewOptimizer(profiler)
 	require.NotNil(t, optimizer)
 
-	dashboard := widgets.NewPerformanceDashboard(profiler, optimizer)
+	dashboard := widgets.NewPerformanceDashboard(profiler, optimizer, nil)
 
 	// Add some test operations
 	for i := 0; i < 5; i++ {
@@ -134,7 +134,7 @@ func BenchmarkPerformanceDashboard(b *testing.B) {
 		b.Skip("Optimizer not available")
 	}
 
-	dashboard := widgets.NewPerformanceDashboard(profiler, optimizer)
+	dashboard := widgets.NewPerformanceDashboard(profiler, optimizer, nil)
 	dashboard.SetUpdateInterval(10 * time.Millisecond) // Fast updates for benchmarking
 
 	b.Run("MetricsCollection", func(b *testing.B) {
