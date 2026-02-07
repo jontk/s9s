@@ -331,9 +331,10 @@ func (v *PartitionsView) updateTable() {
 				maxWait = FormatTimeDuration(queueInfo.LongestWait)
 			}
 
-			// Calculate efficiency (running / total capacity)
+			// Calculate efficiency (allocated CPUs / total capacity)
 			if partition.TotalCPUs > 0 {
-				efficiencyPct := float64(queueInfo.RunningJobs) * 100.0 / float64(partition.TotalCPUs)
+				allocatedCPUs := v.calculateAllocatedCPUs(partition.Name)
+				efficiencyPct := float64(allocatedCPUs) * 100.0 / float64(partition.TotalCPUs)
 				if efficiencyPct > 100 {
 					efficiencyPct = 100 // Cap at 100%
 				}
@@ -462,6 +463,43 @@ func (v *PartitionsView) createEfficiencyBar(percentage float64) string {
 	bar.WriteString(fmt.Sprintf("[white] %.0f%%", percentage))
 
 	return bar.String()
+}
+
+// calculateAllocatedCPUs estimates allocated CPUs for running jobs in a partition
+func (v *PartitionsView) calculateAllocatedCPUs(partitionName string) int {
+	// Fetch running jobs for this partition
+	opts := &dao.ListJobsOptions{
+		Partitions: []string{partitionName},
+		States:     []string{dao.JobStateRunning},
+		Limit:      1000,
+	}
+
+	jobList, err := v.client.Jobs().List(opts)
+	if err != nil {
+		// If we can't get jobs, return 0
+		return 0
+	}
+
+	// Estimate allocated CPUs based on node count
+	// Assume each node contributes proportionally to partition's CPUs/nodes ratio
+	// This is an approximation since we don't have per-job CPU allocation data
+	totalNodes := 0
+	for _, job := range jobList.Jobs {
+		totalNodes += job.NodeCount
+	}
+
+	// Find the partition to get CPUs per node ratio
+	v.mu.RLock()
+	var cpusPerNode float64 = 1.0 // default fallback
+	for _, p := range v.partitions {
+		if p.Name == partitionName && p.TotalNodes > 0 {
+			cpusPerNode = float64(p.TotalCPUs) / float64(p.TotalNodes)
+			break
+		}
+	}
+	v.mu.RUnlock()
+
+	return int(float64(totalNodes) * cpusPerNode)
 }
 
 // calculateQueueInfo calculates queue information for a partition
