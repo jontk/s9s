@@ -40,7 +40,7 @@ s9s provides a terminal interface for managing SLURM clusters, inspired by the p
 - **Export Capabilities**: Export data in CSV, JSON, Markdown, HTML formats
 - **Real-time Job Log Streaming**: Live job output monitoring with filtering
 - **Plugin System**: Extensible architecture for custom functionality
-- **Performance Analysis**: Built-in profiling and optimization tools
+- **Cluster Performance Monitoring**: Real-time cluster-wide metrics and resource utilization
 - **Vim-like Navigation**: Familiar keyboard shortcuts for power users
 - **Mock Mode**: Built-in SLURM simulator for development and testing
 

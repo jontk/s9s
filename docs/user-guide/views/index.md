@@ -26,6 +26,7 @@ s9s provides specialized views for different aspects of your SLURM cluster. Each
 
 | View | Description | Access |
 |------|-------------|--------|
+| [Performance](performance.md) | Cluster-wide metrics and resource utilization | `9` or via navigation |
 | [Health](health.md) | Cluster health checks and alerts | `H` from Dashboard |
 
 ## Switching Between Views
