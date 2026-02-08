@@ -1,7 +1,9 @@
 # s9s - Terminal UI for SLURM
 
 <p align="center">
-  <img src="https://s9s.dev/logo.png" alt="s9s logo" width="200">
+  <a href="https://s9s.dev">
+    <img src="docs/assets/s9s_logo.png" alt="s9s logo" width="400">
+  </a>
 </p>
 
 <p align="center">
