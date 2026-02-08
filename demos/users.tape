@@ -39,6 +39,14 @@ Sleep 1s
 Escape
 Sleep 500ms
 
+# Sort by UID (S key)
+Type "S"
+Sleep 500ms
+Down
+Sleep 500ms
+Enter
+Sleep 1s
+
 # Exit
 Type "q"
 Sleep 500ms

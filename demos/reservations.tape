@@ -37,6 +37,15 @@ Sleep 500ms
 Type "f"
 Sleep 1s
 
+# Sort by start time (S key)
+Type "S"
+Sleep 500ms
+Down
+Down
+Sleep 500ms
+Enter
+Sleep 1s
+
 # Quick filter
 Type "/"
 Sleep 500ms

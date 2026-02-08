@@ -37,6 +37,14 @@ Sleep 1s
 Escape
 Sleep 500ms
 
+# Sort by column (S key - opens modal)
+Type "S"
+Sleep 500ms
+Down
+Sleep 500ms
+Enter
+Sleep 1s
+
 # Global search (Ctrl+F)
 Ctrl+F
 Sleep 500ms

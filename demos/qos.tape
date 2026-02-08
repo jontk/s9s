@@ -25,6 +25,14 @@ Sleep 3s
 Escape
 Sleep 500ms
 
+# Sort by priority (S key)
+Type "S"
+Sleep 500ms
+Down
+Sleep 500ms
+Enter
+Sleep 1s
+
 # Quick filter
 Type "/"
 Sleep 500ms
