@@ -518,26 +518,10 @@ func (pd *PerformanceDashboard) calculateOpsRate(stats map[string]performance.Op
 	return float64(deltaOps) / windowSeconds
 }
 
-// updateCPUChart updates the CPU usage chart
-func (pd *PerformanceDashboard) updateCPUChart() {
-	pd.mu.RLock()
-	chart := pd.generateASCIIChart(pd.cpuHistory, "CPU", "%", pd.thresholds.CPUWarning, pd.thresholds.CPUCritical)
-	pd.mu.RUnlock()
-	pd.cpuChart.SetText(chart)
-}
-
 // updateCPUChartWithData updates CPU chart with provided data (no locks)
 func (pd *PerformanceDashboard) updateCPUChartWithData(history []float64, thresholds PerformanceThresholds) {
 	chart := pd.generateASCIIChart(history, "CPU", "%", thresholds.CPUWarning, thresholds.CPUCritical)
 	pd.cpuChart.SetText(chart)
-}
-
-// updateMemoryChart updates the memory usage chart
-func (pd *PerformanceDashboard) updateMemoryChart() {
-	pd.mu.RLock()
-	chart := pd.generateASCIIChart(pd.memoryHistory, "Memory", "%", pd.thresholds.MemoryWarning, pd.thresholds.MemoryCritical)
-	pd.mu.RUnlock()
-	pd.memoryChart.SetText(chart)
 }
 
 // updateMemoryChartWithData updates memory chart with provided data (no locks)
@@ -546,26 +530,10 @@ func (pd *PerformanceDashboard) updateMemoryChartWithData(history []float64, thr
 	pd.memoryChart.SetText(chart)
 }
 
-// updateNetworkChart updates the network usage chart
-func (pd *PerformanceDashboard) updateNetworkChart() {
-	pd.mu.RLock()
-	chart := pd.generateASCIIChart(pd.networkHistory, "Network", "MB/s", pd.thresholds.NetworkWarning, pd.thresholds.NetworkCritical)
-	pd.mu.RUnlock()
-	pd.networkChart.SetText(chart)
-}
-
 // updateNetworkChartWithData updates network chart with provided data (no locks)
 func (pd *PerformanceDashboard) updateNetworkChartWithData(history []float64, thresholds PerformanceThresholds) {
 	chart := pd.generateASCIIChart(history, "Network", "MB/s", thresholds.NetworkWarning, thresholds.NetworkCritical)
 	pd.networkChart.SetText(chart)
-}
-
-// updateOpsChart updates the operations rate chart
-func (pd *PerformanceDashboard) updateOpsChart() {
-	pd.mu.RLock()
-	chart := pd.generateASCIIChart(pd.opsHistory, "Ops", "/sec", pd.thresholds.OpsWarning, pd.thresholds.OpsCritical)
-	pd.mu.RUnlock()
-	pd.opsChart.SetText(chart)
 }
 
 // updateOpsChartWithData updates operations chart with provided data (no locks)
@@ -672,67 +640,6 @@ func (pd *PerformanceDashboard) calculateMax(data []float64) float64 {
 	}
 
 	return maxVal
-}
-
-// updateMetricsTable updates the detailed metrics table
-func (pd *PerformanceDashboard) updateMetricsTable(cpuUsage, memUsage, netUsage, opsRate float64) {
-	pd.mu.RLock()
-	metrics := []struct {
-		name     string
-		current  float64
-		history  []float64
-		unit     string
-		warning  float64
-		critical float64
-	}{
-		{"CPU", cpuUsage, pd.cpuHistory, "%", pd.thresholds.CPUWarning, pd.thresholds.CPUCritical},
-		{"Memory", memUsage, pd.memoryHistory, "%", pd.thresholds.MemoryWarning, pd.thresholds.MemoryCritical},
-		{"Network", netUsage, pd.networkHistory, "MB/s", pd.thresholds.NetworkWarning, pd.thresholds.NetworkCritical},
-		{"Operations", opsRate, pd.opsHistory, "/sec", pd.thresholds.OpsWarning, pd.thresholds.OpsCritical},
-	}
-	pd.mu.RUnlock()
-
-	for i, metric := range metrics {
-		row := i + 1
-
-		// Metric name
-		pd.metricsTable.SetCell(row, 0, tview.NewTableCell(metric.name))
-
-		// Current value
-		color := tcell.ColorGreen
-		if metric.current >= metric.critical {
-			color = tcell.ColorRed
-		} else if metric.current >= metric.warning {
-			color = tcell.ColorYellow
-		}
-
-		currentCell := tview.NewTableCell(fmt.Sprintf("%.1f%s", metric.current, metric.unit))
-		currentCell.SetTextColor(color)
-		pd.metricsTable.SetCell(row, 1, currentCell)
-
-		// Average
-		avg := pd.calculateAverage(metric.history)
-		pd.metricsTable.SetCell(row, 2, tview.NewTableCell(fmt.Sprintf("%.1f%s", avg, metric.unit)))
-
-		// Peak
-		peak := pd.calculateMax(metric.history)
-		pd.metricsTable.SetCell(row, 3, tview.NewTableCell(fmt.Sprintf("%.1f%s", peak, metric.unit)))
-
-		// Status
-		status := "OK"
-		statusColor := tcell.ColorGreen
-		if metric.current >= metric.critical {
-			status = "CRITICAL"
-			statusColor = tcell.ColorRed
-		} else if metric.current >= metric.warning {
-			status = "WARNING"
-			statusColor = tcell.ColorYellow
-		}
-
-		statusCell := tview.NewTableCell(status)
-		statusCell.SetTextColor(statusColor)
-		pd.metricsTable.SetCell(row, 4, statusCell)
-	}
 }
 
 // updateMetricsTableWithData updates metrics table with provided data (no locks)
