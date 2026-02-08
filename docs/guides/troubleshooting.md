@@ -14,37 +14,34 @@ This guide helps you resolve common issues with S9S. If you can't find a solutio
 ```bash
 # Check if S9S is installed
 which s9s
-ls -la /usr/local/bin/s9s
+ls -la ~/.local/bin/s9s
 
 # Add to PATH (bash)
-echo 'export PATH=$PATH:/usr/local/bin' >> ~/.bashrc
+echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc
 source ~/.bashrc
 
 # Add to PATH (zsh)
-echo 'export PATH=$PATH:/usr/local/bin' >> ~/.zshrc
+echo 'export PATH=$PATH:~/.local/bin' >> ~/.zshrc
 source ~/.zshrc
 
 # Or use full path
-/usr/local/bin/s9s
+~/.local/bin/s9s
 ```
 
 #### Permission denied during installation
 
-**Problem**: Cannot write to system directories
+**Problem**: Cannot write to directories
 
 **Solutions**:
 ```bash
-# Option 1: Use sudo
-sudo mv s9s /usr/local/bin/
-
-# Option 2: Install to user directory
+# Install to user directory (recommended)
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
+chmod +x ~/.local/bin/s9s
 export PATH=$PATH:~/.local/bin
 
-# Option 3: Fix permissions
-sudo chown $USER:$USER /usr/local/bin/s9s
-chmod +x /usr/local/bin/s9s
+# Add to shell rc file for persistence
+echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc
 ```
 
 ### Connection Issues
@@ -523,11 +520,11 @@ rm -rf ~/.s9s/cache/
 cp ~/.s9s/config.yaml ~/s9s-config-backup.yaml
 
 # Remove S9S
-sudo rm /usr/local/bin/s9s
+rm ~/.local/bin/s9s
 rm -rf ~/.s9s
 
 # Reinstall
-curl -sSL https://get.s9s.dev | bash
+curl -sSL https://s9s.dev/install.sh | bash
 
 # Restore config
 mkdir -p ~/.s9s

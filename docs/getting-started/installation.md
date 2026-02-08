@@ -16,13 +16,13 @@ s9s can be installed using several methods. Choose the one that best fits your e
 The easiest way to install s9s is using our installation script:
 
 ```bash
-curl -sSL https://get.s9s.dev | bash
+curl -sSL https://s9s.dev/install.sh | bash
 ```
 
 This script will:
 - Detect your operating system
 - Download the appropriate binary
-- Install s9s to `/usr/local/bin`
+- Install s9s to `~/.local/bin`
 - Set up initial configuration
 
 ### 2. Binary Download
@@ -33,22 +33,26 @@ Download pre-built binaries from our [releases page](https://github.com/jontk/s9
 # Linux (AMD64)
 wget https://github.com/jontk/s9s/releases/latest/download/s9s-linux-amd64
 chmod +x s9s-linux-amd64
-sudo mv s9s-linux-amd64 /usr/local/bin/s9s
+mkdir -p ~/.local/bin
+mv s9s-linux-amd64 ~/.local/bin/s9s
 
 # Linux (ARM64)
 wget https://github.com/jontk/s9s/releases/latest/download/s9s-linux-arm64
 chmod +x s9s-linux-arm64
-sudo mv s9s-linux-arm64 /usr/local/bin/s9s
+mkdir -p ~/.local/bin
+mv s9s-linux-arm64 ~/.local/bin/s9s
 
 # macOS (Apple Silicon)
 wget https://github.com/jontk/s9s/releases/latest/download/s9s-darwin-arm64
 chmod +x s9s-darwin-arm64
-sudo mv s9s-darwin-arm64 /usr/local/bin/s9s
+mkdir -p ~/.local/bin
+mv s9s-darwin-arm64 ~/.local/bin/s9s
 
 # macOS (Intel)
 wget https://github.com/jontk/s9s/releases/latest/download/s9s-darwin-amd64
 chmod +x s9s-darwin-amd64
-sudo mv s9s-darwin-amd64 /usr/local/bin/s9s
+mkdir -p ~/.local/bin
+mv s9s-darwin-amd64 ~/.local/bin/s9s
 ```
 
 ### 3. Using Go Install
@@ -84,29 +88,6 @@ sudo make install
 mkdir -p ~/.local/bin
 cp ./bin/s9s ~/.local/bin/
 export PATH=$PATH:~/.local/bin
-```
-
-### 5. Package Managers
-
-#### Homebrew (macOS/Linux)
-
-```bash
-brew tap jontk/s9s
-brew install s9s
-```
-
-#### Snap (Linux)
-
-```bash
-sudo snap install s9s
-```
-
-#### AUR (Arch Linux)
-
-```bash
-yay -S s9s
-# or
-paru -S s9s
 ```
 
 ## Post-Installation Setup
@@ -162,39 +143,6 @@ s9s --mock
 
 If connection succeeds, you should see the s9s dashboard.
 
-## Docker Installation
-
-For containerized environments:
-
-```bash
-# Pull the image
-docker pull ghcr.io/jontk/s9s:latest
-
-# Run interactively
-docker run -it --rm \
-  -v ~/.s9s:/root/.s9s \
-  -e SLURM_TOKEN=$SLURM_TOKEN \
-  ghcr.io/jontk/s9s:latest
-
-# Create an alias for convenience
-alias s9s='docker run -it --rm -v ~/.s9s:/root/.s9s -e SLURM_TOKEN=$SLURM_TOKEN ghcr.io/jontk/s9s:latest'
-```
-
-### Docker Compose
-
-```yaml
-version: '3.8'
-services:
-  s9s:
-    image: ghcr.io/jontk/s9s:latest
-    environment:
-      - SLURM_TOKEN=${SLURM_TOKEN}
-    volumes:
-      - ~/.s9s:/root/.s9s
-    stdin_open: true
-    tty: true
-```
-
 ## Platform-Specific Notes
 
 ### Linux
@@ -223,7 +171,7 @@ To remove s9s:
 
 ```bash
 # Remove binary
-sudo rm /usr/local/bin/s9s
+rm ~/.local/bin/s9s
 
 # Remove configuration (optional)
 rm -rf ~/.s9s
@@ -237,13 +185,10 @@ rm -rf ~/.cache/s9s
 
 ### Permission Denied
 
-If you get permission errors:
+If you get permission errors, install to your user directory:
 
 ```bash
-# Use sudo for system-wide installation
-sudo mv s9s /usr/local/bin/
-
-# Or install to user directory
+# Install to user directory (default)
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc
@@ -256,18 +201,19 @@ If `s9s` is not found after installation:
 
 1. Check if the binary exists:
    ```bash
-   ls -la /usr/local/bin/s9s
+   ls -la ~/.local/bin/s9s
    ```
 
 2. Ensure the directory is in your PATH:
    ```bash
-   echo $PATH
+   echo $PATH | grep -q "$HOME/.local/bin" && echo "In PATH" || echo "Not in PATH"
    ```
 
 3. Add to PATH if needed:
    ```bash
-   export PATH=$PATH:/usr/local/bin
+   export PATH=$PATH:~/.local/bin
    # Add to ~/.bashrc or ~/.zshrc for persistence
+   echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc
    ```
 
 ### SSL/TLS Issues
@@ -322,15 +268,13 @@ To upgrade to the latest version:
 
 ```bash
 # If installed via script
-curl -sSL https://get.s9s.dev | bash
+curl -sSL https://s9s.dev/install.sh | bash
 
 # If installed via binary download
 wget https://github.com/jontk/s9s/releases/latest/download/s9s-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)
 chmod +x s9s-*
-sudo mv s9s-* /usr/local/bin/s9s
-
-# If installed via Homebrew
-brew upgrade s9s
+mkdir -p ~/.local/bin
+mv s9s-* ~/.local/bin/s9s
 
 # If installed via Go
 go install github.com/jontk/s9s/cmd/s9s@latest

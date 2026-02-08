@@ -59,7 +59,7 @@ s9s provides a terminal interface for managing SLURM clusters, inspired by the p
 #### Quick Install (Recommended)
 
 ```bash
-curl -sSL https://get.s9s.dev | bash
+curl -sSL https://s9s.dev/install.sh | bash
 ```
 
 #### Using Go Install
@@ -74,7 +74,8 @@ go install github.com/jontk/s9s/cmd/s9s@latest
 git clone https://github.com/jontk/s9s.git
 cd s9s
 go build -o s9s cmd/s9s/main.go
-sudo mv s9s /usr/local/bin/
+mkdir -p ~/.local/bin
+mv s9s ~/.local/bin/
 ```
 
 ### Basic Usage
