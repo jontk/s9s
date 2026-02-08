@@ -2,7 +2,11 @@
 
 <p align="center">
   <a href="https://s9s.dev">
-    <img src="docs/assets/s9s_logo.png" alt="s9s logo" width="400">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/s9s_logo_dark.png">
+      <source media="(prefers-color-scheme: light)" srcset="docs/assets/s9s_logo_light.png">
+      <img src="docs/assets/s9s_logo.png" alt="s9s logo" width="400">
+    </picture>
   </a>
 </p>
 
