@@ -296,36 +296,54 @@ func (pd *PerformanceDashboard) updateLoop() {
 
 // updateMetrics collects and updates all performance metrics
 func (pd *PerformanceDashboard) updateMetrics() {
-	pd.mu.Lock()
-	defer pd.mu.Unlock()
+	// Calculate metrics and update history while holding lock
+	var cpuUsage, memUsage, netUsage, opsRate float64
+	var showAlerts, autoOptimize bool
+	var app *tview.Application
+	var optimizer *performance.Optimizer
 
-	if pd.profiler == nil {
-		return
-	}
+	func() {
+		pd.mu.Lock()
+		defer pd.mu.Unlock()
 
-	// Get current metrics
-	stats := pd.profiler.GetOperationStats()
-	memStats := pd.profiler.CaptureMemoryStats()
+		if pd.profiler == nil {
+			return
+		}
 
-	// Update CPU metrics
-	cpuUsage := pd.calculateCPUUsage(stats)
-	pd.addToHistory(&pd.cpuHistory, cpuUsage)
+		// Get current metrics
+		stats := pd.profiler.GetOperationStats()
+		memStats := pd.profiler.CaptureMemoryStats()
 
-	// Update Memory metrics
-	memUsage := pd.calculateMemoryUsage(&memStats)
-	pd.addToHistory(&pd.memoryHistory, memUsage)
+		// Update CPU metrics
+		cpuUsage = pd.calculateCPUUsage(stats)
+		pd.addToHistory(&pd.cpuHistory, cpuUsage)
 
-	// Update Network metrics
-	netUsage := pd.calculateNetworkUsage(stats)
-	pd.addToHistory(&pd.networkHistory, netUsage)
+		// Update Memory metrics
+		memUsage = pd.calculateMemoryUsage(&memStats)
+		pd.addToHistory(&pd.memoryHistory, memUsage)
 
-	// Update Operations metrics
-	opsRate := pd.calculateOpsRate(stats)
-	pd.addToHistory(&pd.opsHistory, opsRate)
+		// Update Network metrics
+		netUsage = pd.calculateNetworkUsage(stats)
+		pd.addToHistory(&pd.networkHistory, netUsage)
 
-	// Wrap all UI updates in QueueUpdateDraw to prevent race conditions
-	if pd.app != nil {
-		pd.app.QueueUpdateDraw(func() {
+		// Update Operations metrics
+		opsRate = pd.calculateOpsRate(stats)
+		pd.addToHistory(&pd.opsHistory, opsRate)
+
+		// Save current stats for delta calculation in next update
+		pd.previousStats = stats
+
+		// Capture config values we need outside the lock
+		showAlerts = pd.showAlerts
+		autoOptimize = pd.autoOptimize
+		app = pd.app
+		optimizer = pd.optimizer
+	}()
+
+	// Perform UI updates and auto-optimization OUTSIDE the mutex lock
+	// to prevent deadlock with Stop() calls from the main UI thread
+	if app != nil {
+		app.QueueUpdateDraw(func() {
 			pd.updateCPUChart()
 			pd.updateMemoryChart()
 			pd.updateNetworkChart()
@@ -333,19 +351,16 @@ func (pd *PerformanceDashboard) updateMetrics() {
 			pd.updateMetricsTable(cpuUsage, memUsage, netUsage, opsRate)
 
 			// Check for alerts and recommendations
-			if pd.showAlerts {
+			if showAlerts {
 				pd.updateAlerts(cpuUsage, memUsage, netUsage, opsRate)
 			}
 		})
 	}
 
 	// Auto-optimize if enabled
-	if pd.autoOptimize && pd.optimizer != nil {
+	if autoOptimize && optimizer != nil {
 		pd.performAutoOptimization(cpuUsage, memUsage, netUsage, opsRate)
 	}
-
-	// Save current stats for delta calculation in next update
-	pd.previousStats = stats
 }
 
 // addToHistory adds a value to a history slice, maintaining max size
@@ -474,25 +489,33 @@ func (pd *PerformanceDashboard) calculateOpsRate(stats map[string]performance.Op
 
 // updateCPUChart updates the CPU usage chart
 func (pd *PerformanceDashboard) updateCPUChart() {
+	pd.mu.RLock()
 	chart := pd.generateASCIIChart(pd.cpuHistory, "CPU", "%", pd.thresholds.CPUWarning, pd.thresholds.CPUCritical)
+	pd.mu.RUnlock()
 	pd.cpuChart.SetText(chart)
 }
 
 // updateMemoryChart updates the memory usage chart
 func (pd *PerformanceDashboard) updateMemoryChart() {
+	pd.mu.RLock()
 	chart := pd.generateASCIIChart(pd.memoryHistory, "Memory", "%", pd.thresholds.MemoryWarning, pd.thresholds.MemoryCritical)
+	pd.mu.RUnlock()
 	pd.memoryChart.SetText(chart)
 }
 
 // updateNetworkChart updates the network usage chart
 func (pd *PerformanceDashboard) updateNetworkChart() {
+	pd.mu.RLock()
 	chart := pd.generateASCIIChart(pd.networkHistory, "Network", "MB/s", pd.thresholds.NetworkWarning, pd.thresholds.NetworkCritical)
+	pd.mu.RUnlock()
 	pd.networkChart.SetText(chart)
 }
 
 // updateOpsChart updates the operations rate chart
 func (pd *PerformanceDashboard) updateOpsChart() {
+	pd.mu.RLock()
 	chart := pd.generateASCIIChart(pd.opsHistory, "Ops", "/sec", pd.thresholds.OpsWarning, pd.thresholds.OpsCritical)
+	pd.mu.RUnlock()
 	pd.opsChart.SetText(chart)
 }
 
@@ -598,6 +621,7 @@ func (pd *PerformanceDashboard) calculateMax(data []float64) float64 {
 
 // updateMetricsTable updates the detailed metrics table
 func (pd *PerformanceDashboard) updateMetricsTable(cpuUsage, memUsage, netUsage, opsRate float64) {
+	pd.mu.RLock()
 	metrics := []struct {
 		name     string
 		current  float64
@@ -611,6 +635,7 @@ func (pd *PerformanceDashboard) updateMetricsTable(cpuUsage, memUsage, netUsage,
 		{"Network", netUsage, pd.networkHistory, "MB/s", pd.thresholds.NetworkWarning, pd.thresholds.NetworkCritical},
 		{"Operations", opsRate, pd.opsHistory, "/sec", pd.thresholds.OpsWarning, pd.thresholds.OpsCritical},
 	}
+	pd.mu.RUnlock()
 
 	for i, metric := range metrics {
 		row := i + 1
