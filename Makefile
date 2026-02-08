@@ -309,16 +309,15 @@ demos-full: build
 		exit 1; \
 	fi
 	@echo "Copying binary to ./s9s for demo recording..."
-	@cp $(BUILD_DIR)/$(BINARY_NAME) ./s9s
-	@for tape in demos/*.tape; do \
-		if [ "$$tape" != "demos/common.tape" ]; then \
+	@trap 'rm -f ./s9s' EXIT; \
+	cp $(BUILD_DIR)/$(BINARY_NAME) ./s9s; \
+	for tape in demos/*.tape; do \
+		if [ "$$tape" != "demos/common.tape" ] && [ "$$tape" != "demos/bootstrap.tape" ]; then \
 			echo "Recording: $$tape"; \
 			vhs "$$tape"; \
 		fi; \
-	done
-	@echo "All demos generated in demos/output/"
-	@rm -f ./s9s
-	@echo "Cleaned up temporary ./s9s"
+	done; \
+	echo "All demos generated in demos/output/"
 
 # Generate overview demo only
 demo-overview: build
@@ -328,10 +327,10 @@ demo-overview: build
 		exit 1; \
 	fi
 	@echo "Copying binary to ./s9s for demo recording..."
-	@cp $(BUILD_DIR)/$(BINARY_NAME) ./s9s
-	vhs demos/overview.tape
-	@rm -f ./s9s
-	@echo "Overview demo generated: demos/output/overview.gif"
+	@trap 'rm -f ./s9s' EXIT; \
+	cp $(BUILD_DIR)/$(BINARY_NAME) ./s9s; \
+	vhs demos/overview.tape; \
+	echo "Overview demo generated: demos/output/overview.gif"
 
 # Clean demo outputs
 demo-clean:
