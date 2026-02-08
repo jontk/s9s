@@ -23,30 +23,6 @@ Sleep 3s
 Escape
 Sleep 500ms
 
-# Jump to Jobs view (J key)
-Type "J"
-Sleep 1500ms
-
-# Back to Dashboard
-Type "8"
-Sleep 1s
-
-# Jump to Nodes view (N key)
-Type "N"
-Sleep 1500ms
-
-# Back to Dashboard
-Type "8"
-Sleep 1s
-
-# Jump to Partitions view (P key)
-Type "P"
-Sleep 1500ms
-
-# Back to Dashboard
-Type "8"
-Sleep 1s
-
 # Refresh dashboard
 Type "R"
 Sleep 1s
