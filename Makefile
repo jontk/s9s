@@ -299,6 +299,8 @@ demos: build
 		echo "Error: vhs is not installed. Install with: go install github.com/charmbracelet/vhs@latest"; \
 		exit 1; \
 	fi
+	@echo "Copying binary to ./s9s for demo recording..."
+	@cp $(BUILD_DIR)/$(BINARY_NAME) ./s9s
 	@for tape in demos/*.tape; do \
 		if [ "$$tape" != "demos/common.tape" ]; then \
 			echo "Recording: $$tape"; \
@@ -306,6 +308,8 @@ demos: build
 		fi; \
 	done
 	@echo "All demos generated in demos/output/"
+	@rm -f ./s9s
+	@echo "Cleaned up temporary ./s9s"
 
 # Generate overview demo only
 demo-overview: build
@@ -314,7 +318,10 @@ demo-overview: build
 		echo "Error: vhs is not installed. Install with: go install github.com/charmbracelet/vhs@latest"; \
 		exit 1; \
 	fi
+	@echo "Copying binary to ./s9s for demo recording..."
+	@cp $(BUILD_DIR)/$(BINARY_NAME) ./s9s
 	vhs demos/overview.tape
+	@rm -f ./s9s
 	@echo "Overview demo generated: demos/output/overview.gif"
 
 # Clean demo outputs
