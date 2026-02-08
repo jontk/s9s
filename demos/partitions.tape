@@ -6,7 +6,6 @@ Output demos/output/partitions.mp4
 Source demos/common.tape
 Source demos/bootstrap.tape
 
-
 # Switch to Partitions view (key 3)
 Type "3"
 Sleep 1500ms

@@ -6,7 +6,6 @@ Output demos/output/accounts.mp4
 Source demos/common.tape
 Source demos/bootstrap.tape
 
-
 # Switch to Accounts view (key 6)
 Type "6"
 Sleep 1500ms

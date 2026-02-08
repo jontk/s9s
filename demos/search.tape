@@ -6,7 +6,6 @@ Output demos/output/search.mp4
 Source demos/common.tape
 Source demos/bootstrap.tape
 
-
 # Open global search (Ctrl+F)
 Ctrl+F
 Sleep 1s

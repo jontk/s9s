@@ -6,7 +6,6 @@ Output demos/output/nodes.mp4
 Source demos/common.tape
 Source demos/bootstrap.tape
 
-
 # Switch to Nodes view (key 2)
 Type "2"
 Sleep 1500ms

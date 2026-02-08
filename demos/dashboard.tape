@@ -6,7 +6,6 @@ Output demos/output/dashboard.mp4
 Source demos/common.tape
 Source demos/bootstrap.tape
 
-
 # Switch to Dashboard (key 8)
 Type "8"
 Sleep 2s

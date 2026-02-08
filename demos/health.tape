@@ -6,7 +6,6 @@ Output demos/output/health.mp4
 Source demos/common.tape
 Source demos/bootstrap.tape
 
-
 # Switch to Health view (key 9)
 Type "9"
 Sleep 1500ms

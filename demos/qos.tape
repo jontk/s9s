@@ -6,7 +6,6 @@ Output demos/output/qos.mp4
 Source demos/common.tape
 Source demos/bootstrap.tape
 
-
 # Switch to QoS view (key 5)
 Type "5"
 Sleep 1500ms

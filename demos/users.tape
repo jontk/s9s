@@ -6,7 +6,6 @@ Output demos/output/users.mp4
 Source demos/common.tape
 Source demos/bootstrap.tape
 
-
 # Switch to Users view (key 7)
 Type "7"
 Sleep 1500ms

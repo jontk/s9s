@@ -6,7 +6,6 @@ Output demos/output/reservations.mp4
 Source demos/common.tape
 Source demos/bootstrap.tape
 
-
 # Switch to Reservations view (key 4)
 Type "4"
 Sleep 1500ms
