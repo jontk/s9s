@@ -49,6 +49,14 @@ Sleep 2s
 Type "3"
 Sleep 1s
 
+# Sort by column (S key)
+Type "S"
+Sleep 500ms
+Down
+Sleep 500ms
+Enter
+Sleep 1s
+
 # Quick filter
 Type "/"
 Sleep 500ms

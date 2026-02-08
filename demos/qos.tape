@@ -25,17 +25,13 @@ Sleep 3s
 Escape
 Sleep 500ms
 
-# Sort by priority
-Type "2"
-Sleep 1s
-
-# Sort by preemption mode
-Type "3"
-Sleep 1s
-
-# Back to name
-Type "1"
+# Sort by priority (S key)
+Type "S"
 Sleep 500ms
+Down
+Sleep 500ms
+Enter
+Sleep 1s
 
 # Quick filter
 Type "/"

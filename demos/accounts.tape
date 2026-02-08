@@ -37,22 +37,18 @@ Sleep 1s
 Escape
 Sleep 500ms
 
-# Sort by organization
-Type "2"
-Sleep 1s
-
-# Sort by default QoS
-Type "4"
-Sleep 1s
-
-# Back to name sort
-Type "1"
+# Sort by column (S key - opens modal)
+Type "S"
 Sleep 500ms
+Down
+Sleep 500ms
+Enter
+Sleep 1s
 
 # Global search (Ctrl+F)
 Ctrl+F
 Sleep 500ms
-Type "root"
+Type "physics"
 Sleep 1s
 Escape
 Sleep 500ms

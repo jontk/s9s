@@ -37,17 +37,14 @@ Sleep 500ms
 Type "f"
 Sleep 1s
 
-# Sort by start time
-Type "3"
-Sleep 1s
-
-# Sort by duration
-Type "4"
-Sleep 1s
-
-# Back to name
-Type "1"
+# Sort by start time (S key)
+Type "S"
 Sleep 500ms
+Down
+Down
+Sleep 500ms
+Enter
+Sleep 1s
 
 # Quick filter
 Type "/"

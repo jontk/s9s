@@ -39,13 +39,13 @@ Sleep 1s
 Escape
 Sleep 500ms
 
-# Sort by different columns
-Type "2"
-Sleep 1s
-Type "3"
-Sleep 1s
-Type "1"
+# Sort by UID (S key)
+Type "S"
 Sleep 500ms
+Down
+Sleep 500ms
+Enter
+Sleep 1s
 
 # Exit
 Type "q"

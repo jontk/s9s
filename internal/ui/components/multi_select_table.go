@@ -443,12 +443,22 @@ func (mst *MultiSelectTable) renderHeaderRow() int {
 			continue
 		}
 
+		// Get column name with sort indicator if applicable
+		columnName := column.Name
+		if column.Sortable && col == mst.sortColumn {
+			if mst.sortAscending {
+				columnName += " ▲"
+			} else {
+				columnName += " ▼"
+			}
+		}
+
 		var cellText string
 		if col == 0 && mst.multiSelectMode && mst.showCheckboxes {
 			selectAllIcon := mst.getSelectAllIcon()
-			cellText = fmt.Sprintf("%s %s", selectAllIcon, column.Name)
+			cellText = fmt.Sprintf("%s %s", selectAllIcon, columnName)
 		} else {
-			cellText = column.Name
+			cellText = columnName
 		}
 
 		cell := tview.NewTableCell(cellText).

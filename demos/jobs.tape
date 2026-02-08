@@ -41,6 +41,15 @@ Sleep 1500ms
 Type "a"
 Sleep 500ms
 
+# Sort by column (S key)
+Type "S"
+Sleep 500ms
+Down
+Down
+Sleep 500ms
+Enter
+Sleep 1s
+
 # View job output (o key)
 Down
 Sleep 500ms
