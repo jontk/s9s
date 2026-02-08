@@ -31,6 +31,13 @@ func (s *S9s) initViews() error {
 		}
 	}
 
+	// Conditionally register app diagnostics view if debug feature is enabled
+	if s.config.Features.AppDiagnostics {
+		if err := s.registerAppDiagnosticsView(); err != nil {
+			return err
+		}
+	}
+
 	s.header.SetViews(s.viewMgr.GetViewNames())
 	return nil
 }
@@ -115,6 +122,14 @@ func (s *S9s) registerPerformanceView() error {
 	view.SetApp(s.app)
 	view.SetPages(s.pages)
 	return s.addViewToApp("performance", view)
+}
+
+// registerAppDiagnosticsView registers the app diagnostics view (debug only)
+func (s *S9s) registerAppDiagnosticsView() error {
+	view := views.NewAppDiagnosticsView(s.client)
+	view.SetApp(s.app)
+	view.SetPages(s.pages)
+	return s.addViewToApp("app_diagnostics", view)
 }
 
 // addViewToApp initializes and adds a view to the application

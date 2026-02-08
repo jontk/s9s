@@ -1,0 +1,461 @@
+package views
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/export"
+	"github.com/jontk/s9s/internal/logging"
+	"github.com/jontk/s9s/internal/performance"
+	"github.com/jontk/s9s/internal/ui/widgets"
+	"github.com/rivo/tview"
+)
+
+// AppDiagnosticsView provides application diagnostics and performance monitoring
+type AppDiagnosticsView struct {
+	BaseView
+
+	// Dependencies
+	client    dao.SlurmClient
+	profiler  *performance.Profiler
+	optimizer *performance.Optimizer
+
+	// UI Components
+	app        *tview.Application
+	pages      *tview.Pages
+	container  *tview.Flex
+	dashboard  *widgets.PerformanceDashboard
+	controlBar *tview.TextView
+
+	// State
+	monitoringEnabled bool
+	autoRefresh       bool
+	refreshInterval   time.Duration
+}
+
+// NewAppDiagnosticsView creates a new performance monitoring view
+func NewAppDiagnosticsView(client dao.SlurmClient) *AppDiagnosticsView {
+	pv := &AppDiagnosticsView{
+		client:            client,
+		monitoringEnabled: true,
+		autoRefresh:       true,
+		refreshInterval:   2 * time.Second,
+	}
+
+	pv.BaseView = BaseView{
+		name:  "app_diagnostics",
+		title: "App Diagnostics",
+	}
+
+	// Initialize performance components
+	pv.profiler = performance.NewProfiler()
+	pv.optimizer = performance.NewOptimizer(pv.profiler)
+
+	return pv
+}
+
+// Init initializes the performance view
+func (pv *AppDiagnosticsView) Init(ctx context.Context) error {
+	pv.ctx = ctx
+
+	// Initialize dashboard
+	pv.dashboard = widgets.NewPerformanceDashboard(pv.profiler, pv.optimizer, pv.app)
+	pv.dashboard.SetUpdateInterval(pv.refreshInterval)
+
+	// Create control bar
+	pv.controlBar = tview.NewTextView()
+	pv.controlBar.SetDynamicColors(true)
+	pv.controlBar.SetTextAlign(tview.AlignCenter)
+	pv.updateControlBar()
+
+	// Create main container
+	pv.container = tview.NewFlex()
+	pv.container.SetDirection(tview.FlexRow)
+	pv.container.AddItem(pv.dashboard.GetContainer(), 0, 1, true)
+	pv.container.AddItem(pv.controlBar, 2, 0, false)
+
+	// Set up input handling
+	pv.container.SetInputCapture(pv.handleInput)
+
+	// Don't start monitoring automatically during initialization
+	// Monitoring will be started when the view is first displayed
+	// if pv.monitoringEnabled {
+	//	if err := pv.dashboard.Start(); err != nil {
+	//		log.Printf("Warning: Failed to start performance monitoring: %v", err)
+	//	}
+	// }
+
+	return nil
+}
+
+// handleInput processes keyboard input for the performance view
+func (pv *AppDiagnosticsView) handleInput(event *tcell.EventKey) *tcell.EventKey {
+	if handler, ok := pv.keyHandlers()[event.Key()]; ok {
+		handler()
+		return nil
+	}
+
+	if handler, ok := pv.runeHandlers()[event.Rune()]; ok {
+		handler()
+		return nil
+	}
+
+	// Pass through to dashboard
+	return event
+}
+
+// keyHandlers returns a map of function key handlers
+func (pv *AppDiagnosticsView) keyHandlers() map[tcell.Key]func() {
+	return map[tcell.Key]func(){
+		tcell.KeyF1:    pv.showHelp,
+		tcell.KeyF5:    pv.refresh,
+		tcell.KeyCtrlS: pv.toggleMonitoring,
+		tcell.KeyCtrlR: pv.toggleAutoRefresh,
+		tcell.KeyCtrlP: pv.showProfilerReport,
+		tcell.KeyCtrlO: pv.showOptimizerSettings,
+		tcell.KeyCtrlE: pv.exportMetrics,
+	}
+}
+
+// runeHandlers returns a map of rune handlers
+func (pv *AppDiagnosticsView) runeHandlers() map[rune]func() {
+	return map[rune]func(){
+		's': pv.toggleMonitoring,
+		'S': pv.toggleMonitoring,
+		'r': pv.toggleAutoRefresh,
+		'R': pv.toggleAutoRefresh,
+		'p': pv.showProfilerReport,
+		'P': pv.showProfilerReport,
+		'o': pv.toggleAutoOptimization,
+		'O': pv.toggleAutoOptimization,
+		'e': pv.exportMetrics,
+		'E': pv.exportMetrics,
+		'h': pv.showHelp,
+		'H': pv.showHelp,
+		'+': pv.increaseRefreshRate,
+		'-': pv.decreaseRefreshRate,
+	}
+}
+
+// toggleMonitoring toggles performance monitoring on/off
+func (pv *AppDiagnosticsView) toggleMonitoring() {
+	pv.monitoringEnabled = !pv.monitoringEnabled
+
+	if pv.monitoringEnabled {
+		if err := pv.dashboard.Start(); err != nil {
+			logging.Errorf("Error starting monitoring: %v", err)
+		}
+	} else {
+		pv.dashboard.Stop()
+	}
+
+	pv.updateControlBar()
+}
+
+// toggleAutoRefresh toggles automatic refresh
+func (pv *AppDiagnosticsView) toggleAutoRefresh() {
+	pv.autoRefresh = !pv.autoRefresh
+
+	// Start or stop monitoring based on new state
+	if pv.dashboard != nil {
+		if pv.autoRefresh && pv.monitoringEnabled {
+			// Start monitoring
+			if err := pv.dashboard.Start(); err != nil {
+				logging.Warnf("Failed to start performance monitoring: %v", err)
+			}
+		} else {
+			// Stop monitoring
+			pv.dashboard.Stop()
+		}
+	}
+
+	pv.updateControlBar()
+}
+
+// increaseRefreshRate increases the refresh rate (decreases interval)
+func (pv *AppDiagnosticsView) increaseRefreshRate() {
+	if pv.refreshInterval > 500*time.Millisecond {
+		pv.refreshInterval -= 500 * time.Millisecond
+		pv.dashboard.SetUpdateInterval(pv.refreshInterval)
+		pv.updateControlBar()
+	}
+}
+
+// decreaseRefreshRate decreases the refresh rate (increases interval)
+func (pv *AppDiagnosticsView) decreaseRefreshRate() {
+	if pv.refreshInterval < 10*time.Second {
+		pv.refreshInterval += 500 * time.Millisecond
+		pv.dashboard.SetUpdateInterval(pv.refreshInterval)
+		pv.updateControlBar()
+	}
+}
+
+// showProfilerReport displays detailed profiler information
+func (pv *AppDiagnosticsView) showProfilerReport() {
+	if pv.profiler == nil {
+		pv.showModal("Error", "Profiler not available")
+		return
+	}
+
+	// Get operation stats and memory info
+	stats := pv.profiler.GetOperationStats()
+	memStats := pv.profiler.CaptureMemoryStats()
+
+	// Create detailed report content
+	content := "Performance Profiler Report\n\n"
+	content += fmt.Sprintf("Report Generated: %s\n", time.Now().Format("2006-01-02 15:04:05"))
+	content += fmt.Sprintf("Total Operations: %d\n", len(stats))
+	content += fmt.Sprintf("Memory Usage: %d MB / %d MB\n",
+		memStats.HeapInuse/1024/1024,
+		memStats.Sys/1024/1024)
+
+	if len(stats) > 0 {
+		content += "\nOperation Statistics:\n"
+		for name, stat := range stats {
+			content += fmt.Sprintf("• %s: %d ops, avg %v, total %v\n",
+				name, stat.Count, stat.AverageTime, stat.TotalTime)
+		}
+	}
+
+	pv.showModal("Profiler Report", content)
+}
+
+// showOptimizerSettings displays optimizer configuration
+func (pv *AppDiagnosticsView) showOptimizerSettings() {
+	if pv.optimizer == nil {
+		pv.showModal("Error", "Optimizer not available")
+		return
+	}
+
+	content := "Performance Optimizer Settings\n\n"
+	content += "Available Optimizations:\n"
+	content += "• Memory optimization (Ctrl+M)\n"
+	content += "• Performance tuning (Ctrl+P)\n"
+	content += "• Garbage collection tuning\n"
+	content += "• Connection pooling\n\n"
+	content += "Auto-optimization: "
+	if pv.dashboard != nil && pv.dashboard.GetAutoOptimize() {
+		content += "Enabled\n"
+	} else {
+		content += "Disabled\n"
+	}
+
+	content += "\nPress O to toggle auto-optimization\n"
+	content += "Press Ctrl+O to show this settings menu"
+
+	pv.showModal("Optimizer Settings", content)
+}
+
+// toggleAutoOptimization toggles automatic optimization
+func (pv *AppDiagnosticsView) toggleAutoOptimization() {
+	if pv.dashboard != nil {
+		pv.dashboard.ToggleAutoOptimize()
+		pv.updateControlBar()
+	}
+}
+
+// exportMetrics shows the export dialog for performance metrics
+func (pv *AppDiagnosticsView) exportMetrics() {
+	if pv.profiler == nil {
+		pv.showModal("Error", "No profiler data to export")
+		return
+	}
+
+	// Create export dialog
+	exportDialog := widgets.NewPerformanceExportDialog(pv.profiler, pv.optimizer)
+
+	// Set export handler
+	exportDialog.SetExportHandler(func(_ export.ExportFormat, _ string) {
+		// Close dialog
+		if pv.pages != nil {
+			pv.pages.RemovePage("export-dialog")
+		}
+
+		// Show success message
+		pv.app.QueueUpdateDraw(func() {
+			pv.controlBar.SetText("[green]Performance report exported successfully[white]")
+		})
+
+		// Restore normal control bar after a few seconds
+		go func() {
+			time.Sleep(3 * time.Second)
+			pv.app.QueueUpdateDraw(func() {
+				pv.updateControlBar()
+			})
+		}()
+	})
+
+	// Set cancel handler
+	exportDialog.SetCancelHandler(func() {
+		if pv.pages != nil {
+			pv.pages.RemovePage("export-dialog")
+		}
+	})
+
+	// Show dialog
+	if pv.pages != nil {
+		pv.pages.AddPage("export-dialog", exportDialog, true, true)
+	}
+}
+
+// showHelp displays help information
+func (pv *AppDiagnosticsView) showHelp() {
+	content := "Performance Monitor Help\n\n"
+	content += "MONITORING CONTROLS:\n"
+	content += "S, Ctrl+S    - Toggle monitoring on/off\n"
+	content += "R, Ctrl+R    - Toggle auto-refresh\n"
+	content += "F5           - Manual refresh\n"
+	content += "+/-          - Increase/decrease refresh rate\n\n"
+
+	content += "PROFILER & OPTIMIZER:\n"
+	content += "P, Ctrl+P    - Show profiler report\n"
+	content += "O, Ctrl+O    - Show optimizer settings\n"
+	content += "E, Ctrl+E    - Export metrics\n\n"
+
+	content += "DASHBOARD CONTROLS:\n"
+	content += "A            - Toggle alerts\n"
+	content += "C            - Clear history\n"
+	content += "O            - Toggle auto-optimize\n\n"
+
+	content += "NAVIGATION:\n"
+	content += "F1, H        - Show this help\n"
+	content += "Esc, Q       - Return to main menu\n\n"
+
+	content += "The dashboard shows real-time CPU, memory, network,\n"
+	content += "and operation metrics with color-coded alerts."
+
+	pv.showModal("Help", content)
+}
+
+// updateControlBar updates the control bar with current status
+func (pv *AppDiagnosticsView) updateControlBar() {
+	status := ""
+
+	// Monitoring status
+	if pv.monitoringEnabled {
+		status += "[green]●[white] Monitoring: ON  "
+	} else {
+		status += "[red]●[white] Monitoring: OFF  "
+	}
+
+	// Auto-refresh status
+	if pv.autoRefresh {
+		status += "[green]●[white] Auto-refresh: ON  "
+	} else {
+		status += "[gray]●[white] Auto-refresh: OFF  "
+	}
+
+	// Refresh interval
+	status += fmt.Sprintf("Interval: %v  ", pv.refreshInterval)
+
+	// Controls hint
+	status += "\n[gray]S:Start/Stop R:Refresh +:Faster -:Slower P:Profiler O:Optimizer E:Export H:Help[white]"
+
+	pv.controlBar.SetText(status)
+}
+
+// showModal displays a modal dialog
+func (pv *AppDiagnosticsView) showModal(title, content string) {
+	modal := tview.NewModal()
+	modal.SetText(content)
+	modal.SetTitle(title)
+	modal.AddButtons([]string{"Close"})
+	modal.SetDoneFunc(func(_ int, _ string) {
+		if pv.pages != nil {
+			pv.pages.RemovePage("modal")
+		}
+	})
+
+	if pv.pages != nil {
+		pv.pages.AddPage("modal", modal, true, true)
+	}
+}
+
+// BaseView interface implementation
+
+// Render returns the main container
+func (pv *AppDiagnosticsView) Render() tview.Primitive {
+	return pv.container
+}
+
+// OnFocus is called when the view gains focus
+func (pv *AppDiagnosticsView) OnFocus() error {
+	// Start monitoring when the view becomes active (only if auto-refresh is enabled)
+	if pv.monitoringEnabled && pv.autoRefresh && pv.dashboard != nil {
+		if err := pv.dashboard.Start(); err != nil {
+			logging.Warnf("Failed to start performance monitoring: %v", err)
+		}
+	}
+	return nil
+}
+
+// OnLoseFocus is called when the view loses focus
+func (pv *AppDiagnosticsView) OnLoseFocus() error {
+	// Stop monitoring when view loses focus to prevent rendering conflicts
+	if pv.dashboard != nil {
+		pv.dashboard.Stop()
+	}
+	return nil
+}
+
+// Update refreshes the view data
+func (pv *AppDiagnosticsView) Update() error {
+	if pv.autoRefresh && pv.dashboard != nil {
+		pv.dashboard.Refresh()
+	}
+	return nil
+}
+
+// Refresh manually refreshes the view
+func (pv *AppDiagnosticsView) Refresh() error {
+	if pv.dashboard != nil {
+		pv.dashboard.Refresh()
+	}
+	return nil
+}
+
+// refresh is the internal refresh method
+func (pv *AppDiagnosticsView) refresh() {
+	_ = pv.Refresh()
+}
+
+// OnKey handles key events
+func (pv *AppDiagnosticsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
+	return pv.handleInput(event)
+}
+
+// Hints returns keyboard shortcuts
+func (pv *AppDiagnosticsView) Hints() []string {
+	return []string{
+		"S: Toggle monitoring",
+		"R: Toggle auto-refresh",
+		"F5: Refresh",
+		"P: Profiler report",
+		"O: Optimizer settings",
+		"E: Export metrics",
+		"H: Help",
+		"+/-: Adjust refresh rate",
+	}
+}
+
+// Stop stops the performance monitoring
+func (pv *AppDiagnosticsView) Stop() error {
+	if pv.dashboard != nil {
+		pv.dashboard.Stop()
+	}
+	return nil
+}
+
+// SetApp sets the tview application reference
+func (pv *AppDiagnosticsView) SetApp(app *tview.Application) {
+	pv.app = app
+	pv.BaseView.SetApp(app)
+}
+
+// SetPages sets the pages reference for modal handling
+func (pv *AppDiagnosticsView) SetPages(pages *tview.Pages) {
+	pv.pages = pages
+}

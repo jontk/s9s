@@ -100,9 +100,10 @@ type PartitionsViewConfig struct {
 
 // FeaturesConfig holds feature flags
 type FeaturesConfig struct {
-	Streaming bool `mapstructure:"streaming"`
-	Pulseye   bool `mapstructure:"pulseye"`
-	Xray      bool `mapstructure:"xray"`
+	Streaming      bool `mapstructure:"streaming"`
+	Pulseye        bool `mapstructure:"pulseye"`
+	Xray           bool `mapstructure:"xray"`
+	AppDiagnostics bool `mapstructure:"appDiagnostics"`
 }
 
 // ShortcutConfig represents a custom keyboard shortcut
