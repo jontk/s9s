@@ -33,6 +33,11 @@ hive-mind-prompt-*.txt
 CLAUDE.md
 memory/
 # docs/ - Documentation is now tracked in git! Only ignore generated docs if needed.
+
+# Observability plugin documentation (local-only, not committed upstream)
+plugins/observability/docs/adr/*.md
+plugins/observability/docs/*.md
+
 s9s
 
 # Test artifacts

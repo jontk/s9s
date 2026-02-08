@@ -3,6 +3,7 @@ package security
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -373,14 +374,19 @@ func parseTimeParameter(timeStr string) (time.Time, error) {
 }
 
 // writeValidationError writes a validation error response
+// Note: Does NOT expose internal error details for security reasons
+// (prevents information disclosure about validation rules/implementation)
 func writeValidationError(w http.ResponseWriter, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
 
+	// Security: Do not expose err.Error() details to clients
+	// Log internally for debugging, but return generic message
+	log.Printf("Validation error (not exposed to client): %v", err)
+
 	response := map[string]interface{}{
 		"status": "error",
-		"error":  "Validation failed",
-		"detail": err.Error(),
+		"error":  "Request validation failed",
 		"code":   "VALIDATION_ERROR",
 	}
 
