@@ -43,6 +43,7 @@ type PerformanceDashboard struct {
 
 	// State
 	running         bool
+	updating        bool // Prevents concurrent updateMetrics calls
 	updateInterval  time.Duration
 	intervalChanged chan time.Duration
 	ctx             context.Context
@@ -265,7 +266,9 @@ func (pd *PerformanceDashboard) Stop() {
 // Refresh triggers an immediate metrics update without restarting the monitoring loop
 // This is safe to call whether monitoring is running or not
 func (pd *PerformanceDashboard) Refresh() {
-	pd.updateMetrics()
+	// Spawn goroutine to avoid blocking if called from main thread
+	// (updateMetrics calls QueueUpdateDraw which blocks until executed)
+	go pd.updateMetrics()
 }
 
 // updateLoop runs the main update loop
@@ -296,6 +299,21 @@ func (pd *PerformanceDashboard) updateLoop() {
 
 // updateMetrics collects and updates all performance metrics
 func (pd *PerformanceDashboard) updateMetrics() {
+	// Prevent concurrent updates to avoid multiple goroutines blocking on QueueUpdateDraw
+	pd.mu.Lock()
+	if pd.updating {
+		pd.mu.Unlock()
+		return
+	}
+	pd.updating = true
+	pd.mu.Unlock()
+
+	defer func() {
+		pd.mu.Lock()
+		pd.updating = false
+		pd.mu.Unlock()
+	}()
+
 	// Calculate metrics and copy ALL data while holding lock
 	var cpuUsage, memUsage, netUsage, opsRate float64
 	var showAlerts, autoOptimize bool
@@ -870,7 +888,10 @@ func (pd *PerformanceDashboard) performAutoOptimization(cpuUsage, memUsage, _, o
 
 // refresh manually refreshes the dashboard
 func (pd *PerformanceDashboard) refresh() {
-	go pd.updateMetrics()
+	// Manual refresh is handled by the Refresh() method (line 267)
+	// This internal method should not spawn goroutines or call updateMetrics directly
+	// as that can cause deadlocks with QueueUpdateDraw blocking behavior.
+	// The update loop already handles periodic updates.
 }
 
 // reset clears all data and resets the dashboard
