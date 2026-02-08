@@ -592,3 +592,35 @@ func (cb *ColumnBuilder) Hidden(hidden bool) *ColumnBuilder {
 func (cb *ColumnBuilder) Build() Column {
 	return cb.column
 }
+
+// GetSortableColumns returns a list of sortable column names with their indices
+func (t *Table) GetSortableColumns() []struct {
+	Index int
+	Name  string
+} {
+	var sortable []struct {
+		Index int
+		Name  string
+	}
+	
+	for i, col := range t.config.Columns {
+		if col.Sortable && !col.Hidden {
+			sortable = append(sortable, struct {
+				Index int
+				Name  string
+			}{Index: i, Name: col.Name})
+		}
+	}
+	
+	return sortable
+}
+
+// GetCurrentSortColumn returns the current sort column index and direction
+func (t *Table) GetCurrentSortColumn() (column int, ascending bool) {
+	return t.sortColumn, t.sortAscending
+}
+
+// SetSortColumn programmatically sets the sort column (like clicking the header)
+func (t *Table) SetSortColumn(column int) {
+	t.Sort(column)
+}

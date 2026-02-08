@@ -261,6 +261,7 @@ func (v *JobsView) Hints() []string {
 		"[yellow]Ctrl+F[white] Search",
 		"[yellow]F1[white] Actions Menu",
 		"[yellow]v[white] Multi-Select",
+		"[yellow]S[white] Sort",
 		"[yellow]R[white] Refresh",
 	}
 
@@ -348,7 +349,7 @@ func (v *JobsView) jobsRuneHandlers() map[rune]func(*JobsView, *tcell.EventKey) 
 		'o': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobOutput(); return nil },
 		'O': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobOutput(); return nil },
 		's': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobSubmissionForm(); return nil },
-		'S': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobSubmissionForm(); return nil },
+		'S': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.promptSortBy(); return nil },
 		'd': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobDependencies(); return nil },
 		'D': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobDependencies(); return nil },
 		'b': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showBatchOperations(); return nil },
@@ -1818,4 +1819,68 @@ func (v *JobsView) focusOnJob(jobID string) {
 	}
 
 	// Note: Status bar update removed since individual view status bars are no longer used
+}
+
+// promptSortBy prompts for column to sort by
+func (v *JobsView) promptSortBy() {
+	sortable := v.table.GetSortableColumns()
+	if len(sortable) == 0 {
+		return
+	}
+
+	currentCol, _ := v.table.GetCurrentSortColumn()
+	currentIndex := 0
+
+	for i, col := range sortable {
+		if col.Index == currentCol {
+			currentIndex = i
+			break
+		}
+	}
+
+	modal := tview.NewList()
+	modal.SetBorder(true).
+		SetTitle(" Sort By ").
+		SetTitleAlign(tview.AlignCenter)
+
+	for i, col := range sortable {
+		text := col.Name
+		if col.Index == currentCol {
+			text = fmt.Sprintf("[yellow]● %s[white]", text)
+		} else {
+			text = fmt.Sprintf("  %s", text)
+		}
+
+		modal.AddItem(text, "", rune('1'+i), func() {
+			selected := sortable[modal.GetCurrentItem()]
+			v.table.SetSortColumn(selected.Index)
+			if v.pages != nil {
+				v.pages.RemovePage("sort-by")
+			}
+		})
+	}
+
+	modal.SetCurrentItem(currentIndex)
+
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			if v.pages != nil {
+				v.pages.RemovePage("sort-by")
+			}
+			return nil
+		}
+		return event
+	})
+
+	centeredModal := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(modal, 0, 3, true).
+			AddItem(nil, 0, 1, false), 0, 3, true).
+		AddItem(nil, 0, 1, false)
+
+	if v.pages != nil {
+		v.pages.AddPage("sort-by", centeredModal, true, true)
+	}
 }

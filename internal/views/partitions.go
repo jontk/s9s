@@ -185,6 +185,7 @@ func (v *PartitionsView) Hints() []string {
 		"[yellow]F3[white] Adv Filter",
 		"[yellow]Ctrl+F[white] Search",
 		"[yellow]Click Headers[white] Sort",
+		"[yellow]S[white] Sort",
 		"[yellow]R[white] Refresh",
 	}
 
@@ -269,6 +270,9 @@ func (v *PartitionsView) handleRuneCommand(r rune) bool {
 		return true
 	case 'W':
 		v.showWaitTimeAnalytics()
+		return true
+	case 'S':
+		v.promptSortBy()
 		return true
 	case 'R':
 		go func() { _ = v.Refresh() }()
@@ -1347,4 +1351,68 @@ func (v *PartitionsView) focusOnPartition(partitionName string) {
 	}
 
 	// Note: Status bar update removed since individual view status bars are no longer used
+}
+
+// promptSortBy prompts for column to sort by
+func (v *PartitionsView) promptSortBy() {
+	sortable := v.table.GetSortableColumns()
+	if len(sortable) == 0 {
+		return
+	}
+
+	currentCol, _ := v.table.GetCurrentSortColumn()
+	currentIndex := 0
+
+	for i, col := range sortable {
+		if col.Index == currentCol {
+			currentIndex = i
+			break
+		}
+	}
+
+	modal := tview.NewList()
+	modal.SetBorder(true).
+		SetTitle(" Sort By ").
+		SetTitleAlign(tview.AlignCenter)
+
+	for i, col := range sortable {
+		text := col.Name
+		if col.Index == currentCol {
+			text = fmt.Sprintf("[yellow]● %s[white]", text)
+		} else {
+			text = fmt.Sprintf("  %s", text)
+		}
+
+		modal.AddItem(text, "", rune('1'+i), func() {
+			selected := sortable[modal.GetCurrentItem()]
+			v.table.SetSortColumn(selected.Index)
+			if v.pages != nil {
+				v.pages.RemovePage("sort-by")
+			}
+		})
+	}
+
+	modal.SetCurrentItem(currentIndex)
+
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			if v.pages != nil {
+				v.pages.RemovePage("sort-by")
+			}
+			return nil
+		}
+		return event
+	})
+
+	centeredModal := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(modal, 0, 3, true).
+			AddItem(nil, 0, 1, false), 0, 3, true).
+		AddItem(nil, 0, 1, false)
+
+	if v.pages != nil {
+		v.pages.AddPage("sort-by", centeredModal, true, true)
+	}
 }
