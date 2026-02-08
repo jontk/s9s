@@ -113,7 +113,7 @@ func (v *HelpView) generateHelpContent() string {
 	help.WriteString("  [yellow]c[white]            Cancel job\n")
 	help.WriteString("  [yellow]s[white]            Submit new job\n")
 	help.WriteString("  [yellow]/[white]            Filter jobs\n")
-	help.WriteString("  [yellow]1-9[white]          Sort by column\n")
+	help.WriteString("  [yellow]Click Headers[white] Sort by column\n")
 	help.WriteString("  [yellow]R[white]            Refresh view\n")
 	help.WriteString("  [yellow]a[white]            Show analytics\n")
 	help.WriteString("  [yellow]d[white]            Show dependencies\n")
@@ -126,7 +126,7 @@ func (v *HelpView) generateHelpContent() string {
 	help.WriteString("  [yellow]r[white]            Resume drained node\n")
 	help.WriteString("  [yellow]s[white]            SSH to node\n")
 	help.WriteString("  [yellow]/[white]            Filter nodes\n")
-	help.WriteString("  [yellow]1-9[white]          Sort by column\n")
+	help.WriteString("  [yellow]Click Headers[white] Sort by column\n")
 	help.WriteString("  [yellow]R[white]            Refresh view\n")
 	help.WriteString("  [yellow]p[white]            Filter by partition\n")
 	help.WriteString("  [yellow]a[white]            Show all states\n")
@@ -139,7 +139,7 @@ func (v *HelpView) generateHelpContent() string {
 	help.WriteString("[teal::b]Partitions View:[white::-]\n")
 	help.WriteString("  [yellow]Enter[white]        Show partition details\n")
 	help.WriteString("  [yellow]/[white]            Filter partitions\n")
-	help.WriteString("  [yellow]1-9[white]          Sort by column\n")
+	help.WriteString("  [yellow]Click Headers[white] Sort by column\n")
 	help.WriteString("  [yellow]R[white]            Refresh view\n")
 	help.WriteString("  [yellow]a[white]            Show analytics modal\n")
 	help.WriteString("  [yellow]w[white]            Show wait time analytics\n\n")
@@ -148,14 +148,14 @@ func (v *HelpView) generateHelpContent() string {
 	help.WriteString("[teal::b]QoS View:[white::-]\n")
 	help.WriteString("  [yellow]Enter[white]        Show QoS details\n")
 	help.WriteString("  [yellow]/[white]            Filter QoS policies\n")
-	help.WriteString("  [yellow]1-9[white]          Sort by column\n")
+	help.WriteString("  [yellow]Click Headers[white] Sort by column\n")
 	help.WriteString("  [yellow]R[white]            Refresh view\n\n")
 
 	// Accounts view
 	help.WriteString("[teal::b]Accounts View:[white::-]\n")
 	help.WriteString("  [yellow]Enter[white]        Show account details\n")
 	help.WriteString("  [yellow]/[white]            Filter accounts\n")
-	help.WriteString("  [yellow]1-9[white]          Sort by column\n")
+	help.WriteString("  [yellow]Click Headers[white] Sort by column\n")
 	help.WriteString("  [yellow]R[white]            Refresh view\n")
 	help.WriteString("  [yellow]h[white]            Show account hierarchy\n\n")
 
@@ -163,7 +163,7 @@ func (v *HelpView) generateHelpContent() string {
 	help.WriteString("[teal::b]Users View:[white::-]\n")
 	help.WriteString("  [yellow]Enter[white]        Show user details\n")
 	help.WriteString("  [yellow]/[white]            Filter users\n")
-	help.WriteString("  [yellow]1-9[white]          Sort by column\n")
+	help.WriteString("  [yellow]Click Headers[white] Sort by column\n")
 	help.WriteString("  [yellow]R[white]            Refresh view\n")
 	help.WriteString("  [yellow]a[white]            Show admin users\n\n")
 
@@ -171,7 +171,7 @@ func (v *HelpView) generateHelpContent() string {
 	help.WriteString("[teal::b]Reservations View:[white::-]\n")
 	help.WriteString("  [yellow]Enter[white]        Show reservation details\n")
 	help.WriteString("  [yellow]/[white]            Filter reservations\n")
-	help.WriteString("  [yellow]1-9[white]          Sort by column\n")
+	help.WriteString("  [yellow]Click Headers[white] Sort by column\n")
 	help.WriteString("  [yellow]R[white]            Refresh view\n\n")
 
 	// Dashboard

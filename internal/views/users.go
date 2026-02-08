@@ -183,7 +183,7 @@ func (v *UsersView) Hints() []string {
 		"[yellow]/[white] Filter",
 		"[yellow]F3[white] Adv Filter",
 		"[yellow]Ctrl+F[white] Search",
-		"[yellow]1-9[white] Sort",
+		"[yellow]Click Headers[white] Sort",
 		"[yellow]R[white] Refresh",
 		adminHint,
 	}
