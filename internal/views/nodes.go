@@ -12,6 +12,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/debug"
+	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/internal/ssh"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
@@ -210,6 +211,7 @@ func (v *NodesView) Hints() []string {
 		"[yellow]a[white] All States",
 		"[yellow]g[white] Group By",
 		"[yellow]Space[white] Toggle Group",
+		"[yellow]e[white] Export",
 		"Bar: █=Used ▒=Alloc ▱=Free",
 	}
 
@@ -308,6 +310,8 @@ func (v *NodesView) nodesRuneHandlers() map[rune]func(*NodesView, *tcell.EventKe
 		'g': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.promptGroupBy(); return nil },
 		'G': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.promptGroupBy(); return nil },
 		' ': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.toggleGroupExpansion(); return nil },
+		'e': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showExportDialog(); return nil },
+		'E': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showExportDialog(); return nil },
 	}
 }
 
@@ -1873,4 +1877,15 @@ func (v *NodesView) promptSortBy() {
 	if v.pages != nil {
 		v.pages.AddPage("sort-by", centeredModal, true, true)
 	}
+}
+
+// showExportDialog opens the table export dialog for the current node list.
+func (v *NodesView) showExportDialog() {
+	showTableExportDialog(v.pages, v.app, "Nodes", func() *export.TableData {
+		v.mu.RLock()
+		nodes := make([]*dao.Node, len(v.nodes))
+		copy(nodes, v.nodes)
+		v.mu.RUnlock()
+		return export.NodesTableData(nodes)
+	})
 }

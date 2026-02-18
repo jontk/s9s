@@ -10,6 +10,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/debug"
+	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
 	"github.com/jontk/s9s/internal/ui/styles"
@@ -266,6 +267,7 @@ func (v *JobsView) Hints() []string {
 		"[yellow]v[white] Multi-Select",
 		"[yellow]S[white] Sort",
 		"[yellow]R[white] Refresh",
+		"[yellow]e[white] Export",
 	}
 
 	if v.isAdvancedMode {
@@ -376,6 +378,8 @@ func (v *JobsView) jobsRuneHandlers() map[rune]func(*JobsView, *tcell.EventKey) 
 		'U': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.promptUserFilter(); return nil },
 		'v': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleMultiSelectMode(); return nil },
 		'V': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleMultiSelectMode(); return nil },
+		'e': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showExportDialog(); return nil },
+		'E': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showExportDialog(); return nil },
 	}
 }
 
@@ -1886,4 +1890,15 @@ func (v *JobsView) promptSortBy() {
 	if v.pages != nil {
 		v.pages.AddPage("sort-by", centeredModal, true, true)
 	}
+}
+
+// showExportDialog opens the table export dialog for the current job list.
+func (v *JobsView) showExportDialog() {
+	showTableExportDialog(v.pages, v.app, "Jobs", func() *export.TableData {
+		v.mu.RLock()
+		jobs := make([]*dao.Job, len(v.jobs))
+		copy(jobs, v.jobs)
+		v.mu.RUnlock()
+		return export.JobsTableData(jobs)
+	})
 }

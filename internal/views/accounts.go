@@ -10,6 +10,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
 	"github.com/jontk/s9s/internal/ui/styles"
@@ -176,6 +177,7 @@ func (v *AccountsView) Hints() []string {
 		"[yellow]S[white] Sort",
 		"[yellow]R[white] Refresh",
 		"[yellow]H[white] Show Hierarchy",
+		"[yellow]e[white] Export",
 	}
 
 	if v.isAdvancedMode {
@@ -240,6 +242,8 @@ func (v *AccountsView) accountsRuneHandlers() map[rune]func() {
 		'/': func() { v.app.SetFocus(v.filterInput) },
 		'H': v.showAccountHierarchy,
 		'S': func() { v.promptSortBy() },
+		'e': func() { v.showExportDialog() },
+		'E': func() { v.showExportDialog() },
 	}
 }
 
@@ -868,4 +872,15 @@ func (v *AccountsView) promptSortBy() {
 	if v.pages != nil {
 		v.pages.AddPage("sort-by", centeredModal, true, true)
 	}
+}
+
+// showExportDialog opens the table export dialog for the current account list.
+func (v *AccountsView) showExportDialog() {
+	showTableExportDialog(v.pages, v.app, "Accounts", func() *export.TableData {
+		v.mu.RLock()
+		accounts := make([]*dao.Account, len(v.accounts))
+		copy(accounts, v.accounts)
+		v.mu.RUnlock()
+		return export.AccountsTableData(accounts)
+	})
 }

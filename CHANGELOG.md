@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Table Export for All Views** (#85)
+  - Press `e` in any view to export the current data to a file
+  - Supported views: Jobs, Nodes, Partitions, Reservations, QoS, Accounts, Users
+  - Supported formats: CSV, JSON, Text (ASCII table), Markdown, HTML
+  - Export dialog shows record count, format picker, and configurable output path
+  - Files are written to `~/slurm_exports/` by default with timestamped filenames (e.g. `jobs_20260218_143022.csv`)
+  - JSON exports include a structured envelope with `title`, `exported_at`, `total`, and `records` keyed by column name
+  - Export paths are validated to prevent writes outside the user's home directory
+
 ### Changed
 
 ### Fixed
