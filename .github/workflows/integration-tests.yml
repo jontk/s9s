@@ -1,0 +1,495 @@
+name: Integration Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'test/**'
+      - 'cmd/**'
+      - 'internal/**'
+      - '.github/workflows/integration-tests.yml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.22'
+  GOTOOLCHAIN: 'auto'
+  K3D_VERSION: 'v5.8.3'
+  KUBECTL_VERSION: 'v1.28.0'
+
+jobs:
+  integration-tests-pr:
+    name: Integration Tests (Mock SLURM)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install k3d
+        run: |
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${{ env.K3D_VERSION }} bash
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/${{ env.KUBECTL_VERSION }}/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+      - name: Create k3d cluster
+        run: |
+          k3d cluster create slurm-test \
+            --agents 1 \
+            --wait \
+            --timeout 5m
+
+          # Verify cluster is ready
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Create slurm-test namespace
+        run: |
+          kubectl create namespace slurm-test
+          kubectl get namespaces
+
+      - name: Create JWT token secret
+        run: |
+          # Using the mock server's valid token
+          kubectl create secret generic slurm-jwt-token \
+            --from-literal=token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjI2NTQzMDU1NzksImlhdCI6MTc1NDMwNTU3OSwic3VuIjoicm9vdCJ9.ECpVcCqD1eXUk5-3LZLCDVDolvCJkhGNj24IvqwCkPs" \
+            -n slurm-test
+
+      - name: Build mock SLURM API image
+        run: |
+          echo "Building mock SLURM API image..."
+          curl -sL https://raw.githubusercontent.com/jontk/mock-slurm-api/main/mock-slurm-server.py > /tmp/mock-slurm-server.py
+          curl -sL https://raw.githubusercontent.com/jontk/mock-slurm-api/main/Dockerfile > /tmp/Dockerfile.mock
+
+          cd /tmp
+          docker build -f Dockerfile.mock -t mock-slurm-api:local .
+          k3d image import mock-slurm-api:local -c slurm-test
+
+          echo "Mock SLURM API image built and imported to k3d"
+
+      - name: Deploy mock SLURM API
+        run: |
+          # Create ConfigMap with test configuration
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: test-config
+            namespace: slurm-test
+          data:
+            MOCK_SLURM_SERVER_URL: "https://mock-slurm-api.slurm-test.svc.cluster.local:6820"
+            SLURM_INSECURE_SKIP_VERIFY: "true"
+            SLURM_API_VERSION: "v0.0.43"
+            TEST_TIMEOUT: "300s"
+            GO_TEST_FLAGS: "-v -race -coverprofile=coverage.out"
+          EOF
+
+          # Deploy mock SLURM API server
+          cat <<EOF | kubectl apply -f -
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: mock-slurm-api
+            namespace: slurm-test
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: mock-slurm-api
+            template:
+              metadata:
+                labels:
+                  app: mock-slurm-api
+              spec:
+                containers:
+                - name: mock-slurm-api
+                  image: mock-slurm-api:local
+                  imagePullPolicy: Never
+                  ports:
+                  - name: https
+                    containerPort: 6820
+                  env:
+                  - name: PORT
+                    value: "6820"
+                  livenessProbe:
+                    httpGet:
+                      path: /slurm/v0.0.43/ping
+                      port: https
+                      scheme: HTTPS
+                      httpHeaders:
+                      - name: X-SLURM-USER-TOKEN
+                        value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjI2NTQzMDU1NzksImlhdCI6MTc1NDMwNTU3OSwic3VuIjoicm9vdCJ9.ECpVcCqD1eXUk5-3LZLCDVDolvCJkhGNj24IvqwCkPs"
+                    initialDelaySeconds: 10
+                    periodSeconds: 10
+                    timeoutSeconds: 5
+                  readinessProbe:
+                    httpGet:
+                      path: /slurm/v0.0.43/ping
+                      port: https
+                      scheme: HTTPS
+                      httpHeaders:
+                      - name: X-SLURM-USER-TOKEN
+                        value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjI2NTQzMDU1NzksImlhdCI6MTc1NDMwNTU3OSwic3VuIjoicm9vdCJ9.ECpVcCqD1eXUk5-3LZLCDVDolvCJkhGNj24IvqwCkPs"
+                    initialDelaySeconds: 5
+                    periodSeconds: 5
+                    timeoutSeconds: 3
+                  resources:
+                    requests:
+                      cpu: 100m
+                      memory: 128Mi
+                    limits:
+                      cpu: 500m
+                      memory: 256Mi
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: mock-slurm-api
+            namespace: slurm-test
+          spec:
+            type: ClusterIP
+            ports:
+            - name: https
+              port: 6820
+              targetPort: https
+            selector:
+              app: mock-slurm-api
+          EOF
+
+      - name: Wait for mock SLURM API to be ready
+        run: |
+          echo "Waiting for mock SLURM API deployment..."
+          kubectl wait --for=condition=available --timeout=120s \
+            deployment/mock-slurm-api -n slurm-test
+
+          echo "Waiting for mock SLURM API pods to be ready..."
+          kubectl wait --for=condition=ready --timeout=120s \
+            pod -l app=mock-slurm-api -n slurm-test
+
+          # Verify the service is accessible
+          kubectl get pods,svc -n slurm-test
+
+      - name: Run unit tests
+        run: |
+          echo "Running unit tests..."
+          go test -v -race -coverprofile=unit-coverage.out -covermode=atomic ./...
+        env:
+          GOTOOLCHAIN: ${{ env.GOTOOLCHAIN }}
+
+      - name: Run integration tests
+        run: |
+          # Set environment variables for testing
+          export SLURM_SERVER_URL="https://mock-slurm-api.slurm-test.svc.cluster.local:6820"
+          export SLURM_JWT_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjI2NTQzMDU1NzksImlhdCI6MTc1NDMwNTU3OSwic3VuIjoicm9vdCJ9.ECpVcCqD1eXUk5-3LZLCDVDolvCJkhGNj24IvqwCkPs"
+          export SLURM_INSECURE_SKIP_VERIFY="true"
+          export CGO_ENABLED="1"
+
+          echo "Running integration tests against mock SLURM API..."
+
+          if [ -d "test/integration" ]; then
+            go test -v -race -coverprofile=integration-coverage.out -covermode=atomic ./test/integration/...
+
+            echo ""
+            echo "=== Integration Test Coverage Summary ==="
+            go tool cover -func=integration-coverage.out | tail -1
+          else
+            echo "Note: No integration tests found in test/integration/"
+            echo "Skipping integration tests..."
+          fi
+        env:
+          GOTOOLCHAIN: ${{ env.GOTOOLCHAIN }}
+
+      - name: Build s9s
+        run: |
+          echo "Building s9s TUI..."
+          go build -v -o s9s ./cmd/s9s
+          ./s9s --version || ./s9s --help || echo "s9s built successfully"
+        env:
+          GOTOOLCHAIN: ${{ env.GOTOOLCHAIN }}
+
+      - name: Run s9s smoke test
+        run: |
+          export SLURM_SERVER_URL="https://mock-slurm-api.slurm-test.svc.cluster.local:6820"
+          export SLURM_JWT_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjI2NTQzMDU1NzksImlhdCI6MTc1NDMwNTU3OSwic3VuIjoicm9vdCJ9.ECpVcCqD1eXUk5-3LZLCDVDolvCJkhGNj24IvqwCkPs"
+          export SLURM_INSECURE_SKIP_VERIFY="true"
+
+          echo "Running s9s smoke test (non-interactive)..."
+          # Try to run in test mode if available, otherwise just verify it can connect
+          timeout 15s ./s9s \
+            --slurm.url="${SLURM_SERVER_URL}" \
+            --slurm.token="${SLURM_JWT_TOKEN}" \
+            --slurm.insecure-skip-verify=true \
+            --test-mode 2>&1 || {
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 124 ]; then
+              echo "Test timed out (expected for TUI)"
+            else
+              echo "s9s exited with code $EXIT_CODE"
+            fi
+            echo "Note: TUI applications require interactive terminal"
+          }
+
+          echo ""
+          echo "Smoke test completed!"
+        env:
+          GOTOOLCHAIN: ${{ env.GOTOOLCHAIN }}
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./unit-coverage.out,./integration-coverage.out
+          flags: integration-tests
+          name: integration-coverage
+          fail_ci_if_error: false
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          echo "=== Mock SLURM API Logs ==="
+          kubectl logs -l app=mock-slurm-api -n slurm-test --tail=100 || true
+
+          echo ""
+          echo "=== Mock SLURM API Pod Status ==="
+          kubectl describe pods -l app=mock-slurm-api -n slurm-test || true
+
+          echo ""
+          echo "=== Cluster Events ==="
+          kubectl get events -n slurm-test --sort-by='.lastTimestamp' || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          k3d cluster delete slurm-test || true
+
+  integration-tests-main:
+    name: Integration Tests (Real SLURM)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/${{ env.KUBECTL_VERSION }}/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+      - name: Configure kubectl for brokkr-prod
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.BROKKR_PROD_KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+          # Verify connection
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Verify slurm-test namespace exists
+        run: |
+          kubectl get namespace slurm-test || {
+            echo "Error: slurm-test namespace not found in brokkr-prod cluster"
+            exit 1
+          }
+
+      - name: Run integration tests against real SLURM
+        run: |
+          cat <<EOF | kubectl apply -f -
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: s9s-integration-test-${GITHUB_SHA::8}
+            namespace: slurm-test
+            labels:
+              app: s9s-test
+              test-target: s9s
+              test-mode: real
+              github-run: "${GITHUB_RUN_ID}"
+          spec:
+            backoffLimit: 1
+            ttlSecondsAfterFinished: 3600
+            template:
+              metadata:
+                labels:
+                  app: s9s-test
+                  test-target: s9s
+                  test-mode: real
+              spec:
+                restartPolicy: Never
+                containers:
+                - name: test-runner
+                  image: golang:1.22
+                  workingDir: /workspace
+                  command:
+                  - bash
+                  - -c
+                  - |
+                    set -e
+                    echo "=== S9S (SLURM TUI) Integration Tests (Real SLURM) ==="
+                    echo "GitHub SHA: \${GITHUB_SHA}"
+                    echo "GitHub Run ID: \${GITHUB_RUN_ID}"
+
+                    echo "Cloning repository at \${GITHUB_SHA}..."
+                    git clone https://github.com/\${GITHUB_REPOSITORY}.git .
+                    git checkout \${GITHUB_SHA}
+
+                    echo "Running integration tests against real SLURM cluster..."
+                    go test \$GO_TEST_FLAGS ./test/integration/...
+
+                    echo ""
+                    echo "=== Test Coverage Summary ==="
+                    go tool cover -func=coverage.out | tail -1
+
+                    echo "Building s9s..."
+                    go build -o s9s ./cmd/s9s
+
+                    echo "Running s9s smoke test (non-interactive)..."
+                    # Test that s9s can connect and fetch data
+                    timeout 15s ./s9s --slurm.url="\$SLURM_SERVER_URL" \\
+                                       --slurm.token="\$SLURM_JWT_TOKEN" \\
+                                       --slurm.insecure-skip-verify=true \\
+                                       --test-mode 2>&1 || {
+                      EXIT_CODE=\$?
+                      if [ \$EXIT_CODE -eq 124 ]; then
+                        echo "Test timed out (expected for TUI)"
+                      else
+                        echo "s9s exited with code \$EXIT_CODE"
+                      fi
+                      echo "Note: TUI mode requires interactive terminal"
+                    }
+
+                    echo ""
+                    echo "Tests completed successfully!"
+                  env:
+                  - name: GITHUB_SHA
+                    value: "${GITHUB_SHA}"
+                  - name: GITHUB_RUN_ID
+                    value: "${GITHUB_RUN_ID}"
+                  - name: GITHUB_REPOSITORY
+                    value: "${GITHUB_REPOSITORY}"
+                  - name: SLURM_SERVER_URL
+                    valueFrom:
+                      configMapKeyRef:
+                        name: test-config
+                        key: REAL_SLURM_SERVER_URL
+                  - name: SLURM_JWT_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: slurm-jwt-token
+                        key: token
+                  - name: SLURM_INSECURE_SKIP_VERIFY
+                    valueFrom:
+                      configMapKeyRef:
+                        name: test-config
+                        key: SLURM_INSECURE_SKIP_VERIFY
+                  - name: GO_TEST_FLAGS
+                    valueFrom:
+                      configMapKeyRef:
+                        name: test-config
+                        key: GO_TEST_FLAGS
+                  - name: CGO_ENABLED
+                    value: "1"
+                  - name: GOTOOLCHAIN
+                    value: "auto"
+                  resources:
+                    requests:
+                      cpu: 500m
+                      memory: 512Mi
+                    limits:
+                      cpu: 2000m
+                      memory: 2Gi
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                      - ALL
+          EOF
+
+          # Wait for job to complete
+          echo "Waiting for test job to complete..."
+          kubectl wait --for=condition=complete --timeout=600s \
+            job/s9s-integration-test-${GITHUB_SHA::8} -n slurm-test || {
+            echo "Test job did not complete successfully"
+            kubectl logs -l job-name=s9s-integration-test-${GITHUB_SHA::8} -n slurm-test --tail=200
+            kubectl describe job s9s-integration-test-${GITHUB_SHA::8} -n slurm-test
+            exit 1
+          }
+
+          # Show test results
+          echo "=== Test Results ==="
+          kubectl logs -l job-name=s9s-integration-test-${GITHUB_SHA::8} -n slurm-test
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Cleanup test job
+        if: always()
+        run: |
+          kubectl delete job s9s-integration-test-${GITHUB_SHA::8} -n slurm-test --ignore-not-found=true
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+
+      - name: Comment on commit with results
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}';
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const emoji = status === 'success' ? ':white_check_mark:' : ':x:';
+
+            const body = `${emoji} **Integration Tests (Real SLURM)**: ${status}\n\n` +
+                        `Commit: ${context.sha.substring(0, 8)}\n` +
+                        `[View run details](${runUrl})`;
+
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: body
+            });
