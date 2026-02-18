@@ -80,6 +80,9 @@ func (v *JobsView) SetApp(app *tview.Application) {
 
 	// Create job output view
 	v.jobOutputView = NewJobOutputView(v.client, app)
+	if v.pages != nil {
+		v.jobOutputView.SetPages(v.pages)
+	}
 
 	// Create batch operations view
 	v.batchOpsView = NewBatchOperationsView(v.client, app)
