@@ -602,10 +602,61 @@ func TestLoadWithNoConfigNoContextsButDiscoveryEnabled(t *testing.T) {
 	// Verify we have an empty cluster config (will be populated by auto-discovery)
 	assert.Empty(t, cfg.Cluster.Endpoint, "Endpoint should be empty until discovery runs")
 	assert.Empty(t, cfg.Cluster.Token, "Token should be empty until discovery runs")
-	assert.Equal(t, "v0.0.43", cfg.Cluster.APIVersion, "API version should have default")
+	assert.Empty(t, cfg.Cluster.APIVersion, "API version should be empty to enable auto-detection")
 	assert.Equal(t, "30s", cfg.Cluster.Timeout, "Timeout should have default")
 
 	// Verify no contexts exist
 	assert.Empty(t, cfg.Contexts, "No contexts should exist in a fresh config")
 	assert.Equal(t, "default", cfg.CurrentContext, "Current context should be 'default'")
+}
+
+func TestConfigFileWithContextsTakesPrecedenceOverDiscovery(t *testing.T) {
+	// Isolate environment from host
+	t.Setenv("SLURM_REST_URL", "")
+	t.Setenv("S9S_SLURM_REST_URL", "")
+	t.Setenv("SLURM_JWT", "")
+	t.Setenv("S9S_SLURM_JWT", "")
+	t.Setenv("SLURM_API_VERSION", "")
+
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config-with-context.yaml")
+
+	// Config file with explicit endpoint, token, and discovery enabled
+	yamlContent := `
+currentContext: prod
+
+contexts:
+  - name: prod
+    cluster:
+      endpoint: https://configured.example.com:6820
+      token: configured-token
+      apiVersion: v0.0.43
+
+discovery:
+  enabled: true
+  enableEndpoint: true
+  enableToken: true
+`
+
+	err := os.WriteFile(configPath, []byte(yamlContent), 0600)
+	require.NoError(t, err)
+
+	cfg, err := LoadWithPath(configPath)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Verify config file values are loaded (these will be used instead of discovery)
+	assert.Equal(t, "prod", cfg.CurrentContext)
+	assert.Len(t, cfg.Contexts, 1)
+	assert.Equal(t, "prod", cfg.Contexts[0].Name)
+
+	// Verify cluster config is set from the context
+	assert.Equal(t, "https://configured.example.com:6820", cfg.Cluster.Endpoint)
+	assert.Equal(t, "configured-token", cfg.Cluster.Token)
+	assert.Equal(t, "v0.0.43", cfg.Cluster.APIVersion)
+
+	// Verify discovery is enabled (but won't override configured values in CLI layer)
+	assert.True(t, cfg.Discovery.Enabled)
+	assert.True(t, cfg.Discovery.EnableEndpoint)
+	assert.True(t, cfg.Discovery.EnableToken)
 }
