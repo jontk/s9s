@@ -128,7 +128,7 @@ All environment variables are prefixed with `S9S_`.
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
 | `SLURM_URL` | SLURM REST API URL | - | `https://slurm.example.com` |
-| `SLURM_API_VERSION` | API version | `v0.0.43` | `v0.0.43` |
+| `SLURM_API_VERSION` | API version | auto-detected | `v0.0.43` |
 | `SLURM_TOKEN` | Authentication token | - | `eyJhbGci...` |
 | `SLURM_USER` | Username for basic auth | - | `admin` |
 | `SLURM_PASS` | Password for basic auth | - | `secretpass` |
@@ -176,7 +176,7 @@ s9s [flags]
 --token TOKEN          Authentication token
 --username USER        Username for basic auth
 --password PASS        Password for basic auth
---api-version VERSION  SLURM API version (default: v0.0.43)
+--api-version VERSION  SLURM API version (default: auto-detected)
 --insecure            Skip TLS certificate verification
 
 # Mock mode
@@ -227,7 +227,7 @@ clusters:
   <cluster_name>:
     # Connection settings
     url: string              # Required: SLURM REST API URL
-    api_version: string      # Optional: API version (default: v0.0.43)
+    api_version: string      # Optional: API version (default: auto-detected)
     timeout: duration        # Optional: Request timeout (default: 30s)
     retry_attempts: integer  # Optional: Retry attempts (default: 3)
     retry_delay: duration    # Optional: Retry delay (default: 1s)
@@ -813,7 +813,7 @@ default_cluster: main
 clusters:
   main:
     url: https://slurm.example.com
-    api_version: v0.0.43
+    api_version: v0.0.43  # Optional: omit to auto-detect from slurmrestd
     timeout: 60s
     retry_attempts: 5
     auth:
