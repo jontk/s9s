@@ -37,6 +37,13 @@ Python bindings for SLURM's C API:
 - **GitHub**: [https://github.com/PySlurm/pyslurm](https://github.com/PySlurm/pyslurm)
 - **Features**: Direct Python interface to SLURM functionality
 
+### slurm-client (Go)
+Go client library for SLURM REST API:
+- **GitHub**: [https://github.com/jontk/slurm-client](https://github.com/jontk/slurm-client)
+- **Features**: Native Go SDK for slurmrestd API with comprehensive type safety
+- **Installation**: `go get github.com/jontk/slurm-client@latest`
+- **Use Case**: Ideal for building Go applications that need to interact with SLURM clusters
+
 ## Using s9s
 
 For information on using the s9s TUI application, see:
