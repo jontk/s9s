@@ -21,9 +21,9 @@ type FilteredStreamManager struct {
 }
 
 // NewFilteredStreamManager creates a new stream manager with filtering support
-func NewFilteredStreamManager(client dao.SlurmClient, sshManager *ssh.SessionManager, config *SlurmConfig, configPath string) (*FilteredStreamManager, error) {
+func NewFilteredStreamManager(client dao.SlurmClient, sshManager *ssh.SessionManager, sshExecutor SSHCommandExecutor, config *SlurmConfig, configPath string) (*FilteredStreamManager, error) {
 	// Create base stream manager
-	baseManager, err := NewStreamManager(client, sshManager, config)
+	baseManager, err := NewStreamManager(client, sshManager, sshExecutor, config)
 	if err != nil {
 		return nil, err
 	}

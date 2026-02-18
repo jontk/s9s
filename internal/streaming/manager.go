@@ -13,8 +13,11 @@ import (
 	"github.com/jontk/s9s/internal/ssh"
 )
 
+// remotePollingInterval is the interval between SSH-based file content polls
+const remotePollingInterval = 3 * time.Second
+
 // NewStreamManager creates a new stream manager
-func NewStreamManager(client dao.SlurmClient, sshManager *ssh.SessionManager, config *SlurmConfig) (*StreamManager, error) {
+func NewStreamManager(client dao.SlurmClient, sshManager *ssh.SessionManager, sshExecutor SSHCommandExecutor, config *SlurmConfig) (*StreamManager, error) {
 	if config == nil {
 		config = DefaultSlurmConfig()
 	}
@@ -30,6 +33,7 @@ func NewStreamManager(client dao.SlurmClient, sshManager *ssh.SessionManager, co
 	sm := &StreamManager{
 		client:        client,
 		sshManager:    sshManager,
+		sshExecutor:   sshExecutor,
 		fileWatcher:   watcher,
 		activeStreams: make(map[string]*JobStream),
 		eventBus:      NewEventBus(),
@@ -233,8 +237,15 @@ func (sm *StreamManager) startFileWatching(stream *JobStream) error {
 func (sm *StreamManager) startLocalFileWatching(stream *JobStream) error {
 	// Read existing content first
 	content, offset, err := sm.readFileFromOffset(stream.FilePath, stream.LastOffset)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to read existing content: %w", err)
+	if err != nil {
+		if os.IsNotExist(err) && stream.NodeID != "" && sm.sshExecutor != nil {
+			// File not found locally but a compute node is assigned — fall back to SSH polling
+			stream.IsRemote = true
+			return sm.startRemoteFileWatching(stream)
+		}
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to read existing content: %w", err)
+		}
 	}
 
 	if len(content) > 0 {
@@ -251,15 +262,62 @@ func (sm *StreamManager) startLocalFileWatching(stream *JobStream) error {
 	return nil
 }
 
-// startRemoteFileWatching uses SSH tail for remote file monitoring
-func (sm *StreamManager) startRemoteFileWatching(_ *JobStream) error {
-	if sm.sshManager == nil {
-		return fmt.Errorf("SSH manager not available for remote streaming")
+// startRemoteFileWatching uses SSH polling for remote file monitoring
+func (sm *StreamManager) startRemoteFileWatching(stream *JobStream) error {
+	if sm.sshExecutor == nil {
+		return fmt.Errorf("SSH executor not available for remote streaming")
+	}
+	if stream.NodeID == "" {
+		return fmt.Errorf("no compute node ID available for remote streaming")
 	}
 
-	// For now, return an error as SSH connection method needs to be implemented
-	// TODO: Implement proper SSH connection handling
-	return fmt.Errorf("remote file streaming not yet implemented - SSH connection interface needs updating")
+	filePath := stream.FilePath
+	escapedPath := strings.ReplaceAll(filePath, "'", "'\\''")
+
+	// Read initial content via cat
+	initialCmd := fmt.Sprintf("cat '%s' 2>/dev/null", escapedPath)
+	initialContent, err := sm.sshExecutor.ExecuteCommand(sm.ctx, stream.NodeID, initialCmd)
+	if err != nil {
+		// Non-fatal: file may not exist yet; polling goroutine will retry
+		initialContent = ""
+	}
+
+	if len(initialContent) > 0 {
+		newOffset := stream.LastOffset + int64(len(initialContent))
+		sm.emitNewContent(stream, initialContent, newOffset)
+		stream.LastOffset = newOffset
+	}
+
+	// Start polling goroutine
+	go func() {
+		ticker := time.NewTicker(remotePollingInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-sm.ctx.Done():
+				return
+			case <-ticker.C:
+				if !stream.IsActive {
+					return
+				}
+
+				// Fetch only new bytes since last offset using tail -c +N
+				// tail -c +N outputs from byte N (1-based), so we use LastOffset+1
+				tailCmd := fmt.Sprintf("tail -c +%d '%s' 2>/dev/null", stream.LastOffset+1, escapedPath)
+				newContent, cmdErr := sm.sshExecutor.ExecuteCommand(sm.ctx, stream.NodeID, tailCmd)
+				if cmdErr != nil || len(newContent) == 0 {
+					continue
+				}
+
+				newOffset := stream.LastOffset + int64(len(newContent))
+				sm.emitNewContent(stream, newContent, newOffset)
+				stream.LastOffset = newOffset
+			}
+		}
+	}()
+
+	return nil
 }
 
 /*

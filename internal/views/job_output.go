@@ -11,6 +11,7 @@ import (
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/internal/output"
+	"github.com/jontk/s9s/internal/ssh"
 	"github.com/jontk/s9s/internal/streaming"
 	"github.com/jontk/s9s/pkg/slurm"
 	"github.com/rivo/tview"
@@ -55,11 +56,10 @@ func NewJobOutputView(client dao.SlurmClient, app *tview.Application) *JobOutput
 		defaultPath = homeDir + "/slurm_exports"
 	}
 
-	// Create output reader with path resolver
-	// Note: SSH client will be nil initially, so only local file reading will work
-	// Call SetOutputReader with a properly configured reader if SSH access is needed
+	// Create output reader with path resolver and SSH client for remote fallback
+	sshClient := ssh.NewSSHClient(ssh.DefaultSSHConfig())
 	pathResolver := streaming.NewPathResolver(client, nil)
-	outputReader := output.NewJobOutputReader(pathResolver, nil)
+	outputReader := output.NewJobOutputReader(pathResolver, sshClient)
 
 	return &JobOutputView{
 		client:       client,

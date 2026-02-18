@@ -158,6 +158,11 @@ func (r *RemoteFileReader) GetRemoteFileInfo(ctx context.Context, nodeID, path s
 	return metadata, nil
 }
 
+// HasSSHClient returns true if an SSH client is configured
+func (r *RemoteFileReader) HasSSHClient() bool {
+	return r.sshClient != nil
+}
+
 // escapePath escapes a file path for safe use in shell commands
 func escapePath(path string) string {
 	// Simple escape: replace single quotes with '\''

@@ -58,20 +58,27 @@ func (r *JobOutputReader) ReadPartial(ctx context.Context, jobID, outputType str
 	}
 
 	// Resolve file path using PathResolver
-	filePath, isRemote, nodeID, err := r.pathResolver.ResolveOutputPath(jobID, outputType)
+	filePath, _, nodeID, err := r.pathResolver.ResolveOutputPath(jobID, outputType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve output path: %w", err)
 	}
 
-	// Read content based on location
+	// Local-first strategy: always try local filesystem first, fall back to SSH
 	var content string
 	var metadata *FileMetadata
 	var source string
 
-	if isRemote {
+	localMeta, localErr := r.localReader.GetFileInfo(filePath)
+	if localErr != nil {
+		return nil, fmt.Errorf("failed to check local file: %w", localErr)
+	}
+
+	if localMeta.Exists {
+		content, metadata, source, err = r.readLocalContent(ctx, filePath, opts)
+	} else if nodeID != "" && r.remoteReader.HasSSHClient() {
 		content, metadata, source, err = r.readRemoteContent(ctx, nodeID, filePath, opts)
 	} else {
-		content, metadata, source, err = r.readLocalContent(ctx, filePath, opts)
+		return nil, fmt.Errorf("output file not found: %s (job may not have started yet)", filePath)
 	}
 
 	if err != nil {
@@ -188,16 +195,25 @@ func (r *JobOutputReader) computeOutputMetrics(content string, metadata *FileMet
 // GetMetadata returns file metadata without reading content
 func (r *JobOutputReader) GetMetadata(ctx context.Context, jobID, outputType string) (*FileMetadata, error) {
 	// Resolve file path using PathResolver
-	filePath, isRemote, nodeID, err := r.pathResolver.ResolveOutputPath(jobID, outputType)
+	filePath, _, nodeID, err := r.pathResolver.ResolveOutputPath(jobID, outputType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve output path: %w", err)
 	}
 
-	if isRemote {
-		// Get remote file metadata
+	// Local-first strategy: check local filesystem first, fall back to SSH
+	localMeta, localErr := r.localReader.GetFileInfo(filePath)
+	if localErr != nil {
+		return nil, fmt.Errorf("failed to check local file: %w", localErr)
+	}
+
+	if localMeta.Exists {
+		return localMeta, nil
+	}
+
+	if nodeID != "" && r.remoteReader.HasSSHClient() {
 		return r.remoteReader.GetRemoteFileInfo(ctx, nodeID, filePath)
 	}
 
-	// Get local file metadata
-	return r.localReader.GetFileInfo(filePath)
+	// File not found locally and no SSH fallback available
+	return localMeta, nil
 }
