@@ -104,7 +104,7 @@ func (d *TableExportDialog) SetExportHandler(fn func(format export.ExportFormat,
 	d.onExport = fn
 }
 
-// SetCancelHandler registers the callback invoked when the dialog is cancelled.
+// SetCancelHandler registers the callback invoked when the dialog is canceled.
 func (d *TableExportDialog) SetCancelHandler(fn func()) {
 	d.onCancel = fn
 }

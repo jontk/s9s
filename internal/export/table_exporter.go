@@ -146,7 +146,43 @@ func (e *TableExporter) writeText(td *TableData, path string) error {
 	}
 	defer func() { _ = f.Close() }()
 
-	// Compute column widths.
+	widths := columnWidths(td)
+	sep := buildSeparator(widths)
+
+	if err := writeTextHeader(f, td, sep, widths); err != nil {
+		return err
+	}
+	return writeTextRows(f, td.Rows, sep, widths)
+}
+
+// writeTextHeader writes the preamble, separator, and column header row.
+func writeTextHeader(f *os.File, td *TableData, sep string, widths []int) error {
+	preamble := fmt.Sprintf("%s Export\nExported at: %s\nTotal records: %d\n\n",
+		td.Title, td.ExportedAt.Format("2006-01-02 15:04:05"), len(td.Rows))
+	if _, err := fmt.Fprint(f, preamble); err != nil {
+		return err
+	}
+	for _, line := range []string{sep, buildRow(td.Headers, widths), sep} {
+		if _, err := fmt.Fprintln(f, line); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// writeTextRows writes data rows and the closing separator.
+func writeTextRows(f *os.File, rows [][]string, sep string, widths []int) error {
+	for _, row := range rows {
+		if _, err := fmt.Fprintln(f, buildRow(row, widths)); err != nil {
+			return err
+		}
+	}
+	_, err := fmt.Fprintln(f, sep)
+	return err
+}
+
+// columnWidths computes the maximum cell width for each column.
+func columnWidths(td *TableData) []int {
 	widths := make([]int, len(td.Headers))
 	for i, h := range td.Headers {
 		widths[i] = len(h)
@@ -158,34 +194,7 @@ func (e *TableExporter) writeText(td *TableData, path string) error {
 			}
 		}
 	}
-
-	separator := buildSeparator(widths)
-
-	header := fmt.Sprintf("%s Export\n", td.Title)
-	header += fmt.Sprintf("Exported at: %s\n", td.ExportedAt.Format("2006-01-02 15:04:05"))
-	header += fmt.Sprintf("Total records: %d\n\n", len(td.Rows))
-	if _, err := fmt.Fprint(f, header); err != nil {
-		return err
-	}
-
-	if _, err := fmt.Fprintln(f, separator); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintln(f, buildRow(td.Headers, widths)); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintln(f, separator); err != nil {
-		return err
-	}
-	for _, row := range td.Rows {
-		if _, err := fmt.Fprintln(f, buildRow(row, widths)); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintln(f, separator); err != nil {
-		return err
-	}
-	return nil
+	return widths
 }
 
 func buildSeparator(widths []int) string {
@@ -279,27 +288,31 @@ func (e *TableExporter) writeMarkdown(td *TableData, path string) error {
 	}
 	defer func() { _ = f.Close() }()
 
-	fmt.Fprintf(f, "# %s Export\n\n", td.Title)
-	fmt.Fprintf(f, "_Exported at: %s — %d records_\n\n", td.ExportedAt.Format("2006-01-02 15:04:05"), len(td.Rows))
-
-	// Header row
-	fmt.Fprintf(f, "| %s |\n", strings.Join(td.Headers, " | "))
-	// Separator
+	lines := []string{
+		fmt.Sprintf("# %s Export\n", td.Title),
+		fmt.Sprintf("_Exported at: %s — %d records_\n", td.ExportedAt.Format("2006-01-02 15:04:05"), len(td.Rows)),
+		fmt.Sprintf("| %s |", strings.Join(td.Headers, " | ")),
+	}
 	seps := make([]string, len(td.Headers))
 	for i := range seps {
 		seps[i] = "---"
 	}
-	fmt.Fprintf(f, "| %s |\n", strings.Join(seps, " | "))
-	// Data rows
+	lines = append(lines, fmt.Sprintf("| %s |", strings.Join(seps, " | ")))
+
 	for _, row := range td.Rows {
-		// Pad row to match header count
 		cells := make([]string, len(td.Headers))
 		for i := range cells {
 			if i < len(row) {
 				cells[i] = row[i]
 			}
 		}
-		fmt.Fprintf(f, "| %s |\n", strings.Join(cells, " | "))
+		lines = append(lines, fmt.Sprintf("| %s |", strings.Join(cells, " | ")))
+	}
+
+	for _, line := range lines {
+		if _, err := fmt.Fprintln(f, line); err != nil {
+			return err
+		}
 	}
 	return nil
 }
