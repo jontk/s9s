@@ -15,6 +15,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.5.0] - 2026-02-18
+
+### Added
+
+- **Zero-Configuration Auto-Discovery** (#81)
+  - s9s now works out-of-the-box on SLURM systems without requiring a configuration file
+  - Automatic discovery of slurmrestd endpoint and JWT token
+  - API version auto-detection from slurmrestd (removed hardcoded `v0.0.43` default)
+  - When a config file exists with explicit contexts, those values take precedence over discovery
+
+- **Dark Mode Logo Support** (#76)
+  - Logo adapts to dark and light terminal themes
+
+- **Integration Tests CI Workflow** (#80)
+  - PR testing with ephemeral k3d cluster and mock SLURM API
+  - Main branch testing against real SLURM cluster in brokkr-prod
+  - Race detection, coverage reporting (Codecov), and automatic resource cleanup
+  - Debug output on failure (pod logs, cluster events)
+
+### Changed
+
+- **Static Binary Builds** (#81)
+  - Added `CGO_ENABLED=0` to Makefile for cross-distribution compatibility (NixOS, Rocky, Ubuntu, etc.)
+
+- **SLURM Authentication** (#81)
+  - Changed from `auth.NewTokenAuth()` to `slurm.WithUserToken()` to set both `X-SLURM-USER-NAME` and `X-SLURM-USER-TOKEN` headers
+  - Fixes 401 Unauthorized errors with slurmrestd
+
+- **API Version Handling** (#81)
+  - Removed hardcoded `v0.0.43` default; API version is now auto-detected from the slurmrestd endpoint
+  - Ensures s9s always uses the latest version supported by the cluster
+
+### Fixed
+
+- **Discovery Order** (#81)
+  - Fixed auto-discovery to discover endpoint → token → create context (previously the context was created before the token was discovered, losing it)
+
+- **Config Fallback** (#81)
+  - Fixed `findClusterConfig()` to fall back to `cfg.Cluster` when no contexts exist, preventing discovered tokens from being lost during initialization
+
+- **Debug System** (#81)
+  - Rewrote debug logging to use `io.Discard` by default, only writing to log file when `--debug` is passed
+  - Fixes debug messages overlaying the TUI display
+
+### Documentation
+
+- Added slurm-client Go library to API reference (#78)
+- Updated installation instructions and default paths (#77)
+
 ## [0.4.0] - 2026-02-08
 
 ### Added
@@ -273,7 +322,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Versions prior to 0.1.0 were in active development and did not follow semantic versioning.
 
-[Unreleased]: https://github.com/jontk/s9s/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/jontk/s9s/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/jontk/s9s/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jontk/s9s/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jontk/s9s/compare/v0.1.0...v0.3.0
 [0.1.0]: https://github.com/jontk/s9s/releases/tag/v0.1.0
