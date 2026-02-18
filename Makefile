@@ -42,11 +42,11 @@ version:
 	@echo "Built:     $(DATE)"
 	@echo "Built by:  $(BUILT_BY)"
 
-# Build the application
+# Build the application (static binary for portability)
 build:
 	@echo "Building $(BINARY_NAME) $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)
-	$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/s9s
+	CGO_ENABLED=0 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/s9s
 
 # Clean build artifacts
 clean:

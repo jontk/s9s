@@ -577,3 +577,35 @@ plugins:
 		assert.Equal(t, "10s", refreshInterval)
 	}
 }
+
+// TestLoadWithNoConfigNoContextsButDiscoveryEnabled verifies that s9s can start
+// without a config file or contexts when auto-discovery is enabled.
+// This is the expected behavior for first-time users on SLURM systems.
+func TestLoadWithNoConfigNoContextsButDiscoveryEnabled(t *testing.T) {
+	// Isolate environment - no config file, no env vars
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("SLURM_REST_URL", "")
+	t.Setenv("S9S_SLURM_REST_URL", "")
+	t.Setenv("SLURM_JWT", "")
+	t.Setenv("S9S_SLURM_JWT", "")
+	t.Setenv("SLURM_API_VERSION", "")
+
+	// Load should succeed with defaults and discovery enabled
+	cfg, err := Load()
+	require.NoError(t, err, "Load should succeed with no config when discovery is enabled")
+	require.NotNil(t, cfg)
+
+	// Verify discovery is enabled by default
+	assert.True(t, cfg.Discovery.Enabled, "Discovery should be enabled by default")
+
+	// Verify we have an empty cluster config (will be populated by auto-discovery)
+	assert.Empty(t, cfg.Cluster.Endpoint, "Endpoint should be empty until discovery runs")
+	assert.Empty(t, cfg.Cluster.Token, "Token should be empty until discovery runs")
+	assert.Equal(t, "v0.0.43", cfg.Cluster.APIVersion, "API version should have default")
+	assert.Equal(t, "30s", cfg.Cluster.Timeout, "Timeout should have default")
+
+	// Verify no contexts exist
+	assert.Empty(t, cfg.Contexts, "No contexts should exist in a fresh config")
+	assert.Equal(t, "default", cfg.CurrentContext, "Current context should be 'default'")
+}
