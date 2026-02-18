@@ -93,6 +93,7 @@ These shortcuts work from any view:
 | `m/M` | Toggle auto-refresh | Enable/disable auto-refresh (30s) |
 | `F1` | Action menu | Show context-sensitive actions |
 | `S` | Sort modal | Open interactive sorting dialog |
+| `e/E` | Export | Export job list to CSV/JSON/Text/Markdown/HTML |
 
 ## Nodes View
 
@@ -127,6 +128,7 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `R` | Manual refresh | Refresh nodes data |
 | `S` | Sort modal | Open interactive sorting dialog |
+| `e/E` | Export | Export node list to CSV/JSON/Text/Markdown/HTML |
 
 ## Partitions View
 
@@ -152,6 +154,7 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `R` | Manual refresh | Refresh partitions data |
 | `S` | Sort modal | Open interactive sorting dialog |
+| `e/E` | Export | Export partition list to CSV/JSON/Text/Markdown/HTML |
 
 ## Users View
 
@@ -174,6 +177,7 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `R` | Manual refresh | Refresh users data |
 | `S` | Sort modal | Open interactive sorting dialog |
+| `e/E` | Export | Export user list to CSV/JSON/Text/Markdown/HTML |
 
 ## Accounts View
 
@@ -196,6 +200,7 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `R` | Manual refresh | Refresh accounts data |
 | `S` | Sort modal | Open interactive sorting dialog |
+| `e/E` | Export | Export account list to CSV/JSON/Text/Markdown/HTML |
 
 ## QoS View
 
@@ -217,6 +222,7 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `R` | Manual refresh | Refresh QoS data |
 | `S` | Sort modal | Open interactive sorting dialog |
+| `e/E` | Export | Export QoS list to CSV/JSON/Text/Markdown/HTML |
 
 ## Reservations View
 
@@ -240,6 +246,7 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `R` | Manual refresh | Refresh reservations data |
 | `S` | Sort modal | Open interactive sorting dialog |
+| `e/E` | Export | Export reservation list to CSV/JSON/Text/Markdown/HTML |
 
 ## Health View
 
