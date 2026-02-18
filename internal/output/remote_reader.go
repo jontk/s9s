@@ -122,10 +122,8 @@ func (r *RemoteFileReader) GetRemoteFileInfo(ctx context.Context, nodeID, path s
 		return nil, fmt.Errorf("SSH client not configured")
 	}
 
-	// Check if file exists and get metadata
-	// Using stat command (works on both Linux and BSD)
-	statCmd := fmt.Sprintf("stat -c '%%s %%Y' '%s' 2>/dev/null || stat -f '%%z %%m' '%s'",
-		escapePath(path), escapePath(path))
+	// Check if file exists and get metadata using GNU stat (Linux HPC nodes)
+	statCmd := fmt.Sprintf("stat -c '%%s %%Y' '%s'", escapePath(path))
 
 	output, err := r.sshClient.ExecuteCommand(ctx, nodeID, statCmd)
 	if err != nil {
@@ -138,11 +136,32 @@ func (r *RemoteFileReader) GetRemoteFileInfo(ctx context.Context, nodeID, path s
 	}
 
 	// Parse stat output: "size modtime"
+	// Scan all lines to handle any SSH banners or warnings in combined output
 	var size int64
 	var modtime int64
-	_, err = fmt.Sscanf(strings.TrimSpace(output), "%d %d", &size, &modtime)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse stat output: %w", err)
+	parsed := false
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		var s, m int64
+		if n, scanErr := fmt.Sscanf(line, "%d %d", &s, &m); n == 2 && scanErr == nil {
+			size = s
+			modtime = m
+			parsed = true
+			break
+		}
+	}
+	if !parsed {
+		// Non-empty output that didn't parse means the file likely doesn't exist
+		// (stat exited 0 but output is unrecognizable) — treat as not found
+		return &FileMetadata{
+			Path:    path,
+			Exists:  false,
+			IsLocal: false,
+			NodeID:  nodeID,
+		}, nil
 	}
 
 	metadata := &FileMetadata{
