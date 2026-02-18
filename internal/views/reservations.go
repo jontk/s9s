@@ -9,6 +9,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
 	"github.com/jontk/s9s/internal/ui/styles"
@@ -176,6 +177,7 @@ func (v *ReservationsView) Hints() []string {
 		"[yellow]Click Headers[white] Sort",
 		"[yellow]S[white] Sort",
 		"[yellow]R[white] Refresh",
+		"[yellow]e[white] Export",
 	}
 
 	// Show active filter status
@@ -257,6 +259,8 @@ func (v *ReservationsView) reservationsRuneHandlers() map[rune]func() {
 		'f': v.toggleFutureFilter,
 		'F': v.toggleFutureFilter,
 		'S': func() { v.promptSortBy() },
+		'e': func() { v.showExportDialog() },
+		'E': func() { v.showExportDialog() },
 	}
 }
 
@@ -844,4 +848,15 @@ func (v *ReservationsView) promptSortBy() {
 	if v.pages != nil {
 		v.pages.AddPage("sort-by", centeredModal, true, true)
 	}
+}
+
+// showExportDialog opens the table export dialog for the current reservation list.
+func (v *ReservationsView) showExportDialog() {
+	showTableExportDialog(v.pages, v.app, "Reservations", func() *export.TableData {
+		v.mu.RLock()
+		reservations := make([]*dao.Reservation, len(v.reservations))
+		copy(reservations, v.reservations)
+		v.mu.RUnlock()
+		return export.ReservationsTableData(reservations)
+	})
 }

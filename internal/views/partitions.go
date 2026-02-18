@@ -9,6 +9,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
 	"github.com/jontk/s9s/internal/ui/styles"
@@ -187,6 +188,7 @@ func (v *PartitionsView) Hints() []string {
 		"[yellow]Click Headers[white] Sort",
 		"[yellow]S[white] Sort",
 		"[yellow]R[white] Refresh",
+		"[yellow]e[white] Export",
 	}
 
 	if v.isAdvancedMode {
@@ -279,6 +281,9 @@ func (v *PartitionsView) handleRuneCommand(r rune) bool {
 		return true
 	case '/':
 		v.app.SetFocus(v.filterInput)
+		return true
+	case 'e', 'E':
+		v.showExportDialog()
 		return true
 	}
 
@@ -1415,4 +1420,15 @@ func (v *PartitionsView) promptSortBy() {
 	if v.pages != nil {
 		v.pages.AddPage("sort-by", centeredModal, true, true)
 	}
+}
+
+// showExportDialog opens the table export dialog for the current partition list.
+func (v *PartitionsView) showExportDialog() {
+	showTableExportDialog(v.pages, v.app, "Partitions", func() *export.TableData {
+		v.mu.RLock()
+		partitions := make([]*dao.Partition, len(v.partitions))
+		copy(partitions, v.partitions)
+		v.mu.RUnlock()
+		return export.PartitionsTableData(partitions)
+	})
 }

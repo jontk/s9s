@@ -9,6 +9,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
 	"github.com/jontk/s9s/internal/ui/styles"
@@ -187,6 +188,7 @@ func (v *UsersView) Hints() []string {
 		"[yellow]S[white] Sort",
 		"[yellow]R[white] Refresh",
 		adminHint,
+		"[yellow]e[white] Export",
 	}
 
 	if v.isAdvancedMode {
@@ -252,6 +254,8 @@ func (v *UsersView) usersRuneHandlers() map[rune]func() {
 		'a': v.toggleAdminFilter,
 		'A': v.toggleAdminFilter,
 		'S': func() { v.promptSortBy() },
+		'e': func() { v.showExportDialog() },
+		'E': func() { v.showExportDialog() },
 	}
 }
 
@@ -790,4 +794,15 @@ func (v *UsersView) promptSortBy() {
 	if v.pages != nil {
 		v.pages.AddPage("sort-by", centeredModal, true, true)
 	}
+}
+
+// showExportDialog opens the table export dialog for the current user list.
+func (v *UsersView) showExportDialog() {
+	showTableExportDialog(v.pages, v.app, "Users", func() *export.TableData {
+		v.mu.RLock()
+		users := make([]*dao.User, len(v.users))
+		copy(users, v.users)
+		v.mu.RUnlock()
+		return export.UsersTableData(users)
+	})
 }

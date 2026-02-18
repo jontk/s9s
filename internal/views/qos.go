@@ -10,6 +10,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/debug"
+	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
 	"github.com/jontk/s9s/internal/ui/styles"
@@ -179,6 +180,7 @@ func (v *QoSView) Hints() []string {
 		"[yellow]Click Headers[white] Sort",
 		"[yellow]S[white] Sort",
 		"[yellow]R[white] Refresh",
+		"[yellow]e[white] Export",
 	}
 
 	if v.isAdvancedMode {
@@ -242,6 +244,8 @@ func (v *QoSView) qosRuneHandlers() map[rune]func() {
 		'R': func() { go func() { _ = v.Refresh() }() },
 		'/': func() { v.app.SetFocus(v.filterInput) },
 		'S': func() { v.promptSortBy() },
+		'e': func() { v.showExportDialog() },
+		'E': func() { v.showExportDialog() },
 	}
 }
 
@@ -758,4 +762,15 @@ func (v *QoSView) promptSortBy() {
 	if v.pages != nil {
 		v.pages.AddPage("sort-by", centeredModal, true, true)
 	}
+}
+
+// showExportDialog opens the table export dialog for the current QoS list.
+func (v *QoSView) showExportDialog() {
+	showTableExportDialog(v.pages, v.app, "QoS", func() *export.TableData {
+		v.mu.RLock()
+		qosList := make([]*dao.QoS, len(v.qosList))
+		copy(qosList, v.qosList)
+		v.mu.RUnlock()
+		return export.QoSTableData(qosList)
+	})
 }
