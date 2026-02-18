@@ -161,11 +161,19 @@ func createSlurmClient(appCtx context.Context, cfg *config.Config, cancel contex
 }
 
 func findClusterConfig(cfg *config.Config) *config.ClusterConfig {
+	// First check if there's a matching context
 	for _, ctx := range cfg.Contexts {
 		if ctx.Name == cfg.CurrentContext {
 			return &ctx.Cluster
 		}
 	}
+
+	// Fall back to cfg.Cluster if no contexts exist (e.g., auto-discovery without config file)
+	// Don't check for endpoint here as it may be populated later by discovery
+	if len(cfg.Contexts) == 0 {
+		return &cfg.Cluster
+	}
+
 	return nil
 }
 

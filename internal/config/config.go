@@ -408,6 +408,16 @@ func (c *Config) setCurrentCluster() error {
 		return nil
 	}
 
+	// If no contexts exist and discovery is enabled, allow startup with empty cluster
+	// Auto-discovery will populate the cluster configuration
+	if len(c.Contexts) == 0 && c.Discovery.Enabled {
+		c.Cluster = ClusterConfig{
+			// Leave APIVersion empty to enable auto-detection from slurmrestd
+			Timeout: "30s",
+		}
+		return nil
+	}
+
 	return fmt.Errorf("context %q not found", c.CurrentContext)
 }
 

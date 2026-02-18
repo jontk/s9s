@@ -11,7 +11,6 @@ import (
 	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/errs"
 	slurm "github.com/jontk/slurm-client"
-	"github.com/jontk/slurm-client/pkg/auth"
 	slurmconfig "github.com/jontk/slurm-client/pkg/config"
 )
 
@@ -51,8 +50,15 @@ func NewSlurmAdapter(ctx context.Context, cfg *config.ClusterConfig) (*SlurmAdap
 
 	// Add authentication if token is provided
 	if cfg.Token != "" {
-		authProvider := auth.NewTokenAuth(cfg.Token)
-		opts = append(opts, slurm.WithAuth(authProvider))
+		// Get current username for X-SLURM-USER-NAME header
+		username := "root" // default
+		if currentUser, err := osuser.Current(); err == nil && currentUser.Username != "" {
+			username = currentUser.Username
+		}
+
+		// Use WithUserToken to set both X-SLURM-USER-NAME and X-SLURM-USER-TOKEN headers
+		// This is required for slurmrestd authentication
+		opts = append(opts, slurm.WithUserToken(username, cfg.Token))
 	}
 
 	// Create the client
@@ -709,7 +715,7 @@ func (i *infoManager) GetStats() (*ClusterMetrics, error) {
 		TotalNodes:  stats.TotalNodes,
 		ActiveNodes: stats.AllocatedNodes,
 		IdleNodes:   stats.IdleNodes,
-		DownNodes:   0,    // Not available in basic ClusterStats
+		DownNodes:   0, // Not available in basic ClusterStats
 		CPUUsage:    cpuUsage,
 		MemoryUsage: -1.0, // Not available in basic ClusterStats (would require aggregating node data) - use -1 to indicate unknown
 		LastUpdated: time.Now(),
@@ -882,15 +888,15 @@ func convertNode(node *slurm.Node) *Node {
 	return &Node{
 		Name:            nodeName,
 		State:           stateStr,
-		Partitions:      node.Partitions,  // []string, safe to use directly
+		Partitions:      node.Partitions, // []string, safe to use directly
 		CPUsTotal:       cpusTotal,
 		CPUsAllocated:   allocCPUs,
 		CPUsIdle:        idleCPUs,
 		CPULoad:         cpuLoad,
 		MemoryTotal:     memoryTotalMB,
-		MemoryAllocated: allocMemory, // Memory allocated by SLURM to jobs
-		MemoryFree:      freeMemory,  // Actual free memory on the system
-		Features:        node.Features,    // []string, safe to use directly
+		MemoryAllocated: allocMemory,   // Memory allocated by SLURM to jobs
+		MemoryFree:      freeMemory,    // Actual free memory on the system
+		Features:        node.Features, // []string, safe to use directly
 		Reason:          reason,
 		ReasonTime:      reasonTime,
 		AllocatedJobs:   []string{}, // Would need to query jobs for this node
@@ -1518,14 +1524,14 @@ func convertAccount(acc *slurm.Account) *Account {
 		Description:  acc.Description,
 		Organization: acc.Organization,
 		Coordinators: coordinators,
-		DefaultQoS:   "",       // Not available in base Account
+		DefaultQoS:   "",         // Not available in base Account
 		QoSList:      []string{}, // Not available in base Account
-		MaxJobs:      0,        // Not available in base Account
-		MaxNodes:     0,        // Not available in base Account
-		MaxCPUs:      0,        // Not available in base Account
-		MaxSubmit:    0,        // Not available in base Account
-		MaxWall:      0,        // Not available in base Account
-		Parent:       "",       // Not available in base Account
+		MaxJobs:      0,          // Not available in base Account
+		MaxNodes:     0,          // Not available in base Account
+		MaxCPUs:      0,          // Not available in base Account
+		MaxSubmit:    0,          // Not available in base Account
+		MaxWall:      0,          // Not available in base Account
+		Parent:       "",         // Not available in base Account
 		Children:     []string{}, // Not available in base Account
 	}
 }
@@ -1555,7 +1561,7 @@ func convertUser(user *slurm.User) *User {
 	// These would need to be queried from associations or other endpoints
 	return &User{
 		Name:           user.Name,
-		UID:            0,         // UID not available in User struct
+		UID:            0, // UID not available in User struct
 		DefaultAccount: defaultAccount,
 		Accounts:       accountNames,
 		AdminLevel:     adminLevel,

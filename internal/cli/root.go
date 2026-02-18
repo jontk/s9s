@@ -11,6 +11,7 @@ import (
 	"github.com/jontk/s9s/internal/app"
 	"github.com/jontk/s9s/internal/auth"
 	"github.com/jontk/s9s/internal/config"
+	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/discovery"
 	"github.com/jontk/s9s/internal/logging"
 	"github.com/jontk/s9s/internal/mock"
@@ -83,7 +84,8 @@ func init() {
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	if debugMode {
-		logging.Info("Debug mode enabled")
+		debug.Enable()
+		logging.Info("Debug mode enabled - logging to s9s-debug.log")
 	}
 }
 
@@ -237,6 +239,7 @@ func applyAutoDiscovery(ctx context.Context, cfg *config.Config) *config.Config 
 	// If endpoint is configured, just try to discover token
 	if cfg.Cluster.Endpoint != "" {
 		applyTokenDiscovery(ctx, cfg)
+		ensureDefaultContext(cfg)
 		return cfg
 	}
 
@@ -247,6 +250,9 @@ func applyAutoDiscovery(ctx context.Context, cfg *config.Config) *config.Config 
 	if cfg.Cluster.Token == "" {
 		applyTokenDiscovery(ctx, cfg)
 	}
+
+	// Create default context AFTER both endpoint and token are discovered
+	ensureDefaultContext(cfg)
 
 	return cfg
 }
@@ -276,13 +282,17 @@ func applyEndpointDiscovery(ctx context.Context, cfg *config.Config) {
 	logging.Infof("Auto-discovered slurmrestd endpoint: %s (source: %s)", endpoint.URL, endpoint.Source)
 
 	setDefaultAPIVersion(cfg)
-	ensureDefaultContext(cfg)
+	// Don't create context here - wait until after token discovery
 }
 
 // setDefaultAPIVersion sets API version if not already configured
 func setDefaultAPIVersion(cfg *config.Config) {
+	// Don't set a default version during auto-discovery
+	// Let the slurm-client auto-detect the API version from the endpoint
+	// This ensures we use the latest version supported by slurmrestd
 	if cfg.Cluster.APIVersion == "" {
-		cfg.Cluster.APIVersion = "v0.0.43"
+		// Leave empty to trigger auto-detection in slurm-client
+		logging.Debug("API version not set - will be auto-detected from endpoint")
 	}
 }
 
