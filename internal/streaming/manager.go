@@ -271,53 +271,54 @@ func (sm *StreamManager) startRemoteFileWatching(stream *JobStream) error {
 		return fmt.Errorf("no compute node ID available for remote streaming")
 	}
 
-	filePath := stream.FilePath
-	escapedPath := strings.ReplaceAll(filePath, "'", "'\\''")
-
-	// Read initial content via cat
-	initialCmd := fmt.Sprintf("cat '%s' 2>/dev/null", escapedPath)
-	initialContent, err := sm.sshExecutor.ExecuteCommand(sm.ctx, stream.NodeID, initialCmd)
-	if err != nil {
-		// Non-fatal: file may not exist yet; polling goroutine will retry
-		initialContent = ""
-	}
-
-	if len(initialContent) > 0 {
-		newOffset := stream.LastOffset + int64(len(initialContent))
-		sm.emitNewContent(stream, initialContent, newOffset)
-		stream.LastOffset = newOffset
-	}
-
-	// Start polling goroutine
-	go func() {
-		ticker := time.NewTicker(remotePollingInterval)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-sm.ctx.Done():
-				return
-			case <-ticker.C:
-				if !stream.IsActive {
-					return
-				}
-
-				// Fetch only new bytes since last offset using tail -c +N
-				// tail -c +N outputs from byte N (1-based), so we use LastOffset+1
-				tailCmd := fmt.Sprintf("tail -c +%d '%s' 2>/dev/null", stream.LastOffset+1, escapedPath)
-				newContent, cmdErr := sm.sshExecutor.ExecuteCommand(sm.ctx, stream.NodeID, tailCmd)
-				if cmdErr != nil || len(newContent) == 0 {
-					continue
-				}
-
-				newOffset := stream.LastOffset + int64(len(newContent))
-				sm.emitNewContent(stream, newContent, newOffset)
-				stream.LastOffset = newOffset
-			}
-		}
-	}()
+	escapedPath := strings.ReplaceAll(stream.FilePath, "'", "'\\''")
+	sm.fetchInitialRemoteContent(stream, escapedPath)
+	go sm.pollRemoteFile(stream, escapedPath)
 
 	return nil
+}
+
+// fetchInitialRemoteContent reads the current file content as a starting point
+func (sm *StreamManager) fetchInitialRemoteContent(stream *JobStream, escapedPath string) {
+	initialCmd := fmt.Sprintf("cat '%s' 2>/dev/null", escapedPath)
+	initialContent, err := sm.sshExecutor.ExecuteCommand(sm.ctx, stream.NodeID, initialCmd)
+	if err != nil || len(initialContent) == 0 {
+		return
+	}
+	newOffset := stream.LastOffset + int64(len(initialContent))
+	sm.emitNewContent(stream, initialContent, newOffset)
+	stream.LastOffset = newOffset
+}
+
+// pollRemoteFile periodically tails the remote file for new content
+func (sm *StreamManager) pollRemoteFile(stream *JobStream, escapedPath string) {
+	ticker := time.NewTicker(remotePollingInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-sm.ctx.Done():
+			return
+		case <-ticker.C:
+			if !stream.IsActive {
+				return
+			}
+			sm.fetchRemoteIncrement(stream, escapedPath)
+		}
+	}
+}
+
+// fetchRemoteIncrement fetches new bytes since the last known offset
+func (sm *StreamManager) fetchRemoteIncrement(stream *JobStream, escapedPath string) {
+	// tail -c +N outputs from byte N (1-based)
+	tailCmd := fmt.Sprintf("tail -c +%d '%s' 2>/dev/null", stream.LastOffset+1, escapedPath)
+	newContent, err := sm.sshExecutor.ExecuteCommand(sm.ctx, stream.NodeID, tailCmd)
+	if err != nil || len(newContent) == 0 {
+		return
+	}
+	newOffset := stream.LastOffset + int64(len(newContent))
+	sm.emitNewContent(stream, newContent, newOffset)
+	stream.LastOffset = newOffset
 }
 
 /*

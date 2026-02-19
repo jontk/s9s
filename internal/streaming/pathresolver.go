@@ -92,7 +92,7 @@ func (pr *PathResolver) isRemoteNode(nodeList string) bool {
 		return false
 	}
 
-	// If no local nodes are configured, assume a shared filesystem (NFS/Lustre)
+	// If no local nodes are configured, assume a shared filesystem (NFS/Lustre) //nolint:misspell
 	// where all output files are accessible locally — the common HPC setup.
 	if len(pr.slurmConfig.LocalNodes) == 0 {
 		return false

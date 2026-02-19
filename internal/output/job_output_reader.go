@@ -57,35 +57,16 @@ func (r *JobOutputReader) ReadPartial(ctx context.Context, jobID, outputType str
 		}
 	}
 
-	// Resolve file path using PathResolver
 	filePath, _, nodeID, err := r.pathResolver.ResolveOutputPath(jobID, outputType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve output path: %w", err)
 	}
 
-	// Local-first strategy: always try local filesystem first, fall back to SSH
-	var content string
-	var metadata *FileMetadata
-	var source string
-
-	localMeta, localErr := r.localReader.GetFileInfo(filePath)
-	if localErr != nil {
-		return nil, fmt.Errorf("failed to check local file: %w", localErr)
-	}
-
-	if localMeta.Exists {
-		content, metadata, source, err = r.readLocalContent(ctx, filePath, opts)
-	} else if nodeID != "" && r.remoteReader.HasSSHClient() {
-		content, metadata, source, err = r.readRemoteContent(ctx, nodeID, filePath, opts)
-	} else {
-		return nil, fmt.Errorf("output file not found: %s (job may not have started yet)", filePath)
-	}
-
+	content, metadata, source, err := r.readContent(ctx, filePath, nodeID, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	// Compute output metrics
 	linesRead, truncated := r.computeOutputMetrics(content, metadata, opts)
 
 	result := &OutputContent{
@@ -98,13 +79,30 @@ func (r *JobOutputReader) ReadPartial(ctx context.Context, jobID, outputType str
 		Source:      source,
 	}
 
-	// Store in cache if enabled
 	if opts.CacheEnabled && r.cache != nil {
 		cacheKey := GenerateCacheKey(jobID, outputType)
-		r.cache.Set(cacheKey, result, 0) // Use default TTL
+		r.cache.Set(cacheKey, result, 0)
 	}
 
 	return result, nil
+}
+
+// readContent applies the local-first strategy: try local filesystem, fall back to SSH
+func (r *JobOutputReader) readContent(ctx context.Context, filePath, nodeID string, opts ReadOptions) (string, *FileMetadata, string, error) {
+	localMeta, localErr := r.localReader.GetFileInfo(filePath)
+	if localErr != nil {
+		return "", nil, "", fmt.Errorf("failed to check local file: %w", localErr)
+	}
+
+	if localMeta.Exists {
+		return r.readLocalContent(ctx, filePath, opts)
+	}
+
+	if nodeID != "" && r.remoteReader.HasSSHClient() {
+		return r.readRemoteContent(ctx, nodeID, filePath, opts)
+	}
+
+	return "", nil, "", fmt.Errorf("output file not found: %s (job may not have started yet)", filePath)
 }
 
 // readRemoteContent reads content from a remote node via SSH
