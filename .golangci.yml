@@ -122,7 +122,7 @@ linters:
     misspell:
       # Correct spellings using locale preferences for US or UK
       locale: US
-      ignore-words:
+      ignore-rules:
         - Lustre  # Lustre is a real parallel filesystem used in HPC environments
 
     revive:
