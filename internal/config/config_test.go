@@ -52,7 +52,7 @@ func TestEnvironmentOverrides(t *testing.T) {
 	assert.Equal(t, "https://env-override.example.com:6820", cfg.Cluster.Endpoint)
 	assert.Equal(t, "env-token", cfg.Cluster.Token)
 	assert.Equal(t, "v0.0.42", cfg.Cluster.APIVersion)
-	assert.Equal(t, "default", cfg.CurrentContext)
+	assert.Equal(t, "default", cfg.DefaultCluster)
 }
 
 func TestLoadWithYAMLFile(t *testing.T) {
@@ -70,9 +70,9 @@ func TestLoadWithYAMLFile(t *testing.T) {
 	yamlContent := `
 refreshRate: 10s
 maxRetries: 5
-currentContext: production
+defaultCluster: production
 
-contexts:
+clusters:
   - name: production
     cluster:
       endpoint: https://prod.example.com:6820
@@ -124,12 +124,12 @@ plugins:
 	// Check loaded values
 	assert.Equal(t, "10s", cfg.RefreshRate)
 	assert.Equal(t, 5, cfg.MaxRetries)
-	assert.Equal(t, "production", cfg.CurrentContext)
+	assert.Equal(t, "production", cfg.DefaultCluster)
 
-	// Check contexts
-	assert.Len(t, cfg.Contexts, 2)
-	assert.Equal(t, "production", cfg.Contexts[0].Name)
-	assert.Equal(t, "https://prod.example.com:6820", cfg.Contexts[0].Cluster.Endpoint)
+	// Check clusters
+	assert.Len(t, cfg.Clusters, 2)
+	assert.Equal(t, "production", cfg.Clusters[0].Name)
+	assert.Equal(t, "https://prod.example.com:6820", cfg.Clusters[0].Cluster.Endpoint)
 
 	// Check current cluster is set correctly
 	assert.Equal(t, "https://prod.example.com:6820", cfg.Cluster.Endpoint)
@@ -162,10 +162,10 @@ plugins:
 	assert.Equal(t, true, cfg.Plugins[0].Config["verbose"])
 }
 
-func TestGetContext(t *testing.T) {
+func TestGetCluster(t *testing.T) {
 	cfg := &Config{
-		CurrentContext: "production",
-		Contexts: []ContextConfig{
+		DefaultCluster: "production",
+		Clusters: []ClusterContext{
 			{
 				Name: "production",
 				Cluster: ClusterConfig{
@@ -181,14 +181,14 @@ func TestGetContext(t *testing.T) {
 		},
 	}
 
-	// Test existing context
-	ctx, err := cfg.GetContext("production")
+	// Test existing cluster
+	cl, err := cfg.GetCluster("production")
 	require.NoError(t, err)
-	assert.Equal(t, "production", ctx.Name)
-	assert.Equal(t, "https://prod.example.com", ctx.Cluster.Endpoint)
+	assert.Equal(t, "production", cl.Name)
+	assert.Equal(t, "https://prod.example.com", cl.Cluster.Endpoint)
 
-	// Test non-existing context
-	_, err = cfg.GetContext("staging")
+	// Test non-existing cluster
+	_, err = cfg.GetCluster("staging")
 	assert.Error(t, err)
 }
 
@@ -203,8 +203,8 @@ func TestSaveToFile(t *testing.T) {
 	cfg := &Config{
 		RefreshRate:    "3s",
 		MaxRetries:     2,
-		CurrentContext: "test",
-		Contexts: []ContextConfig{
+		DefaultCluster: "test",
+		Clusters: []ClusterContext{
 			{
 				Name: "test",
 				Cluster: ClusterConfig{
@@ -233,7 +233,7 @@ func TestSaveToFile(t *testing.T) {
 	// Verify values were saved correctly
 	assert.Equal(t, cfg.RefreshRate, loadedCfg.RefreshRate)
 	assert.Equal(t, cfg.MaxRetries, loadedCfg.MaxRetries)
-	assert.Equal(t, cfg.CurrentContext, loadedCfg.CurrentContext)
+	assert.Equal(t, cfg.DefaultCluster, loadedCfg.DefaultCluster)
 	assert.Equal(t, cfg.UI.Skin, loadedCfg.UI.Skin)
 }
 
@@ -244,7 +244,7 @@ func TestDefaultConfig(t *testing.T) {
 	// Test basic settings (aligned with setDefaults)
 	assert.Equal(t, "2s", cfg.RefreshRate)
 	assert.Equal(t, 3, cfg.MaxRetries)
-	assert.Equal(t, "default", cfg.CurrentContext)
+	assert.Equal(t, "default", cfg.DefaultCluster)
 	assert.True(t, cfg.UseMockClient)
 
 	// Test UI defaults
@@ -294,8 +294,8 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Equal(t, "scontrol", cfg.Discovery.ScontrolPath) // Aligned with setDefaults (binary name, not full path)
 
 	// Test collections are initialized
-	assert.NotNil(t, cfg.Contexts)
-	assert.Empty(t, cfg.Contexts)
+	assert.NotNil(t, cfg.Clusters)
+	assert.Empty(t, cfg.Clusters)
 	assert.NotNil(t, cfg.Shortcuts)
 	assert.Empty(t, cfg.Shortcuts)
 	assert.NotNil(t, cfg.Aliases)
@@ -402,7 +402,7 @@ func TestLoadWithNonExistentFile(t *testing.T) {
 	assert.Nil(t, cfg)
 }
 
-func TestConfigWithMultipleContexts(t *testing.T) {
+func TestConfigWithMultipleClusters(t *testing.T) {
 	// Isolate environment from host
 	t.Setenv("SLURM_REST_URL", "")
 	t.Setenv("S9S_SLURM_REST_URL", "")
@@ -411,12 +411,12 @@ func TestConfigWithMultipleContexts(t *testing.T) {
 	t.Setenv("SLURM_API_VERSION", "")
 
 	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "multi-context.yaml")
+	configPath := filepath.Join(tmpDir, "multi-cluster.yaml")
 
 	yamlContent := `
-currentContext: staging
+defaultCluster: staging
 
-contexts:
+clusters:
   - name: production
     cluster:
       endpoint: https://prod.example.com:6820
@@ -438,27 +438,27 @@ contexts:
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
-	// Verify contexts
-	assert.Len(t, cfg.Contexts, 3)
-	assert.Equal(t, "staging", cfg.CurrentContext)
+	// Verify clusters
+	assert.Len(t, cfg.Clusters, 3)
+	assert.Equal(t, "staging", cfg.DefaultCluster)
 
 	// Verify current cluster is set to staging
 	assert.Equal(t, "https://staging.example.com:6820", cfg.Cluster.Endpoint)
 	assert.Equal(t, "staging-token", cfg.Cluster.Token)
 
-	// Test GetContext for all contexts
-	prodCtx, err := cfg.GetContext("production")
+	// Test GetCluster for all clusters
+	prodCl, err := cfg.GetCluster("production")
 	require.NoError(t, err)
-	assert.Equal(t, "production", prodCtx.Name)
-	assert.Equal(t, "https://prod.example.com:6820", prodCtx.Cluster.Endpoint)
+	assert.Equal(t, "production", prodCl.Name)
+	assert.Equal(t, "https://prod.example.com:6820", prodCl.Cluster.Endpoint)
 
-	stagingCtx, err := cfg.GetContext("staging")
+	stagingCl, err := cfg.GetCluster("staging")
 	require.NoError(t, err)
-	assert.Equal(t, "staging", stagingCtx.Name)
+	assert.Equal(t, "staging", stagingCl.Name)
 
-	devCtx, err := cfg.GetContext("development")
+	devCl, err := cfg.GetCluster("development")
 	require.NoError(t, err)
-	assert.Equal(t, "development", devCtx.Name)
+	assert.Equal(t, "development", devCl.Name)
 }
 
 func TestConfigWithDiscoverySettings(t *testing.T) {
@@ -473,9 +473,9 @@ func TestConfigWithDiscoverySettings(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "discovery-config.yaml")
 
 	yamlContent := `
-currentContext: default
+defaultCluster: default
 
-contexts:
+clusters:
   - name: default
     cluster:
       endpoint: https://cluster.example.com:6820
@@ -518,9 +518,9 @@ func TestConfigWithPluginSettings(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "plugin-config.yaml")
 
 	yamlContent := `
-currentContext: default
+defaultCluster: default
 
-contexts:
+clusters:
   - name: default
     cluster:
       endpoint: https://cluster.example.com:6820
@@ -578,10 +578,10 @@ plugins:
 	}
 }
 
-// TestLoadWithNoConfigNoContextsButDiscoveryEnabled verifies that s9s can start
-// without a config file or contexts when auto-discovery is enabled.
+// TestLoadWithNoConfigNoClustersButDiscoveryEnabled verifies that s9s can start
+// without a config file or clusters when auto-discovery is enabled.
 // This is the expected behavior for first-time users on SLURM systems.
-func TestLoadWithNoConfigNoContextsButDiscoveryEnabled(t *testing.T) {
+func TestLoadWithNoConfigNoClustersButDiscoveryEnabled(t *testing.T) {
 	// Isolate environment - no config file, no env vars
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
@@ -605,12 +605,12 @@ func TestLoadWithNoConfigNoContextsButDiscoveryEnabled(t *testing.T) {
 	assert.Empty(t, cfg.Cluster.APIVersion, "API version should be empty to enable auto-detection")
 	assert.Equal(t, "30s", cfg.Cluster.Timeout, "Timeout should have default")
 
-	// Verify no contexts exist
-	assert.Empty(t, cfg.Contexts, "No contexts should exist in a fresh config")
-	assert.Equal(t, "default", cfg.CurrentContext, "Current context should be 'default'")
+	// Verify no clusters exist
+	assert.Empty(t, cfg.Clusters, "No clusters should exist in a fresh config")
+	assert.Equal(t, "default", cfg.DefaultCluster, "Default cluster should be 'default'")
 }
 
-func TestConfigFileWithContextsTakesPrecedenceOverDiscovery(t *testing.T) {
+func TestConfigFileWithClustersTakesPrecedenceOverDiscovery(t *testing.T) {
 	// Isolate environment from host
 	t.Setenv("SLURM_REST_URL", "")
 	t.Setenv("S9S_SLURM_REST_URL", "")
@@ -619,13 +619,13 @@ func TestConfigFileWithContextsTakesPrecedenceOverDiscovery(t *testing.T) {
 	t.Setenv("SLURM_API_VERSION", "")
 
 	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config-with-context.yaml")
+	configPath := filepath.Join(tmpDir, "config-with-cluster.yaml")
 
 	// Config file with explicit endpoint, token, and discovery enabled
 	yamlContent := `
-currentContext: prod
+defaultCluster: prod
 
-contexts:
+clusters:
   - name: prod
     cluster:
       endpoint: https://configured.example.com:6820
@@ -646,11 +646,11 @@ discovery:
 	require.NotNil(t, cfg)
 
 	// Verify config file values are loaded (these will be used instead of discovery)
-	assert.Equal(t, "prod", cfg.CurrentContext)
-	assert.Len(t, cfg.Contexts, 1)
-	assert.Equal(t, "prod", cfg.Contexts[0].Name)
+	assert.Equal(t, "prod", cfg.DefaultCluster)
+	assert.Len(t, cfg.Clusters, 1)
+	assert.Equal(t, "prod", cfg.Clusters[0].Name)
 
-	// Verify cluster config is set from the context
+	// Verify cluster config is set from the cluster entry
 	assert.Equal(t, "https://configured.example.com:6820", cfg.Cluster.Endpoint)
 	assert.Equal(t, "configured-token", cfg.Cluster.Token)
 	assert.Equal(t, "v0.0.43", cfg.Cluster.APIVersion)

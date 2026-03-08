@@ -147,7 +147,7 @@ func createSlurmClient(appCtx context.Context, cfg *config.Config, cancel contex
 	clusterConfig := findClusterConfig(cfg)
 	if clusterConfig == nil {
 		cancel()
-		return nil, errs.Configf("no cluster configuration found for context: %s", cfg.CurrentContext)
+		return nil, errs.Configf("no cluster configuration found for cluster: %s", cfg.DefaultCluster)
 	}
 
 	// Create real SLURM adapter
@@ -161,16 +161,16 @@ func createSlurmClient(appCtx context.Context, cfg *config.Config, cancel contex
 }
 
 func findClusterConfig(cfg *config.Config) *config.ClusterConfig {
-	// First check if there's a matching context
-	for _, ctx := range cfg.Contexts {
-		if ctx.Name == cfg.CurrentContext {
-			return &ctx.Cluster
+	// First check if there's a matching cluster entry
+	for _, cl := range cfg.Clusters {
+		if cl.Name == cfg.DefaultCluster {
+			return &cl.Cluster
 		}
 	}
 
-	// Fall back to cfg.Cluster if no contexts exist (e.g., auto-discovery without config file)
+	// Fall back to cfg.Cluster if no clusters exist (e.g., auto-discovery without config file)
 	// Don't check for endpoint here as it may be populated later by discovery
-	if len(cfg.Contexts) == 0 {
+	if len(cfg.Clusters) == 0 {
 		return &cfg.Cluster
 	}
 

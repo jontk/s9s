@@ -16,8 +16,8 @@ import (
 type Config struct {
 	RefreshRate    string            `mapstructure:"refreshRate"`
 	MaxRetries     int               `mapstructure:"maxRetries"`
-	CurrentContext string            `mapstructure:"currentContext"`
-	Contexts       []ContextConfig   `mapstructure:"contexts"`
+	DefaultCluster string            `mapstructure:"defaultCluster"`
+	Clusters       []ClusterContext   `mapstructure:"clusters"`
 	UI             UIConfig          `mapstructure:"ui"`
 	Views          ViewsConfig       `mapstructure:"views"`
 	Features       FeaturesConfig    `mapstructure:"features"`
@@ -42,8 +42,8 @@ type DiscoveryConfig struct {
 	ScontrolPath   string `mapstructure:"scontrolPath"`
 }
 
-// ContextConfig represents a cluster context
-type ContextConfig struct {
+// ClusterContext represents a cluster context
+type ClusterContext struct {
 	Name      string        `mapstructure:"name"`
 	Cluster   ClusterConfig `mapstructure:"cluster"`
 	Namespace string        `mapstructure:"namespace"`
@@ -137,8 +137,8 @@ func DefaultConfig() *Config {
 	return &Config{
 		RefreshRate:    "2s", // Aligned with setDefaults
 		MaxRetries:     3,
-		CurrentContext: "default",
-		Contexts:       []ContextConfig{},
+		DefaultCluster: "default",
+		Clusters:       []ClusterContext{},
 		UI: UIConfig{
 			Skin:        "default",
 			Logoless:    false,
@@ -250,7 +250,7 @@ func LoadWithPath(configPath string) (*Config, error) {
 	applyEnvironmentOverrides(cfg)
 
 	// Set the current cluster based on context
-	if err := cfg.setCurrentCluster(); err != nil {
+	if err := cfg.SetCurrentCluster(); err != nil {
 		return nil, err
 	}
 
@@ -266,7 +266,7 @@ func setDefaults(v *viper.Viper) {
 	// General defaults
 	v.SetDefault("refreshRate", "2s")
 	v.SetDefault("maxRetries", 3)
-	v.SetDefault("currentContext", "default")
+	v.SetDefault("defaultCluster", "default")
 	v.SetDefault("useMockClient", true)
 
 	// UI defaults
@@ -344,7 +344,7 @@ func applyEnvironmentOverrides(cfg *Config) {
 	// If endpoint is set in environment, it overrides everything
 	if endpoint != "" {
 		// Create or update default context with environment values
-		defaultCtx := ContextConfig{
+		defaultEntry := ClusterContext{
 			Name: "default",
 			Cluster: ClusterConfig{
 				Endpoint:   endpoint,
@@ -353,11 +353,11 @@ func applyEnvironmentOverrides(cfg *Config) {
 			},
 		}
 
-		// Check if default context already exists
+		// Check if default cluster already exists
 		found := false
-		for i, ctx := range cfg.Contexts {
-			if ctx.Name == "default" {
-				cfg.Contexts[i] = defaultCtx
+		for i, cl := range cfg.Clusters {
+			if cl.Name == "default" {
+				cfg.Clusters[i] = defaultEntry
 				found = true
 				break
 			}
@@ -365,23 +365,23 @@ func applyEnvironmentOverrides(cfg *Config) {
 
 		// If not found, add it
 		if !found {
-			cfg.Contexts = append(cfg.Contexts, defaultCtx)
+			cfg.Clusters = append(cfg.Clusters, defaultEntry)
 		}
 
-		cfg.CurrentContext = "default"
+		cfg.DefaultCluster = "default"
 	}
 }
 
-// setCurrentCluster sets the current cluster configuration based on context
-func (c *Config) setCurrentCluster() error {
-	if c.CurrentContext == "" {
-		c.CurrentContext = "default"
+// SetCurrentCluster sets the current cluster configuration based on the default cluster
+func (c *Config) SetCurrentCluster() error {
+	if c.DefaultCluster == "" {
+		c.DefaultCluster = "default"
 	}
 
-	// Find the current context
-	for _, ctx := range c.Contexts {
-		if ctx.Name == c.CurrentContext {
-			c.Cluster = ctx.Cluster
+	// Find the matching cluster entry
+	for _, cl := range c.Clusters {
+		if cl.Name == c.DefaultCluster {
+			c.Cluster = cl.Cluster
 			return nil
 		}
 	}
@@ -408,9 +408,9 @@ func (c *Config) setCurrentCluster() error {
 		return nil
 	}
 
-	// If no contexts exist and discovery is enabled, allow startup with empty cluster
+	// If no clusters exist and discovery is enabled, allow startup with empty cluster
 	// Auto-discovery will populate the cluster configuration
-	if len(c.Contexts) == 0 && c.Discovery.Enabled {
+	if len(c.Clusters) == 0 && c.Discovery.Enabled {
 		c.Cluster = ClusterConfig{
 			// Leave APIVersion empty to enable auto-detection from slurmrestd
 			Timeout: "30s",
@@ -418,17 +418,17 @@ func (c *Config) setCurrentCluster() error {
 		return nil
 	}
 
-	return fmt.Errorf("context %q not found", c.CurrentContext)
+	return fmt.Errorf("cluster %q not found", c.DefaultCluster)
 }
 
-// GetContext returns the context configuration by name
-func (c *Config) GetContext(name string) (*ContextConfig, error) {
-	for _, ctx := range c.Contexts {
-		if ctx.Name == name {
-			return &ctx, nil
+// GetCluster returns the cluster context by name
+func (c *Config) GetCluster(name string) (*ClusterContext, error) {
+	for _, cl := range c.Clusters {
+		if cl.Name == name {
+			return &cl, nil
 		}
 	}
-	return nil, fmt.Errorf("context %q not found", name)
+	return nil, fmt.Errorf("cluster %q not found", name)
 }
 
 // SaveToFile saves the configuration to a file
@@ -438,8 +438,8 @@ func (c *Config) SaveToFile(path string) error {
 	// Set all values from the config struct
 	v.Set("refreshRate", c.RefreshRate)
 	v.Set("maxRetries", c.MaxRetries)
-	v.Set("currentContext", c.CurrentContext)
-	v.Set("contexts", c.Contexts)
+	v.Set("defaultCluster", c.DefaultCluster)
+	v.Set("clusters", c.Clusters)
 	v.Set("ui", c.UI)
 	v.Set("views", c.Views)
 	v.Set("features", c.Features)

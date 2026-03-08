@@ -137,9 +137,9 @@ func getConfigFields() []Field {
 			Order:       2,
 		},
 		{
-			Key:         "currentContext",
-			Label:       "Current Context",
-			Description: "Active cluster context to use",
+			Key:         "defaultCluster",
+			Label:       "Default Cluster",
+			Description: "Active cluster to use",
 			Type:        FieldTypeString,
 			Required:    true,
 			Default:     "default",
@@ -311,8 +311,8 @@ func getConfigFields() []Field {
 
 		// Special fields for complex types
 		{
-			Key:         "contexts",
-			Label:       "Cluster Contexts",
+			Key:         "clusters",
+			Label:       "Cluster Connections",
 			Description: "SLURM cluster connection configurations",
 			Type:        FieldTypeContext,
 			Required:    false,

@@ -25,6 +25,7 @@ const (
 
 var (
 	cfgFile          string
+	clusterName      string
 	useMock          bool
 	noMock           bool
 	debugMode        bool
@@ -50,9 +51,11 @@ Features:
 • Plugin system for extensibility
 • Vim-like navigation`,
 
-	Example: `  s9s                         # Launch interactive TUI
-  s9s setup                       # Run configuration wizard
-  s9s setup --auto-discover      # Auto-discover clusters`,
+	Example: `  s9s                                    # Launch interactive TUI
+  s9s --cluster production                 # Use a specific cluster context
+  s9s --config /path/to/config.yaml        # Use a custom config file
+  s9s setup                                # Run configuration wizard
+  s9s setup --auto-discover                # Auto-discover clusters`,
 
 	RunE: runRoot,
 }
@@ -67,6 +70,7 @@ func init() {
 
 	// Global flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.s9s/config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&clusterName, "cluster", "", "select cluster context from config")
 	rootCmd.PersistentFlags().BoolVar(&debugMode, "debug", false, "enable debug logging")
 
 	// Local flags
@@ -125,7 +129,7 @@ func displayVersion() error {
 
 // initializeConfiguration loads and validates the application configuration
 func initializeConfiguration(ctx context.Context, cmd *cobra.Command) (*config.Config, error) {
-	cfg, err := config.Load()
+	cfg, err := config.LoadWithPath(cfgFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
@@ -150,6 +154,13 @@ func initializeConfiguration(ctx context.Context, cmd *cobra.Command) (*config.C
 
 // applyCommandLineOverrides applies command line flag overrides to configuration
 func applyCommandLineOverrides(cfg *config.Config) {
+	if clusterName != "" {
+		cfg.DefaultCluster = clusterName
+		// Re-resolve the cluster config for the new cluster
+		if err := cfg.SetCurrentCluster(); err != nil {
+			fmt.Printf("⚠️  Cluster %q not found in config\n", clusterName)
+		}
+	}
 	if useMock {
 		cfg.UseMockClient = true
 	}
@@ -188,7 +199,7 @@ func applyDiscoveryConfiguration(cfg *config.Config) {
 
 // validateConfiguration checks if configuration is valid
 func validateConfiguration(cfg *config.Config, cmd *cobra.Command) error {
-	if len(cfg.Contexts) == 0 && !cfg.UseMockClient && cfg.Cluster.Endpoint == "" {
+	if len(cfg.Clusters) == 0 && !cfg.UseMockClient && cfg.Cluster.Endpoint == "" {
 		fmt.Printf("⚠️  No SLURM clusters configured.\n\n")
 		fmt.Printf("To get started:\n")
 		fmt.Printf("  1. Run the setup wizard: %s\n", cmd.Root().CommandPath()+" setup")
@@ -298,12 +309,12 @@ func setDefaultAPIVersion(cfg *config.Config) {
 
 // ensureDefaultContext creates a default context if none exists
 func ensureDefaultContext(cfg *config.Config) {
-	if len(cfg.Contexts) == 0 {
-		cfg.Contexts = append(cfg.Contexts, config.ContextConfig{
+	if len(cfg.Clusters) == 0 {
+		cfg.Clusters = append(cfg.Clusters, config.ClusterContext{
 			Name:    "default",
 			Cluster: cfg.Cluster,
 		})
-		cfg.CurrentContext = "default"
+		cfg.DefaultCluster = "default"
 	}
 }
 
@@ -352,7 +363,7 @@ func discoverToken(ctx context.Context, cfg *config.Config) string {
 
 	td := auth.NewTokenDiscoveryWithConfig(tdCfg)
 
-	token, err := td.DiscoverToken(ctx, cfg.CurrentContext)
+	token, err := td.DiscoverToken(ctx, cfg.DefaultCluster)
 	if err != nil {
 		if debugMode {
 			logging.Errorf("Token discovery failed: %v", err)

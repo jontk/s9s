@@ -4,52 +4,9 @@ s9s is designed as a terminal UI interface for SLURM. For enterprise requirement
 
 ## Authentication
 
-### OAuth2/OIDC Support
+s9s relies on SLURM's native authentication mechanisms. All authentication and authorization is handled by SLURM directly — s9s respects whatever auth configuration your cluster uses.
 
-s9s includes OAuth2/OIDC authentication support for integration with enterprise identity providers.
-
-**Supported Providers:**
-- Google OAuth2
-- Okta (with discovery URL)
-- Azure AD (with discovery URL)
-- Custom OAuth2/OIDC providers
-
-**Configuration:**
-
-```yaml
-contexts:
-  - name: production
-    cluster:
-      endpoint: "https://slurm.example.com:6820"
-      auth:
-        type: oauth2
-        provider: google  # or okta, azure-ad, custom
-        client_id: "${OAUTH_CLIENT_ID}"
-        client_secret: "${OAUTH_CLIENT_SECRET}"
-        # For Okta/Azure AD/Custom:
-        discovery_url: "https://your-idp.example.com/.well-known/openid-configuration"
-        # Optional:
-        scopes: "openid profile email"
-        redirect_uri: "http://localhost:8080/callback"
-```
-
-**Setup Wizard:**
-
-The s9s setup wizard includes OAuth2 configuration:
-
-```bash
-s9s setup
-# Select option 3 for OAuth2 authentication
-```
-
-**Features:**
-- OIDC discovery for automatic endpoint detection
-- PKCE (Proof Key for Code Exchange) support
-- Automatic token refresh
-- Local callback server for authorization flow
-- Support for custom scopes and redirect URIs
-
-See [Configuration Guide](/docs/getting-started/configuration.md) for detailed authentication setup.
+See [Configuration Guide](../getting-started/configuration.md) for connection setup.
 
 ## Enterprise Capabilities via SLURM
 
@@ -118,56 +75,42 @@ For enterprise requirements beyond authentication, s9s relies on SLURM's native 
 - Resource utilization metrics
 - Optional observability plugin for Prometheus integration
 
-**See:** [Observability Plugin](/docs/plugins/observability.md)
+**See:** [Observability Plugin](../plugins/observability.md)
 
 ## Configuration for Enterprise Environments
 
-### Multiple Cluster Contexts
+### Multiple Clusters
 
 Configure multiple SLURM clusters:
 
 ```yaml
-currentContext: production
+defaultCluster: production
 
-contexts:
+clusters:
   - name: production
     cluster:
       endpoint: "https://prod-slurm.example.com:6820"
-      auth:
-        type: oauth2
-        provider: okta
-        # ... oauth config ...
+      token: "${SLURM_JWT}"
+      apiVersion: v0.0.44
 
   - name: development
     cluster:
       endpoint: "https://dev-slurm.example.com:6820"
-      auth:
-        type: slurm-token
+      token: "${SLURM_DEV_JWT}"
+      apiVersion: v0.0.43
 
   - name: research
     cluster:
       endpoint: "https://research-slurm.example.com:6820"
-      auth:
-        type: oauth2
-        provider: azure-ad
-        # ... oauth config ...
+      token: "${SLURM_RESEARCH_JWT}"
+      apiVersion: v0.0.44
 ```
 
 Switch between clusters:
 
 ```bash
-s9s config use-context production
-s9s config use-context development
-```
-
-### Secure Credential Storage
-
-s9s supports secure credential storage through system keyrings:
-
-```yaml
-# Enable keyring storage for OAuth tokens
-storage:
-  backend: keyring  # or: file, memory
+s9s --cluster production
+s9s --cluster development
 ```
 
 ### TLS Configuration
@@ -175,7 +118,7 @@ storage:
 For secure communication with SLURM REST API:
 
 ```yaml
-contexts:
+clusters:
   - name: production
     cluster:
       endpoint: "https://slurm.example.com:6820"
@@ -210,11 +153,11 @@ ssh:
   control_path: "/tmp/s9s-ssh-%r@%h:%p"
 ```
 
-See [SSH Integration Guide](/docs/guides/ssh-integration.md) for details.
+See [SSH Integration Guide](../guides/ssh-integration.md) for details.
 
 ## Future Development
 
-Additional enterprise features are under consideration. See the [specs/missing-features/](/specs/missing-features/) directory for detailed specifications of features being evaluated:
+Additional enterprise features are under consideration:
 
 - Advanced backup and recovery capabilities
 - Extended API integrations
@@ -226,11 +169,11 @@ For feature requests or to discuss enterprise requirements, please [open a discu
 
 - **Community Support**: [GitHub Discussions](https://github.com/jontk/s9s/discussions)
 - **Bug Reports**: [GitHub Issues](https://github.com/jontk/s9s/issues)
-- **Contributing**: [Development Guide](/docs/development/contributing.md)
+- **Contributing**: [Development Guide](../development/contributing.md)
 
 ## Resources
 
-- [SLURM Security Guide](https://slurm.schedmd.com/security.html)
-- [SLURM High Availability](https://slurm.schedmd.com/ha.html)
+- [SLURM Security Guide](https://slurm.schedmd.com/quickstart_admin.html#security)
+- [SLURM High Availability](https://slurm.schedmd.com/quickstart_admin.html#HA)
 - [SLURM Accounting](https://slurm.schedmd.com/accounting.html)
 - [SLURM Multi-Cluster](https://slurm.schedmd.com/multi_cluster.html)

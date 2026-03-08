@@ -150,7 +150,7 @@ func (w *Wizard) setupBasics() error {
 
 	// Initialize config with defaults
 	w.config.RefreshRate = "30s"
-	w.config.Contexts = []config.ContextConfig{}
+	w.config.Clusters = []config.ClusterContext{}
 
 	// Get user preferences
 	name := w.prompt("Your name (for configuration identification)", os.Getenv("USER"))
@@ -161,7 +161,7 @@ func (w *Wizard) setupBasics() error {
 	if contextName == "" {
 		contextName = "default"
 	}
-	w.config.CurrentContext = contextName
+	w.config.DefaultCluster = contextName
 
 	// Refresh rate
 	refreshRate := w.prompt("Refresh rate for live updates", "30s")
@@ -200,13 +200,13 @@ func (w *Wizard) setupCluster() error {
 		clusterConfig = w.manualClusterConfig()
 	}
 
-	// Create context
-	context := config.ContextConfig{
-		Name:    w.config.CurrentContext,
+	// Create cluster entry
+	clusterEntry := config.ClusterContext{
+		Name:    w.config.DefaultCluster,
 		Cluster: clusterConfig,
 	}
 
-	w.config.Contexts = append(w.config.Contexts, context)
+	w.config.Clusters = append(w.config.Clusters, clusterEntry)
 
 	fmt.Printf("   🔗 Cluster '%s' configured successfully\n", clusterConfig.Endpoint)
 	return nil
@@ -356,10 +356,10 @@ func (w *Wizard) setupAuthentication() error {
 	}
 
 	// Add auth config to the current context
-	if len(w.config.Contexts) > 0 {
+	if len(w.config.Clusters) > 0 {
 		// Store auth token if available
 		if token, ok := authConfig["token"]; ok {
-			w.config.Contexts[0].Cluster.Token = token.(string)
+			w.config.Clusters[0].Cluster.Token = token.(string)
 		}
 	}
 
