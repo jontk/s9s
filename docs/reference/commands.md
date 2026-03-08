@@ -101,7 +101,7 @@ S9S provides interactive keyboard shortcuts for common operations within each vi
 **Batch Operations:**
 - Select multiple items using `Space` or `v` (visual mode)
 - Use keyboard shortcuts on selections for batch operations
-- See [Batch Operations Guide](/home/jontk/src/github.com/jontk/s9s/docs/user-guide/batch-operations.md) for details
+- See [Batch Operations Guide](../user-guide/batch-operations.md) for details
 
 ### Export Commands
 
@@ -221,7 +221,7 @@ The filter system supports various filter expressions:
 /nodes:>4 time:>2h
 ```
 
-See the [Filtering Guide](/home/jontk/src/github.com/jontk/s9s/docs/user-guide/filtering.md) for comprehensive filter documentation.
+See the [Filtering Guide](../user-guide/filtering.md) for comprehensive filter documentation.
 
 ### SSH to Nodes
 
@@ -248,12 +248,12 @@ SSH functionality is available in the Nodes view:
 
 ### Documentation Resources
 
-- [User Guide](/home/jontk/src/github.com/jontk/s9s/docs/user-guide) - Comprehensive usage documentation
-- [Filtering Guide](/home/jontk/src/github.com/jontk/s9s/docs/user-guide/filtering.md) - Advanced filtering syntax
-- [Batch Operations](/home/jontk/src/github.com/jontk/s9s/docs/user-guide/batch-operations.md) - Batch operation workflows
+- [User Guide](../user-guide/navigation.md) - Comprehensive usage documentation
+- [Filtering Guide](../user-guide/filtering.md) - Advanced filtering syntax
+- [Batch Operations](../user-guide/batch-operations.md) - Batch operation workflows
 
 ## Next Steps
 
-- Master [keyboard shortcuts](/home/jontk/src/github.com/jontk/s9s/docs/user-guide/navigation.md) for efficient navigation
-- Learn [filtering syntax](/home/jontk/src/github.com/jontk/s9s/docs/user-guide/filtering.md) for precise data views
-- Explore [batch operations](/home/jontk/src/github.com/jontk/s9s/docs/user-guide/batch-operations.md) for bulk job management
+- Master [keyboard shortcuts](../user-guide/navigation.md) for efficient navigation
+- Learn [filtering syntax](../user-guide/filtering.md) for precise data views
+- Explore [batch operations](../user-guide/batch-operations.md) for bulk job management
