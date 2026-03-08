@@ -141,6 +141,13 @@ func NewNodesView(client dao.SlurmClient) *NodesView {
 	return v
 }
 
+// SetClient sets the SLURM client for the nodes view
+func (v *NodesView) SetClient(client dao.SlurmClient) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.client = client
+}
+
 // Init initializes the nodes view
 func (v *NodesView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)

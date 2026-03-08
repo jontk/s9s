@@ -28,6 +28,7 @@ func (s *S9s) showHelp() {
   [yellow]F10[white]        Configuration settings
   [yellow]:[white]          Enter command mode
   [yellow]?[white]          Show this help
+  [yellow]Ctrl+K[white]     Switch cluster (when multiple configured)
   [yellow]q, Ctrl+C[white]  Quit application
 
 [teal]Commands:[white]
@@ -144,6 +145,92 @@ func (s *S9s) showConfiguration() {
 
 	// Add the config view as a modal-like page
 	s.pages.AddPage("config", configView, true, true)
+}
+
+// showClusterSwitcher displays a modal to switch between configured clusters
+func (s *S9s) showClusterSwitcher() {
+	if len(s.config.Clusters) <= 1 {
+		s.statusBar.Info("Only one cluster configured")
+		return
+	}
+
+	list := tview.NewList()
+	list.SetBorder(true).
+		SetTitle(" Switch Cluster ").
+		SetTitleAlign(tview.AlignCenter)
+
+	for _, cl := range s.config.Clusters {
+		name := cl.Name
+		secondary := cl.Cluster.Endpoint
+		if name == s.config.DefaultCluster {
+			secondary += " (current)"
+		}
+		list.AddItem(name, secondary, 0, func() {
+			s.pages.RemovePage("cluster-switcher")
+			s.switchCluster(name)
+		})
+	}
+
+	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			s.pages.RemovePage("cluster-switcher")
+			return nil
+		}
+		return event
+	})
+
+	// Center the list in a modal-like layout
+	modal := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().
+			SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(list, min(len(s.config.Clusters)*2+2, 16), 0, true).
+			AddItem(nil, 0, 1, false), 50, 0, true).
+		AddItem(nil, 0, 1, false)
+
+	s.pages.AddPage("cluster-switcher", modal, true, true)
+	s.app.SetFocus(list)
+}
+
+// switchCluster switches the active cluster connection
+func (s *S9s) switchCluster(clusterName string) {
+	if clusterName == s.config.DefaultCluster {
+		return
+	}
+
+	s.statusBar.Info(fmt.Sprintf("Switching to cluster %s...", clusterName))
+
+	// Update config
+	s.config.DefaultCluster = clusterName
+
+	// Create new client
+	newClient, err := createSlurmClient(s.ctx, s.config, s.cancel)
+	if err != nil {
+		s.statusBar.Error(fmt.Sprintf("Failed to connect to %s: %v", clusterName, err))
+		return
+	}
+
+	// Update app client
+	s.client = newClient
+
+	// Update all views
+	for _, view := range s.viewMgr.GetViews() {
+		if setter, ok := view.(views.ClientSetter); ok {
+			setter.SetClient(newClient)
+		}
+	}
+
+	// Update header
+	s.header.SetClusterName(clusterName)
+
+	// Refresh current view
+	if err := s.viewMgr.RefreshCurrentView(); err != nil {
+		s.statusBar.Error(fmt.Sprintf("Connected to %s but refresh failed: %v", clusterName, err))
+		return
+	}
+
+	s.statusBar.Success(fmt.Sprintf("Switched to cluster %s", clusterName))
 }
 
 // showLayoutSwitcher displays the layout switcher modal

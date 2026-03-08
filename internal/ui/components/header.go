@@ -21,6 +21,7 @@ type Header struct {
 	lastUpdate    time.Time
 	refreshTicker *time.Ticker
 	alertsBadge   *AlertsBadge
+	clusterName   string // config context name (shown when multiple clusters configured)
 }
 
 // NewHeader creates a new header component
@@ -79,6 +80,15 @@ func (h *Header) SetViews(views []string) {
 	h.updateDisplay()
 }
 
+// SetClusterName sets the config context name to display in the header
+func (h *Header) SetClusterName(name string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	h.clusterName = name
+	h.updateDisplay()
+}
+
 // SetAlertsBadge sets the alerts badge for display in the header
 func (h *Header) SetAlertsBadge(badge *AlertsBadge) {
 	h.alertsBadge = badge
@@ -115,6 +125,10 @@ func (h *Header) updateDisplay() {
 // appendTitleLine appends the title and cluster info line
 func (h *Header) appendTitleLine(content *strings.Builder) {
 	content.WriteString("[white::b]S9S - SLURM Terminal UI[white::-]")
+
+	if h.clusterName != "" {
+		fmt.Fprintf(content, " | [green]%s[white]", h.clusterName)
+	}
 
 	if h.clusterInfo != nil {
 		fmt.Fprintf(content, " | [cyan]%s[white] (%s)",

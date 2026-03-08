@@ -18,6 +18,7 @@ These shortcuts work from any view:
 | `F5` | Force refresh | Refresh current view data |
 | `R` | Manual refresh | Refresh view (most views) |
 | `Ctrl+F` | Global search | Search across all cluster resources |
+| `Ctrl+K` | Switch cluster | Switch between configured clusters |
 | `Ctrl+C` | Cancel | Cancel current operation or close modal |
 | `ESC` | Exit/Close | Exit filter mode, close modal, cancel operation |
 

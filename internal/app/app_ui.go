@@ -32,6 +32,11 @@ func (s *S9s) initUI() error {
 	// Create header
 	s.header = components.NewHeader()
 
+	// Show cluster context name when multiple clusters are configured
+	if len(s.config.Clusters) > 1 {
+		s.header.SetClusterName(s.config.DefaultCluster)
+	}
+
 	// Create status bar
 	s.statusBar = components.NewStatusBar()
 

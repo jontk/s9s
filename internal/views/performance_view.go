@@ -52,6 +52,11 @@ func NewPerformanceView(client dao.SlurmClient) *PerformanceView {
 	return pv
 }
 
+// SetClient sets the SLURM client for the performance view
+func (v *PerformanceView) SetClient(client dao.SlurmClient) {
+	v.client = client
+}
+
 // Init initializes the performance view
 func (pv *PerformanceView) Init(ctx context.Context) error {
 	pv.ctx = ctx

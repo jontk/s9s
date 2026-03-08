@@ -96,6 +96,13 @@ func NewDashboardView(client dao.SlurmClient) *DashboardView {
 	return v
 }
 
+// SetClient sets the SLURM client for the dashboard view
+func (v *DashboardView) SetClient(client dao.SlurmClient) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.client = client
+}
+
 // Init initializes the dashboard view
 func (v *DashboardView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)

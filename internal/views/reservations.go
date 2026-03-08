@@ -116,6 +116,13 @@ func NewReservationsView(client dao.SlurmClient) *ReservationsView {
 	return v
 }
 
+// SetClient sets the SLURM client for the reservations view
+func (v *ReservationsView) SetClient(client dao.SlurmClient) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.client = client
+}
+
 // Init initializes the reservations view
 func (v *ReservationsView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)

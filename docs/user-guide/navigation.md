@@ -29,6 +29,7 @@ These shortcuts work across all views:
 | `F5` | Refresh | Refresh current view |
 | `F10` | Configuration | Show configuration |
 | `Ctrl+F` | Global Search | Search across all resources |
+| `Ctrl+K` | Switch Cluster | Switch between configured clusters |
 | `R` | Manual Refresh | Force refresh current view |
 
 ### View Navigation
