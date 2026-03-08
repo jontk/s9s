@@ -174,6 +174,13 @@ func NewJobsView(client dao.SlurmClient) *JobsView {
 	return v
 }
 
+// SetClient sets the SLURM client for the jobs view
+func (v *JobsView) SetClient(client dao.SlurmClient) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.client = client
+}
+
 // Init initializes the jobs view
 func (v *JobsView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)

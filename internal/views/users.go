@@ -121,6 +121,13 @@ func NewUsersView(client dao.SlurmClient) *UsersView {
 	return v
 }
 
+// SetClient sets the SLURM client for the users view
+func (v *UsersView) SetClient(client dao.SlurmClient) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.client = client
+}
+
 // Init initializes the users view
 func (v *UsersView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)

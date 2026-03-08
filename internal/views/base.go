@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/debug"
 	"github.com/rivo/tview"
 )
@@ -15,6 +16,11 @@ import (
 type ModalHandler interface {
 	ShowModal(name string, modal tview.Primitive)
 	HideModal(name string)
+}
+
+// ClientSetter is implemented by views that can update their SLURM client
+type ClientSetter interface {
+	SetClient(client dao.SlurmClient)
 }
 
 // View represents a base interface for all views in S9s
@@ -452,6 +458,11 @@ func (vm *ViewManager) PreviousView() error {
 	}
 
 	return vm.SetCurrentView(vm.viewOrder[prevIndex])
+}
+
+// GetViews returns all registered views
+func (vm *ViewManager) GetViews() map[string]View {
+	return vm.views
 }
 
 // GetViewNames returns all registered view names in order

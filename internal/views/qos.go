@@ -115,6 +115,13 @@ func NewQoSView(client dao.SlurmClient) *QoSView {
 	return v
 }
 
+// SetClient sets the SLURM client for the QoS view
+func (v *QoSView) SetClient(client dao.SlurmClient) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.client = client
+}
+
 // Init initializes the QoS view
 func (v *QoSView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)

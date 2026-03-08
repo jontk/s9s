@@ -115,6 +115,13 @@ func NewAccountsView(client dao.SlurmClient) *AccountsView {
 	return v
 }
 
+// SetClient sets the SLURM client for the accounts view
+func (v *AccountsView) SetClient(client dao.SlurmClient) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.client = client
+}
+
 // Init initializes the accounts view
 func (v *AccountsView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)

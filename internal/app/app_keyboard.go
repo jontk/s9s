@@ -120,6 +120,7 @@ func (s *S9s) handleRuneKey(event *tcell.EventKey, isModalOpen bool) *tcell.Even
 func (s *S9s) globalKeyHandlers() map[tcell.Key]KeyHandler {
 	return map[tcell.Key]KeyHandler{
 		tcell.KeyCtrlC:   s.handleCtrlC,
+		tcell.KeyCtrlK:   s.handleClusterSwitch,
 		tcell.KeyF1:      s.handleF1Help,
 		tcell.KeyF2:      s.handleF2Alerts,
 		tcell.KeyF3:      s.handleF3Preferences,
@@ -156,6 +157,11 @@ func (s *S9s) globalRuneHandlers() map[rune]KeyHandler {
 // Handler implementations
 func (s *S9s) handleCtrlC(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	_ = s.Stop()
+	return nil
+}
+
+func (s *S9s) handleClusterSwitch(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
+	s.showClusterSwitcher()
 	return nil
 }
 

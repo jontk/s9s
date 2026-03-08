@@ -82,6 +82,11 @@ func NewHealthView(client dao.SlurmClient) *HealthView {
 	return v
 }
 
+// SetClient sets the SLURM client for the health view
+func (v *HealthView) SetClient(client dao.SlurmClient) {
+	v.client = client
+}
+
 // SetApp sets the application reference
 func (v *HealthView) SetApp(app *tview.Application) {
 	v.app = app

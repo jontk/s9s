@@ -117,6 +117,13 @@ func NewPartitionsView(client dao.SlurmClient) *PartitionsView {
 	return v
 }
 
+// SetClient sets the SLURM client for the partitions view
+func (v *PartitionsView) SetClient(client dao.SlurmClient) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.client = client
+}
+
 // Init initializes the partitions view
 func (v *PartitionsView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)

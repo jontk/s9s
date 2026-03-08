@@ -57,6 +57,11 @@ func NewAppDiagnosticsView(client dao.SlurmClient) *AppDiagnosticsView {
 	return pv
 }
 
+// SetClient sets the SLURM client for the app diagnostics view
+func (v *AppDiagnosticsView) SetClient(client dao.SlurmClient) {
+	v.client = client
+}
+
 // Init initializes the performance view
 func (pv *AppDiagnosticsView) Init(ctx context.Context) error {
 	pv.ctx = ctx
