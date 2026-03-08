@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.6.0] - 2026-03-08
+
+### Added
+
+- **Cluster Switcher** (#89)
+  - Show the active cluster name in the header when multiple clusters are configured
+  - Press `Ctrl+K` to open an interactive cluster picker modal
+  - Switch between configured clusters at runtime without restarting
+
+- **`--cluster` Flag and Config Rename** (#87)
+  - Add `--cluster` flag to select a cluster context from the command line
+  - Fix `--config` flag being ignored (always loaded default config path)
+  - **Breaking**: Rename config keys `contexts` → `clusters` and `currentContext` → `defaultCluster`
+  - Upgrade slurm-client to v0.3.3 (fixes empty Nodes/Partitions/Reservations/Users views on v0.0.41 API)
+
 - **Table Export for All Views** (#85)
   - Press `e` in any view to export the current data to a file
   - Supported views: Jobs, Nodes, Partitions, Reservations, QoS, Accounts, Users
@@ -18,11 +39,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - JSON exports include a structured envelope with `title`, `exported_at`, `total`, and `records` keyed by column name
   - Export paths are validated to prevent writes outside the user's home directory
 
+- **VHS Integration Tests** (#88)
+  - VHS-based regression testing against 4 real Slurm clusters (24.05, 24.11, 25.05, 25.11)
+  - Normalized ASCII golden file comparison for structural/behavioral change detection
+  - Cluster seeding, JWT token generation, and output normalization scripts
+  - `scripts/dev-clusters.sh` for generating multi-cluster dev configs
+  - Makefile targets: `test-vhs`, `test-vhs-update`, `test-vhs-{2405,2411,2505,2511}`
+
 ### Changed
+
+- Config terminology: `contexts` → `clusters`, `currentContext` → `defaultCluster` for consistency
 
 ### Fixed
 
-### Removed
+- `--config` flag was completely ignored — always loaded `~/.s9s/config.yaml` (#87)
+- Job submission and slurm-client v0.3.1 upgrade (#86)
+- Local-first file reading with SSH fallback for job output (#86)
+- v0.0.41 API converters returning empty data for Nodes, Partitions, Reservations, and Users (slurm-client v0.3.3)
 
 ## [0.5.0] - 2026-02-18
 
@@ -331,7 +364,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Versions prior to 0.1.0 were in active development and did not follow semantic versioning.
 
-[Unreleased]: https://github.com/jontk/s9s/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/jontk/s9s/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/jontk/s9s/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/jontk/s9s/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jontk/s9s/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jontk/s9s/compare/v0.1.0...v0.3.0
