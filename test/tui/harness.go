@@ -46,7 +46,7 @@ func NewTUITestHarnessWithSize(t *testing.T, width, height int) *TUITestHarness 
 	cfg := &config.Config{
 		UseMockClient:  true,
 		RefreshRate:    "0s", // Disable auto-refresh in tests
-		CurrentContext: "test",
+		DefaultCluster: "test",
 		MaxRetries:     3,
 		UI: config.UIConfig{
 			Skin:        "default",

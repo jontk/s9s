@@ -137,67 +137,67 @@ func (v *Validator) validateBasicStructure() {
 		v.fix("refresh_rate", "Invalid refresh rate format", v.config.RefreshRate, "30s")
 	}
 
-	// Current context validation
-	if v.config.CurrentContext == "" {
-		if len(v.config.Contexts) > 0 {
-			v.fix("current_context", "No current context set", "", v.config.Contexts[0].Name)
+	// Default cluster validation
+	if v.config.DefaultCluster == "" {
+		if len(v.config.Clusters) > 0 {
+			v.fix("default_cluster", "No default cluster set", "", v.config.Clusters[0].Name)
 		} else {
-			v.addError("current_context", "No current context and no contexts available", "Add at least one context", false)
+			v.addError("default_cluster", "No default cluster and no clusters available", "Add at least one cluster", false)
 		}
 	}
 }
 
-// validateContexts validates all contexts
+// validateContexts validates all cluster entries
 func (v *Validator) validateContexts() {
-	if len(v.config.Contexts) == 0 {
-		v.addError("contexts", "No contexts defined", "Add at least one cluster context", false)
+	if len(v.config.Clusters) == 0 {
+		v.addError("clusters", "No clusters defined", "Add at least one cluster", false)
 		return
 	}
 
-	contextNames := make(map[string]bool)
-	for i := range v.config.Contexts {
-		context := &v.config.Contexts[i]
-		contextPath := fmt.Sprintf("contexts[%d]", i)
+	clusterNames := make(map[string]bool)
+	for i := range v.config.Clusters {
+		entry := &v.config.Clusters[i]
+		entryPath := fmt.Sprintf("clusters[%d]", i)
 
 		// Name validation
-		if context.Name == "" {
-			v.fix(fmt.Sprintf("%s.name", contextPath), "Missing context name", "", fmt.Sprintf("context-%d", i))
-			context.Name = fmt.Sprintf("context-%d", i)
+		if entry.Name == "" {
+			v.fix(fmt.Sprintf("%s.name", entryPath), "Missing cluster name", "", fmt.Sprintf("cluster-%d", i))
+			entry.Name = fmt.Sprintf("cluster-%d", i)
 		}
 
 		// Check for duplicate names
-		if contextNames[context.Name] {
-			v.addError(fmt.Sprintf("%s.name", contextPath),
-				fmt.Sprintf("Duplicate context name: %s", context.Name),
-				"Use unique context names", false)
+		if clusterNames[entry.Name] {
+			v.addError(fmt.Sprintf("%s.name", entryPath),
+				fmt.Sprintf("Duplicate cluster name: %s", entry.Name),
+				"Use unique cluster names", false)
 		}
-		contextNames[context.Name] = true
+		clusterNames[entry.Name] = true
 
-		// Validate cluster configuration within context
-		v.validateClusterInContext(context, contextPath)
+		// Validate cluster configuration within entry
+		v.validateClusterInContext(entry, entryPath)
 	}
 
-	// Validate current context exists
-	if v.config.CurrentContext != "" {
+	// Validate default cluster exists
+	if v.config.DefaultCluster != "" {
 		found := false
-		for _, context := range v.config.Contexts {
-			if context.Name == v.config.CurrentContext {
+		for _, entry := range v.config.Clusters {
+			if entry.Name == v.config.DefaultCluster {
 				found = true
 				break
 			}
 		}
 		if !found {
-			v.fix("current_context",
-				fmt.Sprintf("Current context '%s' not found", v.config.CurrentContext),
-				v.config.CurrentContext, v.config.Contexts[0].Name)
+			v.fix("default_cluster",
+				fmt.Sprintf("Default cluster '%s' not found", v.config.DefaultCluster),
+				v.config.DefaultCluster, v.config.Clusters[0].Name)
 		}
 	}
 }
 
 // validateClusters validates cluster configurations
 func (v *Validator) validateClusters() {
-	for i, context := range v.config.Contexts {
-		v.validateCluster(context.Cluster, fmt.Sprintf("contexts[%d].cluster", i))
+	for i, entry := range v.config.Clusters {
+		v.validateCluster(entry.Cluster, fmt.Sprintf("clusters[%d].cluster", i))
 	}
 }
 
@@ -232,9 +232,9 @@ func (v *Validator) validateCluster(cluster ClusterConfig, basePath string) {
 	}
 }
 
-// validateClusterInContext validates cluster within a context
-func (v *Validator) validateClusterInContext(context *ContextConfig, contextPath string) {
-	v.validateCluster(context.Cluster, fmt.Sprintf("%s.cluster", contextPath))
+// validateClusterInContext validates cluster within a cluster entry
+func (v *Validator) validateClusterInContext(entry *ClusterContext, entryPath string) {
+	v.validateCluster(entry.Cluster, fmt.Sprintf("%s.cluster", entryPath))
 }
 
 // validateAuthentication validates authentication settings
@@ -243,12 +243,12 @@ func (v *Validator) validateAuthentication() {
 	// For now, we'll add basic validation for auth-related metadata
 
 	// Basic token validation for existing ClusterConfig
-	for i, context := range v.config.Contexts {
-		if context.Cluster.Token != "" {
+	for i, entry := range v.config.Clusters {
+		if entry.Cluster.Token != "" {
 			// Basic JWT token validation
-			parts := strings.Split(context.Cluster.Token, ".")
+			parts := strings.Split(entry.Cluster.Token, ".")
 			if len(parts) != 3 {
-				v.addWarning(fmt.Sprintf("contexts[%d].cluster.token", i),
+				v.addWarning(fmt.Sprintf("clusters[%d].cluster.token", i),
 					"Token format doesn't appear to be JWT",
 					"Verify token format is correct for SLURM")
 			}
@@ -283,19 +283,19 @@ func (v *Validator) validatePerformanceSettings() {
 
 // validateSecurity validates security settings
 func (v *Validator) validateSecurity() {
-	for i, context := range v.config.Contexts {
-		cluster := context.Cluster
+	for i, entry := range v.config.Clusters {
+		cluster := entry.Cluster
 
 		// Check for insecure configurations
 		if cluster.Endpoint != "" && strings.HasPrefix(cluster.Endpoint, "http://") {
-			v.addWarning(fmt.Sprintf("contexts[%d].cluster.endpoint", i),
+			v.addWarning(fmt.Sprintf("clusters[%d].cluster.endpoint", i),
 				"Using unencrypted HTTP connection",
 				"Consider using HTTPS for security")
 		}
 
 		// Insecure flag warnings
 		if cluster.Insecure {
-			v.addWarning(fmt.Sprintf("contexts[%d].cluster.insecure", i),
+			v.addWarning(fmt.Sprintf("clusters[%d].cluster.insecure", i),
 				"TLS verification disabled",
 				"Enable TLS verification for production")
 		}
@@ -458,8 +458,8 @@ func (v *ConfigValidator) applyFix(field string, newValue interface{}) {
 	switch field {
 	case "refresh_rate":
 		v.config.RefreshRate = newValue.(string)
-	case "current_context":
-		v.config.CurrentContext = newValue.(string)
+	case "default_cluster":
+		v.config.DefaultCluster = newValue.(string)
 		// Add more cases as needed for different fields
 	}
 }

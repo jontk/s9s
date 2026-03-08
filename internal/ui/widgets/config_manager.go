@@ -418,8 +418,8 @@ func (cm *ConfigManager) getConfigScalarValue(cfg *config.Config, field string) 
 		return cfg.RefreshRate
 	case "maxRetries":
 		return cfg.MaxRetries
-	case "currentContext":
-		return cfg.CurrentContext
+	case "defaultCluster":
+		return cfg.DefaultCluster
 	case "useMockClient":
 		return cfg.UseMockClient
 	}
@@ -482,9 +482,9 @@ func (cm *ConfigManager) setConfigScalarValue(cfg *config.Config, field string, 
 		if v, ok := value.(int); ok {
 			cfg.MaxRetries = v
 		}
-	case "currentContext":
+	case "defaultCluster":
 		if v, ok := value.(string); ok {
-			cfg.CurrentContext = v
+			cfg.DefaultCluster = v
 		}
 	case "useMockClient":
 		if v, ok := value.(bool); ok {
@@ -879,7 +879,7 @@ func (cm *ConfigManager) copyConfig(original *config.Config) *config.Config {
 	copied := &config.Config{
 		RefreshRate:    original.RefreshRate,
 		MaxRetries:     original.MaxRetries,
-		CurrentContext: original.CurrentContext,
+		DefaultCluster: original.DefaultCluster,
 		UI:             original.UI,
 		Views:          original.Views,
 		Features:       original.Features,
@@ -887,9 +887,9 @@ func (cm *ConfigManager) copyConfig(original *config.Config) *config.Config {
 		Cluster:        original.Cluster,
 	}
 
-	// Copy contexts slice
-	copied.Contexts = make([]config.ContextConfig, len(original.Contexts))
-	copy(copied.Contexts, original.Contexts)
+	// Copy clusters slice
+	copied.Clusters = make([]config.ClusterContext, len(original.Clusters))
+	copy(copied.Clusters, original.Clusters)
 
 	// Copy shortcuts slice
 	copied.Shortcuts = make([]config.ShortcutConfig, len(original.Shortcuts))
@@ -975,13 +975,13 @@ func (cm *ConfigManager) HasChanges() bool {
 
 // addContextField adds a context management field
 func (cm *ConfigManager) addContextField(_ *config.ConfigField) {
-	contextCount := len(cm.currentConfig.Contexts)
-	summary := fmt.Sprintf("Contexts: %d configured", contextCount)
-	if cm.currentConfig.CurrentContext != "" {
-		summary += fmt.Sprintf(" (Current: %s)", cm.currentConfig.CurrentContext)
+	clusterCount := len(cm.currentConfig.Clusters)
+	summary := fmt.Sprintf("Clusters: %d configured", clusterCount)
+	if cm.currentConfig.DefaultCluster != "" {
+		summary += fmt.Sprintf(" (Default: %s)", cm.currentConfig.DefaultCluster)
 	}
 
-	cm.form.AddButton("Manage Contexts", func() {
+	cm.form.AddButton("Manage Clusters", func() {
 		cm.showContextManager()
 	})
 	cm.addFieldDescription(summary)
@@ -1028,7 +1028,7 @@ func (cm *ConfigManager) showContextManager() {
 	}
 
 	modal := tview.NewModal()
-	modal.SetText("Context Manager\n(Implementation pending)")
+	modal.SetText("Cluster Manager\n(Implementation pending)")
 	modal.AddButtons([]string{"Close"})
 	modal.SetDoneFunc(func(_ int, _ string) {
 		cm.pages.RemovePage("context-modal")

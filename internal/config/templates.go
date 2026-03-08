@@ -42,11 +42,11 @@ func (tm *TemplateManager) loadBuiltinTemplates() {
 		Description: "Local development with SLURM tokens",
 		Category:    "development",
 		Template: `# Local Development Configuration
-currentContext: local
+defaultCluster: local
 refreshRate: 10s
 maxRetries: 3
 
-contexts:
+clusters:
   - name: local
     cluster:
       endpoint: http://localhost:6820
@@ -70,11 +70,11 @@ useMockClient: false
 		Description: "Enterprise setup with OAuth2 and DNS discovery",
 		Category:    "enterprise",
 		Template: `# Enterprise OAuth2 Configuration
-currentContext: production
+defaultCluster: production
 refreshRate: 30s
 maxRetries: 5
 
-contexts:
+clusters:
   - name: production
     cluster:
       endpoint: https://{{.CLUSTER_HOST}}:{{.CLUSTER_PORT}}
@@ -99,11 +99,11 @@ useMockClient: false
 		Description: "Multiple cluster configuration",
 		Category:    "production",
 		Template: `# Multi-Cluster Configuration
-currentContext: {{.DEFAULT_CLUSTER}}
+defaultCluster: {{.DEFAULT_CLUSTER}}
 refreshRate: 30s
 maxRetries: 3
 
-contexts:
+clusters:
   - name: production
     cluster:
       endpoint: https://{{.PROD_HOST}}:6820
@@ -139,11 +139,11 @@ contexts:
 		Description: "Large HPC center with multiple partitions",
 		Category:    "hpc",
 		Template: `# HPC Center Configuration
-currentContext: {{.CLUSTER_NAME}}
+defaultCluster: {{.CLUSTER_NAME}}
 refreshRate: 15s
 maxRetries: 5
 
-contexts:
+clusters:
   - name: {{.CLUSTER_NAME}}
     cluster:
       endpoint: https://{{.CONTROLLER_HOST}}:6820
@@ -170,11 +170,11 @@ useMockClient: false
 		Description: "Cloud-based SLURM with auto-scaling",
 		Category:    "cloud",
 		Template: `# Cloud SLURM Configuration
-currentContext: cloud
+defaultCluster: cloud
 refreshRate: 60s
 maxRetries: 3
 
-contexts:
+clusters:
   - name: cloud
     cluster:
       endpoint: https://{{.CLOUD_HOST}}:6820
@@ -197,11 +197,11 @@ useMockClient: false
 		Description: "Containerized SLURM setup",
 		Category:    "development",
 		Template: `# Docker SLURM Configuration
-currentContext: docker
+defaultCluster: docker
 refreshRate: 5s
 maxRetries: 2
 
-contexts:
+clusters:
   - name: docker
     cluster:
       endpoint: http://{{.DOCKER_HOST}}:{{.DOCKER_PORT}}
@@ -224,11 +224,11 @@ useMockClient: false
 		Description: "Minimal configuration for quick setup",
 		Category:    "basic",
 		Template: `# Minimal s9s Configuration
-currentContext: default
+defaultCluster: default
 refreshRate: 30s
 maxRetries: 3
 
-contexts:
+clusters:
   - name: default
     cluster:
       endpoint: https://{{.HOST}}:6820
@@ -338,11 +338,11 @@ func (tm *TemplateManager) CreateQuickStartConfig(clusterHost, clusterName strin
 	}
 
 	config := &Config{
-		CurrentContext: "quickstart",
+		DefaultCluster: "quickstart",
 		RefreshRate:    "30s",
 		UseMockClient:  false,
 		MaxRetries:     3,
-		Contexts: []ContextConfig{
+		Clusters: []ClusterContext{
 			{
 				Name: "quickstart",
 				Cluster: ClusterConfig{
@@ -382,8 +382,8 @@ func (tm *TemplateManager) ValidateTemplate(template *Template) []string {
 		errors = append(errors, "template must contain version field")
 	}
 
-	if !strings.Contains(template.Template, "contexts:") {
-		errors = append(errors, "template must contain contexts field")
+	if !strings.Contains(template.Template, "clusters:") {
+		errors = append(errors, "template must contain clusters field")
 	}
 
 	return errors

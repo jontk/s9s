@@ -119,19 +119,19 @@ func runConfigValidate(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	// Basic validation - check if current context exists
-	if cfg.CurrentContext != "" {
-		_, err := cfg.GetContext(cfg.CurrentContext)
+	// Basic validation - check if default cluster exists
+	if cfg.DefaultCluster != "" {
+		_, err := cfg.GetCluster(cfg.DefaultCluster)
 		if err != nil {
-			fmt.Printf("❌ Current context '%s' not found\n", cfg.CurrentContext)
+			fmt.Printf("❌ Default cluster '%s' not found\n", cfg.DefaultCluster)
 			return fmt.Errorf("configuration validation failed: %w", err)
 		}
 	}
 
-	// Validate contexts have valid cluster endpoints
-	for _, ctx := range cfg.Contexts {
-		if ctx.Cluster.Endpoint == "" {
-			fmt.Printf("❌ Context '%s' has no cluster endpoint\n", ctx.Name)
+	// Validate clusters have valid cluster endpoints
+	for _, cl := range cfg.Clusters {
+		if cl.Cluster.Endpoint == "" {
+			fmt.Printf("❌ Cluster '%s' has no endpoint\n", cl.Name)
 			return fmt.Errorf("configuration validation failed: missing cluster endpoint")
 		}
 	}
@@ -151,8 +151,8 @@ func runConfigShow(_ *cobra.Command, _ []string) error {
 	fmt.Printf("Config path: %s\n\n", getConfigPath())
 
 	// TODO: Implement config display with sensitive data masking
-	fmt.Printf("Contexts configured: %d\n", len(cfg.Contexts))
-	fmt.Printf("Current context: %s\n", cfg.CurrentContext)
+	fmt.Printf("Clusters configured: %d\n", len(cfg.Clusters))
+	fmt.Printf("Default cluster: %s\n", cfg.DefaultCluster)
 	fmt.Printf("Mock mode: %v\n", cfg.UseMockClient)
 
 	return nil
@@ -173,11 +173,11 @@ func createDefaultConfig(path string) error {
 
 refreshRate: "5s"
 maxRetries: 3
-currentContext: "default"
+defaultCluster: "default"
 useMockClient: true
 
-# Contexts define cluster connections
-contexts:
+# Clusters define cluster connections
+clusters:
   - name: "default"
     cluster:
       endpoint: "https://localhost:6820"

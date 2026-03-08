@@ -7,11 +7,11 @@ refreshRate: 2s
 # Maximum retries for API calls
 maxRetries: 3
 
-# Current context (cluster) to use
-currentContext: production
+# Default cluster to use
+defaultCluster: production
 
-# Cluster contexts
-contexts:
+# Cluster connections
+clusters:
   - name: production
     cluster:
       endpoint: https://slurm-prod.example.com:6820

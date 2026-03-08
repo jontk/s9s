@@ -25,9 +25,9 @@ func TestNew(t *testing.T) {
 			name: "valid config",
 			config: &config.Config{
 				RefreshRate:    "2s",
-				CurrentContext: "test",
+				DefaultCluster: "test",
 				UseMockClient:  true,
-				Contexts: []config.ContextConfig{
+				Clusters: []config.ClusterContext{
 					{
 						Name: "test",
 						Cluster: config.ClusterConfig{
@@ -73,9 +73,9 @@ func TestNew(t *testing.T) {
 func TestBasicFunctionality(t *testing.T) {
 	cfg := &config.Config{
 		RefreshRate:    "2s",
-		CurrentContext: "test",
+		DefaultCluster: "test",
 		UseMockClient:  true, // Use mock client for testing
-		Contexts: []config.ContextConfig{
+		Clusters: []config.ClusterContext{
 			{
 				Name: "test",
 				Cluster: config.ClusterConfig{
@@ -102,9 +102,9 @@ func TestBasicFunctionality(t *testing.T) {
 func TestStop(t *testing.T) {
 	cfg := &config.Config{
 		RefreshRate:    "2s",
-		CurrentContext: "test",
+		DefaultCluster: "test",
 		UseMockClient:  true, // Use mock client for testing
-		Contexts: []config.ContextConfig{
+		Clusters: []config.ClusterContext{
 			{
 				Name: "test",
 				Cluster: config.ClusterConfig{

@@ -289,6 +289,36 @@ docs-serve:
 	@echo "Starting documentation server..."
 	godoc -http=:6060
 
+# VHS integration test targets
+.PHONY: test-vhs test-vhs-update test-vhs-2405 test-vhs-2411 test-vhs-2505 test-vhs-2511 test-vhs-seed
+
+# Seed all Slurm clusters with test data (accounts, users, jobs)
+test-vhs-seed:
+	@for ns in slurm-2405 slurm-2411 slurm-2505 slurm-2511; do \
+		./test/vhs-integration/scripts/seed-cluster.sh $$ns; \
+	done
+
+# Run VHS integration tests against all Slurm versions
+test-vhs: build
+	@./test/vhs-integration/scripts/run-integration.sh
+
+# Update golden files for all Slurm versions
+test-vhs-update: build
+	@./test/vhs-integration/scripts/run-integration.sh --update-golden
+
+# Test against specific Slurm versions
+test-vhs-2405: build
+	@./test/vhs-integration/scripts/run-integration.sh --version slurm-2405
+
+test-vhs-2411: build
+	@./test/vhs-integration/scripts/run-integration.sh --version slurm-2411
+
+test-vhs-2505: build
+	@./test/vhs-integration/scripts/run-integration.sh --version slurm-2505
+
+test-vhs-2511: build
+	@./test/vhs-integration/scripts/run-integration.sh --version slurm-2511
+
 # Demo targets
 .PHONY: demos demos-ci demos-full demo-overview demo-clean
 
@@ -404,5 +434,14 @@ help:
 	@echo "  VERSION       - Override version (default: git describe)"
 	@echo "  SSH_INTEGRATION_TESTS=1 - Enable SSH integration tests"
 	@echo "  DOCKER_SSH_TESTS=1 - Enable Docker SSH tests"
+	@echo ""
+	@echo "VHS Integration Test Targets:"
+	@echo "  test-vhs      - Run VHS integration tests against all Slurm versions"
+	@echo "  test-vhs-update - Update golden files for VHS integration tests"
+	@echo "  test-vhs-seed - Seed all clusters with test data (accounts, users, jobs)"
+	@echo "  test-vhs-2405 - Test against Slurm 24.05 only"
+	@echo "  test-vhs-2411 - Test against Slurm 24.11 only"
+	@echo "  test-vhs-2505 - Test against Slurm 25.05 only"
+	@echo "  test-vhs-2511 - Test against Slurm 25.11 only"
 	@echo ""
 	@echo "For more information, see README.md"
