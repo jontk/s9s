@@ -597,7 +597,11 @@ s9s --cluster development
 # Or environment
 export S9S_CLUSTER=development
 s9s
+
+# Or interactively with Ctrl+K while s9s is running
 ```
+
+When multiple clusters are configured, the active cluster name is shown in the header bar. Press `Ctrl+K` to open the cluster switcher and select a different cluster without restarting.
 
 ### Filter Presets
 
