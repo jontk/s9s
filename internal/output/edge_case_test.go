@@ -186,7 +186,8 @@ func TestRemoteFileReader_ReadRemoteFile_ParseError(t *testing.T) {
 	}
 }
 
-// TestRemoteFileReader_GetRemoteFileInfo_ParseError tests parse error in stat
+// TestRemoteFileReader_GetRemoteFileInfo_ParseError tests that unparseable stat
+// output is treated as file-not-found rather than an error (e.g. SSH banners)
 func TestRemoteFileReader_GetRemoteFileInfo_ParseError(t *testing.T) {
 	mockSSH := &mockSSHClient{
 		executeFunc: func(ctx context.Context, hostname, command string) (string, error) {
@@ -197,9 +198,12 @@ func TestRemoteFileReader_GetRemoteFileInfo_ParseError(t *testing.T) {
 	reader := NewRemoteFileReader(mockSSH)
 	ctx := context.Background()
 
-	_, err := reader.GetRemoteFileInfo(ctx, "node01", "/path/to/file.txt")
-	if err == nil {
-		t.Fatal("Expected parse error, got nil")
+	metadata, err := reader.GetRemoteFileInfo(ctx, "node01", "/path/to/file.txt")
+	if err != nil {
+		t.Fatalf("Expected no error for unparseable stat output, got: %v", err)
+	}
+	if metadata.Exists {
+		t.Fatal("Expected Exists=false for unparseable stat output")
 	}
 }
 

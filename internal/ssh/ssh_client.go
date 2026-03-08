@@ -252,6 +252,7 @@ func DefaultSSHConfig() *SSHConfig {
 			"ConnectTimeout":        "10",
 			"ServerAliveInterval":   "60",
 			"ServerAliveCountMax":   "3",
+			"LogLevel":              "ERROR",
 		},
 	}
 

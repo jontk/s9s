@@ -121,7 +121,6 @@ func (w *JobSubmissionWizard) showJobForm(template *dao.JobTemplate) {
 	// Initialize job from template or defaults
 	job := &dao.JobSubmission{
 		TimeLimit:  "01:00:00",
-		Memory:     "4G",
 		CPUs:       1,
 		Nodes:      1,
 		WorkingDir: w.workingDir, // Default to current working directory
@@ -312,8 +311,8 @@ func (w *JobSubmissionWizard) validateAndSubmitJob(job *dao.JobSubmission) error
 		return fmt.Errorf("invalid time format (use HH:MM:SS or D-HH:MM:SS)")
 	}
 
-	// Validate memory format
-	if !isValidMemoryFormat(job.Memory) {
+	// Validate memory format (optional — empty means use SLURM's partition default)
+	if job.Memory != "" && !isValidMemoryFormat(job.Memory) {
 		return fmt.Errorf("invalid memory format (use M or G suffix, e.g., 1024M or 4G)")
 	}
 

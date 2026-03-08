@@ -40,10 +40,17 @@ type StreamEvent struct {
 	Error      error           `json:"error,omitempty"`
 }
 
+// SSHCommandExecutor executes commands on remote nodes via SSH.
+// *ssh.Client from internal/ssh satisfies this interface.
+type SSHCommandExecutor interface {
+	ExecuteCommand(ctx context.Context, hostname, command string) (string, error)
+}
+
 // StreamManager manages real-time job output streaming
 type StreamManager struct {
 	client        dao.SlurmClient     // Uses SLURM API to get job metadata including file paths
 	sshManager    *ssh.SessionManager // For remote file access
+	sshExecutor   SSHCommandExecutor  // For direct SSH command execution on compute nodes
 	fileWatcher   *fsnotify.Watcher   // For local file watching
 	activeStreams map[string]*JobStream
 	eventBus      *EventBus

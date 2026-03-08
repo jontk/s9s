@@ -8,6 +8,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/export"
+	"github.com/jontk/s9s/internal/ssh"
 	"github.com/jontk/s9s/internal/streaming"
 	"github.com/jontk/s9s/internal/ui/widgets"
 	"github.com/rivo/tview"
@@ -48,10 +49,12 @@ type FilteredJobOutputView struct {
 
 // NewFilteredJobOutputView creates a new filtered job output view
 func NewFilteredJobOutputView(client dao.SlurmClient, app *tview.Application, configPath string) (*FilteredJobOutputView, error) {
-	// Create filtered stream manager
+	// Create filtered stream manager with SSH client for remote fallback
+	sshClient := ssh.NewSSHClient(ssh.DefaultSSHConfig())
 	filterManager, err := streaming.NewFilteredStreamManager(
 		client,
-		nil, // SSH manager would be provided here
+		nil, // SSH session manager not needed; sshClient handles direct command execution
+		sshClient,
 		streaming.DefaultSlurmConfig(),
 		configPath,
 	)

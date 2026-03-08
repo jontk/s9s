@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"fmt"
+	"os"
 	osuser "os/user"
 	"strings"
 	"time"
@@ -297,16 +298,48 @@ func convertJobSubmissionToSlurm(job *JobSubmission) *slurm.JobSubmission {
 		}
 	}
 
-	// Convert memory from string to int (MB)
+	// Convert memory from string to int (MB).
+	// Supported formats: "1024M" (megabytes) or "4G" (gigabytes).
 	memory := 0
 	if job.Memory != "" {
-		// Simple implementation: assume format is in MB
-		_, _ = fmt.Sscanf(job.Memory, "%d", &memory)
+		var num int
+		if _, err := fmt.Sscanf(job.Memory, "%d", &num); err == nil {
+			suffix := strings.ToUpper(job.Memory[len(job.Memory)-1:])
+			switch suffix {
+			case "G":
+				memory = num * 1024
+			default: // "M" or bare number
+				memory = num
+			}
+		}
+	}
+
+	// Ensure the script has a shebang; SLURM requires it for batch submission.
+	script := job.Script
+	if script != "" && !strings.HasPrefix(script, "#!") {
+		script = "#!/bin/bash\n" + script
+	}
+
+	// Like sbatch/srun, export the caller's environment by default.
+	// slurmctld requires at least one env var; an empty set causes
+	// "Batch job submission failed".
+	// Filter to POSIX-valid names (letters/digits/underscore) to exclude
+	// bash-exported functions (e.g. BASH_FUNC_foo%%) which cause slurmrestd
+	// to reject the submission.
+	env := job.Environment
+	if len(env) == 0 {
+		env = make(map[string]string)
+		for _, e := range os.Environ() {
+			k, v, ok := strings.Cut(e, "=")
+			if ok && isPosixEnvKey(k) {
+				env[k] = v
+			}
+		}
 	}
 
 	return &slurm.JobSubmission{
 		Name:        job.Name,
-		Script:      job.Script,
+		Script:      script,
 		Command:     job.Command,
 		Partition:   job.Partition,
 		Account:     job.Account,
@@ -314,7 +347,7 @@ func convertJobSubmissionToSlurm(job *JobSubmission) *slurm.JobSubmission {
 		Memory:      memory,
 		TimeLimit:   timeLimit,
 		WorkingDir:  job.WorkingDir,
-		Environment: job.Environment,
+		Environment: env,
 		Nodes:       job.Nodes,
 	}
 }
@@ -1572,4 +1605,19 @@ func convertUser(user *slurm.User) *User {
 		MaxCPUs:        0,          // Not available in base User
 		MaxSubmit:      0,          // Not available in base User
 	}
+}
+
+// isPosixEnvKey returns true if k is a valid POSIX environment variable name
+// (only letters, digits, and underscores). This filters out bash-exported
+// function names like BASH_FUNC_foo%% which cause slurmrestd to reject jobs.
+func isPosixEnvKey(k string) bool {
+	if len(k) == 0 {
+		return false
+	}
+	for _, c := range k {
+		if (c < 'A' || c > 'Z') && (c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '_' {
+			return false
+		}
+	}
+	return true
 }
