@@ -1,0 +1,37 @@
+S9S - SLURM Terminal UI | HH:MM
+Views: JOBS | NODES | PARTITIONS | RESERVATIONS | QOS | ACCOUNTS | USERS | DASHBOARD | HEALTH | PERFORMANCE
+Filter: Multi-select: Off
+ ┌──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┐
+│ID│Name│User│Account│State│Partition│Nodes│ Time│Time Limit│Priority│Submit Time│
+ ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
+│2│test-simulation│root││RUNNING│compute│ 1│HH:MM:SS│ 360│ 1│YYYY-MM-DD HH:MM:SS│
+ ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
+│3│test-analysis│root││RUNNING│compute│ 1│HH:MM:SS│ 240│ 1│YYYY-MM-DD HH:MM:SS│
+ ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
+│4│test-training│root││RUNNING│compute│ 1│HH:MM:SS│ 480│ 1│YYYY-MM-DD HH:MM:SS│
+ ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
+│5│test-debug-run│root││PENDING│debug│ 0│HH:MM:SS│ 30│ 1│YYYY-MM-DD HH:MM:SS│
+ ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
+│6│test-gpu-train│root││PENDING│gpu│ 0│HH:MM:SS│ 720│ 1│YYYY-MM-DD HH:MM:SS│
+ ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
+│7│test-bigmem│root││PENDING│highmem│ 0│HH:MM:SS│ 120│ 1│YYYY-MM-DD HH:MM:SS│
+ ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
+│8│test-pending-large│root││PENDING│compute│ 0│HH:MM:SS│ 60│ 1│YYYY-MM-DD HH:MM:SS│
+ ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
+│9│test-pending-gpu│root││PENDING│gpu│ 0│HH:MM:SS│ 360│ 1│YYYY-MM-DD HH:MM:SS│
+ ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
+│10│test-array│root││PENDING│compute│ 0│HH:MM:SS│ 60│ 1│YYYY-MM-DD HH:MM:SS│
+ └──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┘
+Enter Details s Submit Job F2 Templates c Cancel H Hold r Release o Output d Dependencies q Requeue b
+──
+> ./s9s --no-discovery
+⚠️ Mock mode disabled by environment: mock mode disabled
+To enable mock mode, set one of these environment variables:
+ S9S_ENABLE_MOCK=development # For development
+ S9S_ENABLE_MOCK=testing # For testing
+ S9S_ENABLE_MOCK=debug # For debugging
+ S9S_ENABLE_MOCK=true # Generic enable
+Example:
+ export S9S_ENABLE_MOCK=development
+ s9s --mock
+ Switching to real SLURM client mode

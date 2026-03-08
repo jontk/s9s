@@ -289,6 +289,32 @@ docs-serve:
 	@echo "Starting documentation server..."
 	godoc -http=:6060
 
+# VHS Integration Test targets (requires k3s Slurm clusters + vhs)
+.PHONY: test-vhs test-vhs-update test-vhs-2405 test-vhs-2411 test-vhs-2505 test-vhs-2511
+
+VHS_RUNNER=test/vhs-integration/scripts/run-integration.sh
+
+# Run VHS integration tests against all Slurm versions
+test-vhs: build
+	@$(VHS_RUNNER)
+
+# Update golden files for all versions
+test-vhs-update: build
+	@$(VHS_RUNNER) --update-golden
+
+# Test against individual Slurm versions
+test-vhs-2405: build
+	@$(VHS_RUNNER) --version slurm-2405
+
+test-vhs-2411: build
+	@$(VHS_RUNNER) --version slurm-2411
+
+test-vhs-2505: build
+	@$(VHS_RUNNER) --version slurm-2505
+
+test-vhs-2511: build
+	@$(VHS_RUNNER) --version slurm-2511
+
 # Demo targets
 .PHONY: demos demos-ci demos-full demo-overview demo-clean
 
@@ -394,6 +420,14 @@ help:
 	@echo "Documentation Targets:"
 	@echo "  docs          - Generate documentation"
 	@echo "  docs-serve    - Serve documentation on localhost:6060"
+	@echo ""
+	@echo "VHS Integration Tests (requires k3s Slurm clusters):"
+	@echo "  test-vhs      - Run VHS tests against all Slurm versions"
+	@echo "  test-vhs-update - Update golden files"
+	@echo "  test-vhs-2405 - Test against Slurm 24.05 only"
+	@echo "  test-vhs-2411 - Test against Slurm 24.11 only"
+	@echo "  test-vhs-2505 - Test against Slurm 25.05 only"
+	@echo "  test-vhs-2511 - Test against Slurm 25.11 only"
 	@echo ""
 	@echo "Demo Targets:"
 	@echo "  demos         - Generate all VHS demo recordings"

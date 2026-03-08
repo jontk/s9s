@@ -1,0 +1,19 @@
+S9S - SLURM Terminal UI | HH:MM
+Views: JOBS | NODES | PARTITIONS | RESERVATIONS | QOS | ACCOUNTS | USERS | DASHBOARD | HEALTH | PERFORMANCE
+Filter: node Multi-select: Off
+ ┌──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┐
+│ID│Name│User│Account│State│Partition│ Nodes│ Time│ Time Limit│ Priority│Submit Time│
+ └──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┘
+Enter Details s Submit Job F2 Templates c Cancel H Hold r Release o Output d Dependencies q Requeue b
+──
+> ./s9s --no-discovery
+⚠️ Mock mode disabled by environment: mock mode disabled
+To enable mock mode, set one of these environment variables:
+ S9S_ENABLE_MOCK=development # For development
+ S9S_ENABLE_MOCK=testing # For testing
+ S9S_ENABLE_MOCK=debug # For debugging
+ S9S_ENABLE_MOCK=true # Generic enable
+Example:
+ export S9S_ENABLE_MOCK=development
+ s9s --mock
+ Switching to real SLURM client mode

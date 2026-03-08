@@ -1,0 +1,5 @@
+# Transient test output (regenerated each run)
+output/
+
+# Temporary wrapper tapes
+.vhs-integration-run.tape
