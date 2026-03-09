@@ -15,6 +15,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.6.1] - 2026-03-09
+
+### Fixed
+
+- **Node Resource Metrics** (#92)
+  - Replace hardcoded 50% CPU/memory estimates with real SLURM API fields (`AllocCPUs`, `AllocMemory`, `FreeMem`, `CPULoad`)
+  - Nodes now display actual allocation and real OS load average instead of fabricated values
+  - CPU Load label corrected to "OS 1-min load avg" (previously misleadingly said "1-minute load average" while showing allocation percentage)
+
+- **Cluster Metrics in Dashboard, Performance, and Health Views** (#92)
+  - Enrich `GetStats()` with node-level data for memory and CPU usage
+  - Memory usage now shows real allocation percentage (was displaying `-1.0%`)
+  - CPU usage falls back to node-level aggregation when Stats API returns 0
+
+- **Negative Job Times for PENDING Jobs** (#92)
+  - SLURM sets `StartTime` on pending jobs to a future estimated time, causing `time.Since()` to produce negative durations (e.g. `-13:-39:-58`)
+  - Elapsed time is now only computed for RUNNING jobs; PENDING jobs show an empty Time column
+
+### Removed
+
+- Fake hardcoded "Job Throughput (24h)" chart from Dashboard — was purely decorative with no real data
+
 ## [0.6.0] - 2026-03-08
 
 ### Added
@@ -364,7 +386,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Versions prior to 0.1.0 were in active development and did not follow semantic versioning.
 
-[Unreleased]: https://github.com/jontk/s9s/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/jontk/s9s/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/jontk/s9s/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/jontk/s9s/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/jontk/s9s/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jontk/s9s/compare/v0.3.0...v0.4.0
