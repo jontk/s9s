@@ -47,24 +47,24 @@ detect_platform() {
     local os
     local arch
     
-    # Detect OS
+    # Detect OS (title case to match goreleaser naming)
     case "$(uname -s)" in
-        Linux*)  os="linux" ;;
-        Darwin*) os="darwin" ;;
-        CYGWIN*|MINGW*|MSYS*) os="windows" ;;
+        Linux*)  os="Linux" ;;
+        Darwin*) os="Darwin" ;;
+        CYGWIN*|MINGW*|MSYS*) os="Windows" ;;
         *) error "Unsupported operating system: $(uname -s)" ;;
     esac
-    
-    # Detect architecture
+
+    # Detect architecture (match goreleaser naming)
     case "$(uname -m)" in
-        x86_64|amd64) arch="amd64" ;;
+        x86_64|amd64) arch="x86_64" ;;
         arm64|aarch64) arch="arm64" ;;
-        armv7l) arch="arm" ;;
-        i386|i686) arch="386" ;;
+        armv7l) arch="armv7" ;;
+        i386|i686) arch="i386" ;;
         *) error "Unsupported architecture: $(uname -m)" ;;
     esac
-    
-    echo "${os}-${arch}"
+
+    echo "${os}_${arch}"
 }
 
 # Get latest release version
@@ -88,7 +88,7 @@ install_binary() {
     debug "Using temporary directory: $temp_dir"
     
     # Construct download URL
-    local archive_name="s9s-${version#v}-${platform}"
+    local archive_name="s9s_${version#v}_${platform}"
     local download_url
     
     if [[ "$platform" == *"windows"* ]]; then
