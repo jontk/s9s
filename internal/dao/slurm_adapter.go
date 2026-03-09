@@ -938,7 +938,7 @@ func convertNode(node *slurm.Node) *Node {
 		allocMemory = *node.AllocMemory
 	}
 	idleCPUs := safeSubtract(cpusTotal, allocCPUs)
-	freeMemory := int64(0)
+	var freeMemory int64
 	if node.FreeMem != nil {
 		freeMemory = int64(*node.FreeMem)
 	} else {
