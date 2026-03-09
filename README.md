@@ -50,7 +50,7 @@ s9s provides a terminal interface for managing SLURM clusters, inspired by the p
 
 ### Prerequisites
 
-- Go 1.19 or higher
+- Go 1.24 or higher
 - Access to a SLURM cluster (or use mock mode)
 - Terminal with 256 color support
 
@@ -90,6 +90,9 @@ s9s --mock
 # Connect to a specific cluster
 s9s --cluster production
 
+# Use a specific config file
+s9s --config /path/to/config.yaml
+
 # Enable debug logging
 s9s --debug
 ```
@@ -122,22 +125,22 @@ Example configuration:
 
 ```yaml
 # ~/.s9s/config.yaml
-clusters:
-  production:
-    url: https://slurm-api.example.com
-    token: ${SLURM_TOKEN}
-    default: true
-  
-  development:
-    url: https://slurm-dev.example.com
-    auth:
-      username: ${SLURM_USER}
-      password: ${SLURM_PASS}
+defaultCluster: production
 
-preferences:
-  theme: dark
-  refreshInterval: 5s
-  defaultView: jobs
+clusters:
+  - name: production
+    cluster:
+      endpoint: "https://slurm-api.example.com:6820"
+      token: "${SLURM_TOKEN}"
+      apiVersion: v0.0.44
+
+  - name: development
+    cluster:
+      endpoint: "https://slurm-dev.example.com:6820"
+      token: "${SLURM_DEV_TOKEN}"
+      apiVersion: v0.0.43
+
+refreshRate: 5s
 ```
 
 ## 🎮 Key Bindings
@@ -149,9 +152,11 @@ preferences:
 | `?` | Show help |
 | `q` | Quit |
 | `:` | Command mode |
-| `/` | Search |
+| `/` | Search/filter |
+| `e` | Export view data |
 | `Tab` | Switch view |
-| `Ctrl+r` | Force refresh |
+| `Ctrl+K` | Switch cluster |
+| `F5` / `R` | Force refresh |
 
 #### Command Mode with Autocomplete
 
@@ -211,7 +216,7 @@ internal/
   ├── performance/# Performance profiling and optimization
   └── plugins/    # Plugin system implementation
 pkg/
-  └── mock/       # Mock SLURM implementation for testing
+  └── slurm/      # SLURM client and mock implementation
 ```
 
 For more information about the project structure, see the [docs/](docs/) directory.

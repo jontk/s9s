@@ -30,30 +30,32 @@ This script will:
 Download pre-built binaries from our [releases page](https://github.com/jontk/s9s/releases):
 
 ```bash
-# Linux (AMD64)
-wget https://github.com/jontk/s9s/releases/latest/download/s9s-linux-amd64
-chmod +x s9s-linux-amd64
+# Linux (x86_64)
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.0_Linux_x86_64.tar.gz
+tar -xzf s9s_0.6.0_Linux_x86_64.tar.gz
 mkdir -p ~/.local/bin
-mv s9s-linux-amd64 ~/.local/bin/s9s
+mv s9s ~/.local/bin/
 
 # Linux (ARM64)
-wget https://github.com/jontk/s9s/releases/latest/download/s9s-linux-arm64
-chmod +x s9s-linux-arm64
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.0_Linux_arm64.tar.gz
+tar -xzf s9s_0.6.0_Linux_arm64.tar.gz
 mkdir -p ~/.local/bin
-mv s9s-linux-arm64 ~/.local/bin/s9s
+mv s9s ~/.local/bin/
 
 # macOS (Apple Silicon)
-wget https://github.com/jontk/s9s/releases/latest/download/s9s-darwin-arm64
-chmod +x s9s-darwin-arm64
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.0_Darwin_arm64.tar.gz
+tar -xzf s9s_0.6.0_Darwin_arm64.tar.gz
 mkdir -p ~/.local/bin
-mv s9s-darwin-arm64 ~/.local/bin/s9s
+mv s9s ~/.local/bin/
 
 # macOS (Intel)
-wget https://github.com/jontk/s9s/releases/latest/download/s9s-darwin-amd64
-chmod +x s9s-darwin-amd64
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.0_Darwin_x86_64.tar.gz
+tar -xzf s9s_0.6.0_Darwin_x86_64.tar.gz
 mkdir -p ~/.local/bin
-mv s9s-darwin-amd64 ~/.local/bin/s9s
+mv s9s ~/.local/bin/
 ```
+
+> **Note:** Replace `0.6.0` with the latest version from the [releases page](https://github.com/jontk/s9s/releases).
 
 ### 3. Using Go Install
 
