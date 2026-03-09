@@ -31,31 +31,31 @@ Download pre-built binaries from our [releases page](https://github.com/jontk/s9
 
 ```bash
 # Linux (x86_64)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.0_Linux_x86_64.tar.gz
-tar -xzf s9s_0.6.0_Linux_x86_64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.1_Linux_x86_64.tar.gz
+tar -xzf s9s_0.6.1_Linux_x86_64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 
 # Linux (ARM64)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.0_Linux_arm64.tar.gz
-tar -xzf s9s_0.6.0_Linux_arm64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.1_Linux_arm64.tar.gz
+tar -xzf s9s_0.6.1_Linux_arm64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 
 # macOS (Apple Silicon)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.0_Darwin_arm64.tar.gz
-tar -xzf s9s_0.6.0_Darwin_arm64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.1_Darwin_arm64.tar.gz
+tar -xzf s9s_0.6.1_Darwin_arm64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 
 # macOS (Intel)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.0_Darwin_x86_64.tar.gz
-tar -xzf s9s_0.6.0_Darwin_x86_64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.1_Darwin_x86_64.tar.gz
+tar -xzf s9s_0.6.1_Darwin_x86_64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 ```
 
-> **Note:** Replace `0.6.0` with the latest version from the [releases page](https://github.com/jontk/s9s/releases).
+> **Note:** Replace `0.6.1` with the latest version from the [releases page](https://github.com/jontk/s9s/releases).
 
 ### 3. Using Go Install
 
