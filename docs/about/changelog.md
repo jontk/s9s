@@ -6,28 +6,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Recent Changes
 
+### Version 0.6.1 (2026-03-09)
+
+Bug fix release focusing on metric accuracy:
+
+- **Node Resource Metrics**: Use real SLURM API fields (`AllocCPUs`, `AllocMemory`, `FreeMem`, `CPULoad`) instead of hardcoded 50% estimates
+- **Cluster Metrics**: Dashboard, Performance, and Health views now show real memory and CPU usage from node data
+- **Job Times**: Fix negative elapsed times for PENDING jobs (SLURM sets StartTime to future estimate)
+- Remove fake hardcoded "Job Throughput (24h)" chart from Dashboard
+
+### Version 0.6.0 (2026-03-08)
+
+Key features:
+
+- **Cluster Switcher**: Show active cluster name in header, press `Ctrl+K` to switch clusters at runtime
+- **`--cluster` Flag**: Select cluster context from the command line; fix `--config` flag being ignored
+- **Table Export**: Press `e` in any view to export data (CSV, JSON, Text, Markdown, HTML)
+- **VHS Integration Tests**: Regression testing against real Slurm clusters (24.05, 24.11, 25.11)
+- **Breaking**: Config keys renamed `contexts` → `clusters`, `currentContext` → `defaultCluster`
+
+### Version 0.5.0 (2026-02-18)
+
+Key features:
+
+- **Zero-Configuration Auto-Discovery**: Works out-of-the-box on SLURM systems without config files
+- **API Version Auto-Detection**: Removed hardcoded API version default
+- **Static Binary Builds**: `CGO_ENABLED=0` for cross-distribution compatibility
+- **Integration Tests CI**: PR testing with ephemeral k3d cluster and mock SLURM API
+
+### Version 0.4.0 (2026-02-08)
+
+Key features:
+
+- **Performance View**: Real-time cluster-wide metrics (jobs, nodes, CPU%, memory%)
+- **Sorting Modal**: Press `S` in any table view for interactive column sorting
+- **Command Mode with Arguments**: Vim-style `:cancel`, `:drain`, `:requeue` with Tab completion
+- **Reservation Filters**: `a` for active-only, `f` for future-only
+- **Job Output File Reading**: Local filesystem and SSH-based remote file access
+
 ### Version 0.3.0 (2026-01-30)
 
-Key improvements and new features:
+Key features:
 
-- **Job submission working directory default**: Working directory now defaults to the current directory where s9s is started
 - **Vim-style view navigation**: `h` and `l` keys for switching between views
-- **Global search cross-view navigation**: Search results navigate to the correct view and focus on the selected item
+- **Global search cross-view navigation**: Search results navigate to the correct view
 - **Partition filter syntax**: Use `p:partition_name` to filter by partition
-- **Users view admin filter**: Press `a` to toggle showing only administrators
-- **Status bar feedback**: Users view shows status messages when toggling filters
 - **Username resolution**: Jobs display actual usernames instead of numeric UIDs
 - Centralized version management and automated release processes
-- Comprehensive release notes following Keep a Changelog format
-
-Notable fixes:
-- Fixed drain operation to actually drain nodes
-- Fixed resume operation modal issues
-- Fixed node state truncation (shows full state like `IDLE+DRAIN`)
-- Fixed filter input hijacking by global shortcuts
-- Fixed search deadlocks in event handlers
-- Environment variables now properly override config file values
-- Case-insensitive admin level comparison in Users view
 
 ### Version 0.1.0 (2026-01-21)
 
@@ -48,7 +73,11 @@ For a complete list of all changes, features, and fixes across all versions, ref
 
 ## Version History
 
-- [v0.3.0](../CHANGELOG.md#030---2026-01-30) - Latest release
+- [v0.6.1](../CHANGELOG.md#061---2026-03-09) - Latest release
+- [v0.6.0](../CHANGELOG.md#060---2026-03-08) - Cluster switcher, export, config rename
+- [v0.5.0](../CHANGELOG.md#050---2026-02-18) - Auto-discovery, static builds
+- [v0.4.0](../CHANGELOG.md#040---2026-02-08) - Performance view, sorting, command mode
+- [v0.3.0](../CHANGELOG.md#030---2026-01-30) - Vim navigation, search, filters
 - [v0.1.0](../CHANGELOG.md#010---2026-01-21) - Initial release
 - [Unreleased](../CHANGELOG.md#unreleased) - Upcoming changes
 
