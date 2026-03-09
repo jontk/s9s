@@ -1100,7 +1100,7 @@ func (v *NodesView) writeCPUDetails(w *strings.Builder, node *dao.Node) {
 	fmt.Fprintf(w, "[yellow]  CPU Allocation:[white] %.1f%% (SLURM allocated)\n", cpuAllocPercent)
 
 	if node.CPULoad >= 0 {
-		fmt.Fprintf(w, "[yellow]  CPU Load:[white] %.2f (1-minute load average)\n", node.CPULoad)
+		fmt.Fprintf(w, "[yellow]  CPU Load:[white] %.2f (OS 1-min load avg)\n", node.CPULoad)
 		if node.CPUsAllocated > 0 {
 			efficiency := (node.CPULoad / float64(node.CPUsAllocated)) * 100.0
 			if efficiency > 100 {

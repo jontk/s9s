@@ -299,13 +299,19 @@ func (v *DashboardView) updateClusterOverview() {
 
 		// Key metrics
 		content.WriteString(fmt.Sprintf("[yellow]CPU Usage:[white] %.1f%%\n", v.clusterMetrics.CPUUsage))
-		content.WriteString(fmt.Sprintf("[yellow]Memory Usage:[white] %.1f%%\n", v.clusterMetrics.MemoryUsage))
+		if v.clusterMetrics.MemoryUsage >= 0 {
+			content.WriteString(fmt.Sprintf("[yellow]Memory Usage:[white] %.1f%%\n", v.clusterMetrics.MemoryUsage))
+		} else {
+			content.WriteString("[yellow]Memory Usage:[white] N/A\n")
+		}
 
 		// Utilization bars
 		cpuBar := v.createUtilizationBar(v.clusterMetrics.CPUUsage)
-		memBar := v.createUtilizationBar(v.clusterMetrics.MemoryUsage)
 		content.WriteString(fmt.Sprintf("[yellow]CPU:[white] %s\n", cpuBar))
-		content.WriteString(fmt.Sprintf("[yellow]Memory:[white] %s\n", memBar))
+		if v.clusterMetrics.MemoryUsage >= 0 {
+			memBar := v.createUtilizationBar(v.clusterMetrics.MemoryUsage)
+			content.WriteString(fmt.Sprintf("[yellow]Memory:[white] %s\n", memBar))
+		}
 	}
 
 	content.WriteString(fmt.Sprintf("\n[gray]Last Updated: %s[white]", v.lastUpdate.Format("15:04:05")))
@@ -513,11 +519,7 @@ func (v *DashboardView) updateTrendsPanel() {
 
 	content.WriteString("[yellow]Performance Overview[white]\n\n")
 
-	// Job throughput trends (mock data for now)
-	content.WriteString("[teal]Job Throughput (24h):[white]\n")
-	content.WriteString("Jobs/Hour: █▇▆▅▄▃▂▁▂▃▄▅▆▇█ (Trend: ↗)\n")
-
-	content.WriteString("\n[teal]Resource Efficiency:[white]\n")
+	content.WriteString("[teal]Resource Efficiency:[white]\n")
 	if v.clusterMetrics != nil {
 		efficiency := (v.clusterMetrics.CPUUsage + v.clusterMetrics.MemoryUsage) / 2
 		efficiencyBar := v.createMiniBar(efficiency, getUtilizationColor(efficiency))

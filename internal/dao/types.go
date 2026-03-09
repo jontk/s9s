@@ -88,7 +88,7 @@ type Node struct {
 	CPUsTotal       int
 	CPUsAllocated   int
 	CPUsIdle        int
-	CPULoad         float64 // CPU load average
+	CPULoad         float64 // OS 1-minute load average (SLURM cpu_load / 100)
 	MemoryTotal     int64   // in MB
 	MemoryAllocated int64   // in MB
 	MemoryFree      int64   // in MB

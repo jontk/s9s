@@ -490,7 +490,7 @@ func (v *JobsView) updateTable() {
 		coloredState := fmt.Sprintf("[%s]%s[white]", stateColor, job.State)
 
 		timeUsed := job.TimeUsed
-		if timeUsed == "" && job.StartTime != nil {
+		if timeUsed == "" && job.StartTime != nil && job.State == dao.JobStateRunning {
 			timeUsed = FormatDurationDetailed(time.Since(*job.StartTime))
 		}
 

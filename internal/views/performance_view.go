@@ -215,13 +215,19 @@ func (pv *PerformanceView) updateDisplay() {
 
 	// Resource metrics
 	cpuColor := pv.getUsageColor(pv.metrics.CPUUsage)
-	memColor := pv.getUsageColor(pv.metrics.MemoryUsage)
 
 	resourceText := "\n[yellow]Cluster Utilization[white]\n\n"
 	resourceText += fmt.Sprintf("[%s]CPU:[white] %.1f%%\n", cpuColor, pv.metrics.CPUUsage)
-	resourceText += fmt.Sprintf("[%s]Memory:[white] %.1f%%\n", memColor, pv.metrics.MemoryUsage)
+	if pv.metrics.MemoryUsage >= 0 {
+		memColor := pv.getUsageColor(pv.metrics.MemoryUsage)
+		resourceText += fmt.Sprintf("[%s]Memory:[white] %.1f%%\n", memColor, pv.metrics.MemoryUsage)
+	} else {
+		resourceText += "[white]Memory:[white] N/A\n"
+	}
 	resourceText += fmt.Sprintf("\n%s\n", pv.getUsageBar(pv.metrics.CPUUsage, "CPU"))
-	resourceText += fmt.Sprintf("%s\n", pv.getUsageBar(pv.metrics.MemoryUsage, "Mem"))
+	if pv.metrics.MemoryUsage >= 0 {
+		resourceText += fmt.Sprintf("%s\n", pv.getUsageBar(pv.metrics.MemoryUsage, "Mem"))
+	}
 	pv.resourceBox.SetText(resourceText)
 }
 
