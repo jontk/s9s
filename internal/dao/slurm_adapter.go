@@ -156,8 +156,9 @@ func (s *SlurmAdapter) Users() UserManager {
 // Info returns the info manager for cluster information
 func (s *SlurmAdapter) Info() InfoManager {
 	return &infoManager{
-		client: s.client.Info(),
-		ctx:    s.ctx,
+		client:     s.client.Info(),
+		nodeClient: s.client.Nodes(),
+		ctx:        s.ctx,
 	}
 }
 
@@ -712,8 +713,9 @@ func (r *reservationManager) Get(name string) (*Reservation, error) {
 
 // infoManager implements InfoManager
 type infoManager struct {
-	client slurm.InfoManager
-	ctx    context.Context
+	client     slurm.InfoManager
+	nodeClient slurm.NodeManager
+	ctx        context.Context
 }
 
 func (i *infoManager) GetClusterInfo() (*ClusterInfo, error) {
@@ -741,18 +743,48 @@ func (i *infoManager) GetStats() (*ClusterMetrics, error) {
 		cpuUsage = float64(stats.AllocatedCPUs) / float64(stats.TotalCPUs) * 100
 	}
 
-	return &ClusterMetrics{
+	metrics := &ClusterMetrics{
 		TotalJobs:   stats.TotalJobs,
 		RunningJobs: stats.RunningJobs,
 		PendingJobs: stats.PendingJobs,
 		TotalNodes:  stats.TotalNodes,
 		ActiveNodes: stats.AllocatedNodes,
 		IdleNodes:   stats.IdleNodes,
-		DownNodes:   0, // Not available in basic ClusterStats
+		DownNodes:   0,
 		CPUUsage:    cpuUsage,
-		MemoryUsage: -1.0, // Not available in basic ClusterStats (would require aggregating node data) - use -1 to indicate unknown
+		MemoryUsage: -1.0, // Will be enriched from node data below
 		LastUpdated: time.Now(),
-	}, nil
+	}
+
+	// Enrich with node-level data for metrics the Stats API doesn't provide
+	if i.nodeClient != nil {
+		if nodeList, err := i.nodeClient.List(i.ctx, nil); err == nil {
+			var totalMem, allocMem int64
+			var totalCPUs, allocCPUs int
+			for _, node := range nodeList.Nodes {
+				if node.RealMemory != nil {
+					totalMem += *node.RealMemory
+				}
+				if node.AllocMemory != nil {
+					allocMem += *node.AllocMemory
+				}
+				if node.CPUs != nil {
+					totalCPUs += int(*node.CPUs)
+				}
+				if node.AllocCPUs != nil {
+					allocCPUs += int(*node.AllocCPUs)
+				}
+			}
+			if totalMem > 0 {
+				metrics.MemoryUsage = float64(allocMem) / float64(totalMem) * 100
+			}
+			if metrics.CPUUsage == 0 && totalCPUs > 0 && allocCPUs > 0 {
+				metrics.CPUUsage = float64(allocCPUs) / float64(totalCPUs) * 100
+			}
+		}
+	}
+
+	return metrics, nil
 }
 
 // Conversion functions
@@ -896,12 +928,27 @@ func convertNode(node *slurm.Node) *Node {
 		memoryTotalMB = *node.RealMemory
 	}
 
-	// Calculate estimates
-	allocCPUs := estimateAllocatedCPUs(node)
-	allocMemory := estimateAllocatedMemory(node, memoryTotalMB)
+	// Use real allocation data from SLURM API
+	allocCPUs := 0
+	if node.AllocCPUs != nil {
+		allocCPUs = int(*node.AllocCPUs)
+	}
+	allocMemory := int64(0)
+	if node.AllocMemory != nil {
+		allocMemory = *node.AllocMemory
+	}
 	idleCPUs := safeSubtract(cpusTotal, allocCPUs)
-	freeMemory := safeSubtract64(memoryTotalMB, allocMemory)
-	cpuLoad := calculateCPULoad(allocCPUs, cpusTotal)
+	var freeMemory int64
+	if node.FreeMem != nil {
+		freeMemory = int64(*node.FreeMem)
+	} else {
+		freeMemory = safeSubtract64(memoryTotalMB, allocMemory)
+	}
+	// SLURM cpu_load is the 1-minute OS load average * 100
+	cpuLoad := float64(-1)
+	if node.CPULoad != nil {
+		cpuLoad = float64(*node.CPULoad) / 100.0
+	}
 
 	// Reason is *string
 	reason := ""
@@ -936,43 +983,6 @@ func convertNode(node *slurm.Node) *Node {
 	}
 }
 
-// estimateAllocatedCPUs estimates CPU allocation based on node state
-func estimateAllocatedCPUs(node *slurm.Node) int {
-	if node.CPUs == nil || *node.CPUs <= 0 {
-		return 0
-	}
-
-	cpus := int(*node.CPUs)
-
-	// Check state (now a slice of NodeState)
-	if len(node.State) > 0 {
-		stateStr := string(node.State[0])
-		switch stateStr {
-		case "MIXED", "ALLOCATED", "mixed", "allocated":
-			return cpus / 2 // Estimate 50% utilization
-		}
-	}
-
-	return 0
-}
-
-// estimateAllocatedMemory estimates memory allocation based on node state
-func estimateAllocatedMemory(node *slurm.Node, totalMemory int64) int64 {
-	if totalMemory <= 0 {
-		return 0
-	}
-
-	// Check state (now a slice of NodeState)
-	if len(node.State) > 0 {
-		stateStr := string(node.State[0])
-		switch stateStr {
-		case "MIXED", "ALLOCATED", "mixed", "allocated":
-			return totalMemory / 2 // Estimate 50% utilization
-		}
-	}
-
-	return 0
-}
 
 // safeSubtract subtracts two integers and returns 0 if result is negative
 func safeSubtract(a, b int) int {
@@ -992,13 +1002,6 @@ func safeSubtract64(a, b int64) int64 {
 	return result
 }
 
-// calculateCPULoad calculates CPU load as a percentage
-func calculateCPULoad(allocCPUs, totalCPUs int) float64 {
-	if allocCPUs <= 0 || totalCPUs <= 0 {
-		return 0.0
-	}
-	return float64(allocCPUs) / float64(totalCPUs) * 100.0
-}
 
 func convertPartition(partition *slurm.Partition) *Partition {
 	// Handle pointer fields
