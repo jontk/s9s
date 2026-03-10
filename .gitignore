@@ -38,6 +38,8 @@ memory/
 plugins/observability/docs/adr/*.md
 plugins/observability/docs/*.md
 
+plugins/observability/data/observability/debug.log
+
 s9s
 
 # Test artifacts
