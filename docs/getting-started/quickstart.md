@@ -6,7 +6,7 @@ Get up and running with s9s in just a few minutes! This guide covers the basics 
 
 ### With SLURM Cluster
 
-If you have access to a SLURM cluster:
+s9s connects via the SLURM REST API, which requires `slurmrestd` running on your cluster (default port 6820). See the [Installation Guide](installation.md#slurmrestd-slurm-rest-api) for setup instructions.
 
 ```bash
 # Launch s9s

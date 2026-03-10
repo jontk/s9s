@@ -3,7 +3,9 @@ package setup
 
 import (
 	"bufio"
+	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -11,10 +13,13 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/jontk/s9s/internal/config"
+	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/fileperms"
+	"github.com/mattn/go-runewidth"
 	"golang.org/x/term"
 	"gopkg.in/yaml.v2"
 )
@@ -126,21 +131,29 @@ func (w *Wizard) Run() error {
 
 // printWelcome displays the welcome message
 func (w *Wizard) printWelcome() {
-	fmt.Printf(`
-╔══════════════════════════════════════════════════════════════╗
-║                     🚀 Welcome to s9s! 🚀                    ║
-║                                                              ║
-║  Let's get you set up with your SLURM clusters in just a    ║
-║  few minutes. This wizard will help you configure:          ║
-║                                                              ║
-║  • 🏢 Cluster connection settings                           ║
-║  • 🔐 Authentication (SLURM tokens, OAuth2, API)           ║
-║  • 🔒 Secure credential storage                             ║
-║  • ⚡ Performance and caching options                       ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝
+	const boxWidth = 62
+	pad := func(s string) string {
+		w := runewidth.StringWidth(s)
+		if w >= boxWidth {
+			return s
+		}
+		return s + strings.Repeat(" ", boxWidth-w)
+	}
 
-`)
+	fmt.Println()
+	fmt.Println("╔" + strings.Repeat("═", boxWidth) + "╗")
+	fmt.Println("║" + pad("                     🚀 Welcome to s9s! 🚀") + "║")
+	fmt.Println("║" + pad("") + "║")
+	fmt.Println("║" + pad("  Let's get you set up with your SLURM clusters in just a") + "║")
+	fmt.Println("║" + pad("  few minutes. This wizard will help you configure:") + "║")
+	fmt.Println("║" + pad("") + "║")
+	fmt.Println("║" + pad("  • 🏢 Cluster connection settings") + "║")
+	fmt.Println("║" + pad("  • 🔐 Authentication (SLURM tokens, OAuth2, API)") + "║")
+	fmt.Println("║" + pad("  • 🔒 Secure credential storage") + "║")
+	fmt.Println("║" + pad("  • ⚡ Performance and caching options") + "║")
+	fmt.Println("║" + pad("") + "║")
+	fmt.Println("╚" + strings.Repeat("═", boxWidth) + "╝")
+	fmt.Println()
 }
 
 // setupBasics configures basic s9s settings
@@ -220,11 +233,30 @@ func (w *Wizard) autoDetectCluster() *config.ClusterConfig {
 	slurmConf := w.findSlurmConfig(slurmConfDir)
 	restEndpoint := w.detectRESTEndpoint(slurmctlHost)
 
-	if slurmConf != "" || restEndpoint != "" {
-		return w.buildClusterConfig(restEndpoint, slurmctlHost)
+	if slurmConf == "" && restEndpoint == "" {
+		return nil
 	}
 
-	return nil
+	// We found a SLURM installation (config file or env vars),
+	// but slurmrestd may not be running
+	if restEndpoint == "" {
+		fmt.Println()
+		fmt.Println("   ⚠️  Found SLURM installation but slurmrestd is not running.")
+		if slurmConf != "" {
+			fmt.Printf("   📁 SLURM config:  %s\n", slurmConf)
+		}
+		fmt.Println()
+		fmt.Println("   s9s requires the SLURM REST API daemon (slurmrestd),")
+		fmt.Println("   typically on port 6820. Having slurmctld and slurmdbd")
+		fmt.Println("   running is not sufficient.")
+		fmt.Println()
+		fmt.Println("   Start slurmrestd with:")
+		fmt.Println("     slurmrestd 0.0.0.0:6820")
+		fmt.Println()
+		fmt.Println("   You can finish setup now and start slurmrestd later.")
+	}
+
+	return w.buildClusterConfig(restEndpoint, slurmctlHost)
 }
 
 // findSlurmConfig locates SLURM configuration file
@@ -250,18 +282,22 @@ func (w *Wizard) findSlurmConfig(slurmConfDir string) string {
 
 // detectRESTEndpoint attempts to find a working REST API endpoint
 func (w *Wizard) detectRESTEndpoint(slurmctlHost string) string {
-	// Try controller host first
+	// Build candidate list
+	var candidates []string
+
 	if slurmctlHost != "" {
-		endpoint := fmt.Sprintf("https://%s:6820", slurmctlHost)
-		return endpoint
+		candidates = append(candidates,
+			fmt.Sprintf("http://%s:6820", slurmctlHost),
+			fmt.Sprintf("https://%s:6820", slurmctlHost),
+		)
 	}
 
-	// Try common local endpoints
-	candidates := []string{
+	// Also try common local endpoints
+	candidates = append(candidates,
 		"http://localhost:6820",
 		"https://localhost:6820",
 		"http://127.0.0.1:6820",
-	}
+	)
 
 	for _, endpoint := range candidates {
 		if w.testEndpoint(endpoint) {
@@ -631,19 +667,88 @@ func (w *Wizard) extractClusterName(configPath string) string {
 
 // testEndpoint tests if an endpoint is accessible
 func (w *Wizard) testEndpoint(endpoint string) bool {
-	// Simple check - in production would do actual HTTP request
 	debug.Logger.Printf("Testing endpoint: %s", endpoint)
-	return false // Placeholder - would implement actual test
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		debug.Logger.Printf("Endpoint test failed for %s: %v", endpoint, err)
+		return false
+	}
+
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		debug.Logger.Printf("Endpoint test failed for %s: %v", endpoint, err)
+		return false
+	}
+	_ = resp.Body.Close()
+	return true
 }
 
-// testConnection tests connection to configured cluster
+// testConnection tests connection to configured cluster using the SLURM REST API
 func (w *Wizard) testConnection() {
 	fmt.Println("\n🧪 Testing cluster connection...")
 
-	// Placeholder for connection test
-	fmt.Println("   ⏳ Connecting to cluster...")
+	if len(w.config.Clusters) == 0 {
+		fmt.Println("   ❌ No cluster configured")
+		return
+	}
+
+	clusterCfg := w.config.Clusters[0].Cluster
+
+	if clusterCfg.Endpoint == "" {
+		fmt.Println("   ❌ No endpoint configured")
+		return
+	}
+
+	fmt.Printf("   ⏳ Connecting to %s...\n", clusterCfg.Endpoint)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	adapter, err := dao.NewSlurmAdapter(ctx, &clusterCfg)
+	if err != nil {
+		fmt.Printf("   ❌ Connection failed: %v\n", err)
+		fmt.Println()
+		fmt.Println("   💡 Make sure slurmrestd is running on your cluster.")
+		fmt.Println("      s9s requires the SLURM REST API (slurmrestd), typically on port 6820.")
+		fmt.Println("      Start it with: slurmrestd 0.0.0.0:6820")
+		return
+	}
+	defer func() { _ = adapter.Close() }()
+
+	// Try to get cluster info as a connectivity check
+	info, err := adapter.ClusterInfo()
+	if err != nil {
+		fmt.Printf("   ❌ Connected but failed to query cluster: %v\n", err)
+		fmt.Println()
+		fmt.Println("   💡 The endpoint is reachable but the API request failed.")
+		fmt.Println("      Check that slurmrestd is running and authentication is configured.")
+		return
+	}
+
+	// Also try to list jobs to verify full API access
+	jobs, err := adapter.Jobs().List(&dao.ListJobsOptions{Limit: 1})
+	if err != nil {
+		fmt.Printf("   ⚠️  Cluster info OK but failed to list jobs: %v\n", err)
+		return
+	}
+
+	// Try to get node count
+	nodes, err := adapter.Nodes().List(nil)
+	nodeCount := 0
+	if err == nil && nodes != nil {
+		nodeCount = len(nodes.Nodes)
+	}
+
 	fmt.Println("   ✅ Connection test successful!")
-	fmt.Println("   📊 Found 42 nodes, 1,337 jobs in queue")
+	if info.Name != "" {
+		fmt.Printf("   🏢 Cluster: %s (SLURM %s)\n", info.Name, info.Version)
+	}
+	fmt.Printf("   📊 Found %d nodes, %d jobs in queue\n", nodeCount, jobs.Total)
 }
 
 // saveConfiguration saves the configuration to file
@@ -676,27 +781,33 @@ func (w *Wizard) saveConfiguration() error {
 
 // printCompletion displays the completion message
 func (w *Wizard) printCompletion() {
-	fmt.Printf(`
-╔══════════════════════════════════════════════════════════════╗
-║                    🎉 Setup Complete! 🎉                     ║
-║                                                              ║
-║  Your s9s configuration is ready! Here's what you can do:   ║
-║                                                              ║
-║  🚀 Start s9s:           s9s                                ║
-║  📊 View jobs:           s9s jobs                           ║
-║  🖥️  View nodes:         s9s nodes                          ║
-║  ⚙️  Edit config:        s9s config edit                    ║
-║  ❓ Get help:            s9s --help                         ║
-║                                                              ║
-║  💡 Pro tips:                                               ║
-║  • Use 'j/k' for vim-style navigation                      ║
-║  • Press '?' for keyboard shortcuts                        ║
-║  • Use ':' for command mode                                ║
-║  • Press F1 for context help                               ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝
+	const boxWidth = 62
+	pad := func(s string) string {
+		w := runewidth.StringWidth(s)
+		if w >= boxWidth {
+			return s
+		}
+		return s + strings.Repeat(" ", boxWidth-w)
+	}
 
-`)
+	fmt.Println()
+	fmt.Println("╔" + strings.Repeat("═", boxWidth) + "╗")
+	fmt.Println("║" + pad("                    🎉 Setup Complete! 🎉") + "║")
+	fmt.Println("║" + pad("") + "║")
+	fmt.Println("║" + pad("  Your s9s configuration is ready! Here's what you can do:") + "║")
+	fmt.Println("║" + pad("") + "║")
+	fmt.Println("║" + pad("  🚀 Start s9s:        s9s") + "║")
+	fmt.Println("║" + pad("  ⚙️  Edit config:      s9s config edit") + "║")
+	fmt.Println("║" + pad("  ❓ Get help:          s9s --help") + "║")
+	fmt.Println("║" + pad("") + "║")
+	fmt.Println("║" + pad("  💡 Pro tips:") + "║")
+	fmt.Println("║" + pad("  • Use 'j/k' for vim-style navigation") + "║")
+	fmt.Println("║" + pad("  • Press '?' for keyboard shortcuts") + "║")
+	fmt.Println("║" + pad("  • Use ':' for command mode") + "║")
+	fmt.Println("║" + pad("  • Press F1 for context help") + "║")
+	fmt.Println("║" + pad("") + "║")
+	fmt.Println("╚" + strings.Repeat("═", boxWidth) + "╝")
+	fmt.Println()
 }
 
 // getStepIcon returns an icon for each setup step

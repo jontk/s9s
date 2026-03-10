@@ -50,8 +50,13 @@ echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc
 
 **Problem**: S9S cannot reach SLURM REST API
 
+> **Important**: s9s requires `slurmrestd` (the SLURM REST API daemon, default port 6820). Having `slurmctld` (port 6817) and `slurmdbd` (port 6819) running is **not sufficient**. Check if slurmrestd is running: `ss -tlnp | grep 6820`
+
 **Diagnostics**:
 ```bash
+# Check if slurmrestd is running
+ss -tlnp | grep 6820
+
 # Test connection
 s9s --debug
 s9s config test
