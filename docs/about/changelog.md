@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Recent Changes
 
+### Version 0.6.2 (2026-03-10)
+
+Setup wizard improvements and bug fixes:
+
+- **Setup Wizard Config Fix**: Generated config now uses valid camelCase YAML keys — previously `yaml.Marshal` produced lowercase keys that s9s couldn't load
+- **Streamlined Wizard**: Removed questions that didn't affect config; wizard now asks only endpoint, cluster name, and optional JWT token
+- **Token Discovery Fix**: Generated config no longer disables token auto-discovery, so `scontrol token` and `SLURM_JWT` fallback works without a configured token
+- **Connection Test**: Setup wizard now tests the slurmrestd connection before completing
+- **Docs Update**: Lead with zero-configuration auto-discovery (DNS SRV, `scontrol ping`) — s9s works on any SLURM node without running setup
+
 ### Version 0.6.1 (2026-03-09)
 
 Bug fix release focusing on metric accuracy:
@@ -73,7 +83,8 @@ For a complete list of all changes, features, and fixes across all versions, ref
 
 ## Version History
 
-- [v0.6.1](../CHANGELOG.md#061---2026-03-09) - Latest release
+- [v0.6.2](../CHANGELOG.md#062---2026-03-10) - Latest release
+- [v0.6.1](../CHANGELOG.md#061---2026-03-09) - Node metrics, job times, dashboard fixes
 - [v0.6.0](../CHANGELOG.md#060---2026-03-08) - Cluster switcher, export, config rename
 - [v0.5.0](../CHANGELOG.md#050---2026-02-18) - Auto-discovery, static builds
 - [v0.4.0](../CHANGELOG.md#040---2026-02-08) - Performance view, sorting, command mode
