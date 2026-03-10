@@ -17,7 +17,7 @@ type Config struct {
 	RefreshRate    string            `mapstructure:"refreshRate"`
 	MaxRetries     int               `mapstructure:"maxRetries"`
 	DefaultCluster string            `mapstructure:"defaultCluster"`
-	Clusters       []ClusterContext   `mapstructure:"clusters"`
+	Clusters       []ClusterContext  `mapstructure:"clusters"`
 	UI             UIConfig          `mapstructure:"ui"`
 	Views          ViewsConfig       `mapstructure:"views"`
 	Features       FeaturesConfig    `mapstructure:"features"`
@@ -151,9 +151,9 @@ func DefaultConfig() *Config {
 		Views: ViewsConfig{
 			Jobs: JobsViewConfig{
 				Columns:        []string{"id", "name", "user", "state", "time", "nodes", "priority"}, // Aligned with setDefaults
-				ShowOnlyActive: true,                                                                   // Aligned with setDefaults
-				DefaultSort:    "time",                                                                 // Aligned with setDefaults
-				MaxJobs:        1000,                                                                   // Aligned with setDefaults
+				ShowOnlyActive: true,                                                                 // Aligned with setDefaults
+				DefaultSort:    "time",                                                               // Aligned with setDefaults
+				MaxJobs:        1000,                                                                 // Aligned with setDefaults
 			},
 			Nodes: NodesViewConfig{
 				GroupBy:         "partition", // Aligned with setDefaults
@@ -166,11 +166,11 @@ func DefaultConfig() *Config {
 			},
 		},
 		Features: FeaturesConfig{
-			Streaming: true,  // Aligned with setDefaults
-			Pulseye:   true,  // Aligned with setDefaults
+			Streaming: true, // Aligned with setDefaults
+			Pulseye:   true, // Aligned with setDefaults
 			Xray:      false,
 		},
-		Shortcuts:     []ShortcutConfig{},
+		Shortcuts: []ShortcutConfig{},
 		Aliases: map[string]string{ // Aligned with setDefaults
 			"ctx": "context",
 			"kj":  "kill job",

@@ -12,16 +12,16 @@ import (
 // CacheKeyGenerator provides optimized cache key generation for Prometheus queries
 type CacheKeyGenerator struct {
 	// Compiled regex patterns for query normalization
-	whitespaceRegex   *regexp.Regexp
-	numberRegex       *regexp.Regexp
-	stringRegex       *regexp.Regexp
-	durationRegex     *regexp.Regexp
-	parenRegex        *regexp.Regexp
-	braceRegex        *regexp.Regexp
-	metricBraceRegex  *regexp.Regexp
-	commaRegex        *regexp.Regexp
-	equalsRegex       *regexp.Regexp
-	selectorRegex     *regexp.Regexp
+	whitespaceRegex  *regexp.Regexp
+	numberRegex      *regexp.Regexp
+	stringRegex      *regexp.Regexp
+	durationRegex    *regexp.Regexp
+	parenRegex       *regexp.Regexp
+	braceRegex       *regexp.Regexp
+	metricBraceRegex *regexp.Regexp
+	commaRegex       *regexp.Regexp
+	equalsRegex      *regexp.Regexp
+	selectorRegex    *regexp.Regexp
 }
 
 // NewCacheKeyGenerator creates a new cache key generator with compiled patterns

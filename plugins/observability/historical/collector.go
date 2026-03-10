@@ -47,7 +47,7 @@ type DataCollector struct {
 	series   map[string]*MetricSeries
 	queries  map[string]string
 	mu       sync.RWMutex
-	running  atomic.Bool   // Use atomic for thread-safe access
+	running  atomic.Bool // Use atomic for thread-safe access
 	stopChan chan struct{}
 	wg       sync.WaitGroup // Track goroutines for clean shutdown
 }

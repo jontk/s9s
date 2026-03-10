@@ -13,11 +13,11 @@ import (
 // TestCalculateCPUUsage tests the CPU usage calculation function
 func TestCalculateCPUUsage(t *testing.T) {
 	tests := []struct {
-		name          string
-		stats         map[string]performance.OperationSummary
-		previousStats map[string]performance.OperationSummary
+		name           string
+		stats          map[string]performance.OperationSummary
+		previousStats  map[string]performance.OperationSummary
 		updateInterval time.Duration
-		want          float64
+		want           float64
 	}{
 		{
 			name:  "empty stats returns 0.0",
@@ -35,7 +35,7 @@ func TestCalculateCPUUsage(t *testing.T) {
 			},
 			previousStats:  nil,
 			updateInterval: 1 * time.Second,
-			want:          0.0,
+			want:           0.0,
 		},
 		{
 			name: "with previous stats calculates delta correctly",
@@ -54,7 +54,7 @@ func TestCalculateCPUUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          20.0, // (300ms - 100ms) / 1s * 100 = 20%
+			want:           20.0, // (300ms - 100ms) / 1s * 100 = 20%
 		},
 		{
 			name: "caps at 100% max",
@@ -73,7 +73,7 @@ func TestCalculateCPUUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          100.0, // Should cap at 100%
+			want:           100.0, // Should cap at 100%
 		},
 		{
 			name: "handles new operations not in previous stats",
@@ -97,7 +97,7 @@ func TestCalculateCPUUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          30.0, // (200ms + 100ms) / 1s * 100 = 30%
+			want:           30.0, // (200ms + 100ms) / 1s * 100 = 30%
 		},
 		{
 			name: "handles zero update interval",
@@ -116,7 +116,7 @@ func TestCalculateCPUUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 0,
-			want:          20.0, // Defaults to 1 second window
+			want:           20.0, // Defaults to 1 second window
 		},
 		{
 			name: "multiple operations",
@@ -145,7 +145,7 @@ func TestCalculateCPUUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          25.0, // (150ms + 100ms) / 1s * 100 = 25%
+			want:           25.0, // (150ms + 100ms) / 1s * 100 = 25%
 		},
 	}
 
@@ -253,7 +253,7 @@ func TestCalculateNetworkUsage(t *testing.T) {
 			},
 			previousStats:  nil,
 			updateInterval: 1 * time.Second,
-			want:          0.0,
+			want:           0.0,
 		},
 		{
 			name: "identifies network operations - ssh",
@@ -272,7 +272,7 @@ func TestCalculateNetworkUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          1.0, // 10 ops/s * 0.1 MB/op = 1.0 MB/s
+			want:           1.0, // 10 ops/s * 0.1 MB/op = 1.0 MB/s
 		},
 		{
 			name: "identifies network operations - api",
@@ -291,7 +291,7 @@ func TestCalculateNetworkUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          2.0, // 20 ops/s * 0.1 MB/op = 2.0 MB/s
+			want:           2.0, // 20 ops/s * 0.1 MB/op = 2.0 MB/s
 		},
 		{
 			name: "identifies network operations - network in name",
@@ -310,7 +310,7 @@ func TestCalculateNetworkUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          1.0, // 10 ops/s * 0.1 MB/op = 1.0 MB/s
+			want:           1.0, // 10 ops/s * 0.1 MB/op = 1.0 MB/s
 		},
 		{
 			name: "calculates delta ops correctly - multiple network operations",
@@ -339,7 +339,7 @@ func TestCalculateNetworkUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          3.0, // (10 + 20) ops/s * 0.1 MB/op = 3.0 MB/s
+			want:           3.0, // (10 + 20) ops/s * 0.1 MB/op = 3.0 MB/s
 		},
 		{
 			name: "ignores non-network operations",
@@ -368,7 +368,7 @@ func TestCalculateNetworkUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          1.0, // Only counts ssh_connect: 10 ops/s * 0.1 = 1.0 MB/s
+			want:           1.0, // Only counts ssh_connect: 10 ops/s * 0.1 = 1.0 MB/s
 		},
 		{
 			name: "handles new network operations not in previous stats",
@@ -392,7 +392,7 @@ func TestCalculateNetworkUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          2.0, // (10 + 10) ops/s * 0.1 = 2.0 MB/s
+			want:           2.0, // (10 + 10) ops/s * 0.1 = 2.0 MB/s
 		},
 		{
 			name: "handles zero update interval",
@@ -411,7 +411,7 @@ func TestCalculateNetworkUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 0,
-			want:          1.0, // Defaults to 1 second window: 10 ops/s * 0.1 = 1.0 MB/s
+			want:           1.0, // Defaults to 1 second window: 10 ops/s * 0.1 = 1.0 MB/s
 		},
 		{
 			name: "handles case insensitivity",
@@ -450,7 +450,7 @@ func TestCalculateNetworkUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          4.0, // (10 + 20 + 10) ops/s * 0.1 = 4.0 MB/s
+			want:           4.0, // (10 + 20 + 10) ops/s * 0.1 = 4.0 MB/s
 		},
 		{
 			name: "handles 2 second interval",
@@ -469,7 +469,7 @@ func TestCalculateNetworkUsage(t *testing.T) {
 				},
 			},
 			updateInterval: 2 * time.Second,
-			want:          1.0, // 20 ops / 2s = 10 ops/s * 0.1 = 1.0 MB/s
+			want:           1.0, // 20 ops / 2s = 10 ops/s * 0.1 = 1.0 MB/s
 		},
 	}
 
@@ -511,7 +511,7 @@ func TestCalculateOpsRate(t *testing.T) {
 			},
 			previousStats:  nil,
 			updateInterval: 1 * time.Second,
-			want:          0.0,
+			want:           0.0,
 		},
 		{
 			name: "calculates delta operations correctly - single operation",
@@ -530,7 +530,7 @@ func TestCalculateOpsRate(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          10.0, // 10 ops / 1s = 10 ops/s
+			want:           10.0, // 10 ops / 1s = 10 ops/s
 		},
 		{
 			name: "calculates delta operations correctly - multiple operations",
@@ -559,7 +559,7 @@ func TestCalculateOpsRate(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          20.0, // (10 + 10) ops / 1s = 20 ops/s
+			want:           20.0, // (10 + 10) ops / 1s = 20 ops/s
 		},
 		{
 			name: "converts to ops/second based on updateInterval",
@@ -578,7 +578,7 @@ func TestCalculateOpsRate(t *testing.T) {
 				},
 			},
 			updateInterval: 2 * time.Second,
-			want:          10.0, // 20 ops / 2s = 10 ops/s
+			want:           10.0, // 20 ops / 2s = 10 ops/s
 		},
 		{
 			name: "handles new operations not in previous stats",
@@ -602,7 +602,7 @@ func TestCalculateOpsRate(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          25.0, // (10 + 15) ops / 1s = 25 ops/s
+			want:           25.0, // (10 + 15) ops / 1s = 25 ops/s
 		},
 		{
 			name: "handles zero update interval",
@@ -621,7 +621,7 @@ func TestCalculateOpsRate(t *testing.T) {
 				},
 			},
 			updateInterval: 0,
-			want:          10.0, // Defaults to 1 second window: 10 ops / 1s = 10 ops/s
+			want:           10.0, // Defaults to 1 second window: 10 ops / 1s = 10 ops/s
 		},
 		{
 			name: "handles operations removed from stats",
@@ -645,7 +645,7 @@ func TestCalculateOpsRate(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          10.0, // Only counts operation1: 10 ops / 1s = 10 ops/s
+			want:           10.0, // Only counts operation1: 10 ops / 1s = 10 ops/s
 		},
 		{
 			name: "handles high operation rate",
@@ -664,7 +664,7 @@ func TestCalculateOpsRate(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          1000.0, // 1000 ops / 1s = 1000 ops/s
+			want:           1000.0, // 1000 ops / 1s = 1000 ops/s
 		},
 		{
 			name: "handles fractional seconds interval",
@@ -683,7 +683,7 @@ func TestCalculateOpsRate(t *testing.T) {
 				},
 			},
 			updateInterval: 500 * time.Millisecond,
-			want:          10.0, // 5 ops / 0.5s = 10 ops/s
+			want:           10.0, // 5 ops / 0.5s = 10 ops/s
 		},
 		{
 			name: "handles zero delta operations",
@@ -702,7 +702,7 @@ func TestCalculateOpsRate(t *testing.T) {
 				},
 			},
 			updateInterval: 1 * time.Second,
-			want:          0.0, // No new operations
+			want:           0.0, // No new operations
 		},
 	}
 

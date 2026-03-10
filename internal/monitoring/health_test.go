@@ -23,21 +23,23 @@ type mockSlurmClient struct {
 	infoFunc     func() dao.InfoManager
 }
 
-func (m *mockSlurmClient) Jobs() dao.JobManager               { return m.jobs }
-func (m *mockSlurmClient) Nodes() dao.NodeManager             { return m.nodes }
+func (m *mockSlurmClient) Jobs() dao.JobManager   { return m.jobs }
+func (m *mockSlurmClient) Nodes() dao.NodeManager { return m.nodes }
 func (m *mockSlurmClient) Info() dao.InfoManager {
 	if m.infoFunc != nil {
 		return m.infoFunc()
 	}
 	return m.info
 }
-func (m *mockSlurmClient) Partitions() dao.PartitionManager   { return m.partitions }
+func (m *mockSlurmClient) Partitions() dao.PartitionManager     { return m.partitions }
 func (m *mockSlurmClient) Reservations() dao.ReservationManager { return m.reservations }
-func (m *mockSlurmClient) QoS() dao.QoSManager                { return m.qos }
-func (m *mockSlurmClient) Accounts() dao.AccountManager       { return m.accounts }
-func (m *mockSlurmClient) Users() dao.UserManager             { return m.users }
-func (m *mockSlurmClient) ClusterInfo() (*dao.ClusterInfo, error) { return nil, errors.New("not implemented") }
-func (m *mockSlurmClient) Close() error                       { return nil }
+func (m *mockSlurmClient) QoS() dao.QoSManager                  { return m.qos }
+func (m *mockSlurmClient) Accounts() dao.AccountManager         { return m.accounts }
+func (m *mockSlurmClient) Users() dao.UserManager               { return m.users }
+func (m *mockSlurmClient) ClusterInfo() (*dao.ClusterInfo, error) {
+	return nil, errors.New("not implemented")
+}
+func (m *mockSlurmClient) Close() error { return nil }
 
 // mockJobManager implements dao.JobManager for testing
 type mockJobManager struct {
@@ -846,12 +848,12 @@ func TestCheckUtilization(t *testing.T) {
 // TestSetCheckStatus tests status threshold logic
 func TestSetCheckStatus(t *testing.T) {
 	tests := []struct {
-		name            string
-		value           float64
-		threshold       HealthThreshold
-		expectedStatus  HealthStatus
-		expectCritical  bool
-		expectHealthy   bool
+		name           string
+		value          float64
+		threshold      HealthThreshold
+		expectedStatus HealthStatus
+		expectCritical bool
+		expectHealthy  bool
 	}{
 		{
 			name:  "below warning threshold",

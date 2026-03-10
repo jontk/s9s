@@ -20,9 +20,9 @@ func (ce *CacheEntry) IsExpired() bool {
 
 // OutputCache provides LRU caching for job output
 type OutputCache struct {
-	mu       sync.RWMutex
-	entries  map[string]*CacheEntry
-	maxSize  int
+	mu         sync.RWMutex
+	entries    map[string]*CacheEntry
+	maxSize    int
 	defaultTTL time.Duration
 
 	// Statistics (using atomic for thread-safe access)

@@ -16,9 +16,9 @@ import (
 
 // TableData holds tabular data for export (headers + rows + metadata).
 type TableData struct {
-	Title     string     // e.g. "Jobs", "Nodes", "Partitions"
-	Headers   []string   // column names
-	Rows      [][]string // raw (uncolored) row values
+	Title      string     // e.g. "Jobs", "Nodes", "Partitions"
+	Headers    []string   // column names
+	Rows       [][]string // raw (uncolored) row values
 	ExportedAt time.Time
 }
 

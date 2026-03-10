@@ -24,10 +24,10 @@ type PerformanceView struct {
 	statsGrid *tview.Flex
 
 	// Metric displays
-	jobsBox    *tview.TextView
-	nodesBox   *tview.TextView
+	jobsBox     *tview.TextView
+	nodesBox    *tview.TextView
 	resourceBox *tview.TextView
-	controlBar *tview.TextView
+	controlBar  *tview.TextView
 
 	// State
 	autoRefresh     bool

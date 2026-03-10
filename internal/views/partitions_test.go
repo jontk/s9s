@@ -12,12 +12,12 @@ import (
 // TestCreateEfficiencyBar tests partition efficiency visualization
 func TestCreateEfficiencyBar(t *testing.T) {
 	tests := []struct {
-		name             string
-		percentage       float64
-		expectedColor    string
-		expectedFilled   int
-		expectedEmpty    int
-		expectedText     string
+		name           string
+		percentage     float64
+		expectedColor  string
+		expectedFilled int
+		expectedEmpty  int
+		expectedText   string
 	}{
 		{
 			name:           "Zero efficiency",
@@ -125,76 +125,76 @@ func TestCreateEfficiencyBar(t *testing.T) {
 // TestCreateQueueDepthBar tests queue depth visualization
 func TestCreateQueueDepthBar(t *testing.T) {
 	tests := []struct {
-		name           string
-		pending        int
-		running        int
-		expectedTotal  string
-		expectRunning  bool
-		expectPending  bool
+		name          string
+		pending       int
+		running       int
+		expectedTotal string
+		expectRunning bool
+		expectPending bool
 	}{
 		{
-			name:           "No jobs",
-			pending:        0,
-			running:        0,
-			expectedTotal:  "0",
-			expectRunning:  false,
-			expectPending:  false,
+			name:          "No jobs",
+			pending:       0,
+			running:       0,
+			expectedTotal: "0",
+			expectRunning: false,
+			expectPending: false,
 		},
 		{
-			name:           "Only running jobs",
-			pending:        0,
-			running:        10,
-			expectedTotal:  "10",
-			expectRunning:  true,
-			expectPending:  false,
+			name:          "Only running jobs",
+			pending:       0,
+			running:       10,
+			expectedTotal: "10",
+			expectRunning: true,
+			expectPending: false,
 		},
 		{
-			name:           "Only pending jobs",
-			pending:        10,
-			running:        0,
-			expectedTotal:  "10",
-			expectRunning:  false,
-			expectPending:  true,
+			name:          "Only pending jobs",
+			pending:       10,
+			running:       0,
+			expectedTotal: "10",
+			expectRunning: false,
+			expectPending: true,
 		},
 		{
-			name:           "Equal running and pending",
-			pending:        5,
-			running:        5,
-			expectedTotal:  "10",
-			expectRunning:  true,
-			expectPending:  true,
+			name:          "Equal running and pending",
+			pending:       5,
+			running:       5,
+			expectedTotal: "10",
+			expectRunning: true,
+			expectPending: true,
 		},
 		{
-			name:           "More running than pending",
-			pending:        2,
-			running:        8,
-			expectedTotal:  "10",
-			expectRunning:  true,
-			expectPending:  true,
+			name:          "More running than pending",
+			pending:       2,
+			running:       8,
+			expectedTotal: "10",
+			expectRunning: true,
+			expectPending: true,
 		},
 		{
-			name:           "More pending than running",
-			pending:        8,
-			running:        2,
-			expectedTotal:  "10",
-			expectRunning:  true,
-			expectPending:  true,
+			name:          "More pending than running",
+			pending:       8,
+			running:       2,
+			expectedTotal: "10",
+			expectRunning: true,
+			expectPending: true,
 		},
 		{
-			name:           "Large numbers",
-			pending:        100,
-			running:        50,
-			expectedTotal:  "150",
-			expectRunning:  true,
-			expectPending:  true,
+			name:          "Large numbers",
+			pending:       100,
+			running:       50,
+			expectedTotal: "150",
+			expectRunning: true,
+			expectPending: true,
 		},
 		{
-			name:           "Single job running",
-			pending:        0,
-			running:        1,
-			expectedTotal:  "1",
-			expectRunning:  true,
-			expectPending:  false,
+			name:          "Single job running",
+			pending:       0,
+			running:       1,
+			expectedTotal: "1",
+			expectRunning: true,
+			expectPending: false,
 		},
 	}
 
@@ -230,10 +230,10 @@ func TestCreateQueueDepthBar(t *testing.T) {
 // This is the critical test based on the architectural review finding
 func TestPartitionEfficiencyCalculation(t *testing.T) {
 	tests := []struct {
-		name           string
-		partition      *dao.Partition
-		allocatedCPUs  int
-		expectedEff    float64
+		name          string
+		partition     *dao.Partition
+		allocatedCPUs int
+		expectedEff   float64
 	}{
 		{
 			name: "Full utilization",
@@ -334,10 +334,10 @@ func TestPartitionEfficiencyCalculation(t *testing.T) {
 // TestQueueDepthBarProportions tests that bar proportions are calculated correctly
 func TestQueueDepthBarProportions(t *testing.T) {
 	tests := []struct {
-		name             string
-		pending          int
-		running          int
-		expectedRatio    float64 // expected running/(running+pending)
+		name          string
+		pending       int
+		running       int
+		expectedRatio float64 // expected running/(running+pending)
 	}{
 		{
 			name:          "50-50 split",
@@ -433,7 +433,7 @@ func TestAssessPartitionStatus(t *testing.T) {
 			name: "Backlog - too many pending jobs",
 			queueInfo: &dao.QueueInfo{
 				PendingJobs: 100,
-				RunningJobs: 10, // pending > running * 2
+				RunningJobs: 10,                          // pending > running * 2
 				LongestWait: 1 * 60 * 60 * 1_000_000_000, // 1 hour
 			},
 			expectedColor:  "orange",
@@ -553,10 +553,10 @@ func TestIsWarningWaitTime(t *testing.T) {
 // TestHasJobBacklog tests job backlog detection
 func TestHasJobBacklog(t *testing.T) {
 	tests := []struct {
-		name        string
-		pending     int
-		running     int
-		hasBacklog  bool
+		name       string
+		pending    int
+		running    int
+		hasBacklog bool
 	}{
 		{"No backlog - equal", 10, 10, false},
 		{"No backlog - more running", 10, 20, false},

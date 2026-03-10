@@ -19,18 +19,18 @@ import (
 // ReservationsView displays the reservations list
 type ReservationsView struct {
 	*BaseView
-	client         dao.SlurmClient
-	table          *components.Table
-	reservations   []*dao.Reservation
-	mu             sync.RWMutex
-	refreshTimer   *time.Timer
-	refreshRate    time.Duration
-	filter         string
-	container      *tview.Flex
-	filterInput    *tview.InputField
-	statusBar      *tview.TextView
-	app            *tview.Application
-	pages          *tview.Pages
+	client              dao.SlurmClient
+	table               *components.Table
+	reservations        []*dao.Reservation
+	mu                  sync.RWMutex
+	refreshTimer        *time.Timer
+	refreshRate         time.Duration
+	filter              string
+	container           *tview.Flex
+	filterInput         *tview.InputField
+	statusBar           *tview.TextView
+	app                 *tview.Application
+	pages               *tview.Pages
 	filterBar           *components.FilterBar
 	advancedFilter      *filters.Filter
 	isAdvancedMode      bool
