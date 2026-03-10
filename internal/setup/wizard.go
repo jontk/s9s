@@ -669,13 +669,22 @@ func (w *Wizard) extractClusterName(configPath string) string {
 func (w *Wizard) testEndpoint(endpoint string) bool {
 	debug.Logger.Printf("Testing endpoint: %s", endpoint)
 
-	client := &http.Client{Timeout: 3 * time.Second}
-	resp, err := client.Get(endpoint)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, http.NoBody)
 	if err != nil {
 		debug.Logger.Printf("Endpoint test failed for %s: %v", endpoint, err)
 		return false
 	}
-	resp.Body.Close()
+
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		debug.Logger.Printf("Endpoint test failed for %s: %v", endpoint, err)
+		return false
+	}
+	_ = resp.Body.Close()
 	return true
 }
 
@@ -709,7 +718,7 @@ func (w *Wizard) testConnection() {
 		fmt.Println("      Start it with: slurmrestd 0.0.0.0:6820")
 		return
 	}
-	defer adapter.Close()
+	defer func() { _ = adapter.Close() }()
 
 	// Try to get cluster info as a connectivity check
 	info, err := adapter.ClusterInfo()
