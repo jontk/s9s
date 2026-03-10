@@ -53,9 +53,7 @@ Features:
 
 	Example: `  s9s                                    # Launch interactive TUI
   s9s --cluster production                 # Use a specific cluster context
-  s9s --config /path/to/config.yaml        # Use a custom config file
-  s9s setup                                # Run configuration wizard
-  s9s setup --auto-discover                # Auto-discover clusters`,
+  s9s --config /path/to/config.yaml        # Use a custom config file`,
 
 	RunE: runRoot,
 }
