@@ -133,7 +133,9 @@ s9s version 0.3.0
 
 ### 2. Initial Configuration
 
-Run the setup wizard:
+On any SLURM node, **no configuration is needed** — s9s auto-discovers the slurmrestd endpoint using DNS SRV records and `scontrol ping` (which finds controllers even on remote hosts), and authenticates via `scontrol token` or the `SLURM_JWT` environment variable.
+
+If auto-discovery doesn't find your cluster, use the setup wizard:
 
 ```bash
 s9s setup
@@ -144,16 +146,14 @@ Or create a config file manually:
 ```bash
 mkdir -p ~/.s9s
 cat > ~/.s9s/config.yaml << EOF
+defaultCluster: production
+
 clusters:
-  default:
-    url: https://your-slurm-api.example.com
-    auth:
-      method: token
-      token: \${SLURM_TOKEN}
-preferences:
-  theme: dark
-  defaultView: dashboard
-  refreshInterval: 30s
+  - name: production
+    cluster:
+      endpoint: https://your-slurm-api.example.com:6820
+      token: "your-jwt-token"
+      timeout: 30s
 EOF
 ```
 
