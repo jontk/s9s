@@ -15,6 +15,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.6.2] - 2026-03-10
+
+### Fixed
+
+- **Setup Wizard Config Generation** (#99)
+  - Replace `yaml.Marshal` with template-based rendering to produce valid camelCase YAML keys (`defaultCluster`, `apiVersion`, not `defaultcluster`, `apiversion`)
+  - Config structs only have `mapstructure` tags, so `yaml.Marshal` lowercased all keys and s9s failed to load the generated config
+
+- **Setup Wizard Token Discovery** (#99)
+  - Generated config now writes `enableEndpoint: false` instead of `enabled: false`, so `scontrol token` and `SLURM_JWT` fallback still works when no token is entered during setup
+
+- **Lint Fixes** (#97)
+  - Use `http.NoBody` instead of `nil` for HTTP request bodies (gocritic)
+
+### Changed
+
+- **Setup Wizard Streamlined** (#95, #99)
+  - Remove wizard steps that collected data but never wrote to config (name, organization, auth method details, storage preferences, caching, logging, plugins)
+  - Wizard now asks only: endpoint, cluster name, and optional JWT token
+  - Add connection test to slurmrestd during setup (#95)
+  - Update docs to lead with zero-configuration auto-discovery (DNS SRV, `scontrol ping`, `scontrol token`) — s9s works on any SLURM node without running setup
+
+- **Code Formatting** (#98)
+  - Run `gofmt` across entire codebase
+
 ## [0.6.1] - 2026-03-09
 
 ### Fixed
