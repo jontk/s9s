@@ -339,7 +339,7 @@ func (v *Validator) validateConfigDirectory(configDir string) {
 	} else {
 		v.addError("paths",
 			fmt.Sprintf("Config directory does not exist: %s", configDir),
-			"Run 's9s setup' or create directory manually", true)
+			"Create directory with: mkdir -p ~/.s9s", true)
 	}
 }
 
