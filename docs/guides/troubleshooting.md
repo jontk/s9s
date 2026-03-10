@@ -494,9 +494,10 @@ cp -r ~/.s9s ~/.s9s.backup
 # Reset to defaults
 s9s reset
 
-# Or manual reset
+# Or manual reset and reconfigure
 rm -rf ~/.s9s
-s9s setup
+mkdir -p ~/.s9s
+# Then create ~/.s9s/config.yaml manually
 ```
 
 ### Clear Cache

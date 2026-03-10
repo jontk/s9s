@@ -107,13 +107,7 @@ s9s version 0.3.0
 
 ### 2. Initial Configuration
 
-Run the setup wizard:
-
-```bash
-s9s setup
-```
-
-Or create a config file manually:
+Create a config file:
 
 ```bash
 mkdir -p ~/.s9s

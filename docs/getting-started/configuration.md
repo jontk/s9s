@@ -781,20 +781,6 @@ s9s config import config-backup.yaml
 s9s config merge additional-config.yaml
 ```
 
-### Configuration Wizard
-
-```bash
-# Interactive setup
-s9s setup
-
-# Guided cluster addition
-s9s config add-cluster
-
-# Update specific settings
-s9s config set preferences.theme dark
-s9s config set clusters.default.url https://new-url.com
-```
-
 ## Configuration Examples
 
 ### Minimal Configuration

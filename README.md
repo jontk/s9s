@@ -99,21 +99,7 @@ s9s --debug
 
 ### Configuration
 
-#### Quick Setup (Recommended)
-
-Run the interactive setup wizard for first-time configuration:
-
-```bash
-s9s setup
-```
-
-The wizard will guide you through:
-- 🏢 Cluster connection settings
-- 🔐 Authentication configuration  
-- 🔒 Secure credential storage
-- ⚡ Performance optimization
-
-#### Manual Configuration
+#### Configuration
 
 s9s looks for configuration in the following order:
 1. `~/.s9s/config.yaml`
