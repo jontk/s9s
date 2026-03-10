@@ -99,19 +99,24 @@ s9s --debug
 
 ### Configuration
 
-#### Quick Setup (Recommended)
+#### Zero-Configuration (Recommended)
 
-Run the interactive setup wizard for first-time configuration:
+On any SLURM node, s9s works out of the box — no configuration needed. It auto-discovers the slurmrestd endpoint via DNS SRV records and `scontrol ping`, and authenticates using `scontrol token` or the `SLURM_JWT` environment variable.
+
+```bash
+# Just run it
+s9s
+```
+
+#### Setup Wizard
+
+If auto-discovery doesn't find your cluster, run the setup wizard:
 
 ```bash
 s9s setup
 ```
 
-The wizard will guide you through:
-- 🏢 Cluster connection settings
-- 🔐 Authentication configuration  
-- 🔒 Secure credential storage
-- ⚡ Performance optimization
+This configures your cluster endpoint and optional JWT token.
 
 #### Manual Configuration
 

@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -21,7 +20,6 @@ import (
 	"github.com/jontk/s9s/internal/fileperms"
 	"github.com/mattn/go-runewidth"
 	"golang.org/x/term"
-	"gopkg.in/yaml.v2"
 )
 
 // Wizard guides users through initial s9s configuration
@@ -31,14 +29,6 @@ type Wizard struct {
 }
 
 type SetupWizard = Wizard
-
-// WizardStep represents a step in the setup process
-type WizardStep struct {
-	Name        string
-	Description string
-	Handler     func(*Wizard) error
-	Required    bool
-}
 
 // NewSetupWizard creates a new setup wizard
 func NewSetupWizard() *Wizard {
@@ -55,65 +45,58 @@ func (w *Wizard) Run() error {
 	// Check if configuration already exists
 	if w.configExists() {
 		if !w.confirmOverwrite() {
-			fmt.Println("Setup canceled. Use 's9s config edit' to modify existing configuration.")
+			fmt.Println("Setup canceled.")
 			return nil
 		}
 	}
 
-	// Define setup steps
-	steps := []WizardStep{
-		{
-			Name:        "Basic Information",
-			Description: "Configure basic s9s settings",
-			Handler:     (*SetupWizard).setupBasics,
-			Required:    true,
-		},
-		{
-			Name:        "Cluster Discovery",
-			Description: "Add your first SLURM cluster",
-			Handler:     (*SetupWizard).setupCluster,
-			Required:    true,
-		},
-		{
-			Name:        "Authentication",
-			Description: "Configure authentication for your cluster",
-			Handler:     (*SetupWizard).setupAuthentication,
-			Required:    true,
-		},
-		{
-			Name:        "Storage Preferences",
-			Description: "Choose secure storage options",
-			Handler:     (*SetupWizard).setupStorage,
-			Required:    false,
-		},
-		{
-			Name:        "Advanced Options",
-			Description: "Configure advanced features",
-			Handler:     (*SetupWizard).setupAdvanced,
-			Required:    false,
-		},
+	// Initialize config defaults
+	w.config.RefreshRate = "30s"
+	w.config.Clusters = []config.ClusterContext{}
+
+	// Step 1: Cluster endpoint
+	fmt.Println("🏢 Cluster Connection")
+	fmt.Println("   Checking for slurmrestd...")
+	autoDetected := w.autoDetectCluster()
+
+	var clusterConfig config.ClusterConfig
+
+	if autoDetected != nil {
+		fmt.Printf("   🎯 Found slurmrestd at %s\n", autoDetected.Endpoint)
+		if w.confirm("Use this endpoint?", true) {
+			clusterConfig = *autoDetected
+		} else {
+			clusterConfig = w.manualClusterConfig()
+		}
+	} else {
+		fmt.Println("   No slurmrestd detected. Let's configure manually.")
+		clusterConfig = w.manualClusterConfig()
 	}
 
-	// Execute setup steps
-	for i, step := range steps {
-		fmt.Printf("\n%s Step %d: %s %s\n",
-			w.getStepIcon(i+1), i+1, step.Name,
-			w.getRequiredIndicator(step.Required))
-		fmt.Printf("   %s\n\n", step.Description)
+	// Step 2: Cluster name
+	clusterName := w.prompt("\n   Cluster name", "default")
+	clusterName = strings.ToLower(strings.ReplaceAll(clusterName, " ", "-"))
 
-		if !step.Required {
-			if !w.confirm(fmt.Sprintf("Configure %s?", step.Name), false) {
-				fmt.Printf("   ⏭️  Skipping %s\n", step.Name)
-				continue
-			}
+	// Step 3: Authentication token (optional)
+	fmt.Println("\n🔐 Authentication")
+	fmt.Println("   s9s authenticates via JWT token (from `scontrol token`).")
+	fmt.Println("   If no token is configured, s9s will try SLURM_JWT env var")
+	fmt.Println("   and then `scontrol token` automatically.")
+	if w.confirm("Enter a token now?", false) {
+		fmt.Print("   Token: ")
+		tokenBytes, err := term.ReadPassword(int(syscall.Stdin))
+		fmt.Println()
+		if err == nil && len(tokenBytes) > 0 {
+			clusterConfig.Token = string(tokenBytes)
 		}
-
-		if err := step.Handler(w); err != nil {
-			return fmt.Errorf("setup step '%s' failed: %w", step.Name, err)
-		}
-
-		fmt.Printf("   ✅ %s completed\n", step.Name)
 	}
+
+	// Build cluster entry
+	w.config.DefaultCluster = clusterName
+	w.config.Clusters = append(w.config.Clusters, config.ClusterContext{
+		Name:    clusterName,
+		Cluster: clusterConfig,
+	})
 
 	// Save configuration
 	if err := w.saveConfiguration(); err != nil {
@@ -121,7 +104,7 @@ func (w *Wizard) Run() error {
 	}
 
 	// Test connection
-	if w.confirm("Test connection to your cluster?", true) {
+	if w.confirm("\nTest connection to your cluster?", true) {
 		w.testConnection()
 	}
 
@@ -148,81 +131,10 @@ func (w *Wizard) printWelcome() {
 	fmt.Println("║" + pad("  few minutes. This wizard will help you configure:") + "║")
 	fmt.Println("║" + pad("") + "║")
 	fmt.Println("║" + pad("  • 🏢 Cluster connection settings") + "║")
-	fmt.Println("║" + pad("  • 🔐 Authentication (SLURM tokens, OAuth2, API)") + "║")
-	fmt.Println("║" + pad("  • 🔒 Secure credential storage") + "║")
-	fmt.Println("║" + pad("  • ⚡ Performance and caching options") + "║")
+	fmt.Println("║" + pad("  • 🔐 Authentication (SLURM JWT tokens)") + "║")
 	fmt.Println("║" + pad("") + "║")
 	fmt.Println("╚" + strings.Repeat("═", boxWidth) + "╝")
 	fmt.Println()
-}
-
-// setupBasics configures basic s9s settings
-func (w *Wizard) setupBasics() error {
-	fmt.Println("📋 Basic Configuration")
-	fmt.Println("   Let's start with some basic information about your setup.")
-
-	// Initialize config with defaults
-	w.config.RefreshRate = "30s"
-	w.config.Clusters = []config.ClusterContext{}
-
-	// Get user preferences
-	name := w.prompt("Your name (for configuration identification)", os.Getenv("USER"))
-	org := w.prompt("Organization/Company", "")
-
-	// Set current context name
-	contextName := strings.ToLower(strings.ReplaceAll(org, " ", "-"))
-	if contextName == "" {
-		contextName = "default"
-	}
-	w.config.DefaultCluster = contextName
-
-	// Refresh rate
-	refreshRate := w.prompt("Refresh rate for live updates", "30s")
-	if w.validateDuration(refreshRate) {
-		w.config.RefreshRate = refreshRate
-	}
-
-	// Store basic info - UI config doesn't have Title field
-	// Just log the setup for now
-	fmt.Printf("   📝 Setup for: %s (%s)\n", name, org)
-
-	fmt.Printf("   ✨ Configuration initialized for %s\n", name)
-	return nil
-}
-
-// setupCluster guides cluster configuration
-func (w *Wizard) setupCluster() error {
-	fmt.Println("🏢 Cluster Configuration")
-	fmt.Println("   Let's connect to your SLURM cluster.")
-
-	// Cluster detection
-	fmt.Println("   First, let's try to auto-detect your cluster...")
-	autoDetected := w.autoDetectCluster()
-
-	var clusterConfig config.ClusterConfig
-
-	if autoDetected != nil {
-		fmt.Printf("   🎯 Found potential cluster: %s\n", autoDetected.Endpoint)
-		if w.confirm("Use this configuration?", true) {
-			clusterConfig = *autoDetected
-		} else {
-			clusterConfig = w.manualClusterConfig()
-		}
-	} else {
-		fmt.Println("   📝 No cluster auto-detected. Let's configure manually.")
-		clusterConfig = w.manualClusterConfig()
-	}
-
-	// Create cluster entry
-	clusterEntry := config.ClusterContext{
-		Name:    w.config.DefaultCluster,
-		Cluster: clusterConfig,
-	}
-
-	w.config.Clusters = append(w.config.Clusters, clusterEntry)
-
-	fmt.Printf("   🔗 Cluster '%s' configured successfully\n", clusterConfig.Endpoint)
-	return nil
 }
 
 // autoDetectCluster attempts to automatically detect SLURM cluster
@@ -282,7 +194,6 @@ func (w *Wizard) findSlurmConfig(slurmConfDir string) string {
 
 // detectRESTEndpoint attempts to find a working REST API endpoint
 func (w *Wizard) detectRESTEndpoint(slurmctlHost string) string {
-	// Build candidate list
 	var candidates []string
 
 	if slurmctlHost != "" {
@@ -292,7 +203,6 @@ func (w *Wizard) detectRESTEndpoint(slurmctlHost string) string {
 		)
 	}
 
-	// Also try common local endpoints
 	candidates = append(candidates,
 		"http://localhost:6820",
 		"https://localhost:6820",
@@ -316,246 +226,41 @@ func (w *Wizard) buildClusterConfig(restEndpoint, slurmctlHost string) *config.C
 	}
 
 	return &config.ClusterConfig{
-		Endpoint:   endpoint,
-		APIVersion: "v0.0.43",
-		Timeout:    "30s",
+		Endpoint: endpoint,
+		Timeout:  "30s",
 	}
 }
 
 // manualClusterConfig guides manual cluster configuration
 func (w *Wizard) manualClusterConfig() config.ClusterConfig {
-	_ = w.prompt("Cluster name", "my-cluster") // Store in context name instead
+	fmt.Println("\n   How would you like to configure the connection?")
+	fmt.Println("   1. Enter REST API endpoint URL")
+	fmt.Println("   2. Enter hostname + port")
 
-	// Choose configuration method
-	fmt.Println("\n   How would you like to configure the cluster connection?")
-	fmt.Println("   1. 🌐 REST API endpoint (slurmrestd)")
-	fmt.Println("   2. 🔗 Controller host + port")
-	fmt.Println("   3. 📁 SLURM config file path")
-
-	choice := w.promptChoice("Choose option (1-3)", []string{"1", "2", "3"}, "1")
+	choice := w.promptChoice("   Choose (1-2)", []string{"1", "2"}, "1")
 
 	var clusterConfig config.ClusterConfig
-	// Note: ClusterConfig doesn't have Name field, using endpoint as identifier
 
 	switch choice {
 	case "1":
-		endpoint := w.prompt("REST API endpoint (e.g., https://cluster.edu:6820)", "https://localhost:6820")
+		endpoint := w.prompt("   REST API endpoint", "http://localhost:6820")
 		if w.validateURL(endpoint) {
 			clusterConfig.Endpoint = endpoint
 		}
 	case "2":
-		host := w.prompt("Controller hostname", "localhost")
-		portStr := w.prompt("Controller port", "6820")
+		host := w.prompt("   Hostname", "localhost")
+		portStr := w.prompt("   Port", "6820")
+		scheme := "http"
+		if w.confirm("   Use HTTPS?", false) {
+			scheme = "https"
+		}
 		if port, err := strconv.Atoi(portStr); err == nil {
-			clusterConfig.Endpoint = fmt.Sprintf("https://%s:%d", host, port)
+			clusterConfig.Endpoint = fmt.Sprintf("%s://%s:%d", scheme, host, port)
 		}
-	case "3":
-		_ = w.prompt("Path to slurm.conf", "/etc/slurm/slurm.conf")
-		// For now, just set a default endpoint since we can't store config path
-		clusterConfig.Endpoint = "https://localhost:6820"
-		fmt.Printf("   ⚠️  Note: Config file path stored separately (not in ClusterConfig)\n")
 	}
 
+	clusterConfig.Timeout = "30s"
 	return clusterConfig
-}
-
-// setupAuthentication configures authentication
-func (w *Wizard) setupAuthentication() error {
-	fmt.Println("🔐 Authentication Setup")
-	fmt.Println("   Choose how you'll authenticate with your SLURM cluster.")
-
-	fmt.Println("   Available authentication methods:")
-	fmt.Println("   1. 🎫 SLURM Tokens (native, recommended for local)")
-	fmt.Println("   2. 🌐 API Authentication (username/password)")
-	fmt.Println("   3. 🔒 OAuth2 (enterprise SSO)")
-	fmt.Println("   4. ⏭️  Configure later")
-
-	choice := w.promptChoice("Choose authentication method (1-4)", []string{"1", "2", "3", "4"}, "1")
-
-	var authConfig map[string]interface{}
-
-	switch choice {
-	case "1":
-		authConfig = w.setupSlurmTokenAuth()
-	case "2":
-		authConfig = w.setupAPIAuth()
-	case "3":
-		authConfig = w.setupOAuth2Auth()
-	case "4":
-		fmt.Println("   ⏭️  Authentication will use SLURM tokens by default")
-		authConfig = map[string]interface{}{
-			"type": "slurm-token",
-			"config": map[string]interface{}{
-				"username": os.Getenv("USER"),
-			},
-		}
-	}
-
-	// Add auth config to the current context
-	if len(w.config.Clusters) > 0 {
-		// Store auth token if available
-		if token, ok := authConfig["token"]; ok {
-			w.config.Clusters[0].Cluster.Token = token.(string)
-		}
-	}
-
-	return nil
-}
-
-// setupSlurmTokenAuth configures SLURM token authentication
-func (w *Wizard) setupSlurmTokenAuth() map[string]interface{} {
-	fmt.Println("   🎫 Configuring SLURM Token Authentication")
-
-	username := w.prompt("SLURM username", os.Getenv("USER"))
-	lifetimeStr := w.prompt("Token lifetime in seconds", "3600")
-
-	lifetime, err := strconv.Atoi(lifetimeStr)
-	if err != nil {
-		lifetime = 3600
-	}
-
-	scontrolPath := w.prompt("Path to scontrol binary", "scontrol")
-
-	return map[string]interface{}{
-		"type": "slurm-token",
-		"config": map[string]interface{}{
-			"username":       username,
-			"token_lifetime": lifetime,
-			"scontrol_path":  scontrolPath,
-		},
-	}
-}
-
-// setupAPIAuth configures API authentication
-func (w *Wizard) setupAPIAuth() map[string]interface{} {
-	fmt.Println("   🌐 Configuring API Authentication")
-
-	endpoint := w.prompt("Authentication API endpoint", "https://auth.cluster.edu/api/v1/token")
-	username := w.prompt("Username", os.Getenv("USER"))
-
-	fmt.Print("   Password: ")
-	passwordBytes, err := term.ReadPassword(int(syscall.Stdin))
-	fmt.Println()
-
-	password := ""
-	if err == nil {
-		password = string(passwordBytes)
-	}
-
-	return map[string]interface{}{
-		"type": "api-auth",
-		"config": map[string]interface{}{
-			"endpoint": endpoint,
-			"username": username,
-			"password": password,
-		},
-	}
-}
-
-// setupOAuth2Auth configures OAuth2 authentication
-func (w *Wizard) setupOAuth2Auth() map[string]interface{} {
-	fmt.Println("   🔒 Configuring OAuth2 Authentication")
-
-	fmt.Println("\n   Supported providers:")
-	fmt.Println("   1. 🏢 Okta")
-	fmt.Println("   2. 🔵 Google")
-	fmt.Println("   3. 🪟 Azure AD")
-	fmt.Println("   4. 🔧 Custom")
-
-	provider := w.promptChoice("Choose provider (1-4)", []string{"1", "2", "3", "4"}, "1")
-
-	providerMap := map[string]string{
-		"1": "okta",
-		"2": "google",
-		"3": "azure-ad",
-		"4": "custom",
-	}
-
-	clientID := w.prompt("Client ID", "")
-
-	fmt.Print("   Client Secret: ")
-	secretBytes, _ := term.ReadPassword(int(syscall.Stdin))
-	fmt.Println()
-
-	config := map[string]interface{}{
-		"provider":      providerMap[provider],
-		"client_id":     clientID,
-		"client_secret": string(secretBytes),
-	}
-
-	if providerMap[provider] == "okta" || providerMap[provider] == "azure-ad" || providerMap[provider] == "custom" {
-		discoveryURL := w.prompt("Discovery URL", "")
-		if discoveryURL != "" {
-			config["discovery_url"] = discoveryURL
-		}
-	}
-
-	return map[string]interface{}{
-		"type":   "oauth2",
-		"config": config,
-	}
-}
-
-// setupStorage configures secure storage options
-func (w *Wizard) setupStorage() error {
-	fmt.Println("🔒 Storage Configuration")
-	fmt.Println("   Configure secure storage for authentication tokens.")
-
-	fmt.Println("   Available storage options:")
-	fmt.Println("   1. 🔐 System Keyring (recommended)")
-	fmt.Println("   2. 📁 Encrypted File")
-	fmt.Println("   3. 💾 Memory Only (not persistent)")
-
-	choice := w.promptChoice("Choose storage method (1-3)", []string{"1", "2", "3"}, "1")
-
-	storageMap := map[string]string{
-		"1": "keyring",
-		"2": "file",
-		"3": "memory",
-	}
-
-	// Note: Config doesn't have Metadata field, just log the choice
-	fmt.Printf("   🔒 Using %s storage for secure token storage\n", storageMap[choice])
-	return nil
-}
-
-// setupAdvanced configures advanced options
-func (w *Wizard) setupAdvanced() error {
-	fmt.Println("⚙️ Advanced Configuration")
-	fmt.Println("   Configure advanced features and performance options.")
-
-	// Caching preferences - note: no Metadata field in Config
-	if w.confirm("Enable result caching for better performance?", true) {
-		fmt.Println("   ⚡ Caching enabled")
-		cacheTTL := w.prompt("Cache TTL (time to live)", "5m")
-		if w.validateDuration(cacheTTL) {
-			fmt.Printf("   📊 Cache TTL: %s\n", cacheTTL)
-		}
-	}
-
-	// Logging level
-	fmt.Println("\n   Logging levels:")
-	fmt.Println("   1. 📢 Debug (verbose)")
-	fmt.Println("   2. 📝 Info (default)")
-	fmt.Println("   3. ⚠️  Warning (minimal)")
-	fmt.Println("   4. 🚫 Error (quiet)")
-
-	logLevel := w.promptChoice("Choose logging level (1-4)", []string{"1", "2", "3", "4"}, "2")
-	logLevelMap := map[string]string{
-		"1": "debug",
-		"2": "info",
-		"3": "warn",
-		"4": "error",
-	}
-	fmt.Printf("   📝 Log level: %s\n", logLevelMap[logLevel])
-
-	// Plugin directory
-	if w.confirm("Configure custom plugin directory?", false) {
-		pluginDir := w.prompt("Plugin directory path", filepath.Join(os.Getenv("HOME"), ".s9s", "plugins"))
-		fmt.Printf("   🔌 Plugin directory: %s\n", pluginDir)
-	}
-
-	return nil
 }
 
 // Helper methods
@@ -563,9 +268,9 @@ func (w *Wizard) setupAdvanced() error {
 // prompt asks for user input with a default value
 func (w *Wizard) prompt(question, defaultValue string) string {
 	if defaultValue != "" {
-		fmt.Printf("   %s [%s]: ", question, defaultValue)
+		fmt.Printf("%s [%s]: ", question, defaultValue)
 	} else {
-		fmt.Printf("   %s: ", question)
+		fmt.Printf("%s: ", question)
 	}
 
 	w.scanner.Scan()
@@ -586,7 +291,7 @@ func (w *Wizard) promptChoice(question string, choices []string, defaultChoice s
 				return choice
 			}
 		}
-		fmt.Printf("   ❌ Invalid choice. Please select one of: %s\n", strings.Join(choices, ", "))
+		fmt.Printf("   Invalid choice. Please select one of: %s\n", strings.Join(choices, ", "))
 	}
 }
 
@@ -613,12 +318,6 @@ func (w *Wizard) validateURL(urlStr string) bool {
 	return err == nil
 }
 
-// validateDuration validates a duration string
-func (w *Wizard) validateDuration(duration string) bool {
-	match, _ := regexp.MatchString(`^\d+[smhd]$`, duration)
-	return match
-}
-
 // configExists checks if configuration already exists
 func (w *Wizard) configExists() bool {
 	homeDir, err := os.UserHomeDir()
@@ -633,37 +332,9 @@ func (w *Wizard) configExists() bool {
 
 // confirmOverwrite asks user to confirm overwriting existing config
 func (w *Wizard) confirmOverwrite() bool {
-	fmt.Println("⚠️  Existing configuration found.")
-	return w.confirm("Would you like to overwrite it?", false)
+	fmt.Println("Existing configuration found at ~/.s9s/config.yaml")
+	return w.confirm("Overwrite?", false)
 }
-
-/*
-TODO(lint): Review unused code - func (*SetupWizard).extractClusterName is unused
-
-extractClusterName extracts cluster name from slurm.conf
-func (w *Wizard) extractClusterName(configPath string) string {
-	if configPath == "" {
-		return "cluster"
-	}
-
-	// Try to read cluster name from slurm.conf
-	file, err := os.Open(configPath)
-	if err != nil {
-		return "cluster"
-	}
-	defer func() { _ = file.Close() }()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(line, "ClusterName=") {
-			return strings.TrimPrefix(line, "ClusterName=")
-		}
-	}
-
-	return "cluster"
-}
-*/
 
 // testEndpoint tests if an endpoint is accessible
 func (w *Wizard) testEndpoint(endpoint string) bool {
@@ -765,18 +436,55 @@ func (w *Wizard) saveConfiguration() error {
 
 	configPath := filepath.Join(configDir, "config.yaml")
 
-	// Convert config to YAML
-	yamlData, err := yaml.Marshal(w.config)
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
+	yamlData := w.renderConfig()
 
-	if err := os.WriteFile(configPath, yamlData, fileperms.ConfigFile); err != nil {
+	if err := os.WriteFile(configPath, []byte(yamlData), fileperms.ConfigFile); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
 	fmt.Printf("\n   💾 Configuration saved to: %s\n", configPath)
 	return nil
+}
+
+// renderConfig generates a clean YAML config string with proper camelCase keys
+func (w *Wizard) renderConfig() string {
+	var b strings.Builder
+
+	b.WriteString("# s9s configuration — generated by s9s setup\n\n")
+
+	if w.config.DefaultCluster != "" {
+		fmt.Fprintf(&b, "defaultCluster: %s\n\n", w.config.DefaultCluster)
+	}
+
+	if len(w.config.Clusters) > 0 {
+		b.WriteString("clusters:\n")
+		for _, ctx := range w.config.Clusters {
+			fmt.Fprintf(&b, "  - name: %s\n", ctx.Name)
+			b.WriteString("    cluster:\n")
+			fmt.Fprintf(&b, "      endpoint: %s\n", ctx.Cluster.Endpoint)
+			if ctx.Cluster.Token != "" {
+				fmt.Fprintf(&b, "      token: \"%s\"\n", ctx.Cluster.Token)
+			}
+			if ctx.Cluster.APIVersion != "" {
+				fmt.Fprintf(&b, "      apiVersion: %s\n", ctx.Cluster.APIVersion)
+			}
+			if ctx.Cluster.Insecure {
+				b.WriteString("      insecure: true\n")
+			}
+			if ctx.Cluster.Timeout != "" {
+				fmt.Fprintf(&b, "      timeout: %s\n", ctx.Cluster.Timeout)
+			}
+		}
+		b.WriteString("\n")
+	}
+
+	if w.config.RefreshRate != "" && w.config.RefreshRate != "30s" {
+		fmt.Fprintf(&b, "refreshRate: %s\n", w.config.RefreshRate)
+	}
+
+	b.WriteString("discovery:\n  enableEndpoint: false\n")
+
+	return b.String()
 }
 
 // printCompletion displays the completion message
@@ -794,35 +502,16 @@ func (w *Wizard) printCompletion() {
 	fmt.Println("╔" + strings.Repeat("═", boxWidth) + "╗")
 	fmt.Println("║" + pad("                    🎉 Setup Complete! 🎉") + "║")
 	fmt.Println("║" + pad("") + "║")
-	fmt.Println("║" + pad("  Your s9s configuration is ready! Here's what you can do:") + "║")
-	fmt.Println("║" + pad("") + "║")
 	fmt.Println("║" + pad("  🚀 Start s9s:        s9s") + "║")
-	fmt.Println("║" + pad("  ⚙️  Edit config:      s9s config edit") + "║")
+	fmt.Println("║" + pad("  📝 Edit config:      s9s config edit") + "║")
 	fmt.Println("║" + pad("  ❓ Get help:          s9s --help") + "║")
 	fmt.Println("║" + pad("") + "║")
 	fmt.Println("║" + pad("  💡 Pro tips:") + "║")
+	fmt.Println("║" + pad("  • Use Tab to switch between views") + "║")
 	fmt.Println("║" + pad("  • Use 'j/k' for vim-style navigation") + "║")
 	fmt.Println("║" + pad("  • Press '?' for keyboard shortcuts") + "║")
 	fmt.Println("║" + pad("  • Use ':' for command mode") + "║")
-	fmt.Println("║" + pad("  • Press F1 for context help") + "║")
 	fmt.Println("║" + pad("") + "║")
 	fmt.Println("╚" + strings.Repeat("═", boxWidth) + "╝")
 	fmt.Println()
-}
-
-// getStepIcon returns an icon for each setup step
-func (w *Wizard) getStepIcon(step int) string {
-	icons := []string{"📋", "🏢", "🔐", "🔒", "⚙️"}
-	if step > 0 && step <= len(icons) {
-		return icons[step-1]
-	}
-	return "📝"
-}
-
-// getRequiredIndicator returns indicator for required/optional steps
-func (w *Wizard) getRequiredIndicator(required bool) string {
-	if required {
-		return "(required)"
-	}
-	return "(optional)"
 }

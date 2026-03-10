@@ -783,16 +783,10 @@ s9s config merge additional-config.yaml
 
 ### Configuration Wizard
 
+If auto-discovery doesn't find your cluster, run the setup wizard to configure your endpoint and authentication:
+
 ```bash
-# Interactive setup
 s9s setup
-
-# Guided cluster addition
-s9s config add-cluster
-
-# Update specific settings
-s9s config set preferences.theme dark
-s9s config set clusters.default.url https://new-url.com
 ```
 
 ## Configuration Examples

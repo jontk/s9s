@@ -15,17 +15,15 @@ import (
 var setupCmd = &cobra.Command{
 	Use:   "setup",
 	Short: "Interactive setup wizard for s9s configuration",
-	Long: `Launch the interactive setup wizard to configure s9s for first-time use.
+	Long: `Launch the interactive setup wizard to configure s9s.
 
-The setup wizard will guide you through:
-• 🏢 Cluster connection settings  
-• 🔐 Authentication configuration
-• 🔒 Secure credential storage
-• ⚡ Performance optimization
+On any SLURM node, s9s typically works without configuration — it
+auto-discovers slurmrestd via DNS SRV records and scontrol ping, and
+authenticates via scontrol token or the SLURM_JWT environment variable.
 
-Run this command when you first install s9s or want to reconfigure your setup.`,
+Use this command when auto-discovery can't find your cluster.
+The wizard configures the slurmrestd endpoint and optional JWT token.`,
 	Example: `  s9s setup                    # Run interactive setup
-  s9s setup --auto-discover     # Auto-discover clusters first
   s9s setup --validate-only     # Just validate current config`,
 	RunE: runSetup,
 }
