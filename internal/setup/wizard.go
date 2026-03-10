@@ -672,7 +672,7 @@ func (w *Wizard) testEndpoint(endpoint string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, http.NoBody)
 	if err != nil {
 		debug.Logger.Printf("Endpoint test failed for %s: %v", endpoint, err)
 		return false
