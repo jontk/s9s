@@ -41,11 +41,11 @@ var (
 	ColorDim     = tcell.ColorGray    // ANSI 8: theme's dimmed/placeholder text
 
 	// Accent colors (from theme's palette)
-	ColorAccent    = tcell.ColorYellow  // ANSI 3: theme's yellow (for labels)
-	ColorHighlight = tcell.ColorGreen   // ANSI 2: theme's green (for success/selected)
-	ColorInfo      = tcell.ColorBlue    // ANSI 4: theme's blue
-	ColorWarning   = tcell.ColorYellow  // ANSI 3: theme's yellow
-	ColorError     = tcell.ColorRed     // ANSI 1: theme's red
+	ColorAccent    = tcell.ColorYellow // ANSI 3: theme's yellow (for labels)
+	ColorHighlight = tcell.ColorGreen  // ANSI 2: theme's green (for success/selected)
+	ColorInfo      = tcell.ColorBlue   // ANSI 4: theme's blue
+	ColorWarning   = tcell.ColorYellow // ANSI 3: theme's yellow
+	ColorError     = tcell.ColorRed    // ANSI 1: theme's red
 )
 
 // InputFieldColors defines colors for input field components

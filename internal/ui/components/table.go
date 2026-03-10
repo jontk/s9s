@@ -602,7 +602,7 @@ func (t *Table) GetSortableColumns() []struct {
 		Index int
 		Name  string
 	}
-	
+
 	for i, col := range t.config.Columns {
 		if col.Sortable && !col.Hidden {
 			sortable = append(sortable, struct {
@@ -611,7 +611,7 @@ func (t *Table) GetSortableColumns() []struct {
 			}{Index: i, Name: col.Name})
 		}
 	}
-	
+
 	return sortable
 }
 

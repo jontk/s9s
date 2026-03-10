@@ -11,20 +11,20 @@ import (
 
 // ReadOptions configures how output is read
 type ReadOptions struct {
-	MaxBytes      int64         // Maximum bytes to read (0 = unlimited)
-	MaxLines      int           // Maximum lines to read (0 = unlimited)
-	TailMode      bool          // Read from end instead of beginning
-	Offset        int64         // Byte offset to start reading
-	Timeout       time.Duration // Timeout for remote operations
-	CacheEnabled  bool          // Enable local caching
-	ForceRefresh  bool          // Bypass cache
+	MaxBytes     int64         // Maximum bytes to read (0 = unlimited)
+	MaxLines     int           // Maximum lines to read (0 = unlimited)
+	TailMode     bool          // Read from end instead of beginning
+	Offset       int64         // Byte offset to start reading
+	Timeout      time.Duration // Timeout for remote operations
+	CacheEnabled bool          // Enable local caching
+	ForceRefresh bool          // Bypass cache
 }
 
 // DefaultReadOptions returns sensible defaults for read operations
 func DefaultReadOptions() ReadOptions {
 	return ReadOptions{
 		MaxBytes:     10 * 1024 * 1024, // 10MB default
-		MaxLines:     10000,             // 10k lines default
+		MaxLines:     10000,            // 10k lines default
 		TailMode:     false,
 		Offset:       0,
 		Timeout:      30 * time.Second,

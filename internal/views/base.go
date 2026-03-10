@@ -64,15 +64,15 @@ type View interface {
 
 // BaseView provides common functionality for all views
 type BaseView struct {
-	ctx         context.Context
-	name        string
-	title       string
-	app         *tview.Application
-	pages       *tview.Pages
-	viewMgr     *ViewManager
+	ctx          context.Context
+	name         string
+	title        string
+	app          *tview.Application
+	pages        *tview.Pages
+	viewMgr      *ViewManager
 	switchViewFn func(string) // Callback to switch to a view
-	refreshing  bool
-	lastError   error
+	refreshing   bool
+	lastError    error
 }
 
 // NewBaseView creates a new base view instance

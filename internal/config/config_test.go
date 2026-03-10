@@ -259,7 +259,7 @@ func TestDefaultConfig(t *testing.T) {
 	// Test Views defaults
 	assert.NotNil(t, cfg.Views.Jobs)
 	assert.Equal(t, []string{"id", "name", "user", "state", "time", "nodes", "priority"}, cfg.Views.Jobs.Columns)
-	assert.True(t, cfg.Views.Jobs.ShowOnlyActive)  // Aligned with setDefaults
+	assert.True(t, cfg.Views.Jobs.ShowOnlyActive)       // Aligned with setDefaults
 	assert.Equal(t, "time", cfg.Views.Jobs.DefaultSort) // Aligned with setDefaults
 	assert.Equal(t, 1000, cfg.Views.Jobs.MaxJobs)       // Aligned with setDefaults
 
@@ -273,8 +273,8 @@ func TestDefaultConfig(t *testing.T) {
 	assert.True(t, cfg.Views.Partitions.ShowWaitTime)
 
 	// Test Features defaults
-	assert.True(t, cfg.Features.Streaming)  // Aligned with setDefaults
-	assert.True(t, cfg.Features.Pulseye)    // Aligned with setDefaults
+	assert.True(t, cfg.Features.Streaming) // Aligned with setDefaults
+	assert.True(t, cfg.Features.Pulseye)   // Aligned with setDefaults
 	assert.False(t, cfg.Features.Xray)
 
 	// Test Plugin Settings defaults
@@ -286,11 +286,11 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Equal(t, 25.0, cfg.PluginSettings.MaxCPUPercent) // Aligned with setDefaults
 
 	// Test Discovery defaults (aligned with setDefaults)
-	assert.True(t, cfg.Discovery.Enabled)                     // Aligned with setDefaults
-	assert.True(t, cfg.Discovery.EnableEndpoint)              // Aligned with setDefaults
-	assert.True(t, cfg.Discovery.EnableToken)                 // Aligned with setDefaults
-	assert.Equal(t, "10s", cfg.Discovery.Timeout)             // Aligned with setDefaults
-	assert.Equal(t, 6820, cfg.Discovery.DefaultPort)          // Same in both
+	assert.True(t, cfg.Discovery.Enabled)                   // Aligned with setDefaults
+	assert.True(t, cfg.Discovery.EnableEndpoint)            // Aligned with setDefaults
+	assert.True(t, cfg.Discovery.EnableToken)               // Aligned with setDefaults
+	assert.Equal(t, "10s", cfg.Discovery.Timeout)           // Aligned with setDefaults
+	assert.Equal(t, 6820, cfg.Discovery.DefaultPort)        // Same in both
 	assert.Equal(t, "scontrol", cfg.Discovery.ScontrolPath) // Aligned with setDefaults (binary name, not full path)
 
 	// Test collections are initialized

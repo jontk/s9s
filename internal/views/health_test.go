@@ -89,10 +89,10 @@ func TestHealthStatusPriority(t *testing.T) {
 		{
 			name: "Mixed - critical takes precedence",
 			checks: map[string]monitoring.HealthCheck{
-				"nodes":    {Status: monitoring.HealthStatusHealthy},
-				"jobs":     {Status: monitoring.HealthStatusWarning},
-				"storage":  {Status: monitoring.HealthStatusCritical},
-				"network":  {Status: monitoring.HealthStatusWarning},
+				"nodes":   {Status: monitoring.HealthStatusHealthy},
+				"jobs":    {Status: monitoring.HealthStatusWarning},
+				"storage": {Status: monitoring.HealthStatusCritical},
+				"network": {Status: monitoring.HealthStatusWarning},
 			},
 			expectedStatus: monitoring.HealthStatusCritical,
 		},
@@ -146,12 +146,12 @@ func TestHealthStatusPriority(t *testing.T) {
 // TestHealthCheckCounting tests health check statistics calculation
 func TestHealthCheckCounting(t *testing.T) {
 	tests := []struct {
-		name              string
-		checks            map[string]monitoring.HealthCheck
-		expectedHealthy   int
-		expectedWarning   int
-		expectedCritical  int
-		expectedTotal     int
+		name             string
+		checks           map[string]monitoring.HealthCheck
+		expectedHealthy  int
+		expectedWarning  int
+		expectedCritical int
+		expectedTotal    int
 	}{
 		{
 			name: "All healthy",
@@ -240,9 +240,9 @@ func TestHealthCheckCounting(t *testing.T) {
 // TestHealthMessageGeneration tests health check message formatting
 func TestHealthMessageGeneration(t *testing.T) {
 	tests := []struct {
-		name            string
-		check           monitoring.HealthCheck
-		shouldContain   []string
+		name             string
+		check            monitoring.HealthCheck
+		shouldContain    []string
 		shouldNotContain []string
 	}{
 		{
@@ -253,7 +253,7 @@ func TestHealthMessageGeneration(t *testing.T) {
 				Message:     "All nodes operational",
 				Description: "Checks if all nodes are up and running",
 			},
-			shouldContain: []string{"operational"},
+			shouldContain:    []string{"operational"},
 			shouldNotContain: []string{"critical", "warning", "error"},
 		},
 		{
@@ -264,7 +264,7 @@ func TestHealthMessageGeneration(t *testing.T) {
 				Message:     "10 jobs pending for > 1 hour",
 				Description: "Checks for stuck jobs",
 			},
-			shouldContain: []string{"pending", "hour"},
+			shouldContain:    []string{"pending", "hour"},
 			shouldNotContain: []string{},
 		},
 		{
@@ -275,7 +275,7 @@ func TestHealthMessageGeneration(t *testing.T) {
 				Message:     "Disk usage above 95%",
 				Description: "Monitors disk space",
 			},
-			shouldContain: []string{"95"},
+			shouldContain:    []string{"95"},
 			shouldNotContain: []string{},
 		},
 	}

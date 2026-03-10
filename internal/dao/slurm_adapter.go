@@ -983,7 +983,6 @@ func convertNode(node *slurm.Node) *Node {
 	}
 }
 
-
 // safeSubtract subtracts two integers and returns 0 if result is negative
 func safeSubtract(a, b int) int {
 	result := a - b
@@ -1001,7 +1000,6 @@ func safeSubtract64(a, b int64) int64 {
 	}
 	return result
 }
-
 
 func convertPartition(partition *slurm.Partition) *Partition {
 	// Handle pointer fields
