@@ -8,9 +8,10 @@ import (
 
 // setupCmd represents the setup command
 var setupCmd = &cobra.Command{
-	Use:   "setup",
-	Short: "Interactive setup wizard (temporarily disabled)",
-	Long:  `The setup wizard is temporarily disabled while being reworked. Please configure s9s manually.`,
+	Use:    "setup",
+	Short:  "Interactive setup wizard (temporarily disabled)",
+	Long:   `The setup wizard is temporarily disabled while being reworked. Please configure s9s manually.`,
+	Hidden: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		fmt.Println("The setup wizard is temporarily disabled while being reworked.")
 		fmt.Println()
