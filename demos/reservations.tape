@@ -46,16 +46,14 @@ Sleep 500ms
 Enter
 Sleep 1s
 
-# Quick filter
+# Quick filter to demonstrate filtering
 Type "/"
 Sleep 500ms
 Type "maint"
-Sleep 1s
-Escape
-Sleep 500ms
+Sleep 1500ms
 
-# Refresh the view
-Type "R"
+# Return to table (Escape unfocuses filter)
+Escape
 Sleep 1s
 
 # Exit
