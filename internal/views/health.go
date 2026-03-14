@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -26,10 +27,9 @@ type HealthView struct {
 	statusBar     *tview.TextView
 	app           *tview.Application
 	pages         *tview.Pages
-	// TODO(lint): Review unused code - field mu is unused
-	// mu            sync.RWMutex
-	refreshTimer *time.Timer
-	refreshRate  time.Duration
+	mu            sync.RWMutex
+	refreshTimer  *time.Timer
+	refreshRate   time.Duration
 }
 
 // NewHealthView creates a new health monitoring view
@@ -104,7 +104,7 @@ func (v *HealthView) Init(ctx context.Context) error {
 	// Start health monitoring
 	v.healthMonitor.Start()
 
-	return v.Refresh()
+	return nil
 }
 
 // Render returns the view's main component
@@ -112,25 +112,19 @@ func (v *HealthView) Render() tview.Primitive {
 	return v.container
 }
 
-// Refresh updates the health monitoring data
+// Refresh updates the health monitoring data.
+// Health data is fetched by the healthMonitor on its own timer;
+// this just re-renders the current state.
 func (v *HealthView) Refresh() error {
-	v.SetRefreshing(true)
-	defer v.SetRefreshing(false)
+	if v.app != nil {
+		v.app.QueueUpdateDraw(func() {
+			v.updateHealthOverview()
+			v.updateAlerts()
+			v.updateHealthChecks()
+		})
+	}
 
-	// Update health overview
-	v.updateHealthOverview()
-
-	// Update alerts
-	v.updateAlerts()
-
-	// Update health checks
-	v.updateHealthChecks()
-
-	// Note: Status bar update removed since individual view status bars are no longer used
-
-	// Schedule next refresh
 	v.scheduleRefresh()
-
 	return nil
 }
 
@@ -204,8 +198,14 @@ func (v *HealthView) healthRuneHandlers() map[rune]func() {
 
 // OnFocus handles focus events
 func (v *HealthView) OnFocus() error {
+	v.SetFocused(true)
 	if v.app != nil {
 		v.app.SetFocus(v.container)
+	}
+	if !v.IsInitialized() {
+		v.SetInitialized(true)
+		go func() { _ = v.Refresh() }()
+		return nil
 	}
 	// Restart the refresh timer when regaining focus
 	v.scheduleRefresh()
@@ -214,10 +214,13 @@ func (v *HealthView) OnFocus() error {
 
 // OnLoseFocus handles loss of focus
 func (v *HealthView) OnLoseFocus() error {
-	// Stop the refresh timer to prevent background updates
+	v.SetFocused(false)
+	v.mu.Lock()
 	if v.refreshTimer != nil {
 		v.refreshTimer.Stop()
+		v.refreshTimer = nil
 	}
+	v.mu.Unlock()
 	return nil
 }
 
@@ -351,16 +354,19 @@ func (v *HealthView) updateStatusBar() {
 
 // scheduleRefresh schedules the next refresh
 func (v *HealthView) scheduleRefresh() {
+	if !v.IsFocused() {
+		return
+	}
+
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	if v.refreshTimer != nil {
 		v.refreshTimer.Stop()
 	}
 
 	v.refreshTimer = time.AfterFunc(v.refreshRate, func() {
-		if v.app != nil {
-			v.app.QueueUpdateDraw(func() {
-				_ = v.Refresh()
-			})
-		}
+		_ = v.Refresh()
 	})
 }
 

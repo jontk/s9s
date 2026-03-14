@@ -127,7 +127,7 @@ func (v *PartitionsView) SetClient(client dao.SlurmClient) {
 // Init initializes the partitions view
 func (v *PartitionsView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)
-	return v.Refresh()
+	return nil
 }
 
 // Render returns the view's main component
@@ -135,43 +135,47 @@ func (v *PartitionsView) Render() tview.Primitive {
 	return v.container
 }
 
-// Refresh updates the partitions data
+// Refresh updates the partitions data asynchronously
 func (v *PartitionsView) Refresh() error {
-	v.SetRefreshing(true)
-	defer v.SetRefreshing(false)
-
-	// Fetch partitions from backend
-	partitionList, err := v.client.Partitions().List()
-	if err != nil {
-		v.SetLastError(err)
-		// Note: Error handling removed since individual view status bars are no longer used
-		return err
+	if !v.refreshing.CompareAndSwap(false, true) {
+		return nil
 	}
 
-	// Fetch queue information for each partition
-	queueInfo := make(map[string]*dao.QueueInfo)
-	for _, partition := range partitionList.Partitions {
-		// Calculate queue info from jobs
-		info, err := v.calculateQueueInfo(partition.Name)
-		if err == nil {
-			queueInfo[partition.Name] = info
+	go func() {
+		defer v.refreshing.Store(false)
+
+		partitionList, err := v.client.Partitions().List()
+		if err != nil {
+			v.SetLastError(err)
+			return
 		}
-	}
 
-	v.mu.Lock()
-	v.partitions = partitionList.Partitions
-	v.queueInfo = queueInfo
-	v.mu.Unlock()
+		queueInfo := make(map[string]*dao.QueueInfo)
+		for _, partition := range partitionList.Partitions {
+			info, err := v.calculateQueueInfo(partition.Name)
+			if err == nil {
+				queueInfo[partition.Name] = info
+			}
+		}
 
-	// Update table
-	v.updateTable()
-	// Note: No longer updating individual view status bar since we use main app status bar for hints
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				v.mu.Lock()
+				v.partitions = partitionList.Partitions
+				v.queueInfo = queueInfo
+				v.mu.Unlock()
+				v.updateTable()
+			})
+		}
 
-	// Schedule next refresh
-	v.scheduleRefresh()
+		v.scheduleRefresh()
+	}()
 
 	return nil
 }
+
+// TODO: implement per-view toggleable auto-refresh (like jobs view)
+func (v *PartitionsView) scheduleRefresh() {}
 
 // Stop stops the view
 func (v *PartitionsView) Stop() error {
@@ -299,14 +303,26 @@ func (v *PartitionsView) handleRuneCommand(r rune) bool {
 
 // OnFocus handles focus events
 func (v *PartitionsView) OnFocus() error {
+	v.SetFocused(true)
 	if v.app != nil {
 		v.app.SetFocus(v.table.Table)
+	}
+	if !v.IsInitialized() {
+		v.SetInitialized(true)
+		go func() { _ = v.Refresh() }()
 	}
 	return nil
 }
 
 // OnLoseFocus handles loss of focus
 func (v *PartitionsView) OnLoseFocus() error {
+	v.SetFocused(false)
+	v.mu.Lock()
+	if v.refreshTimer != nil {
+		v.refreshTimer.Stop()
+		v.refreshTimer = nil
+	}
+	v.mu.Unlock()
 	return nil
 }
 
@@ -611,12 +627,6 @@ func (v *PartitionsView) updateStatusBar(message string) {
 	v.statusBar.SetText(status)
 }
 */
-
-// scheduleRefresh schedules the next refresh
-func (v *PartitionsView) scheduleRefresh() {
-	// Remove automatic refresh scheduling to prevent memory leak
-	// Refresh will be handled by the main app refresh timer
-}
 
 // onPartitionSelect handles partition selection
 func (v *PartitionsView) onPartitionSelect(_, _ int) {

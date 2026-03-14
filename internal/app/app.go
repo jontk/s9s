@@ -274,10 +274,7 @@ func (s *S9s) startRefreshTimer(duration time.Duration) {
 			case <-s.refreshTicker.C:
 				if s.isRunning {
 					if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
-						// Wrap UI updates in QueueUpdateDraw to prevent race conditions
-						s.app.QueueUpdateDraw(func() {
-							_ = currentView.Refresh()
-						})
+						_ = currentView.Refresh()
 					}
 				}
 			case <-s.ctx.Done():

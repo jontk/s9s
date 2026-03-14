@@ -151,7 +151,7 @@ func (v *NodesView) SetClient(client dao.SlurmClient) {
 // Init initializes the nodes view
 func (v *NodesView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)
-	return v.Refresh()
+	return nil
 }
 
 // Render returns the view's main component
@@ -159,40 +159,45 @@ func (v *NodesView) Render() tview.Primitive {
 	return v.container
 }
 
-// Refresh updates the nodes data
+// Refresh updates the nodes data asynchronously
 func (v *NodesView) Refresh() error {
-	v.SetRefreshing(true)
-	defer v.SetRefreshing(false)
-
-	// Fetch nodes from backend
-	opts := &dao.ListNodesOptions{
-		States: v.stateFilter,
+	if !v.refreshing.CompareAndSwap(false, true) {
+		return nil
 	}
 
-	if v.partFilter != "" {
-		opts.Partitions = []string{v.partFilter}
-	}
+	go func() {
+		defer v.refreshing.Store(false)
 
-	nodeList, err := v.client.Nodes().List(opts)
-	if err != nil {
-		v.SetLastError(err)
-		// Note: Error handling removed since individual view status bars are no longer used
-		return err
-	}
+		opts := &dao.ListNodesOptions{
+			States: v.stateFilter,
+		}
+		if v.partFilter != "" {
+			opts.Partitions = []string{v.partFilter}
+		}
 
-	v.mu.Lock()
-	v.nodes = nodeList.Nodes
-	v.mu.Unlock()
+		nodeList, err := v.client.Nodes().List(opts)
+		if err != nil {
+			v.SetLastError(err)
+			return
+		}
 
-	// Update table
-	v.updateTable()
-	// Note: No longer updating individual view status bar since we use main app status bar for hints
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				v.mu.Lock()
+				v.nodes = nodeList.Nodes
+				v.mu.Unlock()
+				v.updateTable()
+			})
+		}
 
-	// Schedule next refresh
-	v.scheduleRefresh()
+		v.scheduleRefresh()
+	}()
 
 	return nil
 }
+
+// TODO: implement per-view toggleable auto-refresh (like jobs view)
+func (v *NodesView) scheduleRefresh() {}
 
 // Stop stops the view
 func (v *NodesView) Stop() error {
@@ -324,14 +329,26 @@ func (v *NodesView) nodesRuneHandlers() map[rune]func(*NodesView, *tcell.EventKe
 
 // OnFocus handles focus events
 func (v *NodesView) OnFocus() error {
+	v.SetFocused(true)
 	if v.app != nil {
 		v.app.SetFocus(v.table.Table)
+	}
+	if !v.IsInitialized() {
+		v.SetInitialized(true)
+		go func() { _ = v.Refresh() }()
 	}
 	return nil
 }
 
 // OnLoseFocus handles loss of focus
 func (v *NodesView) OnLoseFocus() error {
+	v.SetFocused(false)
+	v.mu.Lock()
+	if v.refreshTimer != nil {
+		v.refreshTimer.Stop()
+		v.refreshTimer = nil
+	}
+	v.mu.Unlock()
 	return nil
 }
 
@@ -640,12 +657,6 @@ func (v *NodesView) updateStatusBar(message string) {
 	v.statusBar.SetText(status)
 }
 */
-
-// scheduleRefresh schedules the next refresh
-func (v *NodesView) scheduleRefresh() {
-	// Remove automatic refresh scheduling to prevent memory leak
-	// Refresh will be handled by the main app refresh timer
-}
 
 // onNodeSelect handles node selection
 func (v *NodesView) onNodeSelect(_, _ int) {

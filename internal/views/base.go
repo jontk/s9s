@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync/atomic"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -40,7 +41,10 @@ type View interface {
 	// Render returns the tview primitive to be displayed
 	Render() tview.Primitive
 
-	// Refresh updates the view data from the backend
+	// Refresh updates the view data from the backend.
+	// Implementations must be safe to call from any goroutine.
+	// Data fetching should happen in a background goroutine, with
+	// UI updates wrapped in app.QueueUpdateDraw.
 	Refresh() error
 
 	// OnKey handles keyboard events, returns nil if handled
@@ -71,8 +75,10 @@ type BaseView struct {
 	pages        *tview.Pages
 	viewMgr      *ViewManager
 	switchViewFn func(string) // Callback to switch to a view
-	refreshing   bool
-	lastError    error
+	refreshing   atomic.Bool
+	initialized  atomic.Bool
+	focused      atomic.Bool
+	lastError    atomic.Value // stores error
 }
 
 // NewBaseView creates a new base view instance
@@ -143,22 +149,45 @@ func (v *BaseView) SwitchToView(viewName string) {
 
 // IsRefreshing returns true if the view is currently refreshing
 func (v *BaseView) IsRefreshing() bool {
-	return v.refreshing
+	return v.refreshing.Load()
 }
 
 // SetRefreshing sets the refreshing state
 func (v *BaseView) SetRefreshing(refreshing bool) {
-	v.refreshing = refreshing
+	v.refreshing.Store(refreshing)
+}
+
+// IsInitialized returns true if the view has been initialized with data
+func (v *BaseView) IsInitialized() bool {
+	return v.initialized.Load()
+}
+
+// SetInitialized sets the initialization state
+func (v *BaseView) SetInitialized(initialized bool) {
+	v.initialized.Store(initialized)
+}
+
+// IsFocused returns true if the view currently has focus
+func (v *BaseView) IsFocused() bool {
+	return v.focused.Load()
+}
+
+// SetFocused sets the focused state
+func (v *BaseView) SetFocused(focused bool) {
+	v.focused.Store(focused)
 }
 
 // GetLastError returns the last error that occurred
 func (v *BaseView) GetLastError() error {
-	return v.lastError
+	if val := v.lastError.Load(); val != nil {
+		return val.(error)
+	}
+	return nil
 }
 
 // SetLastError sets the last error
 func (v *BaseView) SetLastError(err error) {
-	v.lastError = err
+	v.lastError.Store(err)
 }
 
 // OnFocus provides default focus handling
