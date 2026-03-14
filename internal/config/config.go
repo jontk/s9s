@@ -179,7 +179,7 @@ func DefaultConfig() *Config {
 			"sub": "submit job",
 		},
 		Plugins:       []PluginConfig{},
-		UseMockClient: true, // Aligned with setDefaults
+		UseMockClient: false,
 		PluginSettings: PluginSettings{
 			EnableAll:     false,
 			PluginDir:     "$HOME/.s9s/plugins", // Aligned with setDefaults
@@ -267,7 +267,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("refreshRate", "2s")
 	v.SetDefault("maxRetries", 3)
 	v.SetDefault("defaultCluster", "default")
-	v.SetDefault("useMockClient", true)
+	v.SetDefault("useMockClient", false)
 
 	// UI defaults
 	v.SetDefault("ui.skin", "default")

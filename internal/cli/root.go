@@ -166,7 +166,7 @@ func applyCommandLineOverrides(cfg *config.Config) {
 			fmt.Printf("⚠️  Cluster %q not found in config\n", clusterName)
 		}
 	}
-	if useMock {
+	if useMock || mock.IsMockEnabled() {
 		cfg.UseMockClient = true
 	}
 	if noMock {
@@ -180,14 +180,9 @@ func applyCommandLineOverrides(cfg *config.Config) {
 // handleMockConfiguration validates mock mode configuration
 func handleMockConfiguration(cfg *config.Config) error {
 	if err := mock.ValidateMockUsage(cfg.UseMockClient); err != nil {
-		if useMock {
-			fmt.Printf("❌ %v\n\n", err)
-			mock.SuggestMockSetup()
-			return fmt.Errorf("mock mode validation failed")
-		}
-		fmt.Printf("⚠️  Mock mode disabled by environment: %v\n", err)
-		fmt.Printf("   Switching to real SLURM client mode\n\n")
-		cfg.UseMockClient = false
+		fmt.Printf("❌ %v\n\n", err)
+		mock.SuggestMockSetup()
+		return fmt.Errorf("mock mode validation failed")
 	}
 	return nil
 }
