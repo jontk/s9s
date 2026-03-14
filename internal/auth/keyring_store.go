@@ -7,10 +7,26 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/jontk/s9s/internal/debug"
+	"github.com/jontk/s9s/internal/fileperms"
 )
+
+// s9sDataDir returns the per-user s9s data directory (~/.s9s),
+// creating it if it doesn't exist.
+func s9sDataDir() string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		// Last resort: use a user-specific tmp path
+		return filepath.Join(os.TempDir(), fmt.Sprintf("s9s-%d", os.Getuid()))
+	}
+	dir := filepath.Join(homeDir, ".s9s")
+	_ = os.MkdirAll(dir, fileperms.ConfigDir)
+	return dir
+}
 
 // KeyringSecureStore implements secure storage using the system keyring
 type KeyringSecureStore struct {
@@ -41,7 +57,7 @@ func NewKeyringSecureStore(serviceName string) SecureStore {
 	default:
 		// Fall back to file-based storage for unsupported platforms
 		debug.Logger.Printf("Keyring not supported on %s, falling back to file storage", runtime.GOOS)
-		return NewFileSecureStore(fmt.Sprintf("/tmp/s9s-%s.keyring", serviceName))
+		return NewFileSecureStore(filepath.Join(s9sDataDir(), fmt.Sprintf("%s.keyring", serviceName)))
 	}
 
 	return store
@@ -118,7 +134,7 @@ func NewLinuxKeyringBackend() KeyringBackend {
 	// - Secret Service API
 	// For now, fall back to encrypted file storage
 	return &LinuxKeyringBackend{
-		fallback: NewFileSecureStore("/tmp/s9s-linux-keyring.encrypted"),
+		fallback: NewFileSecureStore(filepath.Join(s9sDataDir(), "keyring.encrypted")),
 	}
 }
 
@@ -196,7 +212,7 @@ func NewMacOSKeyringBackend() KeyringBackend {
 	// SecItemAdd, SecItemCopyMatching, SecItemDelete, etc.
 	// For now, fall back to encrypted file storage
 	return &MacOSKeyringBackend{
-		fallback: NewFileSecureStore("/tmp/s9s-macos-keychain.encrypted"),
+		fallback: NewFileSecureStore(filepath.Join(s9sDataDir(), "keychain.encrypted")),
 	}
 }
 
