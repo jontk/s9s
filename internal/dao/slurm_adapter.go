@@ -20,6 +20,7 @@ type SlurmAdapter struct {
 	client slurm.SlurmClient
 	config *config.ClusterConfig
 	ctx    context.Context
+	cache  *DAOCache
 }
 
 // NewSlurmAdapter creates a new SLURM adapter instance
@@ -89,6 +90,7 @@ func NewSlurmAdapter(ctx context.Context, cfg *config.ClusterConfig) (*SlurmAdap
 		client: slurmClient,
 		config: cfg,
 		ctx:    ctx,
+		cache:  NewDAOCache(10*time.Second, 50),
 	}, nil
 }
 
@@ -97,27 +99,36 @@ func (s *SlurmAdapter) Close() error {
 	return nil
 }
 
-// Jobs returns the jobs manager
+// Jobs returns the jobs manager with caching
 func (s *SlurmAdapter) Jobs() JobManager {
-	return &jobManager{
-		client: s.client.Jobs(),
-		ctx:    s.ctx,
+	return &cachedJobManager{
+		inner: &jobManager{
+			client: s.client.Jobs(),
+			ctx:    s.ctx,
+		},
+		cache: s.cache,
 	}
 }
 
-// Nodes returns the nodes manager
+// Nodes returns the nodes manager with caching
 func (s *SlurmAdapter) Nodes() NodeManager {
-	return &nodeManager{
-		client: s.client.Nodes(),
-		ctx:    s.ctx,
+	return &cachedNodeManager{
+		inner: &nodeManager{
+			client: s.client.Nodes(),
+			ctx:    s.ctx,
+		},
+		cache: s.cache,
 	}
 }
 
-// Partitions returns the partitions manager
+// Partitions returns the partitions manager with caching
 func (s *SlurmAdapter) Partitions() PartitionManager {
-	return &partitionManager{
-		client: s.client.Partitions(),
-		ctx:    s.ctx,
+	return &cachedPartitionManager{
+		inner: &partitionManager{
+			client: s.client.Partitions(),
+			ctx:    s.ctx,
+		},
+		cache: s.cache,
 	}
 }
 

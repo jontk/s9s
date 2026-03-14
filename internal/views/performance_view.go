@@ -3,6 +3,7 @@ package views
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -30,6 +31,7 @@ type PerformanceView struct {
 	controlBar  *tview.TextView
 
 	// State
+	mu              sync.RWMutex
 	autoRefresh     bool
 	refreshInterval time.Duration
 	refreshTimer    *time.Timer
@@ -91,9 +93,6 @@ func (pv *PerformanceView) Init(ctx context.Context) error {
 	// Set up input handling
 	pv.container.SetInputCapture(pv.handleInput)
 
-	// Load initial data
-	_ = pv.Refresh()
-
 	return nil
 }
 
@@ -126,13 +125,19 @@ func (pv *PerformanceView) handleInput(event *tcell.EventKey) *tcell.EventKey {
 
 // toggleAutoRefresh toggles automatic refresh
 func (pv *PerformanceView) toggleAutoRefresh() {
+	pv.mu.Lock()
 	pv.autoRefresh = !pv.autoRefresh
+	enabled := pv.autoRefresh
+	if !enabled && pv.refreshTimer != nil {
+		pv.refreshTimer.Stop()
+		pv.refreshTimer = nil
+	}
+	pv.mu.Unlock()
+
 	pv.updateControlBar()
 
-	if pv.autoRefresh {
+	if enabled {
 		pv.scheduleRefresh()
-	} else if pv.refreshTimer != nil {
-		pv.refreshTimer.Stop()
 	}
 }
 
@@ -163,34 +168,52 @@ func (pv *PerformanceView) updateControlBar() {
 
 // Refresh manually refreshes the view
 func (pv *PerformanceView) Refresh() error {
-	metrics, err := pv.client.Info().GetStats()
-	if err != nil {
-		return err
+	if !pv.refreshing.CompareAndSwap(false, true) {
+		return nil
 	}
 
-	pv.metrics = metrics
-	pv.updateDisplay()
-	pv.updateControlBar()
+	go func() {
+		defer pv.refreshing.Store(false)
 
-	if pv.autoRefresh {
-		pv.scheduleRefresh()
-	}
+		metrics, err := pv.client.Info().GetStats()
+		if err != nil {
+			return
+		}
+
+		if pv.app != nil {
+			pv.app.QueueUpdateDraw(func() {
+				pv.metrics = metrics
+				pv.updateDisplay()
+				pv.updateControlBar()
+			})
+		}
+
+		pv.mu.Lock()
+		shouldSchedule := pv.autoRefresh
+		pv.mu.Unlock()
+		if shouldSchedule {
+			pv.scheduleRefresh()
+		}
+	}()
 
 	return nil
 }
 
 // scheduleRefresh schedules the next auto-refresh
 func (pv *PerformanceView) scheduleRefresh() {
+	if !pv.IsFocused() {
+		return
+	}
+
+	pv.mu.Lock()
+	defer pv.mu.Unlock()
+
 	if pv.refreshTimer != nil {
 		pv.refreshTimer.Stop()
 	}
 
 	pv.refreshTimer = time.AfterFunc(pv.refreshInterval, func() {
-		if pv.app != nil {
-			pv.app.QueueUpdateDraw(func() {
-				_ = pv.Refresh()
-			})
-		}
+		_ = pv.Refresh()
 	})
 }
 
@@ -272,18 +295,23 @@ func (pv *PerformanceView) Render() tview.Primitive {
 
 // OnFocus is called when the view gains focus
 func (pv *PerformanceView) OnFocus() error {
-	_ = pv.Refresh()
-	if pv.autoRefresh {
-		pv.scheduleRefresh()
+	pv.SetFocused(true)
+	if !pv.IsInitialized() {
+		pv.SetInitialized(true)
+		_ = pv.Refresh()
 	}
 	return nil
 }
 
 // OnLoseFocus is called when the view loses focus
 func (pv *PerformanceView) OnLoseFocus() error {
+	pv.SetFocused(false)
+	pv.mu.Lock()
 	if pv.refreshTimer != nil {
 		pv.refreshTimer.Stop()
+		pv.refreshTimer = nil
 	}
+	pv.mu.Unlock()
 	return nil
 }
 
@@ -307,9 +335,11 @@ func (pv *PerformanceView) Hints() []string {
 
 // Stop stops the performance monitoring
 func (pv *PerformanceView) Stop() error {
+	pv.mu.Lock()
 	if pv.refreshTimer != nil {
 		pv.refreshTimer.Stop()
 	}
+	pv.mu.Unlock()
 	return nil
 }
 

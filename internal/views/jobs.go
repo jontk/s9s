@@ -184,7 +184,7 @@ func (v *JobsView) SetClient(client dao.SlurmClient) {
 // Init initializes the jobs view
 func (v *JobsView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)
-	return v.Refresh()
+	return nil
 }
 
 // Render returns the view's main component
@@ -192,22 +192,41 @@ func (v *JobsView) Render() tview.Primitive {
 	return v.container
 }
 
-// Refresh updates the jobs data
+// Refresh updates the jobs data asynchronously
 func (v *JobsView) Refresh() error {
-	v.SetRefreshing(true)
-	defer v.SetRefreshing(false)
+	if !v.refreshing.CompareAndSwap(false, true) {
+		return nil
+	}
 
-	// Refresh silently without modal - refreshes happen frequently and users don't need to see them
-	return v.refreshInternal()
+	go func() {
+		defer v.refreshing.Store(false)
+
+		jobList, err := v.fetchJobs()
+		if err != nil {
+			v.SetLastError(err)
+			return
+		}
+
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				v.mu.Lock()
+				v.jobs = jobList.Jobs
+				v.mu.Unlock()
+				v.updateTable()
+			})
+		}
+
+		v.scheduleRefresh()
+	}()
+
+	return nil
 }
 
-// refreshInternal performs the actual refresh operation
-func (v *JobsView) refreshInternal() error {
-	debug.Logger.Printf("Jobs refreshInternal() started at %s", time.Now().Format("15:04:05.000"))
-	// Fetch jobs from backend
+// fetchJobs fetches jobs from the backend without touching UI
+func (v *JobsView) fetchJobs() (*dao.JobList, error) {
 	opts := &dao.ListJobsOptions{
 		States: v.stateFilter,
-		Limit:  1000, // TODO: Add pagination
+		Limit:  1000,
 	}
 
 	if v.userFilter != "" {
@@ -218,28 +237,7 @@ func (v *JobsView) refreshInternal() error {
 		opts.Partitions = []string{v.partFilter}
 	}
 
-	jobList, err := v.client.Jobs().List(opts)
-	debug.Logger.Printf("Jobs client.List() finished at %s", time.Now().Format("15:04:05.000"))
-	if err != nil {
-		v.SetLastError(err)
-		// Note: Error handling removed since individual view status bars are no longer used
-		return err
-	}
-
-	v.mu.Lock()
-	v.jobs = jobList.Jobs
-	v.mu.Unlock()
-	debug.Logger.Printf("Jobs data stored, calling updateTable() at %s", time.Now().Format("15:04:05.000"))
-
-	// Update table
-	v.updateTable()
-	debug.Logger.Printf("Jobs updateTable() finished at %s", time.Now().Format("15:04:05.000"))
-	// Note: No longer updating individual view status bar since we use main app status bar for hints
-
-	// Schedule next refresh
-	v.scheduleRefresh()
-
-	return nil
+	return v.client.Jobs().List(opts)
 }
 
 // Stop stops the view
@@ -392,9 +390,26 @@ func (v *JobsView) jobsRuneHandlers() map[rune]func(*JobsView, *tcell.EventKey) 
 
 // OnFocus handles focus events
 func (v *JobsView) OnFocus() error {
+	v.SetFocused(true)
 	if v.app != nil {
 		v.app.SetFocus(v.table.Table)
 	}
+	if !v.IsInitialized() {
+		v.SetInitialized(true)
+		go func() { _ = v.Refresh() }()
+	}
+	return nil
+}
+
+// OnLoseFocus handles loss of focus
+func (v *JobsView) OnLoseFocus() error {
+	v.SetFocused(false)
+	v.mu.Lock()
+	if v.refreshTimer != nil {
+		v.refreshTimer.Stop()
+		v.refreshTimer = nil
+	}
+	v.mu.Unlock()
 	return nil
 }
 
@@ -455,11 +470,6 @@ func (v *JobsView) toggleMultiSelectMode() {
 		v.selectionStatusText.SetText("[gray]Multi-select: Off[white]")
 		v.selectedJobs = make(map[string]bool) // Clear selections when disabling
 	}
-}
-
-// OnLoseFocus handles loss of focus
-func (v *JobsView) OnLoseFocus() error {
-	return nil
 }
 
 // updateTable updates the table with current job data
@@ -556,20 +566,19 @@ func (v *JobsView) updateStatusBar(message string) {
 
 // scheduleRefresh schedules the next refresh
 func (v *JobsView) scheduleRefresh() {
-	v.mu.Lock()
-	defer v.mu.Unlock()
-
-	// Only schedule if auto-refresh is enabled
-	if !v.autoRefresh {
+	if !v.IsFocused() || !v.autoRefresh {
 		return
 	}
+
+	v.mu.Lock()
+	defer v.mu.Unlock()
 
 	if v.refreshTimer != nil {
 		v.refreshTimer.Stop()
 	}
 
 	v.refreshTimer = time.AfterFunc(v.refreshRate, func() {
-		go func() { _ = v.Refresh() }()
+		_ = v.Refresh()
 	})
 }
 

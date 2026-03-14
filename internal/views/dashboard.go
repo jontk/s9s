@@ -21,9 +21,7 @@ type DashboardView struct {
 	refreshTimer *time.Timer
 	refreshRate  time.Duration
 	container    *tview.Flex
-	// TODO(lint): Review unused code - field app is unused
-	// app          *tview.Application
-	pages *tview.Pages
+	pages        *tview.Pages
 
 	// Dashboard components
 	clusterOverview *tview.TextView
@@ -106,7 +104,7 @@ func (v *DashboardView) SetClient(client dao.SlurmClient) {
 // Init initializes the dashboard view
 func (v *DashboardView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)
-	return v.Refresh()
+	return nil
 }
 
 // Render returns the view's main component
@@ -114,107 +112,116 @@ func (v *DashboardView) Render() tview.Primitive {
 	return v.container
 }
 
-// Refresh updates all dashboard data
+// Refresh updates all dashboard data asynchronously
 func (v *DashboardView) Refresh() error {
-	v.SetRefreshing(true)
-	defer v.SetRefreshing(false)
+	if !v.refreshing.CompareAndSwap(false, true) {
+		return nil
+	}
 
-	// Fetch all data concurrently
-	var wg sync.WaitGroup
-	errChan := make(chan error, 5)
-
-	// Fetch cluster info
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
-		if info, err := v.client.ClusterInfo(); err == nil {
-			v.mu.Lock()
-			v.clusterInfo = info
-			v.mu.Unlock()
-		} else {
-			errChan <- err
-		}
-	}()
+		defer v.refreshing.Store(false)
 
-	// Fetch cluster metrics
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if infoMgr := v.client.Info(); infoMgr != nil {
-			if metrics, err := infoMgr.GetStats(); err == nil {
+		// Fetch all data concurrently
+		var wg sync.WaitGroup
+		errChan := make(chan error, 5)
+
+		// Fetch cluster info
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if info, err := v.client.ClusterInfo(); err == nil {
 				v.mu.Lock()
-				v.clusterMetrics = metrics
+				v.clusterInfo = info
 				v.mu.Unlock()
 			} else {
 				errChan <- err
 			}
+		}()
+
+		// Fetch cluster metrics
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if infoMgr := v.client.Info(); infoMgr != nil {
+				if metrics, err := infoMgr.GetStats(); err == nil {
+					v.mu.Lock()
+					v.clusterMetrics = metrics
+					v.mu.Unlock()
+				} else {
+					errChan <- err
+				}
+			}
+		}()
+
+		// Fetch jobs
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if jobList, err := v.client.Jobs().List(&dao.ListJobsOptions{Limit: 1000}); err == nil {
+				v.mu.Lock()
+				v.jobs = jobList.Jobs
+				v.mu.Unlock()
+			} else {
+				errChan <- err
+			}
+		}()
+
+		// Fetch nodes
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if nodeList, err := v.client.Nodes().List(&dao.ListNodesOptions{}); err == nil {
+				v.mu.Lock()
+				v.nodes = nodeList.Nodes
+				v.mu.Unlock()
+			} else {
+				errChan <- err
+			}
+		}()
+
+		// Fetch partitions
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if partitionList, err := v.client.Partitions().List(); err == nil {
+				v.mu.Lock()
+				v.partitions = partitionList.Partitions
+				v.mu.Unlock()
+			} else {
+				errChan <- err
+			}
+		}()
+
+		wg.Wait()
+		close(errChan)
+
+		for err := range errChan {
+			v.SetLastError(err)
 		}
-	}()
 
-	// Fetch jobs
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if jobList, err := v.client.Jobs().List(&dao.ListJobsOptions{Limit: 1000}); err == nil {
-			v.mu.Lock()
-			v.jobs = jobList.Jobs
-			v.mu.Unlock()
-		} else {
-			errChan <- err
+		v.mu.Lock()
+		v.lastUpdate = time.Now()
+		v.mu.Unlock()
+
+		if v.GetApp() != nil {
+			v.GetApp().QueueUpdateDraw(func() {
+				v.updateClusterOverview()
+				v.updateJobsSummary()
+				v.updateNodesSummary()
+				v.updatePartitionStatus()
+				v.updateAlertsPanel()
+				v.updateTrendsPanel()
+			})
 		}
+
+		v.scheduleRefresh()
 	}()
-
-	// Fetch nodes
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if nodeList, err := v.client.Nodes().List(&dao.ListNodesOptions{}); err == nil {
-			v.mu.Lock()
-			v.nodes = nodeList.Nodes
-			v.mu.Unlock()
-		} else {
-			errChan <- err
-		}
-	}()
-
-	// Fetch partitions
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if partitionList, err := v.client.Partitions().List(); err == nil {
-			v.mu.Lock()
-			v.partitions = partitionList.Partitions
-			v.mu.Unlock()
-		} else {
-			errChan <- err
-		}
-	}()
-
-	wg.Wait()
-	close(errChan)
-
-	// Check for errors
-	for err := range errChan {
-		v.SetLastError(err)
-	}
-
-	v.mu.Lock()
-	v.lastUpdate = time.Now()
-	v.mu.Unlock()
-
-	// Update all dashboard components
-	v.updateClusterOverview()
-	v.updateJobsSummary()
-	v.updateNodesSummary()
-	v.updatePartitionStatus()
-	v.updateAlertsPanel()
-	v.updateTrendsPanel()
-
-	// Schedule next refresh
-	v.scheduleRefresh()
 
 	return nil
 }
+
+// TODO: implement per-view toggleable auto-refresh (like jobs view)
+func (v *DashboardView) scheduleRefresh() {}
 
 // Stop stops the view
 func (v *DashboardView) Stop() error {
@@ -265,13 +272,23 @@ func (v *DashboardView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 
 // OnFocus handles focus events
 func (v *DashboardView) OnFocus() error {
-	// Refresh when gaining focus
-	go func() { _ = v.Refresh() }()
+	v.SetFocused(true)
+	if !v.IsInitialized() {
+		v.SetInitialized(true)
+		go func() { _ = v.Refresh() }()
+	}
 	return nil
 }
 
 // OnLoseFocus handles loss of focus
 func (v *DashboardView) OnLoseFocus() error {
+	v.SetFocused(false)
+	v.mu.Lock()
+	if v.refreshTimer != nil {
+		v.refreshTimer.Stop()
+		v.refreshTimer = nil
+	}
+	v.mu.Unlock()
 	return nil
 }
 
@@ -537,11 +554,6 @@ func (v *DashboardView) updateTrendsPanel() {
 }
 
 // Helper functions
-
-func (v *DashboardView) scheduleRefresh() {
-	// Remove automatic refresh scheduling to prevent memory leak
-	// Refresh will be handled by the main app refresh timer
-}
 
 func (v *DashboardView) calculateHealthStatus() string {
 	score := v.calculateHealthScore()
@@ -853,12 +865,10 @@ func (v *DashboardView) showAdvancedAnalytics() {
 			return nil
 		case tcell.KeyRune:
 			if event.Rune() == 'R' || event.Rune() == 'r' {
-				// Refresh and update the display
-				go func() {
-					_ = v.Refresh()
-					newAnalytics := v.generateAdvancedAnalytics()
-					textView.SetText(newAnalytics)
-				}()
+				// Regenerate analytics from current data (Refresh() is async
+				// so we can't wait for it; use whatever data we have now)
+				newAnalytics := v.generateAdvancedAnalytics()
+				textView.SetText(newAnalytics)
 				return nil
 			}
 		}
@@ -1047,12 +1057,10 @@ func (v *DashboardView) showHealthCheck() {
 			return nil
 		case tcell.KeyRune:
 			if event.Rune() == 'R' || event.Rune() == 'r' {
-				// Refresh and update the display
-				go func() {
-					_ = v.Refresh()
-					newHealthCheck := v.generateHealthCheck()
-					textView.SetText(newHealthCheck)
-				}()
+				// Regenerate health check from current data (Refresh() is async
+				// so we can't wait for it; use whatever data we have now)
+				newHealthCheck := v.generateHealthCheck()
+				textView.SetText(newHealthCheck)
 				return nil
 			}
 		}

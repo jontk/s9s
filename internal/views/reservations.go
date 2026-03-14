@@ -126,7 +126,7 @@ func (v *ReservationsView) SetClient(client dao.SlurmClient) {
 // Init initializes the reservations view
 func (v *ReservationsView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)
-	return v.Refresh()
+	return nil
 }
 
 // Render returns the view's main component
@@ -134,37 +134,38 @@ func (v *ReservationsView) Render() tview.Primitive {
 	return v.container
 }
 
-// Refresh updates the reservations data
+// Refresh updates the reservations data asynchronously
 func (v *ReservationsView) Refresh() error {
-	v.SetRefreshing(true)
-	defer v.SetRefreshing(false)
-
-	return v.refreshInternal()
-}
-
-// refreshInternal performs the actual refresh operation
-func (v *ReservationsView) refreshInternal() error {
-	// Fetch reservations from backend
-	resList, err := v.client.Reservations().List()
-	if err != nil {
-		v.SetLastError(err)
-		// Note: Error handling removed since individual view status bars are no longer used
-		return err
+	if !v.refreshing.CompareAndSwap(false, true) {
+		return nil
 	}
 
-	v.mu.Lock()
-	v.reservations = resList.Reservations
-	v.mu.Unlock()
+	go func() {
+		defer v.refreshing.Store(false)
 
-	// Update table
-	v.updateTable()
-	// Note: No longer updating individual view status bar since we use main app status bar for hints
+		resList, err := v.client.Reservations().List()
+		if err != nil {
+			v.SetLastError(err)
+			return
+		}
 
-	// Schedule next refresh
-	v.scheduleRefresh()
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				v.mu.Lock()
+				v.reservations = resList.Reservations
+				v.mu.Unlock()
+				v.updateTable()
+			})
+		}
+
+		v.scheduleRefresh()
+	}()
 
 	return nil
 }
+
+// TODO: implement per-view toggleable auto-refresh (like jobs view)
+func (v *ReservationsView) scheduleRefresh() {}
 
 // Stop stops the view
 func (v *ReservationsView) Stop() error {
@@ -273,11 +274,12 @@ func (v *ReservationsView) reservationsRuneHandlers() map[rune]func() {
 
 // OnFocus handles focus events
 func (v *ReservationsView) OnFocus() error {
+	v.SetFocused(true)
 	if v.app != nil {
 		v.app.SetFocus(v.table.Table)
 	}
-	// Refresh when gaining focus if we haven't loaded data yet
-	if len(v.reservations) == 0 && !v.IsRefreshing() {
+	if !v.IsInitialized() {
+		v.SetInitialized(true)
 		go func() { _ = v.Refresh() }()
 	}
 	return nil
@@ -285,6 +287,13 @@ func (v *ReservationsView) OnFocus() error {
 
 // OnLoseFocus handles loss of focus
 func (v *ReservationsView) OnLoseFocus() error {
+	v.SetFocused(false)
+	v.mu.Lock()
+	if v.refreshTimer != nil {
+		v.refreshTimer.Stop()
+		v.refreshTimer = nil
+	}
+	v.mu.Unlock()
 	return nil
 }
 
@@ -449,12 +458,6 @@ func (v *ReservationsView) updateStatusBar(message string) {
 	v.statusBar.SetText(status)
 }
 */
-
-// scheduleRefresh schedules the next refresh
-func (v *ReservationsView) scheduleRefresh() {
-	// Remove automatic refresh scheduling to prevent memory leak
-	// Refresh will be handled by the main app refresh timer
-}
 
 // onReservationSelect handles reservation selection
 func (v *ReservationsView) onReservationSelect(_, _ int) {

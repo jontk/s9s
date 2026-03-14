@@ -131,7 +131,7 @@ func (v *UsersView) SetClient(client dao.SlurmClient) {
 // Init initializes the users view
 func (v *UsersView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)
-	return v.Refresh()
+	return nil
 }
 
 // Render returns the view's main component
@@ -139,37 +139,38 @@ func (v *UsersView) Render() tview.Primitive {
 	return v.container
 }
 
-// Refresh updates the users data
+// Refresh updates the users data asynchronously
 func (v *UsersView) Refresh() error {
-	v.SetRefreshing(true)
-	defer v.SetRefreshing(false)
-
-	return v.refreshInternal()
-}
-
-// refreshInternal performs the actual refresh operation
-func (v *UsersView) refreshInternal() error {
-	// Fetch users from backend
-	usersList, err := v.client.Users().List()
-	if err != nil {
-		v.SetLastError(err)
-		// Note: Error handling removed since individual view status bars are no longer used
-		return err
+	if !v.refreshing.CompareAndSwap(false, true) {
+		return nil
 	}
 
-	v.mu.Lock()
-	v.users = usersList.Users
-	v.mu.Unlock()
+	go func() {
+		defer v.refreshing.Store(false)
 
-	// Update table
-	v.updateTable()
-	// Note: No longer updating individual view status bar since we use main app status bar for hints
+		usersList, err := v.client.Users().List()
+		if err != nil {
+			v.SetLastError(err)
+			return
+		}
 
-	// Schedule next refresh
-	v.scheduleRefresh()
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				v.mu.Lock()
+				v.users = usersList.Users
+				v.mu.Unlock()
+				v.updateTable()
+			})
+		}
+
+		v.scheduleRefresh()
+	}()
 
 	return nil
 }
+
+// TODO: implement per-view toggleable auto-refresh (like jobs view)
+func (v *UsersView) scheduleRefresh() {}
 
 // Stop stops the view
 func (v *UsersView) Stop() error {
@@ -268,11 +269,12 @@ func (v *UsersView) usersRuneHandlers() map[rune]func() {
 
 // OnFocus handles focus events
 func (v *UsersView) OnFocus() error {
+	v.SetFocused(true)
 	if v.app != nil {
 		v.app.SetFocus(v.table.Table)
 	}
-	// Refresh when gaining focus if we haven't loaded data yet
-	if len(v.users) == 0 && !v.IsRefreshing() {
+	if !v.IsInitialized() {
+		v.SetInitialized(true)
 		go func() { _ = v.Refresh() }()
 	}
 	return nil
@@ -280,6 +282,13 @@ func (v *UsersView) OnFocus() error {
 
 // OnLoseFocus handles loss of focus
 func (v *UsersView) OnLoseFocus() error {
+	v.SetFocused(false)
+	v.mu.Lock()
+	if v.refreshTimer != nil {
+		v.refreshTimer.Stop()
+		v.refreshTimer = nil
+	}
+	v.mu.Unlock()
 	return nil
 }
 
@@ -391,12 +400,6 @@ func (v *UsersView) updateStatusBar(message string) {
 	v.statusBar.SetText(status)
 }
 */
-
-// scheduleRefresh schedules the next refresh
-func (v *UsersView) scheduleRefresh() {
-	// Remove automatic refresh scheduling to prevent memory leak
-	// Refresh will be handled by the main app refresh timer
-}
 
 // onUserSelect handles user selection
 func (v *UsersView) onUserSelect(_, _ int) {

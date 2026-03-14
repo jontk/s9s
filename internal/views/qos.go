@@ -9,7 +9,6 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
-	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
@@ -125,7 +124,7 @@ func (v *QoSView) SetClient(client dao.SlurmClient) {
 // Init initializes the QoS view
 func (v *QoSView) Init(ctx context.Context) error {
 	_ = v.BaseView.Init(ctx)
-	return v.Refresh()
+	return nil
 }
 
 // Render returns the view's main component
@@ -133,41 +132,38 @@ func (v *QoSView) Render() tview.Primitive {
 	return v.container
 }
 
-// Refresh updates the QoS data
+// Refresh updates the QoS data asynchronously
 func (v *QoSView) Refresh() error {
-	v.SetRefreshing(true)
-	defer v.SetRefreshing(false)
-
-	return v.refreshInternal()
-}
-
-// refreshInternal performs the actual refresh operation
-func (v *QoSView) refreshInternal() error {
-	debug.Logger.Printf("QoS refreshInternal() started at %s", time.Now().Format("15:04:05.000"))
-	// Fetch QoS from backend
-	qosList, err := v.client.QoS().List()
-	debug.Logger.Printf("QoS client.List() finished at %s", time.Now().Format("15:04:05.000"))
-	if err != nil {
-		v.SetLastError(err)
-		// Note: Error handling removed since individual view status bars are no longer used
-		return err
+	if !v.refreshing.CompareAndSwap(false, true) {
+		return nil
 	}
 
-	v.mu.Lock()
-	v.qosList = qosList.QoS
-	v.mu.Unlock()
-	debug.Logger.Printf("QoS data stored, calling updateTable() at %s", time.Now().Format("15:04:05.000"))
+	go func() {
+		defer v.refreshing.Store(false)
 
-	// Update table
-	v.updateTable()
-	debug.Logger.Printf("QoS updateTable() finished at %s", time.Now().Format("15:04:05.000"))
-	// Note: No longer updating individual view status bar since we use main app status bar for hints
+		qosList, err := v.client.QoS().List()
+		if err != nil {
+			v.SetLastError(err)
+			return
+		}
 
-	// Schedule next refresh
-	v.scheduleRefresh()
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				v.mu.Lock()
+				v.qosList = qosList.QoS
+				v.mu.Unlock()
+				v.updateTable()
+			})
+		}
+
+		v.scheduleRefresh()
+	}()
 
 	return nil
 }
+
+// TODO: implement per-view toggleable auto-refresh (like jobs view)
+func (v *QoSView) scheduleRefresh() {}
 
 // Stop stops the view
 func (v *QoSView) Stop() error {
@@ -258,11 +254,12 @@ func (v *QoSView) qosRuneHandlers() map[rune]func() {
 
 // OnFocus handles focus events
 func (v *QoSView) OnFocus() error {
+	v.SetFocused(true)
 	if v.app != nil {
 		v.app.SetFocus(v.table.Table)
 	}
-	// Refresh when gaining focus if we haven't loaded data yet
-	if len(v.qosList) == 0 && !v.IsRefreshing() {
+	if !v.IsInitialized() {
+		v.SetInitialized(true)
 		go func() { _ = v.Refresh() }()
 	}
 	return nil
@@ -270,12 +267,18 @@ func (v *QoSView) OnFocus() error {
 
 // OnLoseFocus handles loss of focus
 func (v *QoSView) OnLoseFocus() error {
+	v.SetFocused(false)
+	v.mu.Lock()
+	if v.refreshTimer != nil {
+		v.refreshTimer.Stop()
+		v.refreshTimer = nil
+	}
+	v.mu.Unlock()
 	return nil
 }
 
 // updateTable updates the table with current QoS data
 func (v *QoSView) updateTable() {
-	debug.Logger.Printf("QoS updateTable() starting with %d items at %s", len(v.qosList), time.Now().Format("15:04:05.000"))
 	v.mu.RLock()
 	defer v.mu.RUnlock()
 
@@ -284,7 +287,6 @@ func (v *QoSView) updateTable() {
 	if v.advancedFilter != nil && len(v.advancedFilter.Expressions) > 0 {
 		filteredQoS = v.applyAdvancedFilter(v.qosList)
 	}
-	debug.Logger.Printf("QoS filtering done, processing %d items at %s", len(filteredQoS), time.Now().Format("15:04:05.000"))
 
 	data := make([][]string, len(filteredQoS))
 	for i, qos := range filteredQoS {
@@ -322,10 +324,7 @@ func (v *QoSView) updateTable() {
 			graceTime,
 		}
 	}
-	debug.Logger.Printf("QoS data processing done, calling table.SetData() at %s", time.Now().Format("15:04:05.000"))
-
 	v.table.SetData(data)
-	debug.Logger.Printf("QoS table.SetData() finished at %s", time.Now().Format("15:04:05.000"))
 }
 
 // formatQoSLimit formats a limit value (0 or -1 means unlimited)
@@ -383,12 +382,6 @@ func (v *QoSView) updateStatusBar(message string) {
 	v.statusBar.SetText(status)
 }
 */
-
-// scheduleRefresh schedules the next refresh
-func (v *QoSView) scheduleRefresh() {
-	// Remove automatic refresh scheduling to prevent memory leak
-	// Refresh will be handled by the main app refresh timer
-}
 
 // onQoSSelect handles QoS selection
 func (v *QoSView) onQoSSelect(_, _ int) {
