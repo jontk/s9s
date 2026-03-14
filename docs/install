@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 REPO="jontk/s9s"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="$HOME/.local/bin"
 BINARY_NAME="s9s"
 CONFIG_DIR="$HOME/.s9s"
 
@@ -46,169 +46,169 @@ command_exists() {
 detect_platform() {
     local os
     local arch
-    
-    # Detect OS (title case to match goreleaser naming)
+
+    # Detect OS (match GitHub release naming: Linux, Darwin, Windows)
     case "$(uname -s)" in
-        Linux*)  os="Linux" ;;
-        Darwin*) os="Darwin" ;;
-        CYGWIN*|MINGW*|MSYS*) os="Windows" ;;
-        *) error "Unsupported operating system: $(uname -s)" ;;
+        Linux*)
+            os="Linux"
+            ;;
+        Darwin*)
+            os="Darwin"
+            ;;
+        CYGWIN*|MINGW32*|MSYS*|MINGW*)
+            os="Windows"
+            ;;
+        *)
+            error "Unsupported operating system: $(uname -s)"
+            ;;
     esac
 
-    # Detect architecture (match goreleaser naming)
+    # Detect architecture (match GitHub release naming: x86_64, arm64, armv7)
     case "$(uname -m)" in
-        x86_64|amd64) arch="x86_64" ;;
-        arm64|aarch64) arch="arm64" ;;
-        armv7l) arch="armv7" ;;
-        i386|i686) arch="i386" ;;
-        *) error "Unsupported architecture: $(uname -m)" ;;
+        x86_64|amd64)
+            arch="x86_64"
+            ;;
+        arm64|aarch64)
+            arch="arm64"
+            ;;
+        i386|i686)
+            arch="i386"
+            ;;
+        armv6*|armv7*)
+            arch="armv7"
+            ;;
+        *)
+            error "Unsupported architecture: $(uname -m)"
+            ;;
     esac
 
-    echo "${os}_${arch}"
+    PLATFORM="${os}_${arch}"
+    debug "Detected platform: $PLATFORM"
 }
 
 # Get latest release version
 get_latest_version() {
+    log "Fetching latest release information..."
+    
     if command_exists curl; then
-        curl -s "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
+        VERSION=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     elif command_exists wget; then
-        wget -qO- "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
+        VERSION=$(wget -qO- "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     else
-        error "Neither curl nor wget is available. Please install one of them."
+        error "curl or wget is required to download s9s"
     fi
+    
+    if [ -z "$VERSION" ]; then
+        error "Failed to get latest release version"
+    fi
+    
+    debug "Latest version: $VERSION"
 }
 
-# Download and install binary
-install_binary() {
-    local version="$1"
-    local platform="$2"
-    local temp_dir
+# Download binary
+download_binary() {
+    local download_url="https://github.com/$REPO/releases/download/$VERSION/s9s_${VERSION#v}_${PLATFORM}.tar.gz"
+    local temp_dir=$(mktemp -d)
+    local archive_file="$temp_dir/s9s.tar.gz"
     
-    temp_dir=$(mktemp -d)
-    debug "Using temporary directory: $temp_dir"
-    
-    # Construct download URL
-    local archive_name="s9s_${version#v}_${platform}"
-    local download_url
-    
-    if [[ "$platform" == *"windows"* ]]; then
-        archive_name="${archive_name}.zip"
-        download_url="https://github.com/${REPO}/releases/download/${version}/${archive_name}"
-    else
-        archive_name="${archive_name}.tar.gz"
-        download_url="https://github.com/${REPO}/releases/download/${version}/${archive_name}"
-    fi
-    
-    log "Downloading s9s ${version} for ${platform}..."
+    log "Downloading s9s $VERSION for $PLATFORM..."
     debug "Download URL: $download_url"
     
-    # Download the archive
     if command_exists curl; then
-        curl -sL "$download_url" -o "$temp_dir/$archive_name" || error "Failed to download s9s"
+        curl -L -o "$archive_file" "$download_url" || error "Failed to download s9s"
     elif command_exists wget; then
-        wget -q "$download_url" -O "$temp_dir/$archive_name" || error "Failed to download s9s"
+        wget -O "$archive_file" "$download_url" || error "Failed to download s9s"
     else
-        error "Neither curl nor wget is available"
+        error "curl or wget is required to download s9s"
     fi
     
-    # Extract the archive
+    # Extract archive
     log "Extracting archive..."
     cd "$temp_dir"
+    tar -xzf "$archive_file" || error "Failed to extract archive"
     
-    if [[ "$archive_name" == *.zip ]]; then
-        if command_exists unzip; then
-            unzip -q "$archive_name" || error "Failed to extract archive"
-        else
-            error "unzip is required to extract Windows archives"
-        fi
-        binary_name="s9s.exe"
+    # Find the binary
+    if [ -f "s9s" ]; then
+        BINARY_PATH="$temp_dir/s9s"
+    elif [ -f "s9s.exe" ]; then
+        BINARY_PATH="$temp_dir/s9s.exe"
+        BINARY_NAME="s9s.exe"
     else
-        if command_exists tar; then
-            tar -xzf "$archive_name" || error "Failed to extract archive"
-        else
-            error "tar is required to extract archives"
-        fi
-        binary_name="s9s"
+        error "Could not find s9s binary in archive"
     fi
     
-    # Install the binary
-    log "Installing s9s to $INSTALL_DIR..."
-    
-    # Check if we need sudo
-    if [[ -w "$INSTALL_DIR" ]]; then
-        mv "$binary_name" "$INSTALL_DIR/$BINARY_NAME" || error "Failed to install binary"
-    else
-        if command_exists sudo; then
-            sudo mv "$binary_name" "$INSTALL_DIR/$BINARY_NAME" || error "Failed to install binary (sudo required)"
-        else
-            error "Cannot write to $INSTALL_DIR and sudo is not available"
-        fi
-    fi
-    
-    # Make executable (not needed on Windows)
-    if [[ "$platform" != *"windows"* ]]; then
-        if [[ -w "$INSTALL_DIR/$BINARY_NAME" ]]; then
-            chmod +x "$INSTALL_DIR/$BINARY_NAME"
-        else
-            sudo chmod +x "$INSTALL_DIR/$BINARY_NAME" 2>/dev/null || true
-        fi
-    fi
-    
-    # Cleanup
-    cd - > /dev/null
-    rm -rf "$temp_dir"
-    
-    log "s9s ${version} installed successfully!"
+    debug "Binary path: $BINARY_PATH"
 }
 
-# Create initial configuration
-create_config() {
-    if [[ ! -d "$CONFIG_DIR" ]]; then
-        log "Creating configuration directory: $CONFIG_DIR"
-        mkdir -p "$CONFIG_DIR"
+# Install binary
+install_binary() {
+    log "Installing s9s to $INSTALL_DIR..."
+
+    # Create install directory if it doesn't exist
+    if [ ! -d "$INSTALL_DIR" ]; then
+        mkdir -p "$INSTALL_DIR" || error "Failed to create $INSTALL_DIR"
+        log "Created directory: $INSTALL_DIR"
     fi
+
+    # Copy binary
+    cp "$BINARY_PATH" "$INSTALL_DIR/$BINARY_NAME" || error "Failed to install binary"
+    chmod +x "$INSTALL_DIR/$BINARY_NAME" || error "Failed to make binary executable"
+
+    log "s9s installed successfully!"
+
+    # Check if install directory is in PATH
+    if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+        warn "$INSTALL_DIR is not in your PATH"
+        echo
+        echo "Add the following to your shell profile (~/.bashrc, ~/.zshrc, etc.):"
+        echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+        echo
+        echo "Then reload your shell:"
+        echo "  source ~/.bashrc  # or ~/.zshrc"
+        echo
+    fi
+}
+
+# Setup configuration
+setup_config() {
+    log "Setting up configuration directory..."
     
-    if [[ ! -f "$CONFIG_DIR/config.yaml" ]]; then
-        log "Creating example configuration..."
+    # Create config directory
+    mkdir -p "$CONFIG_DIR"
+    
+    # Create basic config if it doesn't exist
+    if [ ! -f "$CONFIG_DIR/config.yaml" ]; then
+        log "Creating default configuration..."
         cat > "$CONFIG_DIR/config.yaml" << 'EOF'
-# s9s Configuration
-# Copy this file and customize for your environment
+# s9s Configuration File
+# See https://s9s.dev/docs/configuration for full documentation
 
-# Default cluster configuration
-clusters:
-  # Example cluster configuration
-  # production:
-  #   url: https://slurm-api.example.com
-  #   token: ${SLURM_TOKEN}
-  #   default: true
-  
-  # Development cluster
-  # development:
-  #   url: https://slurm-dev.example.com
-  #   auth:
-  #     username: ${SLURM_USER}
-  #     password: ${SLURM_PASS}
+# Default cluster (optional - you can specify multiple clusters)
+# clusters:
+#   production:
+#     url: https://slurm.example.com
+#     auth:
+#       method: token
+#       token: ${SLURM_TOKEN}
 
-# Application preferences
+# User preferences
 preferences:
   theme: dark
-  refreshInterval: 5s
-  defaultView: jobs
-  
-# Plugin configuration
-plugins:
-  enabled: false
-  directory: ~/.s9s/plugins
-  autoload: []
+  refresh_interval: 30s
+  default_view: jobs
 
-# Logging configuration
+# Logging
 logging:
   level: info
-  file: ~/.s9s/s9s.log
 EOF
-        log "Example configuration created at $CONFIG_DIR/config.yaml"
-        warn "Please edit the configuration file to match your SLURM setup"
+        log "Created default configuration at $CONFIG_DIR/config.yaml"
+    else
+        debug "Configuration file already exists"
     fi
+    
+    # Create plugins directory
+    mkdir -p "$CONFIG_DIR/plugins"
+    debug "Created plugins directory at $CONFIG_DIR/plugins"
 }
 
 # Verify installation
@@ -216,25 +216,43 @@ verify_installation() {
     log "Verifying installation..."
     
     if command_exists "$BINARY_NAME"; then
-        local version
-        version=$("$BINARY_NAME" --version 2>/dev/null || echo "unknown")
-        log "s9s is installed and available in PATH"
-        log "Version: $version"
+        local installed_version
+        installed_version=$("$BINARY_NAME" --version 2>/dev/null | head -1 | awk '{print $3}' || echo "unknown")
+        log "s9s $installed_version installed successfully!"
         
-        log ""
-        log "🎉 Installation completed successfully!"
-        log ""
-        log "Next steps:"
-        log "1. Edit ~/.s9s/config.yaml to configure your SLURM cluster"
-        log "2. Run 's9s --mock' to test with simulated data"
-        log "3. Run 's9s' to connect to your SLURM cluster"
-        log "4. Run 's9s --help' for more options"
-        log ""
-        log "Documentation: https://github.com/jontk/s9s/tree/main/docs"
-        log "Issues: https://github.com/jontk/s9s/issues"
+        echo
+        echo "🚀 Quick Start:"
+        echo "  # Run setup wizard (recommended for first-time users)"
+        echo "  s9s setup"
+        echo
+        echo "  # Or run with mock data (no SLURM cluster required)"
+        echo "  s9s --mock"
+        echo
+        echo "  # Or connect to your SLURM cluster manually"
+        echo "  export SLURM_URL=https://your-slurm-cluster.com"
+        echo "  export SLURM_TOKEN=your-token"
+        echo "  s9s"
+        echo
+        echo "📖 Documentation:"
+        echo "  https://s9s.dev/docs"
+        echo
+        echo "🔧 Configuration:"
+        echo "  $CONFIG_DIR/config.yaml"
+        echo
+        echo "❓ Get help:"
+        echo "  s9s --help"
+        
+        return 0
     else
-        warn "s9s was installed but is not in your PATH"
-        warn "You may need to add $INSTALL_DIR to your PATH environment variable"
+        error "Installation verification failed - s9s command not found"
+    fi
+}
+
+# Cleanup temporary files
+cleanup() {
+    if [ -n "${temp_dir:-}" ] && [ -d "$temp_dir" ]; then
+        rm -rf "$temp_dir"
+        debug "Cleaned up temporary directory: $temp_dir"
     fi
 }
 
@@ -242,75 +260,80 @@ verify_installation() {
 main() {
     log "Starting s9s installation..."
     
-    # Parse command line arguments
-    local force_version=""
-    local install_dir="$INSTALL_DIR"
-    
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --version)
-                force_version="$2"
-                shift 2
-                ;;
-            --install-dir)
-                install_dir="$2"
-                shift 2
-                ;;
-            --help)
-                echo "s9s installation script"
-                echo ""
-                echo "Usage: curl -sSL https://get.s9s.dev | bash [options]"
-                echo ""
-                echo "Options:"
-                echo "  --version VERSION    Install specific version"
-                echo "  --install-dir DIR    Install to specific directory (default: /usr/local/bin)"
-                echo "  --help              Show this help"
-                echo ""
-                echo "Environment variables:"
-                echo "  DEBUG=1             Enable debug output"
-                echo ""
-                exit 0
-                ;;
-            *)
-                error "Unknown option: $1. Use --help for usage information."
-                ;;
-        esac
-    done
-    
-    # Update install directory if specified
-    INSTALL_DIR="$install_dir"
+    # Set up cleanup trap
+    trap cleanup EXIT
     
     # Check prerequisites
-    if ! command_exists curl && ! command_exists wget; then
-        error "Either curl or wget is required for installation"
+    if ! command_exists tar; then
+        error "tar is required for installation"
     fi
     
     # Detect platform
-    local platform
-    platform=$(detect_platform)
-    log "Detected platform: $platform"
+    detect_platform
     
     # Get version to install
-    local version="$force_version"
-    if [[ -z "$version" ]]; then
-        log "Getting latest release version..."
-        version=$(get_latest_version)
-        if [[ -z "$version" ]]; then
-            error "Failed to get latest version. You can specify a version with --version"
-        fi
+    if [ -n "${VERSION:-}" ]; then
+        log "Installing specified version: $VERSION"
+    else
+        get_latest_version
     fi
     
-    log "Installing s9s version: $version"
-    
-    # Install the binary
-    install_binary "$version" "$platform"
-    
-    # Create configuration
-    create_config
-    
-    # Verify installation
+    # Download and install
+    download_binary
+    install_binary
+    setup_config
     verify_installation
+    
+    log "Installation completed successfully! 🎉"
 }
 
-# Run main function with all arguments
-main "$@"
+# Command line argument parsing
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --version)
+            VERSION="$2"
+            shift 2
+            ;;
+        --install-dir)
+            INSTALL_DIR="$2"
+            shift 2
+            ;;
+        --debug)
+            DEBUG=1
+            shift
+            ;;
+        --help|-h)
+            cat << 'EOF'
+s9s Installation Script
+
+USAGE:
+    curl -sSL https://get.s9s.dev | bash
+
+OPTIONS:
+    --version VERSION     Install specific version (default: latest)
+    --install-dir DIR     Installation directory (default: ~/.local/bin)
+    --debug              Enable debug output
+    --help               Show this help message
+
+EXAMPLES:
+    # Install latest version
+    curl -sSL https://get.s9s.dev | bash
+
+    # Install specific version
+    curl -sSL https://get.s9s.dev | bash -s -- --version v0.6.1
+
+    # Install to custom directory (e.g., system-wide)
+    curl -sSL https://get.s9s.dev | bash -s -- --install-dir /usr/local/bin
+
+For more information, visit: https://s9s.dev/docs/installation
+EOF
+            exit 0
+            ;;
+        *)
+            error "Unknown option: $1"
+            ;;
+    esac
+done
+
+# Run main installation
+main

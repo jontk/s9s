@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 REPO="jontk/s9s"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="$HOME/.local/bin"
 BINARY_NAME="s9s"
 CONFIG_DIR="$HOME/.s9s"
 
@@ -46,42 +46,42 @@ command_exists() {
 detect_platform() {
     local os
     local arch
-    
-    # Detect OS
+
+    # Detect OS (match GitHub release naming: Linux, Darwin, Windows)
     case "$(uname -s)" in
         Linux*)
-            os="linux"
+            os="Linux"
             ;;
         Darwin*)
-            os="darwin"
+            os="Darwin"
             ;;
         CYGWIN*|MINGW32*|MSYS*|MINGW*)
-            os="windows"
+            os="Windows"
             ;;
         *)
             error "Unsupported operating system: $(uname -s)"
             ;;
     esac
-    
-    # Detect architecture
+
+    # Detect architecture (match GitHub release naming: x86_64, arm64, armv7)
     case "$(uname -m)" in
         x86_64|amd64)
-            arch="amd64"
+            arch="x86_64"
             ;;
         arm64|aarch64)
             arch="arm64"
             ;;
         i386|i686)
-            arch="386"
+            arch="i386"
             ;;
         armv6*|armv7*)
-            arch="arm"
+            arch="armv7"
             ;;
         *)
             error "Unsupported architecture: $(uname -m)"
             ;;
     esac
-    
+
     PLATFORM="${os}_${arch}"
     debug "Detected platform: $PLATFORM"
 }
@@ -143,22 +143,30 @@ download_binary() {
 # Install binary
 install_binary() {
     log "Installing s9s to $INSTALL_DIR..."
-    
-    # Check if we need sudo
-    if [ ! -w "$INSTALL_DIR" ]; then
-        if command_exists sudo; then
-            SUDO="sudo"
-            warn "Administrator privileges required for installation"
-        else
-            error "Cannot write to $INSTALL_DIR and sudo is not available"
-        fi
+
+    # Create install directory if it doesn't exist
+    if [ ! -d "$INSTALL_DIR" ]; then
+        mkdir -p "$INSTALL_DIR" || error "Failed to create $INSTALL_DIR"
+        log "Created directory: $INSTALL_DIR"
     fi
-    
+
     # Copy binary
-    $SUDO cp "$BINARY_PATH" "$INSTALL_DIR/$BINARY_NAME" || error "Failed to install binary"
-    $SUDO chmod +x "$INSTALL_DIR/$BINARY_NAME" || error "Failed to make binary executable"
-    
+    cp "$BINARY_PATH" "$INSTALL_DIR/$BINARY_NAME" || error "Failed to install binary"
+    chmod +x "$INSTALL_DIR/$BINARY_NAME" || error "Failed to make binary executable"
+
     log "s9s installed successfully!"
+
+    # Check if install directory is in PATH
+    if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+        warn "$INSTALL_DIR is not in your PATH"
+        echo
+        echo "Add the following to your shell profile (~/.bashrc, ~/.zshrc, etc.):"
+        echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+        echo
+        echo "Then reload your shell:"
+        echo "  source ~/.bashrc  # or ~/.zshrc"
+        echo
+    fi
 }
 
 # Setup configuration
@@ -300,22 +308,22 @@ s9s Installation Script
 
 USAGE:
     curl -sSL https://get.s9s.dev | bash
-    
+
 OPTIONS:
     --version VERSION     Install specific version (default: latest)
-    --install-dir DIR     Installation directory (default: /usr/local/bin)
+    --install-dir DIR     Installation directory (default: ~/.local/bin)
     --debug              Enable debug output
     --help               Show this help message
 
 EXAMPLES:
     # Install latest version
     curl -sSL https://get.s9s.dev | bash
-    
+
     # Install specific version
-    curl -sSL https://get.s9s.dev | bash -s -- --version v1.0.0
-    
-    # Install to custom directory
-    curl -sSL https://get.s9s.dev | bash -s -- --install-dir ~/.local/bin
+    curl -sSL https://get.s9s.dev | bash -s -- --version v0.6.1
+
+    # Install to custom directory (e.g., system-wide)
+    curl -sSL https://get.s9s.dev | bash -s -- --install-dir /usr/local/bin
 
 For more information, visit: https://s9s.dev/docs/installation
 EOF
