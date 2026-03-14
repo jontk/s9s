@@ -30,29 +30,12 @@ jobs:
         # Ensure docs directory exists
         mkdir -p docs
 
-        # Copy installation script to docs root as index
-        cp scripts/install.sh docs/index.sh
-        chmod +x docs/index.sh
-
-        # Create proper MIME type handling
-        echo 'text/x-shellscript sh' > docs/.htaccess
-
-        # Create redirect HTML for browsers
-        cat > docs/index.html << 'EOF'
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>s9s Installation Script</title>
-        </head>
-        <body>
-            <h1>s9s Installation</h1>
-            <p>To install s9s, run:</p>
-            <pre><code>curl -sSL https://get.s9s.dev | bash</code></pre>
-            <p>Or download the script directly: <a href="index.sh">install.sh</a></p>
-        </body>
-        </html>
-        EOF
+        # Serve the install script directly as index.html so that
+        # `curl -sSL https://get.s9s.dev | bash` receives the script,
+        # not an HTML wrapper. GitHub Pages always serves index.html
+        # first, so this is the only reliable way to make the root URL
+        # return the script content.
+        cp scripts/install.sh docs/index.html
         
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
