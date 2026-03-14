@@ -749,29 +749,35 @@ func (v *JobsView) performCancelJob(jobID string) {
 		v.mainStatusBar.Info(fmt.Sprintf("Canceling job %s...", jobID))
 	}
 
-	// Attempt to cancel
-	debug.Logger.Printf("Calling Cancel API for job %s", jobID)
-	err := v.client.Jobs().Cancel(jobID)
-	if err != nil {
-		debug.Logger.Printf("Cancel API failed for job %s: %v", jobID, err)
-		if v.mainStatusBar != nil {
-			v.mainStatusBar.Error(fmt.Sprintf("Failed to cancel job %s: %v", jobID, err))
+	go func() {
+		// Attempt to cancel off the UI thread
+		debug.Logger.Printf("Calling Cancel API for job %s", jobID)
+		err := v.client.Jobs().Cancel(jobID)
+
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				if err != nil {
+					debug.Logger.Printf("Cancel API failed for job %s: %v", jobID, err)
+					if v.mainStatusBar != nil {
+						v.mainStatusBar.Error(fmt.Sprintf("Failed to cancel job %s: %v", jobID, err))
+					}
+					return
+				}
+
+				debug.Logger.Printf("Cancel API returned success for job %s - refreshing view", jobID)
+				if v.mainStatusBar != nil {
+					v.mainStatusBar.Success(fmt.Sprintf("Job %s canceled", jobID))
+				}
+			})
 		}
-		return
-	}
 
-	debug.Logger.Printf("Cancel API returned success for job %s - refreshing view", jobID)
-
-	// If the API call succeeded, assume the cancel worked and show success
-	// The API returns success, so we trust it and refresh
-	if v.mainStatusBar != nil {
-		v.mainStatusBar.Success(fmt.Sprintf("Job %s canceled", jobID))
-	}
-
-	// Refresh the view to get updated state
-	time.Sleep(500 * time.Millisecond)
-	debug.Logger.Printf("Refreshing jobs view after cancel")
-	_ = v.Refresh()
+		if err == nil {
+			// Refresh the view to get updated state
+			time.Sleep(500 * time.Millisecond)
+			debug.Logger.Printf("Refreshing jobs view after cancel")
+			_ = v.Refresh()
+		}
+	}()
 }
 
 // holdSelectedJob holds the selected job
@@ -801,22 +807,31 @@ func (v *JobsView) holdSelectedJob() {
 		return
 	}
 
-	// Perform hold
-	err := v.client.Jobs().Hold(jobID)
-	if err != nil {
-		if v.mainStatusBar != nil {
-			v.mainStatusBar.Error(fmt.Sprintf("Failed to hold job %s: %v", jobID, err))
+	go func() {
+		// Perform hold off the UI thread
+		err := v.client.Jobs().Hold(jobID)
+
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				if err != nil {
+					if v.mainStatusBar != nil {
+						v.mainStatusBar.Error(fmt.Sprintf("Failed to hold job %s: %v", jobID, err))
+					}
+					return
+				}
+
+				if v.mainStatusBar != nil {
+					v.mainStatusBar.Success(fmt.Sprintf("Job %s held", jobID))
+				}
+			})
 		}
-		return
-	}
 
-	if v.mainStatusBar != nil {
-		v.mainStatusBar.Success(fmt.Sprintf("Job %s held", jobID))
-	}
-
-	// Refresh the view
-	time.Sleep(500 * time.Millisecond)
-	_ = v.Refresh()
+		if err == nil {
+			// Refresh the view
+			time.Sleep(500 * time.Millisecond)
+			_ = v.Refresh()
+		}
+	}()
 }
 
 // releaseSelectedJob releases the selected job
@@ -847,39 +862,46 @@ func (v *JobsView) releaseSelectedJob() {
 		return
 	}
 
-	// Get job details before release
-	jobBefore, _ := v.client.Jobs().Get(jobID)
-	if jobBefore != nil {
-		debug.Logger.Printf("Pre-release job %s - State: %s", jobID, jobBefore.State)
-	}
-
-	// Perform release
-	debug.Logger.Printf("Calling Release API for job %s", jobID)
-	err := v.client.Jobs().Release(jobID)
-	if err != nil {
-		debug.Logger.Printf("Release API failed for job %s: %v", jobID, err)
-		if v.mainStatusBar != nil {
-			v.mainStatusBar.Error(fmt.Sprintf("Failed to release job %s: %v", jobID, err))
+	go func() {
+		// Get job details before release
+		jobBefore, _ := v.client.Jobs().Get(jobID)
+		if jobBefore != nil {
+			debug.Logger.Printf("Pre-release job %s - State: %s", jobID, jobBefore.State)
 		}
-		return
-	}
 
-	debug.Logger.Printf("Release API returned success for job %s", jobID)
+		// Perform release
+		debug.Logger.Printf("Calling Release API for job %s", jobID)
+		err := v.client.Jobs().Release(jobID)
 
-	// Verify release worked by checking job state
-	time.Sleep(500 * time.Millisecond)
-	jobAfter, _ := v.client.Jobs().Get(jobID)
-	if jobAfter != nil {
-		debug.Logger.Printf("Post-release job %s - State: %s", jobID, jobAfter.State)
-	}
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				if err != nil {
+					debug.Logger.Printf("Release API failed for job %s: %v", jobID, err)
+					if v.mainStatusBar != nil {
+						v.mainStatusBar.Error(fmt.Sprintf("Failed to release job %s: %v", jobID, err))
+					}
+					return
+				}
 
-	if v.mainStatusBar != nil {
-		v.mainStatusBar.Success(fmt.Sprintf("Job %s released", jobID))
-	}
+				debug.Logger.Printf("Release API returned success for job %s", jobID)
+				if v.mainStatusBar != nil {
+					v.mainStatusBar.Success(fmt.Sprintf("Job %s released", jobID))
+				}
+			})
+		}
 
-	// Refresh the view
-	time.Sleep(500 * time.Millisecond)
-	_ = v.Refresh()
+		if err == nil {
+			// Verify release worked by checking job state
+			time.Sleep(500 * time.Millisecond)
+			jobAfter, _ := v.client.Jobs().Get(jobID)
+			if jobAfter != nil {
+				debug.Logger.Printf("Post-release job %s - State: %s", jobID, jobAfter.State)
+			}
+
+			// Refresh the view
+			_ = v.Refresh()
+		}
+	}()
 }
 
 // showJobDetails shows detailed information for the selected job
@@ -891,53 +913,59 @@ func (v *JobsView) showJobDetails() {
 
 	jobID := data[0]
 
-	// Fetch full job details
-	job, err := v.client.Jobs().Get(jobID)
-	if err != nil {
-		// Note: Status bar update removed since individual view status bars are no longer used
-		return
-	}
-
-	// Create details view
-	details := v.formatJobDetails(job)
-
-	textView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText(details).
-		SetScrollable(true)
-
-	modal := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(textView, 0, 1, true).
-		AddItem(tview.NewTextView().SetText("Press ESC to close"), 1, 0, false)
-
-	modal.SetBorder(true).
-		SetTitle(fmt.Sprintf(" Job %s Details ", jobID)).
-		SetTitleAlign(tview.AlignCenter)
-
-	// Create centered modal layout
-	centeredModal := tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(nil, 0, 1, false).
-			AddItem(modal, 0, 8, true).
-			AddItem(nil, 0, 1, false), 0, 8, true).
-		AddItem(nil, 0, 1, false)
-
-	// Handle ESC key
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEsc {
-			if v.pages != nil {
-				v.pages.RemovePage("job-details")
-			}
-			return nil
+	go func() {
+		// Fetch full job details off the UI thread
+		job, err := v.client.Jobs().Get(jobID)
+		if err != nil {
+			debug.Logger.Printf("showJobDetails() - failed to get job %s: %v", jobID, err)
+			return
 		}
-		return event
-	})
 
-	if v.pages != nil {
-		v.pages.AddPage("job-details", centeredModal, true, true)
-	}
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				// Create details view
+				details := v.formatJobDetails(job)
+
+				textView := tview.NewTextView().
+					SetDynamicColors(true).
+					SetText(details).
+					SetScrollable(true)
+
+				modal := tview.NewFlex().
+					SetDirection(tview.FlexRow).
+					AddItem(textView, 0, 1, true).
+					AddItem(tview.NewTextView().SetText("Press ESC to close"), 1, 0, false)
+
+				modal.SetBorder(true).
+					SetTitle(fmt.Sprintf(" Job %s Details ", jobID)).
+					SetTitleAlign(tview.AlignCenter)
+
+				// Create centered modal layout
+				centeredModal := tview.NewFlex().
+					AddItem(nil, 0, 1, false).
+					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+						AddItem(nil, 0, 1, false).
+						AddItem(modal, 0, 8, true).
+						AddItem(nil, 0, 1, false), 0, 8, true).
+					AddItem(nil, 0, 1, false)
+
+				// Handle ESC key
+				modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+					if event.Key() == tcell.KeyEsc {
+						if v.pages != nil {
+							v.pages.RemovePage("job-details")
+						}
+						return nil
+					}
+					return event
+				})
+
+				if v.pages != nil {
+					v.pages.AddPage("job-details", centeredModal, true, true)
+				}
+			})
+		}
+	}()
 }
 
 // formatJobDetails formats job details for display
@@ -1085,21 +1113,30 @@ func (v *JobsView) performRequeueJob(jobID string) {
 		v.mainStatusBar.Info(fmt.Sprintf("Requeuing job %s...", jobID))
 	}
 
-	newJob, err := v.client.Jobs().Requeue(jobID)
-	if err != nil {
-		if v.mainStatusBar != nil {
-			v.mainStatusBar.Error(fmt.Sprintf("Failed to requeue job %s: %v", jobID, err))
+	go func() {
+		newJob, err := v.client.Jobs().Requeue(jobID)
+
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				if err != nil {
+					if v.mainStatusBar != nil {
+						v.mainStatusBar.Error(fmt.Sprintf("Failed to requeue job %s: %v", jobID, err))
+					}
+					return
+				}
+
+				if v.mainStatusBar != nil {
+					v.mainStatusBar.Success(fmt.Sprintf("Job %s requeued as job %s", jobID, newJob.ID))
+				}
+			})
 		}
-		return
-	}
 
-	if v.mainStatusBar != nil {
-		v.mainStatusBar.Success(fmt.Sprintf("Job %s requeued as job %s", jobID, newJob.ID))
-	}
-
-	// Refresh the view to show the new job
-	time.Sleep(500 * time.Millisecond)
-	_ = v.Refresh()
+		if err == nil {
+			// Refresh the view to show the new job
+			time.Sleep(500 * time.Millisecond)
+			_ = v.Refresh()
+		}
+	}()
 }
 
 // showJobSubmissionForm shows job submission form using the wizard

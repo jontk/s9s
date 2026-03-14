@@ -9,12 +9,18 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/export"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
 	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
+
+// maxJobsFetchLimit is the upper bound for the single bulk jobs fetch used to
+// compute per-partition queue info.  If a cluster has more jobs than this, the
+// queue metrics will under-report.
+const maxJobsFetchLimit = 100_000
 
 // PartitionsView displays the partitions list with queue depth visualization
 type PartitionsView struct {
@@ -150,13 +156,16 @@ func (v *PartitionsView) Refresh() error {
 			return
 		}
 
-		queueInfo := make(map[string]*dao.QueueInfo)
-		for _, partition := range partitionList.Partitions {
-			info, err := v.calculateQueueInfo(partition.Name)
-			if err == nil {
-				queueInfo[partition.Name] = info
-			}
+		// Single fetch of all jobs (no partition filter) — replaces N per-partition calls
+		jobList, err := v.client.Jobs().List(&dao.ListJobsOptions{
+			Limit: maxJobsFetchLimit,
+		})
+		if err != nil {
+			v.SetLastError(err)
+			return
 		}
+
+		queueInfo := v.buildAllQueueInfo(jobList.Jobs, partitionList.Partitions)
 
 		if v.app != nil {
 			v.app.QueueUpdateDraw(func() {
@@ -172,6 +181,77 @@ func (v *PartitionsView) Refresh() error {
 	}()
 
 	return nil
+}
+
+// buildAllQueueInfo computes queue info for all partitions from a single jobs list.
+// This replaces per-partition calculateQueueInfo and calculateAllocatedCPUs calls,
+// reducing N+1 API calls to 1.
+func (v *PartitionsView) buildAllQueueInfo(jobs []*dao.Job, partitions []*dao.Partition) map[string]*dao.QueueInfo {
+	// Build CPUs-per-node ratio map for allocated CPU estimation
+	cpusPerNode := make(map[string]float64, len(partitions))
+	for _, p := range partitions {
+		if p.TotalNodes > 0 {
+			cpusPerNode[p.Name] = float64(p.TotalCPUs) / float64(p.TotalNodes)
+		} else {
+			cpusPerNode[p.Name] = 1.0
+		}
+	}
+
+	// Initialize QueueInfo for every partition
+	infoMap := make(map[string]*dao.QueueInfo, len(partitions))
+	for _, p := range partitions {
+		infoMap[p.Name] = &dao.QueueInfo{Partition: p.Name}
+	}
+
+	// Per-partition wait time accumulators
+	type waitAcc struct {
+		total   time.Duration
+		longest time.Duration
+		count   int
+	}
+	waits := make(map[string]*waitAcc, len(partitions))
+
+	now := time.Now()
+
+	for _, job := range jobs {
+		info, ok := infoMap[job.Partition]
+		if !ok {
+			// Job belongs to a partition not in our list — skip
+			continue
+		}
+
+		info.TotalJobs++
+
+		switch job.State {
+		case dao.JobStateRunning, dao.JobStateCompleting:
+			info.RunningJobs++
+			// Accumulate allocated CPUs from running jobs
+			info.AllocatedCPUs += int(float64(job.NodeCount) * cpusPerNode[job.Partition])
+		case dao.JobStatePending:
+			info.PendingJobs++
+			waitTime := now.Sub(job.SubmitTime)
+			w := waits[job.Partition]
+			if w == nil {
+				w = &waitAcc{}
+				waits[job.Partition] = w
+			}
+			w.total += waitTime
+			w.count++
+			if waitTime > w.longest {
+				w.longest = waitTime
+			}
+		}
+	}
+
+	// Compute average/longest wait times
+	for partName, w := range waits {
+		if w.count > 0 {
+			infoMap[partName].AverageWait = w.total / time.Duration(w.count)
+			infoMap[partName].LongestWait = w.longest
+		}
+	}
+
+	return infoMap
 }
 
 // TODO: implement per-view toggleable auto-refresh (like jobs view)
@@ -365,8 +445,7 @@ func (v *PartitionsView) updateTable() {
 
 			// Calculate efficiency (allocated CPUs / total capacity)
 			if partition.TotalCPUs > 0 {
-				allocatedCPUs := v.calculateAllocatedCPUs(partition.Name)
-				efficiencyPct := float64(allocatedCPUs) * 100.0 / float64(partition.TotalCPUs)
+				efficiencyPct := float64(queueInfo.AllocatedCPUs) * 100.0 / float64(partition.TotalCPUs)
 				if efficiencyPct > 100 {
 					efficiencyPct = 100 // Cap at 100%
 				}
@@ -497,97 +576,6 @@ func (v *PartitionsView) createEfficiencyBar(percentage float64) string {
 	return bar.String()
 }
 
-// calculateAllocatedCPUs estimates allocated CPUs for running jobs in a partition
-func (v *PartitionsView) calculateAllocatedCPUs(partitionName string) int {
-	// Fetch running jobs for this partition
-	opts := &dao.ListJobsOptions{
-		Partitions: []string{partitionName},
-		States:     []string{dao.JobStateRunning},
-		Limit:      1000,
-	}
-
-	jobList, err := v.client.Jobs().List(opts)
-	if err != nil {
-		// If we can't get jobs, return 0
-		return 0
-	}
-
-	// Estimate allocated CPUs based on node count
-	// Assume each node contributes proportionally to partition's CPUs/nodes ratio
-	// This is an approximation since we don't have per-job CPU allocation data
-	totalNodes := 0
-	for _, job := range jobList.Jobs {
-		totalNodes += job.NodeCount
-	}
-
-	// Find the partition to get CPUs per node ratio
-	v.mu.RLock()
-	cpusPerNode := 1.0 // default fallback
-	for _, p := range v.partitions {
-		if p.Name == partitionName && p.TotalNodes > 0 {
-			cpusPerNode = float64(p.TotalCPUs) / float64(p.TotalNodes)
-			break
-		}
-	}
-	v.mu.RUnlock()
-
-	return int(float64(totalNodes) * cpusPerNode)
-}
-
-// calculateQueueInfo calculates queue information for a partition
-func (v *PartitionsView) calculateQueueInfo(partitionName string) (*dao.QueueInfo, error) {
-	// Fetch jobs for this partition
-	opts := &dao.ListJobsOptions{
-		Partitions: []string{partitionName},
-		Limit:      1000,
-	}
-
-	jobList, err := v.client.Jobs().List(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	info := &dao.QueueInfo{
-		Partition: partitionName,
-	}
-
-	var waitTimes []time.Duration
-	now := time.Now()
-
-	for _, job := range jobList.Jobs {
-		switch job.State {
-		case dao.JobStateRunning:
-			info.RunningJobs++
-		case dao.JobStatePending:
-			info.PendingJobs++
-			// Calculate wait time
-			waitTime := now.Sub(job.SubmitTime)
-			waitTimes = append(waitTimes, waitTime)
-		case dao.JobStateCompleting:
-			info.RunningJobs++ // Count completing jobs as running
-		}
-		info.TotalJobs++
-	}
-
-	// Calculate average and longest wait times
-	if len(waitTimes) > 0 {
-		var totalWait time.Duration
-		var longest time.Duration
-
-		for _, wait := range waitTimes {
-			totalWait += wait
-			if wait > longest {
-				longest = wait
-			}
-		}
-
-		info.AverageWait = totalWait / time.Duration(len(waitTimes))
-		info.LongestWait = longest
-	}
-
-	return info, nil
-}
-
 /*
 TODO(lint): Review unused code - func (*PartitionsView).updateStatusBar is unused
 
@@ -667,53 +655,59 @@ func (v *PartitionsView) showPartitionDetails() {
 
 	partitionName := data[0]
 
-	// Fetch full partition details
-	partition, err := v.client.Partitions().Get(partitionName)
-	if err != nil {
-		// Note: Status bar update removed since individual view status bars are no longer used
-		return
-	}
-
-	// Create details view
-	details := v.formatPartitionDetails(partition)
-
-	textView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText(details).
-		SetScrollable(true)
-
-	modal := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(textView, 0, 1, true).
-		AddItem(tview.NewTextView().SetText("Press ESC to close"), 1, 0, false)
-
-	modal.SetBorder(true).
-		SetTitle(fmt.Sprintf(" Partition %s Details ", partitionName)).
-		SetTitleAlign(tview.AlignCenter)
-
-	// Create centered modal layout
-	centeredModal := tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(nil, 0, 1, false).
-			AddItem(modal, 0, 8, true).
-			AddItem(nil, 0, 1, false), 0, 8, true).
-		AddItem(nil, 0, 1, false)
-
-	// Handle ESC key
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEsc {
-			if v.pages != nil {
-				v.pages.RemovePage("partition-details")
-			}
-			return nil
+	go func() {
+		// Fetch full partition details off the UI thread
+		partition, err := v.client.Partitions().Get(partitionName)
+		if err != nil {
+			debug.Logger.Printf("showPartitionDetails() - failed to get partition %s: %v", partitionName, err)
+			return
 		}
-		return event
-	})
 
-	if v.pages != nil {
-		v.pages.AddPage("partition-details", centeredModal, true, true)
-	}
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				// Create details view
+				details := v.formatPartitionDetails(partition)
+
+				textView := tview.NewTextView().
+					SetDynamicColors(true).
+					SetText(details).
+					SetScrollable(true)
+
+				modal := tview.NewFlex().
+					SetDirection(tview.FlexRow).
+					AddItem(textView, 0, 1, true).
+					AddItem(tview.NewTextView().SetText("Press ESC to close"), 1, 0, false)
+
+				modal.SetBorder(true).
+					SetTitle(fmt.Sprintf(" Partition %s Details ", partitionName)).
+					SetTitleAlign(tview.AlignCenter)
+
+				// Create centered modal layout
+				centeredModal := tview.NewFlex().
+					AddItem(nil, 0, 1, false).
+					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+						AddItem(nil, 0, 1, false).
+						AddItem(modal, 0, 8, true).
+						AddItem(nil, 0, 1, false), 0, 8, true).
+					AddItem(nil, 0, 1, false)
+
+				// Handle ESC key
+				modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+					if event.Key() == tcell.KeyEsc {
+						if v.pages != nil {
+							v.pages.RemovePage("partition-details")
+						}
+						return nil
+					}
+					return event
+				})
+
+				if v.pages != nil {
+					v.pages.AddPage("partition-details", centeredModal, true, true)
+				}
+			})
+		}
+	}()
 }
 
 // formatPartitionDetails formats partition details for display
@@ -809,65 +803,74 @@ func (v *PartitionsView) showPartitionAnalytics() {
 
 	partitionName := data[0]
 
-	// Fetch full partition details
-	partition, err := v.client.Partitions().Get(partitionName)
-	if err != nil {
-		// Note: Status bar update removed since individual view status bars are no longer used
-		return
-	}
-
-	// Create analytics view
-	analytics := v.formatPartitionAnalytics(partition)
-
-	textView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText(analytics).
-		SetScrollable(true)
-
-	modal := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(textView, 0, 1, true).
-		AddItem(tview.NewTextView().SetText("Press ESC to close | R to refresh"), 1, 0, false)
-
-	modal.SetBorder(true).
-		SetTitle(fmt.Sprintf(" Analytics: %s ", partitionName)).
-		SetTitleAlign(tview.AlignCenter)
-
-	// Create centered modal layout
-	centeredModal := tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(nil, 0, 1, false).
-			AddItem(modal, 0, 8, true).
-			AddItem(nil, 0, 1, false), 0, 8, true).
-		AddItem(nil, 0, 1, false)
-
-	// Handle keys
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEsc:
-			if v.pages != nil {
-				v.pages.RemovePage("partition-analytics")
-			}
-			return nil
-		case tcell.KeyRune:
-			if event.Rune() == 'R' || event.Rune() == 'r' {
-				// Refresh and update the display
-				go func() {
-					_ = v.Refresh()
-					// Update the analytics display
-					newAnalytics := v.formatPartitionAnalytics(partition)
-					textView.SetText(newAnalytics)
-				}()
-				return nil
-			}
+	go func() {
+		// Fetch full partition details off the UI thread
+		partition, err := v.client.Partitions().Get(partitionName)
+		if err != nil {
+			debug.Logger.Printf("showPartitionAnalytics() - failed to get partition %s: %v", partitionName, err)
+			return
 		}
-		return event
-	})
 
-	if v.pages != nil {
-		v.pages.AddPage("partition-analytics", centeredModal, true, true)
-	}
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				// Create analytics view
+				analytics := v.formatPartitionAnalytics(partition)
+
+				textView := tview.NewTextView().
+					SetDynamicColors(true).
+					SetText(analytics).
+					SetScrollable(true)
+
+				modal := tview.NewFlex().
+					SetDirection(tview.FlexRow).
+					AddItem(textView, 0, 1, true).
+					AddItem(tview.NewTextView().SetText("Press ESC to close | R to refresh"), 1, 0, false)
+
+				modal.SetBorder(true).
+					SetTitle(fmt.Sprintf(" Analytics: %s ", partitionName)).
+					SetTitleAlign(tview.AlignCenter)
+
+				// Create centered modal layout
+				centeredModal := tview.NewFlex().
+					AddItem(nil, 0, 1, false).
+					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+						AddItem(nil, 0, 1, false).
+						AddItem(modal, 0, 8, true).
+						AddItem(nil, 0, 1, false), 0, 8, true).
+					AddItem(nil, 0, 1, false)
+
+				// Handle keys
+				modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+					switch event.Key() {
+					case tcell.KeyEsc:
+						if v.pages != nil {
+							v.pages.RemovePage("partition-analytics")
+						}
+						return nil
+					case tcell.KeyRune:
+						if event.Rune() == 'R' || event.Rune() == 'r' {
+							// Refresh and update the display
+							go func() {
+								_ = v.Refresh()
+								if v.app != nil {
+									v.app.QueueUpdateDraw(func() {
+										newAnalytics := v.formatPartitionAnalytics(partition)
+										textView.SetText(newAnalytics)
+									})
+								}
+							}()
+							return nil
+						}
+					}
+					return event
+				})
+
+				if v.pages != nil {
+					v.pages.AddPage("partition-analytics", centeredModal, true, true)
+				}
+			})
+		}
+	}()
 }
 
 // formatPartitionAnalytics formats comprehensive analytics for display

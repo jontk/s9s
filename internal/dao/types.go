@@ -149,12 +149,13 @@ type ReservationList struct {
 
 // QueueInfo represents queue information for a partition
 type QueueInfo struct {
-	Partition   string
-	PendingJobs int
-	RunningJobs int
-	TotalJobs   int
-	AverageWait time.Duration
-	LongestWait time.Duration
+	Partition     string
+	PendingJobs   int
+	RunningJobs   int
+	TotalJobs     int
+	AverageWait   time.Duration
+	LongestWait   time.Duration
+	AllocatedCPUs int
 }
 
 // ClusterMetrics represents overall cluster metrics

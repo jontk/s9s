@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
 )
@@ -22,77 +23,82 @@ type JobDependency struct {
 func (v *JobsView) showJobDependencies() {
 	data := v.table.GetSelectedData()
 	if len(data) == 0 {
-		// Note: Status bar update removed since individual view status bars are no longer used
 		return
 	}
 
 	jobID := data[0]
 	jobName := data[1]
 
-	// Fetch job details to check for dependencies
-	job, err := v.client.Jobs().Get(jobID)
-	if err != nil {
-		// Note: Status bar update removed since individual view status bars are no longer used
-		return
-	}
-
-	// Create dependency visualization
-	content := v.buildDependencyTree(job)
-
-	textView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText(content).
-		SetScrollable(true)
-
-	// Add controls
-	controlsText := "Press [yellow]ESC[white] to close | [yellow]a[white] Add Dependency | [yellow]r[white] Remove Dependency"
-	controls := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText(controlsText).
-		SetTextAlign(tview.AlignCenter)
-
-	modal := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(textView, 0, 1, true).
-		AddItem(controls, 1, 0, false)
-
-	modal.SetBorder(true).
-		SetTitle(fmt.Sprintf(" Job %s (%s) Dependencies ", jobID, jobName)).
-		SetTitleAlign(tview.AlignCenter)
-
-	// Create centered modal layout
-	centeredModal := tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(nil, 0, 1, false).
-			AddItem(modal, 0, 8, true).
-			AddItem(nil, 0, 1, false), 0, 8, true).
-		AddItem(nil, 0, 1, false)
-
-	// Handle key events
-	textView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEsc:
-			if v.pages != nil {
-				v.pages.RemovePage("job-dependencies")
-			}
-			return nil
-		case tcell.KeyRune:
-			switch event.Rune() {
-			case 'a', 'A':
-				v.showAddDependencyForm(jobID)
-				return nil
-			case 'r', 'R':
-				v.showRemoveDependencyForm(jobID)
-				return nil
-			}
+	go func() {
+		// Fetch job details off the UI thread
+		job, err := v.client.Jobs().Get(jobID)
+		if err != nil {
+			debug.Logger.Printf("showJobDependencies() - failed to get job %s: %v", jobID, err)
+			return
 		}
-		return event
-	})
 
-	if v.pages != nil {
-		v.pages.AddPage("job-dependencies", centeredModal, true, true)
-	}
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				// Create dependency visualization
+				content := v.buildDependencyTree(job)
+
+				textView := tview.NewTextView().
+					SetDynamicColors(true).
+					SetText(content).
+					SetScrollable(true)
+
+				// Add controls
+				controlsText := "Press [yellow]ESC[white] to close | [yellow]a[white] Add Dependency | [yellow]r[white] Remove Dependency"
+				controls := tview.NewTextView().
+					SetDynamicColors(true).
+					SetText(controlsText).
+					SetTextAlign(tview.AlignCenter)
+
+				modal := tview.NewFlex().
+					SetDirection(tview.FlexRow).
+					AddItem(textView, 0, 1, true).
+					AddItem(controls, 1, 0, false)
+
+				modal.SetBorder(true).
+					SetTitle(fmt.Sprintf(" Job %s (%s) Dependencies ", jobID, jobName)).
+					SetTitleAlign(tview.AlignCenter)
+
+				// Create centered modal layout
+				centeredModal := tview.NewFlex().
+					AddItem(nil, 0, 1, false).
+					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+						AddItem(nil, 0, 1, false).
+						AddItem(modal, 0, 8, true).
+						AddItem(nil, 0, 1, false), 0, 8, true).
+					AddItem(nil, 0, 1, false)
+
+				// Handle key events
+				textView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+					switch event.Key() {
+					case tcell.KeyEsc:
+						if v.pages != nil {
+							v.pages.RemovePage("job-dependencies")
+						}
+						return nil
+					case tcell.KeyRune:
+						switch event.Rune() {
+						case 'a', 'A':
+							v.showAddDependencyForm(jobID)
+							return nil
+						case 'r', 'R':
+							v.showRemoveDependencyForm(jobID)
+							return nil
+						}
+					}
+					return event
+				})
+
+				if v.pages != nil {
+					v.pages.AddPage("job-dependencies", centeredModal, true, true)
+				}
+			})
+		}
+	}()
 }
 
 // buildDependencyTree builds a visual representation of job dependencies
