@@ -99,7 +99,12 @@ func runRoot(cmd *cobra.Command, _ []string) error {
 		return displayVersion()
 	}
 
-	logging.Init(logging.DefaultConfig())
+	logConfig := logging.DefaultConfig()
+	if debugMode {
+		logConfig.File = true
+		logConfig.Level = logging.DebugLevel
+	}
+	logging.Init(logConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -68,14 +68,23 @@ type Config struct {
 	Compress bool
 }
 
+// defaultLogPath returns a per-user log file path (~/.s9s/s9s.log),
+// falling back to a UID-specific temp path if $HOME is unavailable.
+func defaultLogPath() string {
+	if homeDir, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(homeDir, ".s9s", "s9s.log")
+	}
+	return filepath.Join(os.TempDir(), fmt.Sprintf("s9s-%d.log", os.Getuid()))
+}
+
 // DefaultConfig returns default logger configuration
 func DefaultConfig() *Config {
 	return &Config{
 		Level:       InfoLevel,
-		Console:     true,
+		Console:     false,
 		ConsoleJSON: false,
-		File:        true,
-		Filename:    filepath.Join(os.TempDir(), "s9s.log"),
+		File:        false,
+		Filename:    defaultLogPath(),
 		MaxSize:     10,
 		MaxBackups:  3,
 		MaxAge:      7,
@@ -146,7 +155,7 @@ func newLogger(config *Config) *Logger {
 	var writer io.Writer
 	switch len(writers) {
 	case 0:
-		writer = os.Stderr
+		writer = io.Discard
 	case 1:
 		writer = writers[0]
 	default:
