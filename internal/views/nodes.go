@@ -1016,53 +1016,59 @@ func (v *NodesView) showNodeDetails() {
 
 	nodeName := data[0]
 
-	// Fetch full node details
-	node, err := v.client.Nodes().Get(nodeName)
-	if err != nil {
-		// Note: Status bar update removed since individual view status bars are no longer used
-		return
-	}
-
-	// Create details view
-	details := v.formatNodeDetails(node)
-
-	textView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText(details).
-		SetScrollable(true)
-
-	modal := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(textView, 0, 1, true).
-		AddItem(tview.NewTextView().SetText("Press ESC to close"), 1, 0, false)
-
-	modal.SetBorder(true).
-		SetTitle(fmt.Sprintf(" Node %s Details ", nodeName)).
-		SetTitleAlign(tview.AlignCenter)
-
-	// Create centered modal layout
-	centeredModal := tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(nil, 0, 1, false).
-			AddItem(modal, 0, 8, true).
-			AddItem(nil, 0, 1, false), 0, 8, true).
-		AddItem(nil, 0, 1, false)
-
-	// Handle ESC key
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEsc {
-			if v.pages != nil {
-				v.pages.RemovePage("node-details")
-			}
-			return nil
+	go func() {
+		// Fetch full node details off the UI thread
+		node, err := v.client.Nodes().Get(nodeName)
+		if err != nil {
+			debug.Logger.Printf("showNodeDetails() - failed to get node %s: %v", nodeName, err)
+			return
 		}
-		return event
-	})
 
-	if v.pages != nil {
-		v.pages.AddPage("node-details", centeredModal, true, true)
-	}
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				// Create details view
+				details := v.formatNodeDetails(node)
+
+				textView := tview.NewTextView().
+					SetDynamicColors(true).
+					SetText(details).
+					SetScrollable(true)
+
+				modal := tview.NewFlex().
+					SetDirection(tview.FlexRow).
+					AddItem(textView, 0, 1, true).
+					AddItem(tview.NewTextView().SetText("Press ESC to close"), 1, 0, false)
+
+				modal.SetBorder(true).
+					SetTitle(fmt.Sprintf(" Node %s Details ", nodeName)).
+					SetTitleAlign(tview.AlignCenter)
+
+				// Create centered modal layout
+				centeredModal := tview.NewFlex().
+					AddItem(nil, 0, 1, false).
+					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+						AddItem(nil, 0, 1, false).
+						AddItem(modal, 0, 8, true).
+						AddItem(nil, 0, 1, false), 0, 8, true).
+					AddItem(nil, 0, 1, false)
+
+				// Handle ESC key
+				modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+					if event.Key() == tcell.KeyEsc {
+						if v.pages != nil {
+							v.pages.RemovePage("node-details")
+						}
+						return nil
+					}
+					return event
+				})
+
+				if v.pages != nil {
+					v.pages.AddPage("node-details", centeredModal, true, true)
+				}
+			})
+		}
+	}()
 }
 
 // formatNodeDetails formats node details for display

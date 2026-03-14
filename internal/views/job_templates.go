@@ -9,6 +9,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
+	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/fileperms"
 	"github.com/jontk/s9s/internal/ui/styles"
 	"github.com/rivo/tview"
@@ -400,15 +401,21 @@ func (v *JobsView) showJobSubmissionFormWithTemplate(template *dao.JobSubmission
 
 // saveJobAsTemplate saves the selected job as a template
 func (v *JobsView) saveJobAsTemplate(jobID string) {
-	// Fetch job details
-	job, err := v.client.Jobs().Get(jobID)
-	if err != nil {
-		// Note: Status bar update removed since individual view status bars are no longer used
-		return
-	}
+	go func() {
+		// Fetch job details off the UI thread
+		job, err := v.client.Jobs().Get(jobID)
+		if err != nil {
+			debug.Logger.Printf("saveJobAsTemplate() - failed to get job %s: %v", jobID, err)
+			return
+		}
 
-	// Show template save form
-	v.showSaveTemplateForm(job)
+		if v.app != nil {
+			v.app.QueueUpdateDraw(func() {
+				// Show template save form
+				v.showSaveTemplateForm(job)
+			})
+		}
+	}()
 }
 
 // saveFormAsTemplate saves the current form data as a template
