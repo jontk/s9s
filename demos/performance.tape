@@ -17,10 +17,6 @@ Sleep 3s
 
 # Toggle auto-refresh off (R key)
 Type "R"
-Sleep 1s
-
-# Manual refresh (F5 key)
-F5
 Sleep 1500ms
 
 # Toggle auto-refresh back on
