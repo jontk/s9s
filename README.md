@@ -22,6 +22,8 @@
 
 s9s provides a terminal interface for managing SLURM clusters, inspired by the popular [k9s](https://k9scli.io/) Kubernetes CLI. It allows HPC administrators and users to monitor and manage jobs, nodes, and cluster resources efficiently from the terminal.
 
+## Demo
+
 <p align="center">
   <img src="demos/output/overview.gif" alt="s9s demo" width="800">
 </p>
