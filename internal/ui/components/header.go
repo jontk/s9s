@@ -135,11 +135,10 @@ func (h *Header) appendTitleLine(content *strings.Builder) {
 			h.clusterInfo.Name, h.clusterInfo.Version)
 	}
 
-	// Add current time
-	now := time.Now()
-	fmt.Fprintf(content, " | %s", now.Format("15:04:05"))
-
 	h.appendAlertsBadge(content)
+
+	// Navigation hints
+	content.WriteString(" | [white]Tab[gray]:Switch Views  [white]Enter[gray]:Details  [white]?[gray]:Help[white]")
 	content.WriteString("\n")
 }
 
