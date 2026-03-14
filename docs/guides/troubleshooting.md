@@ -529,7 +529,7 @@ rm ~/.local/bin/s9s
 rm -rf ~/.s9s
 
 # Reinstall
-curl -sSL https://s9s.dev/install.sh | bash
+curl -sSL https://get.s9s.dev | bash
 
 # Restore config
 mkdir -p ~/.s9s
