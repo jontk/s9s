@@ -23,7 +23,7 @@ s9s is a modern, terminal-based interface for SLURM workload managers. It provid
 
 ```bash
 # Install s9s
-curl -sSL https://s9s.dev/install.sh | bash
+curl -sSL https://get.s9s.dev | bash
 
 # Launch s9s
 s9s

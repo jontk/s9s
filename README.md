@@ -59,7 +59,7 @@ s9s provides a terminal interface for managing SLURM clusters, inspired by the p
 #### Quick Install (Recommended)
 
 ```bash
-curl -sSL https://s9s.dev/install.sh | bash
+curl -sSL https://get.s9s.dev | bash
 ```
 
 #### Using Go Install

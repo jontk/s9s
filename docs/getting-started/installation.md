@@ -42,7 +42,7 @@ curl http://localhost:6820/slurm/v0.0.43/ping
 The easiest way to install s9s is using our installation script:
 
 ```bash
-curl -sSL https://s9s.dev/install.sh | bash
+curl -sSL https://get.s9s.dev | bash
 ```
 
 This script will:
@@ -57,31 +57,31 @@ Download pre-built binaries from our [releases page](https://github.com/jontk/s9
 
 ```bash
 # Linux (x86_64)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.2_Linux_x86_64.tar.gz
-tar -xzf s9s_0.6.2_Linux_x86_64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.3_Linux_x86_64.tar.gz
+tar -xzf s9s_0.6.3_Linux_x86_64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 
 # Linux (ARM64)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.2_Linux_arm64.tar.gz
-tar -xzf s9s_0.6.2_Linux_arm64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.3_Linux_arm64.tar.gz
+tar -xzf s9s_0.6.3_Linux_arm64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 
 # macOS (Apple Silicon)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.2_Darwin_arm64.tar.gz
-tar -xzf s9s_0.6.2_Darwin_arm64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.3_Darwin_arm64.tar.gz
+tar -xzf s9s_0.6.3_Darwin_arm64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 
 # macOS (Intel)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.2_Darwin_x86_64.tar.gz
-tar -xzf s9s_0.6.2_Darwin_x86_64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.6.3_Darwin_x86_64.tar.gz
+tar -xzf s9s_0.6.3_Darwin_x86_64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 ```
 
-> **Note:** Replace `0.6.2` with the latest version from the [releases page](https://github.com/jontk/s9s/releases).
+> **Note:** Replace `0.6.3` with the latest version from the [releases page](https://github.com/jontk/s9s/releases).
 
 ### 3. Using Go Install
 
@@ -296,7 +296,7 @@ To upgrade to the latest version:
 
 ```bash
 # If installed via script
-curl -sSL https://s9s.dev/install.sh | bash
+curl -sSL https://get.s9s.dev | bash
 
 # If installed via binary download
 wget https://github.com/jontk/s9s/releases/latest/download/s9s-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)

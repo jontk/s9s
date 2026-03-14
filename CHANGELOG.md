@@ -15,6 +15,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.6.3] - 2026-03-14
+
+### Performance
+
+- **Eliminate N+1 API calls in Partitions view** (#107)
+  - Replace per-partition `calculateAllocatedCPUs()` (called on UI draw thread) and `calculateQueueInfo()` with a single bulk `Jobs().List()` call and `buildAllQueueInfo()` helper
+  - Reduces API calls from 2N+1 to 2 per refresh cycle (N = number of partitions)
+  - Fixes multi-second UI freezes on clusters with 20k+ jobs
+
+- **Lazy view initialization and background fetch** (#106)
+  - Views are only initialized and fetched when first focused, not all at startup
+  - Background data fetching with DAO-level caching to reduce redundant API calls
+  - Only the active view refreshes on timer; inactive views skip refresh cycles
+
+- **Async UI-thread API calls** (#107)
+  - Move 11 blocking API calls off the tview draw thread into goroutines with `QueueUpdateDraw`
+  - Affected: job cancel/hold/release/requeue/details, node details, partition details/analytics, job dependencies, job templates
+  - UI remains responsive during all API operations
+
+### Fixed
+
+- **Per-user temp file paths** (#103)
+  - Use per-user paths instead of shared `/tmp` files to prevent multi-user conflicts
+
+- **Install script serving** (#104)
+  - Serve install script directly at `get.s9s.dev` root
+
+- **Mock mode validation** (#105)
+  - Simplify mock mode validation logic
+
+### Changed
+
+- **Header bar** (#108)
+  - Remove clock display from header (added no value, wasted space)
+  - Add navigation hints (`Tab:Switch Views  Enter:Details  ?:Help`)
+
 ## [0.6.2] - 2026-03-10
 
 ### Fixed
@@ -411,7 +447,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Versions prior to 0.1.0 were in active development and did not follow semantic versioning.
 
-[Unreleased]: https://github.com/jontk/s9s/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/jontk/s9s/compare/v0.6.3...HEAD
+[0.6.3]: https://github.com/jontk/s9s/compare/v0.6.2...v0.6.3
+[0.6.2]: https://github.com/jontk/s9s/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/jontk/s9s/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/jontk/s9s/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/jontk/s9s/compare/v0.4.0...v0.5.0

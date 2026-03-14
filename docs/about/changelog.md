@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Recent Changes
 
+### Version 0.6.3 (2026-03-14)
+
+Performance and responsiveness release:
+
+- **Eliminate N+1 API calls**: Partitions view now fetches all jobs in a single API call instead of 2N+1 calls per refresh — fixes multi-second freezes on clusters with 20k+ jobs
+- **Lazy view init & background fetch**: Views only initialize when first focused; DAO-level caching reduces redundant API calls; only the active view auto-refreshes
+- **Async UI-thread API calls**: 11 blocking API calls (cancel, hold, release, details modals, etc.) moved off the tview draw thread — UI stays responsive during all operations
+- **Header improvements**: Remove clock, add navigation key hints (`Tab`, `Enter`, `?`)
+- **Per-user temp paths**: Fix multi-user conflicts with shared `/tmp` files
+- **Install script fix**: Serve install script directly at `get.s9s.dev` root
+
 ### Version 0.6.2 (2026-03-10)
 
 Setup wizard improvements and bug fixes:
@@ -83,7 +94,8 @@ For a complete list of all changes, features, and fixes across all versions, ref
 
 ## Version History
 
-- [v0.6.2](../CHANGELOG.md#062---2026-03-10) - Latest release
+- [v0.6.3](../CHANGELOG.md#063---2026-03-14) - Latest release
+- [v0.6.2](../CHANGELOG.md#062---2026-03-10) - Setup wizard fixes
 - [v0.6.1](../CHANGELOG.md#061---2026-03-09) - Node metrics, job times, dashboard fixes
 - [v0.6.0](../CHANGELOG.md#060---2026-03-08) - Cluster switcher, export, config rename
 - [v0.5.0](../CHANGELOG.md#050---2026-02-18) - Auto-discovery, static builds
