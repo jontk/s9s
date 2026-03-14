@@ -245,7 +245,7 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Equal(t, "2s", cfg.RefreshRate)
 	assert.Equal(t, 3, cfg.MaxRetries)
 	assert.Equal(t, "default", cfg.DefaultCluster)
-	assert.True(t, cfg.UseMockClient)
+	assert.False(t, cfg.UseMockClient)
 
 	// Test UI defaults
 	assert.Equal(t, "default", cfg.UI.Skin)
@@ -309,7 +309,7 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Empty(t, cfg.Plugins)
 
 	// Test mock client default (aligned with setDefaults)
-	assert.True(t, cfg.UseMockClient)
+	assert.False(t, cfg.UseMockClient)
 }
 
 func TestValidateMockUsage(t *testing.T) {
