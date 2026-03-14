@@ -7,33 +7,7 @@ s9s can be installed using several methods. Choose the one that best fits your e
 - **Operating System**: Linux, macOS, or Windows
 - **Go Version**: 1.19 or higher (for building from source)
 - **Terminal**: 256 color support recommended
-- **SLURM REST API**: A running `slurmrestd` instance (optional - mock mode available)
-
-### slurmrestd (SLURM REST API)
-
-s9s connects to SLURM through **slurmrestd**, the SLURM REST API daemon. This is a separate service from `slurmctld` (the controller) and `slurmdbd` (the accounting database). It typically runs on port **6820**.
-
-If slurmrestd is not already running on your cluster, start it:
-
-```bash
-# Start slurmrestd (as root or SlurmUser)
-slurmrestd 0.0.0.0:6820
-
-# Or with systemd (if configured)
-sudo systemctl start slurmrestd
-```
-
-Verify it's running:
-
-```bash
-# Check the port is listening
-ss -tlnp | grep 6820
-
-# Test the API
-curl http://localhost:6820/slurm/v0.0.43/ping
-```
-
-> **Note**: Having `slurmctld` and `slurmdbd` running is **not sufficient** - s9s specifically requires `slurmrestd` for its REST API.
+- **SLURM REST API**: A running `slurmrestd` instance — see [Troubleshooting](../guides/troubleshooting.md#cannot-connect-to-slurm-cluster) if connection fails ([mock mode](../guides/mock-mode.md) available for testing without SLURM)
 
 ## Installation Methods
 
@@ -128,7 +102,7 @@ s9s --version
 
 You should see output like:
 ```
-s9s version 0.3.0
+s9s version 0.6.3
 ```
 
 ### 2. Initial Configuration

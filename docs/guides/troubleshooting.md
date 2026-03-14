@@ -70,7 +70,20 @@ echo $SLURM_TOKEN
 
 **Solutions**:
 
-1. **Check URL format**:
+1. **Start slurmrestd** if it's not running:
+   ```bash
+   # Start slurmrestd (as root or SlurmUser)
+   slurmrestd 0.0.0.0:6820
+
+   # Or with systemd (if configured)
+   sudo systemctl start slurmrestd
+
+   # Verify it's listening
+   ss -tlnp | grep 6820
+   curl http://localhost:6820/slurm/v0.0.43/ping
+   ```
+
+2. **Check URL format**:
    ```yaml
    # Correct
    url: https://slurm.example.com:6820
@@ -80,7 +93,7 @@ echo $SLURM_TOKEN
    url: https://slurm.example.com:6820/  # Trailing slash
    ```
 
-2. **Verify network access**:
+3. **Verify network access**:
    ```bash
    # Test connectivity
    ping slurm.example.com
@@ -90,7 +103,7 @@ echo $SLURM_TOKEN
    sudo iptables -L | grep 6820
    ```
 
-3. **Handle SSL/TLS issues**:
+4. **Handle SSL/TLS issues**:
    ```yaml
    # For self-signed certificates
    clusters:

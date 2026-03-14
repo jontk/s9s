@@ -10,31 +10,33 @@ Source demos/bootstrap.tape
 Set Height 900
 
 
-# Open job submission directly (s key)
+# Open job submission wizard (s key)
 Type "s"
 Sleep 2s
 
+# Template selection is shown first
+# Select "Custom Job" (already highlighted as first item)
+Enter
+Sleep 1500ms
+
 # Fill in job name
-Type "simulation-job"
+Type "simulation-run-01"
 Tab
 Sleep 500ms
 
-# Skip to script content (Tab through fields)
-Tab
-Sleep 500ms
-
-# Add script content
+# Add script content in the text area
 Type "#!/bin/bash"
 Enter
-Type "#SBATCH --nodes=4"
-Enter
-Type "#SBATCH --ntasks-per-node=16"
-Enter
-Enter
-Type "srun ./my_simulation"
+Type "srun ./my_simulation --input data.csv"
 Sleep 1s
 
-# Navigate through other fields
+# Tab through remaining fields
+Tab
+Sleep 500ms
+Tab
+Sleep 500ms
+Tab
+Sleep 500ms
 Tab
 Sleep 500ms
 Tab
@@ -42,36 +44,28 @@ Sleep 500ms
 Tab
 Sleep 500ms
 
-# Show preview of the job script
-Tab
-Tab
-Enter
-Sleep 3s
-Escape
-Sleep 500ms
+# Pause to show the filled form
+Sleep 2s
 
 # Cancel this submission
 Escape
-Sleep 500ms
-
-# Open job submission directly (s key)
-Type "s"
-Sleep 1500ms
-
-# Quick submit without template
-Type "quick-test"
-Tab
-Sleep 500ms
-Tab
-Sleep 500ms
-Type "echo 'Hello World'"
 Sleep 1s
 
-# Cancel and exit
+# Open wizard again to show template selection
+Type "s"
+Sleep 2s
+
+# Select "MPI Parallel Job" template (second item)
+Down
+Enter
+Sleep 2s
+
+# Show the pre-filled template form
+Sleep 2s
+
+# Cancel and return to jobs view
 Escape
-Sleep 500ms
-Escape
-Sleep 500ms
+Sleep 1s
 
 # Exit
 Type "q"

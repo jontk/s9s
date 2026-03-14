@@ -50,9 +50,9 @@ Sleep 500ms
 Type "admin"
 Sleep 1500ms
 
-# Select first result directly with Enter
-Enter
-Sleep 2s
+# Close search and return to view
+Escape
+Sleep 500ms
 
 # Exit
 Type "q"

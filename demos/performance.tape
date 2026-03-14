@@ -7,8 +7,8 @@ Source demos/common.tape
 Source demos/bootstrap.tape
 
 
-# Switch to Performance view (key 9)
-Type "9"
+# Switch to Performance view (key 0)
+Type "0"
 Sleep 2s
 
 # Show cluster metrics updating
@@ -17,10 +17,6 @@ Sleep 3s
 
 # Toggle auto-refresh off (R key)
 Type "R"
-Sleep 1s
-
-# Manual refresh (F5)
-Type@500ms "F5"
 Sleep 1500ms
 
 # Toggle auto-refresh back on
