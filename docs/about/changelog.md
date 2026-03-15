@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Recent Changes
 
+### Unreleased
+
+Configurable job submission templates and full SLURM field support:
+
+- **Configurable Templates**: Define custom job templates in config YAML with pre-filled defaults, hidden fields, and restricted dropdown options
+- **3-Tier Template Merge**: Built-in, config YAML, and user-saved JSON templates merge with name-based override
+- **84 sbatch Fields**: Job submission wizard supports 84 of 117 SLURM fields (was 12) — fields like QoS, GPUs, array, constraints, dependencies now actually reach slurmrestd
+- **CLI Template Management**: `s9s templates list` and `s9s templates export` commands for viewing and exporting templates
+- **SubmitRaw Integration**: Bypasses lossy intermediate struct, maps directly to SLURM OpenAPI `JobCreate`
+- **Full `--begin` Parsing**: ISO dates, relative times (`now+1hour`), SLURM named times (`midnight`, `fika`, `teatime`)
+- **Removed**: Deprecated `OLDShowJobTemplateSelector` and helpers
+
 ### Version 0.6.3 (2026-03-14)
 
 Performance and responsiveness release:

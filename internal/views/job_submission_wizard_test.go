@@ -67,6 +67,183 @@ func TestOverlayJobDefaults_OverlaysNonZeroFields(t *testing.T) {
 	assert.Equal(t, 1, dst.Nodes)
 }
 
+func TestOverlayJobDefaults_AllFields(t *testing.T) {
+	// Start with a fully zeroed dst
+	dst := &dao.JobSubmission{}
+
+	// Set every field on src
+	src := &dao.JobSubmission{
+		Name:                "job",
+		Script:              "#!/bin/bash",
+		Partition:           "gpu",
+		Account:             "research",
+		QoS:                 "high",
+		Nodes:               4,
+		CPUs:                16,
+		Memory:              "32G",
+		GPUs:                2,
+		TimeLimit:           "12:00:00",
+		WorkingDir:          "/scratch",
+		OutputFile:          "out.log",
+		ErrorFile:           "err.log",
+		EmailNotify:         true,
+		Email:               "a@b.com",
+		ArraySpec:           "1-10",
+		Exclusive:           true,
+		Requeue:             true,
+		Constraints:         "gpu,nvlink",
+		NTasks:              8,
+		NTasksPerNode:       4,
+		Gres:                "gpu:a100:2",
+		Hold:                true,
+		Reservation:         "res1",
+		Licenses:            "matlab:2",
+		Wckey:               "proj-a",
+		ExcludeNodes:        "node01",
+		Priority:            100,
+		Nice:                -5,
+		MemoryPerCPU:        "4G",
+		BeginTime:           "tomorrow",
+		Comment:             "test",
+		Distribution:        "cyclic",
+		Prefer:              "a100",
+		RequiredNodes:       "node03",
+		StandardInput:       "/tmp/in",
+		Container:           "/oci/bundle",
+		ThreadsPerCore:      2,
+		TasksPerCore:        1,
+		TasksPerSocket:      4,
+		SocketsPerNode:      2,
+		MaximumNodes:        10,
+		MaximumCPUs:         64,
+		MinimumCPUsPerNode:  8,
+		TimeMinimum:         "00:30:00",
+		Contiguous:          true,
+		Overcommit:          true,
+		KillOnNodeFail:      true,
+		WaitAllNodes:        true,
+		OpenMode:            "append",
+		TRESPerTask:         "gres/gpu:1",
+		TRESPerSocket:       "gres/gpu:2",
+		Signal:              "B:USR1@300",
+		TmpDiskPerNode:      1024,
+		Deadline:            "2024-12-31",
+		NTasksPerTRES:       4,
+		CPUBinding:          "cores",
+		CPUFrequency:        "high",
+		Network:             "sn_all",
+		X11:                 "batch",
+		Immediate:           true,
+		BurstBuffer:         "#BB spec",
+		BatchFeatures:       "haswell",
+		TRESBind:            "gpu:verbose",
+		TRESFreq:            "gpu:high",
+		CoreSpecification:   2,
+		ThreadSpecification: 4,
+		MemoryBinding:       "local",
+		MinimumCPUs:         16,
+		TRESPerJob:          "gres/gpu:8",
+		CPUsPerTRES:         "gres/gpu:2",
+		MemoryPerTRES:       "gres/gpu:4096",
+		Argv:                "arg1 arg2",
+		Flags:               "SPREAD_JOB",
+		ProfileTypes:        "ENERGY",
+		CPUBindingFlags:     "VERBOSE",
+		MemoryBindingType:   "LOCAL",
+		RequiredSwitches:    3,
+		WaitForSwitch:       120,
+		ClusterConstraint:   "gpu_cluster",
+		Clusters:            "cluster1",
+		Dependencies:        []string{"123", "456"},
+	}
+
+	overlayJobDefaults(dst, src)
+
+	// Verify every field was overlaid
+	assert.Equal(t, "job", dst.Name)
+	assert.Equal(t, "#!/bin/bash", dst.Script)
+	assert.Equal(t, "gpu", dst.Partition)
+	assert.Equal(t, "research", dst.Account)
+	assert.Equal(t, "high", dst.QoS)
+	assert.Equal(t, 4, dst.Nodes)
+	assert.Equal(t, 16, dst.CPUs)
+	assert.Equal(t, "32G", dst.Memory)
+	assert.Equal(t, 2, dst.GPUs)
+	assert.Equal(t, "12:00:00", dst.TimeLimit)
+	assert.Equal(t, "/scratch", dst.WorkingDir)
+	assert.Equal(t, "out.log", dst.OutputFile)
+	assert.Equal(t, "err.log", dst.ErrorFile)
+	assert.True(t, dst.EmailNotify)
+	assert.Equal(t, "a@b.com", dst.Email)
+	assert.Equal(t, "1-10", dst.ArraySpec)
+	assert.True(t, dst.Exclusive)
+	assert.True(t, dst.Requeue)
+	assert.Equal(t, "gpu,nvlink", dst.Constraints)
+	assert.Equal(t, 8, dst.NTasks)
+	assert.Equal(t, 4, dst.NTasksPerNode)
+	assert.Equal(t, "gpu:a100:2", dst.Gres)
+	assert.True(t, dst.Hold)
+	assert.Equal(t, "res1", dst.Reservation)
+	assert.Equal(t, "matlab:2", dst.Licenses)
+	assert.Equal(t, "proj-a", dst.Wckey)
+	assert.Equal(t, "node01", dst.ExcludeNodes)
+	assert.Equal(t, 100, dst.Priority)
+	assert.Equal(t, -5, dst.Nice)
+	assert.Equal(t, "4G", dst.MemoryPerCPU)
+	assert.Equal(t, "tomorrow", dst.BeginTime)
+	assert.Equal(t, "test", dst.Comment)
+	assert.Equal(t, "cyclic", dst.Distribution)
+	assert.Equal(t, "a100", dst.Prefer)
+	assert.Equal(t, "node03", dst.RequiredNodes)
+	assert.Equal(t, "/tmp/in", dst.StandardInput)
+	assert.Equal(t, "/oci/bundle", dst.Container)
+	assert.Equal(t, 2, dst.ThreadsPerCore)
+	assert.Equal(t, 1, dst.TasksPerCore)
+	assert.Equal(t, 4, dst.TasksPerSocket)
+	assert.Equal(t, 2, dst.SocketsPerNode)
+	assert.Equal(t, 10, dst.MaximumNodes)
+	assert.Equal(t, 64, dst.MaximumCPUs)
+	assert.Equal(t, 8, dst.MinimumCPUsPerNode)
+	assert.Equal(t, "00:30:00", dst.TimeMinimum)
+	assert.True(t, dst.Contiguous)
+	assert.True(t, dst.Overcommit)
+	assert.True(t, dst.KillOnNodeFail)
+	assert.True(t, dst.WaitAllNodes)
+	assert.Equal(t, "append", dst.OpenMode)
+	assert.Equal(t, "gres/gpu:1", dst.TRESPerTask)
+	assert.Equal(t, "gres/gpu:2", dst.TRESPerSocket)
+	assert.Equal(t, "B:USR1@300", dst.Signal)
+	assert.Equal(t, 1024, dst.TmpDiskPerNode)
+	assert.Equal(t, "2024-12-31", dst.Deadline)
+	assert.Equal(t, 4, dst.NTasksPerTRES)
+	assert.Equal(t, "cores", dst.CPUBinding)
+	assert.Equal(t, "high", dst.CPUFrequency)
+	assert.Equal(t, "sn_all", dst.Network)
+	assert.Equal(t, "batch", dst.X11)
+	assert.True(t, dst.Immediate)
+	assert.Equal(t, "#BB spec", dst.BurstBuffer)
+	assert.Equal(t, "haswell", dst.BatchFeatures)
+	assert.Equal(t, "gpu:verbose", dst.TRESBind)
+	assert.Equal(t, "gpu:high", dst.TRESFreq)
+	assert.Equal(t, 2, dst.CoreSpecification)
+	assert.Equal(t, 4, dst.ThreadSpecification)
+	assert.Equal(t, "local", dst.MemoryBinding)
+	assert.Equal(t, 16, dst.MinimumCPUs)
+	assert.Equal(t, "gres/gpu:8", dst.TRESPerJob)
+	assert.Equal(t, "gres/gpu:2", dst.CPUsPerTRES)
+	assert.Equal(t, "gres/gpu:4096", dst.MemoryPerTRES)
+	assert.Equal(t, "arg1 arg2", dst.Argv)
+	assert.Equal(t, "SPREAD_JOB", dst.Flags)
+	assert.Equal(t, "ENERGY", dst.ProfileTypes)
+	assert.Equal(t, "VERBOSE", dst.CPUBindingFlags)
+	assert.Equal(t, "LOCAL", dst.MemoryBindingType)
+	assert.Equal(t, 3, dst.RequiredSwitches)
+	assert.Equal(t, 120, dst.WaitForSwitch)
+	assert.Equal(t, "gpu_cluster", dst.ClusterConstraint)
+	assert.Equal(t, "cluster1", dst.Clusters)
+	assert.Equal(t, []string{"123", "456"}, dst.Dependencies)
+}
+
 func TestOverlayJobDefaults_EmptySrcNoChange(t *testing.T) {
 	dst := &dao.JobSubmission{
 		Name:      "keep",
