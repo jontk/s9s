@@ -73,11 +73,9 @@ views:
     #     qos: ["normal", "high"]
     #     account: ["research-a", "research-b"]
     #
-    #   # Legacy: showBuiltinTemplates (superseded by templateSources)
-    #   # showBuiltinTemplates: true
-    #
     #   # Control which template sources are loaded (default: all three)
     #   # Options: "builtin", "config", "saved"
+    #   # (Legacy: showBuiltinTemplates: false is equivalent to ["config", "saved"])
     #   templateSources: ["builtin", "config", "saved"]
     #
     #   # Custom templates

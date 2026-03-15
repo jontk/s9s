@@ -448,12 +448,15 @@ Each saved template is a JSON file with the following structure:
     "nodes": 2,
     "cpus": 8,
     "memory": "16G",
+    "working_directory": "/scratch/%u",
+    "output_file": "job_%j.out",
+    "error_file": "job_%j.err",
     "script": "#!/bin/bash\nmodule load python\npython run.py"
   }
 }
 ```
 
-> **Naming conventions:** Saved JSON templates use snake_case field names (matching Go struct JSON tags): `time_limit`, `output_file`, `error_file`, `working_directory`. Config YAML templates use camelCase: `timeLimit`, `outputFile`, `errorFile`, `workingDir`. Using the wrong convention will silently ignore the field.
+> **Naming conventions:** Saved JSON templates use snake_case field names (matching Go struct JSON tags): `time_limit`, `output_file`, `error_file`, `working_directory`. Config YAML templates use camelCase: `timeLimit`, `outputFile`, `errorFile`, `workingDir`. Using the wrong convention will silently ignore the field. Script arguments (`argv`) are split on whitespace in both formats — quoted arguments with spaces are not supported.
 
 ### CLI Commands
 

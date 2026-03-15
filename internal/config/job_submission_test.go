@@ -158,6 +158,22 @@ func TestResolveTemplateSources_ExplicitOverridesShowBuiltin(t *testing.T) {
 	assert.Equal(t, []string{"builtin"}, sources)
 }
 
+func TestResolveTemplateSources_InvalidFiltered(t *testing.T) {
+	cfg := &JobSubmissionConfig{
+		TemplateSources: []string{"builtin", "typo"},
+	}
+	sources := ResolveTemplateSources(cfg)
+	assert.Equal(t, []string{"builtin"}, sources)
+}
+
+func TestResolveTemplateSources_AllInvalidFallsBack(t *testing.T) {
+	cfg := &JobSubmissionConfig{
+		TemplateSources: []string{"typo", "wrong"},
+	}
+	sources := ResolveTemplateSources(cfg)
+	assert.Equal(t, []string{"builtin", "config", "saved"}, sources)
+}
+
 func TestHasTemplateSource(t *testing.T) {
 	sources := []string{"builtin", "config"}
 	assert.True(t, HasTemplateSource(sources, "builtin"))
