@@ -48,6 +48,7 @@ func (s *S9s) registerJobsView() error {
 	view.SetApp(s.app)
 	view.SetStatusBar(s.statusBar)
 	view.SetPages(s.pages)
+	view.SetSubmissionConfig(&s.config.Views.Jobs.Submission)
 	return s.addViewToApp("jobs", view)
 }
 

@@ -494,6 +494,66 @@ columns:
     - Features
 ```
 
+### Job Submission Configuration
+
+Customize the job submission form with default values, hidden fields, dropdown options, and reusable templates. These settings live under the `views.jobs.submission` key:
+
+```yaml
+views:
+  jobs:
+    submission:
+      # Global defaults applied to all new jobs
+      formDefaults:
+        partition: "compute"
+        timeLimit: "04:00:00"
+        nodes: 1
+        cpus: 4
+        memory: "8G"
+
+      # Fields to hide from the form
+      hiddenFields:
+        - arraySpec
+        - exclusive
+        - requeue
+
+      # Restrict dropdown options
+      fieldOptions:
+        partition: ["compute", "gpu", "highmem"]
+        qos: ["normal", "high"]
+
+      # Control template sources: builtin, config, saved
+      templateSources: ["builtin", "config", "saved"]
+
+      # Custom templates
+      templates:
+        - name: "GPU Training Job"
+          description: "PyTorch training on GPU partition"
+          defaults:
+            partition: "gpu"
+            timeLimit: "24:00:00"
+            cpus: 8
+            memory: "32G"
+            gpus: 2
+            cpusPerTRES: "gres/gpu:4"
+          hiddenFields: ["arraySpec"]
+```
+
+**`formDefaults`** -- Default values pre-filled in the submission form. Users can override these per job.
+
+**`hiddenFields`** -- A list of form fields to hide entirely. Useful for removing options that are not relevant to your cluster or that administrators want to control centrally.
+
+**`fieldOptions`** -- Restricts dropdown menus to a specific set of values. Only the listed options will appear for partition, QoS, and other selectable fields.
+
+**`templateSources`** -- Controls which template sources appear in the template picker. Possible values are `builtin` (shipped with s9s), `config` (defined in the configuration file), and `saved` (user-saved templates stored in `~/.s9s/templates/`).
+
+**`templates`** -- Define reusable job templates. Each template has a `name`, optional `description`, a `defaults` map (same keys as `formDefaults`), and an optional `hiddenFields` list that applies when the template is selected. See the [Template Management Commands](../reference/commands.md#template-management-commands) for CLI operations on templates.
+
+> **Note:** Boolean fields (like `exclusive`, `requeue`, `hold`) use zero-value overlay semantics. Once set to `true` by `formDefaults`, a template cannot set them back to `false` — only `true` values are overlaid. To work around this, avoid setting boolean fields in `formDefaults` and instead set them per-template.
+
+> **Filtering behavior:** For `partition` and `account`, the configured values are intersected with values fetched from the cluster — only values that exist on both lists are shown. If the intersection is empty, all cluster values are shown as a fallback. For `qos`, if configured values are provided, they replace the input field with a dropdown containing only the configured values (cluster QoS values are not fetched for the dropdown).
+
+> **Migration:** `showBuiltinTemplates` (boolean) is the legacy equivalent of `templateSources`. Setting `showBuiltinTemplates: false` is equivalent to `templateSources: ["config", "saved"]`. If both are set, `templateSources` takes precedence. New configurations should use `templateSources`.
+
 ### Custom Keybindings
 
 Override default shortcuts:

@@ -53,19 +53,106 @@ Press `s` in Jobs view to open the submission wizard:
 
 The submission process guides you through all necessary options with helpful defaults and validation.
 
+### Submission Wizard Fields
+
+The wizard supports 84 sbatch fields across the full SLURM OpenAPI spec. Fields are organized into three visibility tiers so the form stays manageable while still exposing every option when needed.
+
+**Always visible** -- these core fields appear on every new job form:
+
+| Field | Description |
+|-------|-------------|
+| name | Job name |
+| script | Job script body |
+| partition | Target partition |
+| timeLimit | Wall-clock time limit |
+| nodes | Number of nodes |
+| cpus | CPUs per task |
+| memory | Total memory per node |
+
+**Visible by default** -- shown on the form unless explicitly hidden:
+
+| Field | Description |
+|-------|-------------|
+| gpus | Number of GPUs |
+| qos | Quality of service |
+| account | Charge account |
+| workingDir | Working directory |
+| outputFile | Stdout file path |
+| errorFile | Stderr file path |
+| emailNotify | Email notification events |
+| email | Notification email address |
+
+**Hidden by default** -- accessible via templates or the `hiddenFields` config:
+
+These include all advanced SLURM options: `arraySpec`, `exclusive`, `requeue`, `dependencies`, `constraints`, `ntasks`, `gres`, `hold`, `reservation`, `cpuBinding`, `memoryBinding`, `tresPerTask`, `cpusPerTRES` (`--cpus-per-gpu`), `memoryPerTRES` (`--mem-per-gpu`), `signal`, `container`, `distribution`, and many more.
+
+Hidden fields become visible when:
+- A template specifies a value for them
+- They are removed from the `hiddenFields` list in config
+- A per-template `hiddenFields` override brings them into view
+
 ### Template-Based Submission
 
-Use templates for common job types:
+Select a template from the wizard's template selector to pre-fill the form. Templates can set any field value and control which fields are visible.
 
 ```bash
-# List available templates
-:templates list
+# List all templates from every source
+s9s templates list
 
-# Submit from template
-:submit template gpu-training
+# Submit from template in the wizard
+# Press s -> choose "From template" -> pick a template
+```
 
-# Create new template
-:template save current-job my-template
+### Config-Driven Customization
+
+All submission defaults and field visibility can be configured under `views.jobs.submission` in your config file (`~/.s9s/config.yaml`):
+
+```yaml
+views:
+  jobs:
+    submission:
+      # Global defaults applied to every new job
+      formDefaults:
+        partition: "compute"
+        timeLimit: "04:00:00"
+        nodes: 1
+        cpus: 4
+        memory: "8G"
+        workingDir: "/scratch/$USER"
+        outputFile: "slurm_%j.out"
+        errorFile: "slurm_%j.err"
+
+      # Fields to hide globally from the form
+      hiddenFields:
+        - arraySpec
+        - exclusive
+        - requeue
+
+      # Restrict dropdown values (filters cluster-fetched values)
+      fieldOptions:
+        partition: ["compute", "gpu", "highmem"]
+        qos: ["normal", "high"]
+        account: ["research-a", "research-b"]
+
+      # Control which template sources are loaded (default: all three)
+      # Options: "builtin", "config", "saved"
+      templateSources: ["builtin", "config", "saved"]
+
+      # Define custom config templates (see Job Templates section below)
+      templates:
+        - name: "GPU Training Job"
+          description: "PyTorch training on GPU partition"
+          defaults:
+            partition: "gpu"
+            timeLimit: "24:00:00"
+            cpus: 8
+            memory: "32G"
+            gpus: 2
+            script: |
+              #!/bin/bash
+              module load cuda pytorch
+              python train.py
+          hiddenFields: ["arraySpec"]
 ```
 
 ### Command Line Submit
@@ -280,52 +367,147 @@ alerts:
 
 ## Job Templates
 
-### Creating Templates
+### Template System Overview
 
-Save job configurations as templates:
+S9S uses a three-tier merge system to assemble the list of available templates. When two or more sources define a template with the same name, the higher-priority source wins.
 
-1. Configure job in submission wizard
-2. Instead of submitting, press `Ctrl+S`
-3. Name your template
-4. Template saved to `~/.s9s/templates/`
+| Priority | Source | Location |
+|----------|--------|----------|
+| 1 (highest) | User-saved templates | `~/.s9s/templates/*.json` |
+| 2 | Config YAML templates | `views.jobs.submission.templates` in config |
+| 3 (lowest) | Built-in templates | Hardcoded in S9S |
 
-### Using Templates
+### Built-in Templates
 
-```bash
-# List templates
-:template list
+S9S ships with 8 built-in templates covering common job patterns:
 
-# View template
-:template show gpu-analysis
+| Template | Description |
+|----------|-------------|
+| Basic Batch Job | Simple single-node batch job |
+| MPI Parallel Job | Parallel job using MPI across multiple nodes |
+| GPU Job | Job requiring GPU resources |
+| Array Job | Array job for processing multiple similar tasks |
+| Interactive Job | Interactive session for development and testing |
+| Long-Running Job | Extended wall-time job |
+| High Memory Job | Job requesting large memory allocation |
+| Development/Debug Job | Short debug session with verbose output |
 
-# Submit from template
-:template submit gpu-analysis
+### Config YAML Templates
 
-# Edit template
-:template edit gpu-analysis
-
-# Share template
-:template export gpu-analysis > gpu-template.yaml
-```
-
-### Template Variables
-
-Templates support variables:
+Define custom templates in your config file under `views.jobs.submission.templates`. Each template can set default values for any form field and optionally hide irrelevant fields:
 
 ```yaml
-# ~/.s9s/templates/parametric.yaml
-name: "parametric_${INDEX}"
-script: |
-  #!/bin/bash
-  #SBATCH --array=1-${ARRAY_SIZE}
-  #SBATCH --mem=${MEMORY}GB
+views:
+  jobs:
+    submission:
+      templates:
+        - name: "GPU Training Job"
+          description: "PyTorch training on GPU partition"
+          defaults:
+            partition: "gpu"
+            timeLimit: "24:00:00"
+            cpus: 8
+            memory: "32G"
+            gpus: 2
+            script: |
+              #!/bin/bash
+              module load cuda pytorch
+              python train.py
+          hiddenFields: ["arraySpec"]
 
-  python process.py --index=$SLURM_ARRAY_TASK_ID
-
-variables:
-  ARRAY_SIZE: 100
-  MEMORY: 32
+        - name: "Genomics Pipeline"
+          description: "High-memory genomics analysis"
+          defaults:
+            partition: "highmem"
+            timeLimit: "48:00:00"
+            memory: "256G"
+            cpus: 32
+          hiddenFields: ["gpus", "arraySpec"]
 ```
+
+### User-Saved Templates
+
+User-saved templates are stored as individual JSON files in `~/.s9s/templates/` and have the highest priority in the merge order.
+
+#### Saving from the Wizard
+
+After configuring a job in the submission wizard, use the "Save as Template" flow to save the current form state as a new template in `~/.s9s/templates/`.
+
+#### Template JSON Format
+
+Each saved template is a JSON file with the following structure:
+
+```json
+{
+  "name": "My Custom Template",
+  "description": "Description of this template",
+  "job_submission": {
+    "name": "my_job",
+    "partition": "compute",
+    "time_limit": "04:00:00",
+    "nodes": 2,
+    "cpus": 8,
+    "memory": "16G",
+    "script": "#!/bin/bash\nmodule load python\npython run.py"
+  }
+}
+```
+
+### CLI Commands
+
+Manage templates from the command line:
+
+```bash
+# List all templates from all sources with source indicator (builtin/config/saved)
+s9s templates list
+
+# Export all built-in and config templates to ~/.s9s/templates/ as editable JSON
+s9s templates export
+
+# Export a single template by name
+s9s templates export "GPU Job"
+
+# Overwrite existing files during export
+s9s templates export --force
+
+# Export to a custom directory
+s9s templates export --dir /path/to/templates
+```
+
+### Template Workflow
+
+A typical workflow for customizing templates:
+
+1. **Export the built-ins** to get editable copies:
+   ```bash
+   s9s templates export
+   ```
+
+2. **Edit the JSON files** in `~/.s9s/templates/` to match your environment (change partitions, modules, default resources, etc.).
+
+3. **Optionally restrict sources** so only your edited templates appear in the wizard:
+   ```yaml
+   views:
+     jobs:
+       submission:
+         templateSources: ["saved"]
+   ```
+
+4. **Use templates** in the wizard -- press `s` to open the submission wizard, select "From template", and pick from the template selector.
+
+### Controlling Template Sources
+
+By default all three sources are loaded. Use the `templateSources` config option to control which sources appear:
+
+```yaml
+views:
+  jobs:
+    submission:
+      # Show only user-saved and config templates (hide built-ins)
+      templateSources: ["config", "saved"]
+```
+
+Valid values: `"builtin"`, `"config"`, `"saved"`.
 
 ## Job Workflows
 
