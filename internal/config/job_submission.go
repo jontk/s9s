@@ -355,14 +355,28 @@ func JobSubmissionFromMap(m map[string]any) JobSubmissionValues {
 // Valid sources: "builtin", "config", "saved"
 // Default (no config): all three sources.
 func ResolveTemplateSources(cfg *JobSubmissionConfig) []string {
+	var raw []string
 	if cfg != nil && len(cfg.TemplateSources) > 0 {
-		return cfg.TemplateSources
+		raw = cfg.TemplateSources
+	} else if cfg != nil && cfg.ShowBuiltinTemplates != nil && !*cfg.ShowBuiltinTemplates {
+		// Backward compat: derive from showBuiltinTemplates
+		raw = []string{"config", "saved"}
+	} else {
+		raw = []string{"builtin", "config", "saved"}
 	}
-	// Backward compat: derive from showBuiltinTemplates
-	if cfg != nil && cfg.ShowBuiltinTemplates != nil && !*cfg.ShowBuiltinTemplates {
-		return []string{"config", "saved"}
+
+	// Filter to valid sources
+	valid := map[string]bool{"builtin": true, "config": true, "saved": true}
+	var filtered []string
+	for _, s := range raw {
+		if valid[s] {
+			filtered = append(filtered, s)
+		}
 	}
-	return []string{"builtin", "config", "saved"}
+	if len(filtered) == 0 {
+		return []string{"builtin", "config", "saved"} // fallback to all
+	}
+	return filtered
 }
 
 // HasTemplateSource checks if a source is in the resolved sources list

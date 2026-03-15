@@ -118,7 +118,7 @@ views:
         nodes: 1
         cpus: 4
         memory: "8G"
-        workingDir: "/scratch/$USER"
+        workingDir: "/scratch/%u"  # %u = username (SLURM substitution)
         outputFile: "slurm_%j.out"
         errorFile: "slurm_%j.err"
 
@@ -452,6 +452,8 @@ Each saved template is a JSON file with the following structure:
   }
 }
 ```
+
+> **Naming conventions:** Saved JSON templates use snake_case field names (matching Go struct JSON tags): `time_limit`, `output_file`, `error_file`, `working_directory`. Config YAML templates use camelCase: `timeLimit`, `outputFile`, `errorFile`, `workingDir`. Using the wrong convention will silently ignore the field.
 
 ### CLI Commands
 

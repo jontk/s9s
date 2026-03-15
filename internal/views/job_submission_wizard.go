@@ -1194,7 +1194,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("argv") {
-		form.AddInputField("Script Arguments", job.Argv, 50, nil, func(text string) {
+		form.AddInputField("Script Arguments (space-separated)", job.Argv, 50, nil, func(text string) {
 			job.Argv = text
 		})
 	}

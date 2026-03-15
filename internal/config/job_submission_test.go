@@ -101,6 +101,22 @@ func TestJobSubmissionFromMap_Float64Numbers(t *testing.T) {
 	assert.Equal(t, 4, js.GPUs)
 }
 
+func TestJobSubmissionFromMap_Dependencies(t *testing.T) {
+	m := map[string]any{
+		"dependencies": []any{"123", "456", "789"},
+	}
+	js := JobSubmissionFromMap(m)
+	assert.Equal(t, []string{"123", "456", "789"}, js.Dependencies)
+}
+
+func TestJobSubmissionFromMap_DependenciesEmpty(t *testing.T) {
+	m := map[string]any{
+		"dependencies": []any{},
+	}
+	js := JobSubmissionFromMap(m)
+	assert.Nil(t, js.Dependencies)
+}
+
 func TestResolveTemplateSources_NilConfig(t *testing.T) {
 	sources := ResolveTemplateSources(nil)
 	assert.Equal(t, []string{"builtin", "config", "saved"}, sources)

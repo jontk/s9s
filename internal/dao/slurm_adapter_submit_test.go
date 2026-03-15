@@ -820,6 +820,274 @@ func TestConvertJobSubmissionToJobCreate_EmptyFieldsAreNil(t *testing.T) {
 	assert.Nil(t, jc.MailType, "MailType should be nil when no email notify")
 }
 
+func derefInt64(p *int64) int64 {
+	if p == nil {
+		return 0
+	}
+	return *p
+}
+
+func TestConvertJobSubmissionToJobCreate_ExcludeNodes(t *testing.T) {
+	t.Run("wraps entire comma-separated string in single-element slice", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", ExcludeNodes: "node01,node02"}
+		jc := convertJobSubmissionToJobCreate(job)
+		// The whole string is wrapped in one element, NOT split on commas
+		assert.Equal(t, []string{"node01,node02"}, jc.ExcludedNodes)
+	})
+
+	t.Run("single node", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", ExcludeNodes: "node01"}
+		jc := convertJobSubmissionToJobCreate(job)
+		assert.Equal(t, []string{"node01"}, jc.ExcludedNodes)
+	})
+
+	t.Run("empty stays nil", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n"}
+		jc := convertJobSubmissionToJobCreate(job)
+		assert.Nil(t, jc.ExcludedNodes)
+	})
+}
+
+func TestConvertJobSubmissionToJobCreate_RequiredNodes(t *testing.T) {
+	t.Run("wraps entire comma-separated string in single-element slice", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", RequiredNodes: "node03,node04"}
+		jc := convertJobSubmissionToJobCreate(job)
+		assert.Equal(t, []string{"node03,node04"}, jc.RequiredNodes)
+	})
+
+	t.Run("empty stays nil", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n"}
+		jc := convertJobSubmissionToJobCreate(job)
+		assert.Nil(t, jc.RequiredNodes)
+	})
+}
+
+func TestConvertJobSubmissionToJobCreate_X11(t *testing.T) {
+	t.Run("string uppercased to X11Value slice", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", X11: "batch"}
+		jc := convertJobSubmissionToJobCreate(job)
+		assert.Equal(t, []slurm.X11Value{"BATCH"}, jc.X11)
+	})
+
+	t.Run("already uppercase", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", X11: "FORWARD"}
+		jc := convertJobSubmissionToJobCreate(job)
+		assert.Equal(t, []slurm.X11Value{"FORWARD"}, jc.X11)
+	})
+
+	t.Run("empty stays nil", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n"}
+		jc := convertJobSubmissionToJobCreate(job)
+		assert.Nil(t, jc.X11)
+	})
+}
+
+func TestConvertJobSubmissionToJobCreate_Priority(t *testing.T) {
+	t.Run("positive priority", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", Priority: 100}
+		jc := convertJobSubmissionToJobCreate(job)
+		require.NotNil(t, jc.Priority)
+		assert.Equal(t, uint32(100), *jc.Priority)
+	})
+
+	t.Run("zero stays nil", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n"}
+		jc := convertJobSubmissionToJobCreate(job)
+		assert.Nil(t, jc.Priority)
+	})
+}
+
+func TestConvertJobSubmissionToJobCreate_Nice(t *testing.T) {
+	t.Run("negative nice value", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", Nice: -10}
+		jc := convertJobSubmissionToJobCreate(job)
+		require.NotNil(t, jc.Nice)
+		assert.Equal(t, int32(-10), *jc.Nice)
+	})
+
+	t.Run("positive nice value", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", Nice: 50}
+		jc := convertJobSubmissionToJobCreate(job)
+		require.NotNil(t, jc.Nice)
+		assert.Equal(t, int32(50), *jc.Nice)
+	})
+
+	t.Run("zero stays nil", func(t *testing.T) {
+		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n"}
+		jc := convertJobSubmissionToJobCreate(job)
+		assert.Nil(t, jc.Nice)
+	})
+}
+
+func TestConvertJobSubmissionToJobCreate_Deadline(t *testing.T) {
+	// Deadline uses parseBeginTime, which accepts ISO date-time strings
+	job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", Deadline: "2024-06-15T14:30:00"}
+	jc := convertJobSubmissionToJobCreate(job)
+	require.NotNil(t, jc.Deadline, "Deadline should be set for valid datetime string")
+	assert.Greater(t, *jc.Deadline, int64(0), "Deadline should be a positive unix timestamp")
+}
+
+func TestConvertJobSubmissionToJobCreate_TmpDiskPerNode(t *testing.T) {
+	job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", TmpDiskPerNode: 1024}
+	jc := convertJobSubmissionToJobCreate(job)
+	require.NotNil(t, jc.TemporaryDiskPerNode)
+	assert.Equal(t, int32(1024), *jc.TemporaryDiskPerNode)
+}
+
+func TestConvertJobSubmissionToJobCreate_NTasksPerTRES(t *testing.T) {
+	job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", NTasksPerTRES: 4}
+	jc := convertJobSubmissionToJobCreate(job)
+	require.NotNil(t, jc.NtasksPerTRES)
+	assert.Equal(t, int32(4), *jc.NtasksPerTRES)
+}
+
+func TestConvertJobSubmissionToJobCreate_CoreSpecification(t *testing.T) {
+	job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", CoreSpecification: 2}
+	jc := convertJobSubmissionToJobCreate(job)
+	require.NotNil(t, jc.CoreSpecification)
+	assert.Equal(t, int32(2), *jc.CoreSpecification)
+}
+
+func TestConvertJobSubmissionToJobCreate_ThreadSpecification(t *testing.T) {
+	job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", ThreadSpecification: 4}
+	jc := convertJobSubmissionToJobCreate(job)
+	require.NotNil(t, jc.ThreadSpecification)
+	assert.Equal(t, int32(4), *jc.ThreadSpecification)
+}
+
+func TestConvertJobSubmissionToJobCreate_RemainingStringPointerFields(t *testing.T) {
+	tests := []struct {
+		name  string
+		setup func(*JobSubmission)
+		check func(*testing.T, *slurm.JobCreate)
+	}{
+		{
+			name:  "Reservation",
+			setup: func(j *JobSubmission) { j.Reservation = "gpu_reservation" },
+			check: func(t *testing.T, jc *slurm.JobCreate) {
+				require.NotNil(t, jc.Reservation)
+				assert.Equal(t, "gpu_reservation", *jc.Reservation)
+			},
+		},
+		{
+			name:  "Licenses",
+			setup: func(j *JobSubmission) { j.Licenses = "matlab:2,ansys:1" },
+			check: func(t *testing.T, jc *slurm.JobCreate) {
+				require.NotNil(t, jc.Licenses)
+				assert.Equal(t, "matlab:2,ansys:1", *jc.Licenses)
+			},
+		},
+		{
+			name:  "Wckey",
+			setup: func(j *JobSubmission) { j.Wckey = "project-alpha" },
+			check: func(t *testing.T, jc *slurm.JobCreate) {
+				require.NotNil(t, jc.Wckey)
+				assert.Equal(t, "project-alpha", *jc.Wckey)
+			},
+		},
+		{
+			name:  "CPUBinding",
+			setup: func(j *JobSubmission) { j.CPUBinding = "cores" },
+			check: func(t *testing.T, jc *slurm.JobCreate) {
+				require.NotNil(t, jc.CPUBinding)
+				assert.Equal(t, "cores", *jc.CPUBinding)
+			},
+		},
+		{
+			name:  "CPUFrequency",
+			setup: func(j *JobSubmission) { j.CPUFrequency = "high" },
+			check: func(t *testing.T, jc *slurm.JobCreate) {
+				require.NotNil(t, jc.CPUFrequency)
+				assert.Equal(t, "high", *jc.CPUFrequency)
+			},
+		},
+		{
+			name:  "Network",
+			setup: func(j *JobSubmission) { j.Network = "sn_all:torus" },
+			check: func(t *testing.T, jc *slurm.JobCreate) {
+				require.NotNil(t, jc.Network)
+				assert.Equal(t, "sn_all:torus", *jc.Network)
+			},
+		},
+		{
+			name:  "BurstBuffer",
+			setup: func(j *JobSubmission) { j.BurstBuffer = "#BB create_persistent name=bb1 capacity=100GB" },
+			check: func(t *testing.T, jc *slurm.JobCreate) {
+				require.NotNil(t, jc.BurstBuffer)
+				assert.Equal(t, "#BB create_persistent name=bb1 capacity=100GB", *jc.BurstBuffer)
+			},
+		},
+		{
+			name:  "BatchFeatures",
+			setup: func(j *JobSubmission) { j.BatchFeatures = "haswell" },
+			check: func(t *testing.T, jc *slurm.JobCreate) {
+				require.NotNil(t, jc.BatchFeatures)
+				assert.Equal(t, "haswell", *jc.BatchFeatures)
+			},
+		},
+		{
+			name:  "TRESBind",
+			setup: func(j *JobSubmission) { j.TRESBind = "gpu:verbose" },
+			check: func(t *testing.T, jc *slurm.JobCreate) {
+				require.NotNil(t, jc.TRESBind)
+				assert.Equal(t, "gpu:verbose", *jc.TRESBind)
+			},
+		},
+		{
+			name:  "TRESFreq",
+			setup: func(j *JobSubmission) { j.TRESFreq = "gpu:high" },
+			check: func(t *testing.T, jc *slurm.JobCreate) {
+				require.NotNil(t, jc.TRESFreq)
+				assert.Equal(t, "gpu:high", *jc.TRESFreq)
+			},
+		},
+		{
+			name:  "MemoryBinding",
+			setup: func(j *JobSubmission) { j.MemoryBinding = "local" },
+			check: func(t *testing.T, jc *slurm.JobCreate) {
+				require.NotNil(t, jc.MemoryBinding)
+				assert.Equal(t, "local", *jc.MemoryBinding)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n"}
+			tt.setup(job)
+			jc := convertJobSubmissionToJobCreate(job)
+			tt.check(t, jc)
+		})
+	}
+}
+
+func TestConvertJobSubmissionToJobCreate_EmptyFieldsAreNil_Extended(t *testing.T) {
+	job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n"}
+	jc := convertJobSubmissionToJobCreate(job)
+
+	assert.Nil(t, jc.Reservation, "Reservation should be nil when empty")
+	assert.Nil(t, jc.Licenses, "Licenses should be nil when empty")
+	assert.Nil(t, jc.Wckey, "Wckey should be nil when empty")
+	assert.Nil(t, jc.ExcludedNodes, "ExcludedNodes should be nil when empty")
+	assert.Nil(t, jc.Priority, "Priority should be nil when 0")
+	assert.Nil(t, jc.Nice, "Nice should be nil when 0")
+	assert.Nil(t, jc.Deadline, "Deadline should be nil when empty")
+	assert.Nil(t, jc.TemporaryDiskPerNode, "TemporaryDiskPerNode should be nil when 0")
+	assert.Nil(t, jc.NtasksPerTRES, "NtasksPerTRES should be nil when 0")
+	assert.Nil(t, jc.CPUBinding, "CPUBinding should be nil when empty")
+	assert.Nil(t, jc.CPUFrequency, "CPUFrequency should be nil when empty")
+	assert.Nil(t, jc.Network, "Network should be nil when empty")
+	assert.Nil(t, jc.X11, "X11 should be nil when empty")
+	assert.Nil(t, jc.BurstBuffer, "BurstBuffer should be nil when empty")
+	assert.Nil(t, jc.BatchFeatures, "BatchFeatures should be nil when empty")
+	assert.Nil(t, jc.TRESBind, "TRESBind should be nil when empty")
+	assert.Nil(t, jc.TRESFreq, "TRESFreq should be nil when empty")
+	assert.Nil(t, jc.CoreSpecification, "CoreSpecification should be nil when 0")
+	assert.Nil(t, jc.ThreadSpecification, "ThreadSpecification should be nil when 0")
+	assert.Nil(t, jc.MemoryBinding, "MemoryBinding should be nil when empty")
+	assert.Nil(t, jc.RequiredNodes, "RequiredNodes should be nil when empty")
+}
+
 func TestConvertJobSubmissionToJobCreate_EnvironmentFiltersPosixKeys(t *testing.T) {
 	// Set an env var with a valid POSIX name and verify it shows up
 	// when no custom environment is specified.

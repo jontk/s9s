@@ -26,18 +26,26 @@ func TestBuiltinTemplates_AllHaveRequiredFields(t *testing.T) {
 
 func TestOverlayJobDefaults_OverlaysNonZeroFields(t *testing.T) {
 	dst := &dao.JobSubmission{
-		Name:      "original",
-		Partition: "normal",
-		TimeLimit: "01:00:00",
-		Nodes:     1,
-		CPUs:      1,
+		Name:        "original",
+		Partition:   "normal",
+		TimeLimit:   "01:00:00",
+		Nodes:       1,
+		CPUs:        1,
+		Constraints: "old-feature",
+		Reservation: "old-res",
 	}
 
 	src := &dao.JobSubmission{
-		Partition: "gpu",
-		CPUs:      8,
-		GPUs:      2,
-		Memory:    "16G",
+		Partition:    "gpu",
+		CPUs:         8,
+		GPUs:         2,
+		Memory:       "16G",
+		Constraints:  "gpu,nvlink",
+		NTasks:       16,
+		Reservation:  "new-res",
+		CPUBinding:   "cores",
+		Dependencies: []string{"123", "456"},
+		Nice:         -5,
 	}
 
 	overlayJobDefaults(dst, src)
@@ -47,6 +55,12 @@ func TestOverlayJobDefaults_OverlaysNonZeroFields(t *testing.T) {
 	assert.Equal(t, 8, dst.CPUs)
 	assert.Equal(t, 2, dst.GPUs)
 	assert.Equal(t, "16G", dst.Memory)
+	assert.Equal(t, "gpu,nvlink", dst.Constraints)
+	assert.Equal(t, 16, dst.NTasks)
+	assert.Equal(t, "new-res", dst.Reservation)
+	assert.Equal(t, "cores", dst.CPUBinding)
+	assert.Equal(t, []string{"123", "456"}, dst.Dependencies)
+	assert.Equal(t, -5, dst.Nice)
 	// Preserved from dst (src was zero)
 	assert.Equal(t, "original", dst.Name)
 	assert.Equal(t, "01:00:00", dst.TimeLimit)
@@ -150,28 +164,93 @@ func TestIsValidMemoryFormat(t *testing.T) {
 
 func TestConfigValuesToJobSubmission_AllFields(t *testing.T) {
 	v := config.JobSubmissionValues{
-		Name:        "test-job",
-		Script:      "#!/bin/bash\necho hi",
-		Partition:   "gpu",
-		Account:     "myaccount",
-		QoS:         "high",
-		Nodes:       4,
-		CPUs:        16,
-		Memory:      "32G",
-		GPUs:        2,
-		TimeLimit:   "12:00:00",
-		WorkingDir:  "/tmp/work",
-		OutputFile:  "out.log",
-		ErrorFile:   "err.log",
-		EmailNotify: true,
-		Email:       "user@example.com",
-		ArraySpec:   "1-10",
-		Exclusive:   true,
-		Requeue:     true,
+		Name:                "test-job",
+		Script:              "#!/bin/bash\necho hi",
+		Partition:           "gpu",
+		Account:             "myaccount",
+		QoS:                 "high",
+		Nodes:               4,
+		CPUs:                16,
+		Memory:              "32G",
+		GPUs:                2,
+		TimeLimit:           "12:00:00",
+		WorkingDir:          "/tmp/work",
+		OutputFile:          "out.log",
+		ErrorFile:           "err.log",
+		EmailNotify:         true,
+		Email:               "user@example.com",
+		ArraySpec:           "1-10",
+		Exclusive:           true,
+		Requeue:             true,
+		Constraints:         "gpu,nvlink",
+		NTasks:              8,
+		NTasksPerNode:       4,
+		Gres:                "gres/gpu:a100:2",
+		Hold:                true,
+		Reservation:         "gpu_reservation",
+		Licenses:            "matlab:2",
+		Wckey:               "project-alpha",
+		ExcludeNodes:        "node01,node02",
+		Priority:            100,
+		Nice:                -10,
+		MemoryPerCPU:        "4G",
+		BeginTime:           "2024-06-15T14:30:00",
+		Comment:             "test comment",
+		Distribution:        "cyclic",
+		Prefer:              "a100",
+		RequiredNodes:       "node03,node04",
+		StandardInput:       "/tmp/input.dat",
+		Container:           "/path/to/container",
+		ThreadsPerCore:      2,
+		TasksPerCore:        1,
+		TasksPerSocket:      4,
+		SocketsPerNode:      2,
+		MaximumNodes:        10,
+		MaximumCPUs:         64,
+		MinimumCPUsPerNode:  8,
+		TimeMinimum:         "00:30:00",
+		Contiguous:          true,
+		Overcommit:          true,
+		KillOnNodeFail:      true,
+		WaitAllNodes:        true,
+		OpenMode:            "append",
+		TRESPerTask:         "gres/gpu:1",
+		TRESPerSocket:       "gres/gpu:2",
+		Signal:              "B:USR1@300",
+		TmpDiskPerNode:      1024,
+		Deadline:            "2024-06-16T00:00:00",
+		NTasksPerTRES:       4,
+		CPUBinding:          "cores",
+		CPUFrequency:        "high",
+		Network:             "sn_all:torus",
+		X11:                 "batch",
+		Immediate:           true,
+		BurstBuffer:         "#BB create_persistent",
+		BatchFeatures:       "haswell",
+		TRESBind:            "gpu:verbose",
+		TRESFreq:            "gpu:high",
+		CoreSpecification:   2,
+		ThreadSpecification: 4,
+		MemoryBinding:       "local",
+		MinimumCPUs:         16,
+		TRESPerJob:          "gres/gpu:8",
+		CPUsPerTRES:         "gres/gpu:2",
+		MemoryPerTRES:       "gres/gpu:4096",
+		Argv:                "arg1 arg2",
+		Flags:               "SPREAD_JOB",
+		ProfileTypes:        "ENERGY,NETWORK",
+		CPUBindingFlags:     "VERBOSE",
+		MemoryBindingType:   "LOCAL",
+		RequiredSwitches:    3,
+		WaitForSwitch:       120,
+		ClusterConstraint:   "gpu_cluster",
+		Clusters:            "cluster1,cluster2",
+		Dependencies:        []string{"123", "456"},
 	}
 
 	js := ConfigValuesToJobSubmission(v)
 
+	// Core fields
 	assert.Equal(t, v.Name, js.Name)
 	assert.Equal(t, v.Script, js.Script)
 	assert.Equal(t, v.Partition, js.Partition)
@@ -190,6 +269,72 @@ func TestConfigValuesToJobSubmission_AllFields(t *testing.T) {
 	assert.Equal(t, v.ArraySpec, js.ArraySpec)
 	assert.Equal(t, v.Exclusive, js.Exclusive)
 	assert.Equal(t, v.Requeue, js.Requeue)
+
+	// Extended fields
+	assert.Equal(t, v.Constraints, js.Constraints)
+	assert.Equal(t, v.NTasks, js.NTasks)
+	assert.Equal(t, v.NTasksPerNode, js.NTasksPerNode)
+	assert.Equal(t, v.Gres, js.Gres)
+	assert.Equal(t, v.Hold, js.Hold)
+	assert.Equal(t, v.Reservation, js.Reservation)
+	assert.Equal(t, v.Licenses, js.Licenses)
+	assert.Equal(t, v.Wckey, js.Wckey)
+	assert.Equal(t, v.ExcludeNodes, js.ExcludeNodes)
+	assert.Equal(t, v.Priority, js.Priority)
+	assert.Equal(t, v.Nice, js.Nice)
+	assert.Equal(t, v.MemoryPerCPU, js.MemoryPerCPU)
+	assert.Equal(t, v.BeginTime, js.BeginTime)
+	assert.Equal(t, v.Comment, js.Comment)
+	assert.Equal(t, v.Distribution, js.Distribution)
+	assert.Equal(t, v.Prefer, js.Prefer)
+	assert.Equal(t, v.RequiredNodes, js.RequiredNodes)
+	assert.Equal(t, v.StandardInput, js.StandardInput)
+	assert.Equal(t, v.Container, js.Container)
+	assert.Equal(t, v.ThreadsPerCore, js.ThreadsPerCore)
+	assert.Equal(t, v.TasksPerCore, js.TasksPerCore)
+	assert.Equal(t, v.TasksPerSocket, js.TasksPerSocket)
+	assert.Equal(t, v.SocketsPerNode, js.SocketsPerNode)
+	assert.Equal(t, v.MaximumNodes, js.MaximumNodes)
+	assert.Equal(t, v.MaximumCPUs, js.MaximumCPUs)
+	assert.Equal(t, v.MinimumCPUsPerNode, js.MinimumCPUsPerNode)
+	assert.Equal(t, v.TimeMinimum, js.TimeMinimum)
+	assert.Equal(t, v.Contiguous, js.Contiguous)
+	assert.Equal(t, v.Overcommit, js.Overcommit)
+	assert.Equal(t, v.KillOnNodeFail, js.KillOnNodeFail)
+	assert.Equal(t, v.WaitAllNodes, js.WaitAllNodes)
+	assert.Equal(t, v.OpenMode, js.OpenMode)
+	assert.Equal(t, v.TRESPerTask, js.TRESPerTask)
+	assert.Equal(t, v.TRESPerSocket, js.TRESPerSocket)
+	assert.Equal(t, v.Signal, js.Signal)
+	assert.Equal(t, v.TmpDiskPerNode, js.TmpDiskPerNode)
+	assert.Equal(t, v.Deadline, js.Deadline)
+	assert.Equal(t, v.NTasksPerTRES, js.NTasksPerTRES)
+	assert.Equal(t, v.CPUBinding, js.CPUBinding)
+	assert.Equal(t, v.CPUFrequency, js.CPUFrequency)
+	assert.Equal(t, v.Network, js.Network)
+	assert.Equal(t, v.X11, js.X11)
+	assert.Equal(t, v.Immediate, js.Immediate)
+	assert.Equal(t, v.BurstBuffer, js.BurstBuffer)
+	assert.Equal(t, v.BatchFeatures, js.BatchFeatures)
+	assert.Equal(t, v.TRESBind, js.TRESBind)
+	assert.Equal(t, v.TRESFreq, js.TRESFreq)
+	assert.Equal(t, v.CoreSpecification, js.CoreSpecification)
+	assert.Equal(t, v.ThreadSpecification, js.ThreadSpecification)
+	assert.Equal(t, v.MemoryBinding, js.MemoryBinding)
+	assert.Equal(t, v.MinimumCPUs, js.MinimumCPUs)
+	assert.Equal(t, v.TRESPerJob, js.TRESPerJob)
+	assert.Equal(t, v.CPUsPerTRES, js.CPUsPerTRES)
+	assert.Equal(t, v.MemoryPerTRES, js.MemoryPerTRES)
+	assert.Equal(t, v.Argv, js.Argv)
+	assert.Equal(t, v.Flags, js.Flags)
+	assert.Equal(t, v.ProfileTypes, js.ProfileTypes)
+	assert.Equal(t, v.CPUBindingFlags, js.CPUBindingFlags)
+	assert.Equal(t, v.MemoryBindingType, js.MemoryBindingType)
+	assert.Equal(t, v.RequiredSwitches, js.RequiredSwitches)
+	assert.Equal(t, v.WaitForSwitch, js.WaitForSwitch)
+	assert.Equal(t, v.ClusterConstraint, js.ClusterConstraint)
+	assert.Equal(t, v.Clusters, js.Clusters)
+	assert.Equal(t, v.Dependencies, js.Dependencies)
 }
 
 func TestConfigValuesToJobSubmission_ZeroValues(t *testing.T) {
