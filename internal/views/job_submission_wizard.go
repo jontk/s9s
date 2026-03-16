@@ -870,6 +870,8 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 		// QoS - check if we have fieldOptions to show as dropdown
 		qosOptions := w.getConfigFieldOptions("qos")
 		if len(qosOptions) > 0 {
+			// Prepend empty option for "not set"
+			qosOptions = append([]string{""}, qosOptions...)
 			form.AddDropDown("QoS (optional)", qosOptions, w.getStringIndex(qosOptions, job.QoS), func(option string, index int) {
 				job.QoS = option
 			})
@@ -884,6 +886,8 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 		accounts := w.getAvailableAccounts()
 		accounts = w.filterFieldOptions(accounts, "account")
 		if len(accounts) > 0 {
+			// Prepend empty option for "not set"
+			accounts = append([]string{""}, accounts...)
 			form.AddDropDown("Account (optional)", accounts, w.getAccountIndex(accounts, job.Account), func(option string, index int) {
 				job.Account = option
 			})
