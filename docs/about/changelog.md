@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Recent Changes
 
-### Unreleased
+### Version 0.7.0 (2026-03-16)
 
 Configurable job submission templates and full SLURM field support:
 

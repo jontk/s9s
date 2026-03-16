@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.7.0] - 2026-03-16
+
+### Added
+
 - **Configurable job submission templates** — define custom templates with pre-filled values, global form defaults, hidden fields, and restricted dropdown options via `views.jobs.submission` config section
 - **3-tier template merge** — templates from built-in (8), config YAML, and user-saved JSON (`~/.s9s/templates/`) merge with name-based override; controlled by `templateSources` config
 - **84 SLURM sbatch fields** — job submission wizard supports 84 of 117 SLURM OpenAPI JobCreate fields (was 12); fields organized in visibility tiers (7 always visible, 7 default, 70 hidden — shown via templates)
