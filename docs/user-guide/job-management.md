@@ -583,6 +583,17 @@ Each saved template is a JSON file with the following structure:
 
 > **Naming conventions:** Saved JSON templates use snake_case field names (matching Go struct JSON tags): `time_limit`, `output_file`, `error_file`, `working_directory`. Config YAML templates use camelCase: `timeLimit`, `outputFile`, `errorFile`, `workingDir`. Using the wrong convention will silently ignore the field. Script arguments (`argv`) are split on whitespace in both formats — quoted arguments with spaces are not supported.
 
+### Job Script Preview
+
+Before submitting, press **Preview** to see the complete sbatch script that will be generated from your form values. The preview shows all `#SBATCH` directives derived from the form fields followed by your script body.
+
+| Key | Action |
+|-----|--------|
+| `ESC` | Close preview |
+| `Ctrl+Y` | Copy script to clipboard (via OSC 52) |
+
+The clipboard copy produces a clean plain-text script with no color formatting, ready to paste into a file or terminal. OSC 52 clipboard support works in most modern terminals (iTerm2, kitty, tmux, Windows Terminal, Alacritty).
+
 ### CLI Commands
 
 Manage templates from the command line:
@@ -612,10 +623,17 @@ A typical workflow for customizing templates:
    ```bash
    s9s templates export
    ```
+   This writes all 8 built-in templates (plus any config templates) to `~/.s9s/templates/` as JSON files. Existing files are skipped unless `--force` is used.
 
-2. **Edit the JSON files** in `~/.s9s/templates/` to match your environment (change partitions, modules, default resources, etc.).
+2. **Edit the JSON files** in `~/.s9s/templates/` to match your environment (change partitions, modules, default resources, etc.). The exported files use the same format that `JobTemplateManager` loads — changes take effect on the next wizard open without restarting s9s.
 
-3. **Optionally restrict sources** so only your edited templates appear in the wizard:
+3. **Verify your templates** are loaded:
+   ```bash
+   s9s templates list
+   ```
+   Edited templates show as `saved` source and override any built-in with the same name.
+
+4. **Optionally restrict sources** so only your edited templates appear in the wizard:
    ```yaml
    views:
      jobs:
@@ -623,7 +641,7 @@ A typical workflow for customizing templates:
          templateSources: ["saved"]
    ```
 
-4. **Use templates** in the wizard -- press `s` to open the submission wizard, select "From template", and pick from the template selector.
+5. **Use templates** in the wizard — press `s` to open the submission wizard, then pick from the template selector. Your custom templates appear with the values you set.
 
 ### Controlling Template Sources
 
