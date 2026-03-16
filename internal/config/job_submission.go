@@ -1,5 +1,7 @@
 package config
 
+import "strings"
+
 // JobSubmissionValues holds job submission field values parsed from config maps.
 // Its fields mirror dao.JobSubmission so callers can map between them directly.
 type JobSubmissionValues struct {
@@ -87,10 +89,20 @@ type JobSubmissionValues struct {
 	Dependencies        []string
 }
 
-// JobSubmissionFromMap converts a map of camelCase config keys to JobSubmissionValues.
+// JobSubmissionFromMap converts a map of config keys to JobSubmissionValues.
 // It handles type assertions safely and supports both int and float64 for numeric fields,
 // since YAML/JSON unmarshaling may produce either type.
+// Keys are matched case-insensitively because Viper lowercases all YAML map keys.
 func JobSubmissionFromMap(m map[string]any) JobSubmissionValues {
+	// Normalize keys to lowercase for case-insensitive lookup.
+	// Viper lowercases YAML keys (e.g., "timeLimit" becomes "timelimit"),
+	// but callers may also pass camelCase keys directly.
+	normalized := make(map[string]any, len(m))
+	for k, v := range m {
+		normalized[strings.ToLower(k)] = v
+	}
+	m = normalized
+
 	var js JobSubmissionValues
 
 	if v, ok := m["name"].(string); ok {
@@ -120,25 +132,25 @@ func JobSubmissionFromMap(m map[string]any) JobSubmissionValues {
 	if v, ok := m["gpus"]; ok {
 		js.GPUs = toInt(v)
 	}
-	if v, ok := m["timeLimit"].(string); ok {
+	if v, ok := m["timelimit"].(string); ok {
 		js.TimeLimit = v
 	}
-	if v, ok := m["workingDir"].(string); ok {
+	if v, ok := m["workingdir"].(string); ok {
 		js.WorkingDir = v
 	}
-	if v, ok := m["outputFile"].(string); ok {
+	if v, ok := m["outputfile"].(string); ok {
 		js.OutputFile = v
 	}
-	if v, ok := m["errorFile"].(string); ok {
+	if v, ok := m["errorfile"].(string); ok {
 		js.ErrorFile = v
 	}
-	if v, ok := m["emailNotify"].(bool); ok {
+	if v, ok := m["emailnotify"].(bool); ok {
 		js.EmailNotify = v
 	}
 	if v, ok := m["email"].(string); ok {
 		js.Email = v
 	}
-	if v, ok := m["arraySpec"].(string); ok {
+	if v, ok := m["arrayspec"].(string); ok {
 		js.ArraySpec = v
 	}
 	if v, ok := m["exclusive"].(bool); ok {
@@ -153,7 +165,7 @@ func JobSubmissionFromMap(m map[string]any) JobSubmissionValues {
 	if v, ok := m["ntasks"]; ok {
 		js.NTasks = toInt(v)
 	}
-	if v, ok := m["ntasksPerNode"]; ok {
+	if v, ok := m["ntaskspernode"]; ok {
 		js.NTasksPerNode = toInt(v)
 	}
 	if v, ok := m["gres"].(string); ok {
@@ -171,7 +183,7 @@ func JobSubmissionFromMap(m map[string]any) JobSubmissionValues {
 	if v, ok := m["wckey"].(string); ok {
 		js.Wckey = v
 	}
-	if v, ok := m["excludeNodes"].(string); ok {
+	if v, ok := m["excludenodes"].(string); ok {
 		js.ExcludeNodes = v
 	}
 	if v, ok := m["priority"]; ok {
@@ -180,10 +192,10 @@ func JobSubmissionFromMap(m map[string]any) JobSubmissionValues {
 	if v, ok := m["nice"]; ok {
 		js.Nice = toInt(v)
 	}
-	if v, ok := m["memoryPerCPU"].(string); ok {
+	if v, ok := m["memorypercpu"].(string); ok {
 		js.MemoryPerCPU = v
 	}
-	if v, ok := m["beginTime"].(string); ok {
+	if v, ok := m["begintime"].(string); ok {
 		js.BeginTime = v
 	}
 	if v, ok := m["comment"].(string); ok {
@@ -195,37 +207,37 @@ func JobSubmissionFromMap(m map[string]any) JobSubmissionValues {
 	if v, ok := m["prefer"].(string); ok {
 		js.Prefer = v
 	}
-	if v, ok := m["requiredNodes"].(string); ok {
+	if v, ok := m["requirednodes"].(string); ok {
 		js.RequiredNodes = v
 	}
-	if v, ok := m["standardInput"].(string); ok {
+	if v, ok := m["standardinput"].(string); ok {
 		js.StandardInput = v
 	}
 	if v, ok := m["container"].(string); ok {
 		js.Container = v
 	}
-	if v, ok := m["threadsPerCore"]; ok {
+	if v, ok := m["threadspercore"]; ok {
 		js.ThreadsPerCore = toInt(v)
 	}
-	if v, ok := m["tasksPerCore"]; ok {
+	if v, ok := m["taskspercore"]; ok {
 		js.TasksPerCore = toInt(v)
 	}
-	if v, ok := m["tasksPerSocket"]; ok {
+	if v, ok := m["taskspersocket"]; ok {
 		js.TasksPerSocket = toInt(v)
 	}
-	if v, ok := m["socketsPerNode"]; ok {
+	if v, ok := m["socketspernode"]; ok {
 		js.SocketsPerNode = toInt(v)
 	}
-	if v, ok := m["maximumNodes"]; ok {
+	if v, ok := m["maximumnodes"]; ok {
 		js.MaximumNodes = toInt(v)
 	}
-	if v, ok := m["maximumCPUs"]; ok {
+	if v, ok := m["maximumcpus"]; ok {
 		js.MaximumCPUs = toInt(v)
 	}
-	if v, ok := m["minimumCPUsPerNode"]; ok {
+	if v, ok := m["minimumcpuspernode"]; ok {
 		js.MinimumCPUsPerNode = toInt(v)
 	}
-	if v, ok := m["timeMinimum"].(string); ok {
+	if v, ok := m["timeminimum"].(string); ok {
 		js.TimeMinimum = v
 	}
 	if v, ok := m["contiguous"].(bool); ok {
@@ -234,37 +246,37 @@ func JobSubmissionFromMap(m map[string]any) JobSubmissionValues {
 	if v, ok := m["overcommit"].(bool); ok {
 		js.Overcommit = v
 	}
-	if v, ok := m["killOnNodeFail"].(bool); ok {
+	if v, ok := m["killonnodefail"].(bool); ok {
 		js.KillOnNodeFail = v
 	}
-	if v, ok := m["waitAllNodes"].(bool); ok {
+	if v, ok := m["waitallnodes"].(bool); ok {
 		js.WaitAllNodes = v
 	}
-	if v, ok := m["openMode"].(string); ok {
+	if v, ok := m["openmode"].(string); ok {
 		js.OpenMode = v
 	}
-	if v, ok := m["tresPerTask"].(string); ok {
+	if v, ok := m["trespertask"].(string); ok {
 		js.TRESPerTask = v
 	}
-	if v, ok := m["tresPerSocket"].(string); ok {
+	if v, ok := m["trespersocket"].(string); ok {
 		js.TRESPerSocket = v
 	}
 	if v, ok := m["signal"].(string); ok {
 		js.Signal = v
 	}
-	if v, ok := m["tmpDiskPerNode"]; ok {
+	if v, ok := m["tmpdiskpernode"]; ok {
 		js.TmpDiskPerNode = toInt(v)
 	}
 	if v, ok := m["deadline"].(string); ok {
 		js.Deadline = v
 	}
-	if v, ok := m["ntasksPerTRES"]; ok {
+	if v, ok := m["ntaskspertres"]; ok {
 		js.NTasksPerTRES = toInt(v)
 	}
-	if v, ok := m["cpuBinding"].(string); ok {
+	if v, ok := m["cpubinding"].(string); ok {
 		js.CPUBinding = v
 	}
-	if v, ok := m["cpuFrequency"].(string); ok {
+	if v, ok := m["cpufrequency"].(string); ok {
 		js.CPUFrequency = v
 	}
 	if v, ok := m["network"].(string); ok {
@@ -276,37 +288,37 @@ func JobSubmissionFromMap(m map[string]any) JobSubmissionValues {
 	if v, ok := m["immediate"].(bool); ok {
 		js.Immediate = v
 	}
-	if v, ok := m["burstBuffer"].(string); ok {
+	if v, ok := m["burstbuffer"].(string); ok {
 		js.BurstBuffer = v
 	}
-	if v, ok := m["batchFeatures"].(string); ok {
+	if v, ok := m["batchfeatures"].(string); ok {
 		js.BatchFeatures = v
 	}
-	if v, ok := m["tresBind"].(string); ok {
+	if v, ok := m["tresbind"].(string); ok {
 		js.TRESBind = v
 	}
-	if v, ok := m["tresFreq"].(string); ok {
+	if v, ok := m["tresfreq"].(string); ok {
 		js.TRESFreq = v
 	}
-	if v, ok := m["coreSpecification"]; ok {
+	if v, ok := m["corespecification"]; ok {
 		js.CoreSpecification = toInt(v)
 	}
-	if v, ok := m["threadSpecification"]; ok {
+	if v, ok := m["threadspecification"]; ok {
 		js.ThreadSpecification = toInt(v)
 	}
-	if v, ok := m["memoryBinding"].(string); ok {
+	if v, ok := m["memorybinding"].(string); ok {
 		js.MemoryBinding = v
 	}
-	if v, ok := m["minimumCPUs"]; ok {
+	if v, ok := m["minimumcpus"]; ok {
 		js.MinimumCPUs = toInt(v)
 	}
-	if v, ok := m["tresPerJob"].(string); ok {
+	if v, ok := m["tresperjob"].(string); ok {
 		js.TRESPerJob = v
 	}
-	if v, ok := m["cpusPerTRES"].(string); ok {
+	if v, ok := m["cpuspertres"].(string); ok {
 		js.CPUsPerTRES = v
 	}
-	if v, ok := m["memoryPerTRES"].(string); ok {
+	if v, ok := m["memorypertres"].(string); ok {
 		js.MemoryPerTRES = v
 	}
 	if v, ok := m["argv"].(string); ok {
@@ -318,19 +330,19 @@ func JobSubmissionFromMap(m map[string]any) JobSubmissionValues {
 	if v, ok := m["profile"].(string); ok {
 		js.ProfileTypes = v
 	}
-	if v, ok := m["cpuBindingFlags"].(string); ok {
+	if v, ok := m["cpubindingflags"].(string); ok {
 		js.CPUBindingFlags = v
 	}
-	if v, ok := m["memoryBindingType"].(string); ok {
+	if v, ok := m["memorybindingtype"].(string); ok {
 		js.MemoryBindingType = v
 	}
-	if v, ok := m["requiredSwitches"]; ok {
+	if v, ok := m["requiredswitches"]; ok {
 		js.RequiredSwitches = toInt(v)
 	}
-	if v, ok := m["waitForSwitch"]; ok {
+	if v, ok := m["waitforswitch"]; ok {
 		js.WaitForSwitch = toInt(v)
 	}
-	if v, ok := m["clusterConstraint"].(string); ok {
+	if v, ok := m["clusterconstraint"].(string); ok {
 		js.ClusterConstraint = v
 	}
 	if v, ok := m["clusters"].(string); ok {

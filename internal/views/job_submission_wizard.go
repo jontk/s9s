@@ -24,7 +24,8 @@ type JobSubmissionWizard struct {
 	onCancel         func()
 	workingDir       string // Current working directory at application start
 	submissionConfig *config.JobSubmissionConfig
-	selectedTemplate *dao.JobTemplate // Track currently selected template for hidden fields
+	selectedTemplate *dao.JobTemplate  // Track currently selected template for hidden fields
+	currentJob       *dao.JobSubmission // Track current job for field visibility
 }
 
 // NewJobSubmissionWizard creates a new job submission wizard
@@ -203,6 +204,9 @@ func (w *JobSubmissionWizard) showJobForm(template *dao.JobTemplate) {
 		job.WorkingDir = w.workingDir
 	}
 
+	// Store current job so isFieldHidden can check for non-zero values
+	w.currentJob = job
+
 	// Add form fields
 	w.addJobFormFields(form, job)
 
@@ -213,7 +217,7 @@ func (w *JobSubmissionWizard) showJobForm(template *dao.JobTemplate) {
 	form.SetBorder(true).SetTitleAlign(tview.AlignCenter)
 	w.setupJobFormHandlers(form, job)
 
-	centered := createCenteredModal(form, 80, 35)
+	centered := createCenteredModal(form, 100, 40)
 	w.pages.AddPage("job-wizard-form", centered, true, true)
 	w.pages.RemovePage("job-wizard-templates")
 }
@@ -562,18 +566,208 @@ func overlayJobDefaults(dst *dao.JobSubmission, src *dao.JobSubmission) {
 	}
 }
 
-// isFieldHidden checks whether a field should be hidden from the form
+// defaultVisibleFields are always shown in the form.
+// All other fields are hidden by default and only shown when they have
+// a non-zero value (set by template or formDefaults).
+var defaultVisibleFields = map[string]bool{
+	"name":        true,
+	"script":      true,
+	"partition":   true,
+	"timeLimit":   true,
+	"nodes":       true,
+	"cpus":        true,
+	"memory":      true,
+	"gpus":        true,
+	"qos":         true,
+	"account":     true,
+	"workingDir":  true,
+	"outputFile":  true,
+	"errorFile":   true,
+	"emailNotify": true,
+	"email":       true,
+}
+
+// isFieldHidden checks whether a field should be hidden from the form.
+// Default-visible fields are always shown unless explicitly in hiddenFields.
+// Advanced fields are hidden by default unless they have a non-zero value
+// (set by template or formDefaults) or are in a "show all" mode.
 func (w *JobSubmissionWizard) isFieldHidden(fieldName string) bool {
+	// Check explicit hiddenFields (global + per-template) — always wins
+	if w.isExplicitlyHidden(fieldName) {
+		return true
+	}
+
+	// Default-visible fields are always shown
+	if defaultVisibleFields[fieldName] {
+		return false
+	}
+
+	// Advanced fields: show only if the current job has a non-zero value
+	// (meaning a template or formDefaults populated it)
+	if w.currentJob != nil && fieldHasValue(w.currentJob, fieldName) {
+		return false
+	}
+
+	// Hide advanced fields that have no value
+	return true
+}
+
+// fieldHasValue returns true if the named field on the job has a non-zero value.
+func fieldHasValue(job *dao.JobSubmission, field string) bool {
+	switch field {
+	// string fields
+	case "arraySpec":
+		return job.ArraySpec != ""
+	case "constraints":
+		return job.Constraints != ""
+	case "gres":
+		return job.Gres != ""
+	case "reservation":
+		return job.Reservation != ""
+	case "licenses":
+		return job.Licenses != ""
+	case "wckey":
+		return job.Wckey != ""
+	case "excludeNodes":
+		return job.ExcludeNodes != ""
+	case "memoryPerCPU":
+		return job.MemoryPerCPU != ""
+	case "beginTime":
+		return job.BeginTime != ""
+	case "comment":
+		return job.Comment != ""
+	case "distribution":
+		return job.Distribution != ""
+	case "prefer":
+		return job.Prefer != ""
+	case "requiredNodes":
+		return job.RequiredNodes != ""
+	case "standardInput":
+		return job.StandardInput != ""
+	case "container":
+		return job.Container != ""
+	case "timeMinimum":
+		return job.TimeMinimum != ""
+	case "openMode":
+		return job.OpenMode != ""
+	case "tresPerTask":
+		return job.TRESPerTask != ""
+	case "tresPerSocket":
+		return job.TRESPerSocket != ""
+	case "signal":
+		return job.Signal != ""
+	case "deadline":
+		return job.Deadline != ""
+	case "cpuBinding":
+		return job.CPUBinding != ""
+	case "cpuFrequency":
+		return job.CPUFrequency != ""
+	case "network":
+		return job.Network != ""
+	case "x11":
+		return job.X11 != ""
+	case "burstBuffer":
+		return job.BurstBuffer != ""
+	case "batchFeatures":
+		return job.BatchFeatures != ""
+	case "tresBind":
+		return job.TRESBind != ""
+	case "tresFreq":
+		return job.TRESFreq != ""
+	case "memoryBinding":
+		return job.MemoryBinding != ""
+	case "cpusPerTRES":
+		return job.CPUsPerTRES != ""
+	case "memoryPerTRES":
+		return job.MemoryPerTRES != ""
+	case "argv":
+		return job.Argv != ""
+	case "flags":
+		return job.Flags != ""
+	case "profile":
+		return job.ProfileTypes != ""
+	case "cpuBindingFlags":
+		return job.CPUBindingFlags != ""
+	case "memoryBindingType":
+		return job.MemoryBindingType != ""
+	case "clusterConstraint":
+		return job.ClusterConstraint != ""
+	case "clusters":
+		return job.Clusters != ""
+	case "tresPerJob":
+		return job.TRESPerJob != ""
+	// int fields
+	case "ntasks":
+		return job.NTasks > 0
+	case "ntasksPerNode":
+		return job.NTasksPerNode > 0
+	case "priority":
+		return job.Priority > 0
+	case "nice":
+		return job.Nice != 0
+	case "threadsPerCore":
+		return job.ThreadsPerCore > 0
+	case "tasksPerCore":
+		return job.TasksPerCore > 0
+	case "tasksPerSocket":
+		return job.TasksPerSocket > 0
+	case "socketsPerNode":
+		return job.SocketsPerNode > 0
+	case "maximumNodes":
+		return job.MaximumNodes > 0
+	case "maximumCPUs":
+		return job.MaximumCPUs > 0
+	case "minimumCPUsPerNode":
+		return job.MinimumCPUsPerNode > 0
+	case "minimumCPUs":
+		return job.MinimumCPUs > 0
+	case "tmpDiskPerNode":
+		return job.TmpDiskPerNode > 0
+	case "ntasksPerTRES":
+		return job.NTasksPerTRES > 0
+	case "coreSpecification":
+		return job.CoreSpecification > 0
+	case "threadSpecification":
+		return job.ThreadSpecification > 0
+	case "requiredSwitches":
+		return job.RequiredSwitches > 0
+	case "waitForSwitch":
+		return job.WaitForSwitch > 0
+	// bool fields
+	case "exclusive":
+		return job.Exclusive
+	case "requeue":
+		return job.Requeue
+	case "hold":
+		return job.Hold
+	case "contiguous":
+		return job.Contiguous
+	case "overcommit":
+		return job.Overcommit
+	case "killOnNodeFail":
+		return job.KillOnNodeFail
+	case "waitAllNodes":
+		return job.WaitAllNodes
+	case "immediate":
+		return job.Immediate
+	// slice fields
+	case "dependencies":
+		return len(job.Dependencies) > 0
+	default:
+		return false
+	}
+}
+
+// isExplicitlyHidden checks global and per-template hiddenFields lists
+func (w *JobSubmissionWizard) isExplicitlyHidden(fieldName string) bool {
 	if w.submissionConfig == nil {
 		return false
 	}
-	// Check global hidden fields
 	for _, f := range w.submissionConfig.HiddenFields {
 		if f == fieldName {
 			return true
 		}
 	}
-	// Check per-template hidden fields
 	if w.selectedTemplate != nil {
 		for _, ct := range w.submissionConfig.Templates {
 			if ct.Name == w.selectedTemplate.Name {
@@ -598,9 +792,15 @@ func (w *JobSubmissionWizard) addJobFormFields(form *tview.Form, job *dao.JobSub
 	}
 
 	if !w.isFieldHidden("script") {
-		form.AddTextArea("Script/Command", job.Script, 50, 5, 0, func(text string) {
-			job.Script = text
+		scriptArea := tview.NewTextArea().
+			SetLabel("Script/Command").
+			SetSize(5, 0).
+			SetMaxLength(0)
+		scriptArea.SetText(job.Script, false)
+		scriptArea.SetChangedFunc(func() {
+			job.Script = scriptArea.GetText()
 		})
+		form.AddFormItem(scriptArea)
 	}
 
 	if !w.isFieldHidden("partition") {
@@ -732,7 +932,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 
 	if !w.isFieldHidden("dependencies") {
 		depStr := strings.Join(job.Dependencies, ",")
-		form.AddInputField("Dependencies (comma-separated job IDs)", depStr, 50, nil, func(text string) {
+		form.AddInputField("Dependencies (job IDs, comma-sep)", depStr, 50, nil, func(text string) {
 			if text == "" {
 				job.Dependencies = nil
 			} else {
@@ -742,7 +942,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("constraints") {
-		form.AddInputField("Constraints (node features)", job.Constraints, 50, nil, func(text string) {
+		form.AddInputField("Constraints", job.Constraints, 50, nil, func(text string) {
 			job.Constraints = text
 		})
 	}
@@ -776,7 +976,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("gres") {
-		form.AddInputField("Generic Resources (e.g., gpu:2,shard:4)", job.Gres, 50, nil, func(text string) {
+		form.AddInputField("GRES (e.g., gpu:2,shard:4)", job.Gres, 50, nil, func(text string) {
 			job.Gres = text
 		})
 	}
@@ -846,7 +1046,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("beginTime") {
-		form.AddInputField("Begin Time (e.g., 2024-01-01T00:00)", job.BeginTime, 30, nil, func(text string) {
+		form.AddInputField("Begin Time", job.BeginTime, 30, nil, func(text string) {
 			job.BeginTime = text
 		})
 	}
@@ -870,7 +1070,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("requiredNodes") {
-		form.AddInputField("Required Nodes (comma-separated)", job.RequiredNodes, 50, nil, func(text string) {
+		form.AddInputField("Required Nodes", job.RequiredNodes, 50, nil, func(text string) {
 			job.RequiredNodes = text
 		})
 	}
@@ -882,7 +1082,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("container") {
-		form.AddInputField("Container (OCI bundle path)", job.Container, 50, nil, func(text string) {
+		form.AddInputField("Container Path", job.Container, 50, nil, func(text string) {
 			job.Container = text
 		})
 	}
@@ -1054,7 +1254,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("deadline") {
-		form.AddInputField("Deadline (e.g., 2024-01-01T00:00)", job.Deadline, 30, nil, func(text string) {
+		form.AddInputField("Deadline", job.Deadline, 30, nil, func(text string) {
 			job.Deadline = text
 		})
 	}
@@ -1074,7 +1274,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("cpuBinding") {
-		form.AddInputField("CPU Bind (none, rank, map_cpu:, mask_cpu:)", job.CPUBinding, 50, nil, func(text string) {
+		form.AddInputField("CPU Bind (cores, rank, map_cpu:)", job.CPUBinding, 50, nil, func(text string) {
 			job.CPUBinding = text
 		})
 	}
@@ -1116,7 +1316,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("tresBind") {
-		form.AddInputField("TRES Bind (e.g., gres/gpu:closest)", job.TRESBind, 50, nil, func(text string) {
+		form.AddInputField("TRES Bind (gres/gpu:closest)", job.TRESBind, 50, nil, func(text string) {
 			job.TRESBind = text
 		})
 	}
@@ -1156,7 +1356,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("memoryBinding") {
-		form.AddInputField("Memory Bind (local, rank, map_mem:, mask_mem:)", job.MemoryBinding, 50, nil, func(text string) {
+		form.AddInputField("Memory Bind (local, rank, map_mem:)", job.MemoryBinding, 50, nil, func(text string) {
 			job.MemoryBinding = text
 		})
 	}
@@ -1194,7 +1394,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("argv") {
-		form.AddInputField("Script Arguments (space-separated)", job.Argv, 50, nil, func(text string) {
+		form.AddInputField("Script Arguments", job.Argv, 50, nil, func(text string) {
 			job.Argv = text
 		})
 	}
@@ -1206,7 +1406,7 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("profile") {
-		form.AddInputField("Profile (ENERGY, LUSTRE, NETWORK, TASK)", job.ProfileTypes, 50, nil, func(text string) {
+		form.AddInputField("Profile (ENERGY, NETWORK, TASK)", job.ProfileTypes, 50, nil, func(text string) {
 			job.ProfileTypes = text
 		})
 	}
@@ -1252,13 +1452,13 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("clusterConstraint") {
-		form.AddInputField("Cluster Constraint (federation)", job.ClusterConstraint, 50, nil, func(text string) {
+		form.AddInputField("Cluster Constraint", job.ClusterConstraint, 50, nil, func(text string) {
 			job.ClusterConstraint = text
 		})
 	}
 
 	if !w.isFieldHidden("clusters") {
-		form.AddInputField("Clusters (federation)", job.Clusters, 50, nil, func(text string) {
+		form.AddInputField("Clusters", job.Clusters, 50, nil, func(text string) {
 			job.Clusters = text
 		})
 	}
