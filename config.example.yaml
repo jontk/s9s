@@ -47,7 +47,53 @@ views:
     showOnlyActive: true
     defaultSort: time
     maxJobs: 1000
-    
+
+    # Job submission wizard configuration
+    # submission:
+    #   # Global defaults for all new jobs
+    #   formDefaults:
+    #     partition: "compute"
+    #     timeLimit: "04:00:00"
+    #     nodes: 1
+    #     cpus: 4
+    #     memory: "8G"
+    #     workingDir: "/scratch/%u"  # %u = username (SLURM substitution)
+    #     outputFile: "slurm_%j.out"
+    #     errorFile: "slurm_%j.err"
+    #
+    #   # Fields to hide from the submission form
+    #   hiddenFields:
+    #     - arraySpec
+    #     - exclusive
+    #     - requeue
+    #
+    #   # Restrict dropdown options (filters cluster-fetched values)
+    #   fieldOptions:
+    #     partition: ["compute", "gpu", "highmem"]
+    #     qos: ["normal", "high"]
+    #     account: ["research-a", "research-b"]
+    #
+    #   # Control which template sources are loaded (default: all three)
+    #   # Options: "builtin", "config", "saved"
+    #   # (Legacy: showBuiltinTemplates: false is equivalent to ["config", "saved"])
+    #   templateSources: ["builtin", "config", "saved"]
+    #
+    #   # Custom templates
+    #   templates:
+    #     - name: "GPU Training Job"
+    #       description: "PyTorch training on GPU partition"
+    #       defaults:
+    #         partition: "gpu"
+    #         timeLimit: "24:00:00"
+    #         cpus: 8
+    #         memory: "32G"
+    #         gpus: 2
+    #         script: |
+    #           #!/bin/bash
+    #           module load cuda pytorch
+    #           python train.py
+    #       hiddenFields: ["arraySpec"]
+
   nodes:
     groupBy: partition  # Options: partition, state, feature
     showUtilization: true

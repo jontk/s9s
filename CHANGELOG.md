@@ -9,11 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Configurable job submission templates** — define custom templates with pre-filled values, global form defaults, hidden fields, and restricted dropdown options via `views.jobs.submission` config section
+- **3-tier template merge** — templates from built-in (8), config YAML, and user-saved JSON (`~/.s9s/templates/`) merge with name-based override; controlled by `templateSources` config
+- **84 SLURM sbatch fields** — job submission wizard supports 84 of 117 SLURM OpenAPI JobCreate fields (was 12); fields organized in visibility tiers (7 always visible, 7 default, 70 hidden — shown via templates)
+- **`s9s templates list`** — CLI command to list all templates from all sources with source indicator (builtin/config/saved)
+- **`s9s templates export`** — CLI command to export built-in and config templates to `~/.s9s/templates/` as editable JSON files; supports `--force`, `--dir`, and single template name filter
+- **`SubmitRaw` integration** — job submission bypasses the lossy 12-field `slurm.JobSubmission` intermediate and maps directly to `*slurm.JobCreate` via `SubmitRaw`; fields previously silently dropped (QoS, GPUs, output/error files, mail, array, exclusive, requeue, dependencies, constraints, and 50+ more) now reach slurmrestd
+- **Full `--begin` time parsing** — supports ISO dates, US dates, relative times (`now+1hour`), and SLURM named times (`midnight`, `noon`, `fika`, `teatime`, `tomorrow`)
+- **`--signal` parsing** — `B:USR1@300` correctly sets KillWarningSignal, KillWarningDelay, and KillWarningFlags
+- **QoS dropdown from cluster API** — QoS field now fetches available values from the cluster (like partitions and accounts), filtered by `fieldOptions`
+- **User default account and QoS** — form defaults to the current SLURM user's `DefaultAccount` and `DefaultQoS`; falls back to username as account if no default is set
+- **Smart field visibility** — advanced fields (70+) are hidden by default and only shown when a template or `formDefaults` sets a non-zero value for them
+- **Ctrl+Y copy-to-clipboard in preview** — copies clean plain-text sbatch script via OSC 52 escape sequence
+
 ### Changed
+
+- **Single source of truth for built-in templates** — `createDefaultTemplates()` now delegates to `BuiltinTemplates()` instead of maintaining a separate list
+- **Legacy field normalization** — saved templates using `command`/`cpus_per_node` (old format) are automatically normalized to `script`/`cpus` on load
+- **`showBuiltinTemplates` superseded** — replaced by `templateSources` config option; old flag still works for backward compatibility
+- **`templateSources` validation** — invalid source names are silently filtered; all-invalid falls back to default
+- **Form modal widened** — 80x35 → 100x40 to accommodate additional fields; long labels shortened
+- **Viper key normalization** — config map keys are normalized to lowercase before lookup, fixing Viper's automatic lowercasing of camelCase YAML keys (e.g., `timeLimit` → `timelimit`)
 
 ### Fixed
 
+- **Job submission fields silently dropped** — QoS, GPUs, output/error files, email notifications, array spec, exclusive, requeue, dependencies, and constraints were collected by the form but never sent to slurmrestd
+- **Saved template field mismatch** — templates created by the old form flow used `command`/`cpus_per_node` fields that the wizard didn't read
+- **Built-in template scripts had duplicate #SBATCH directives** — scripts now contain only commands; `#SBATCH` directives are generated from form field values
+- **Preview duplicate shebang** — `#!/bin/bash` no longer appears twice when script body includes it
+- **Preview sbatch directive accuracy** — corrected `--no-kill` (was `--kill-on-invalid-dep`), `--tres-per-socket` (was missing `#SBATCH` prefix), `--nodes` range format, and `--mincpus` duplication
+- **Optional dropdown defaults** — account and QoS dropdowns now default to empty ("not set") instead of silently selecting the first cluster value
+
 ### Removed
+
+- **Deprecated `OLDShowJobTemplateSelector`** — removed along with `addTemplatesToList`, `setupTemplateSelectorInput`, `showJobSubmissionFormWithTemplate`, `extractJobSubmissionFromForm`, and `saveFormAsTemplate` helpers
 
 ## [0.6.3] - 2026-03-14
 

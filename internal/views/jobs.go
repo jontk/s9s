@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/jontk/s9s/internal/config"
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/export"
@@ -36,7 +37,6 @@ type JobsView struct {
 	statusBar           *tview.TextView
 	app                 *tview.Application
 	pages               *tview.Pages
-	templateManager     *JobTemplateManager
 	autoRefresh         bool
 	selectedJobs        map[string]bool
 	filterBar           *components.FilterBar
@@ -48,6 +48,12 @@ type JobsView struct {
 	multiSelectMode     bool
 	selectionStatusText *tview.TextView
 	mainStatusBar       *components.StatusBar // Reference to main app status bar
+	submissionConfig    *config.JobSubmissionConfig
+}
+
+// SetSubmissionConfig sets the job submission configuration
+func (v *JobsView) SetSubmissionConfig(cfg *config.JobSubmissionConfig) {
+	v.submissionConfig = cfg
 }
 
 // SetPages sets the pages reference for modal handling
@@ -1141,14 +1147,10 @@ func (v *JobsView) performRequeueJob(jobID string) {
 
 // showJobSubmissionForm shows job submission form using the wizard
 func (v *JobsView) showJobSubmissionForm() {
-	wizard := NewJobSubmissionWizard(v.client, v.app)
+	wizard := NewJobSubmissionWizard(v.client, v.app, v.submissionConfig)
 	wizard.Show(v.pages, func(_ string) {
-		// Success callback
-		// Note: Status bar update removed since individual view status bars are no longer used
 		go func() { _ = v.Refresh() }()
 	}, func() {
-		// Cancel callback
-		// Note: Status bar update removed since individual view status bars are no longer used
 	})
 }
 

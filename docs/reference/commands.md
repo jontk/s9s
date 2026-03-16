@@ -68,6 +68,28 @@ Press `:` to enter command mode (vim-style). Commands support tab completion for
 
 **Note:** The reason for draining is optional. If not provided, defaults to "Drained via s9s command".
 
+### Template Management Commands
+
+Manage job submission templates from the command line. Templates can originate from three sources: **builtin** (shipped with s9s), **config** (defined in your configuration file), and **saved** (user-exported templates stored on disk).
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `s9s templates list` | List all templates with source | `s9s templates list` |
+| `s9s templates export` | Export templates to ~/.s9s/templates/ | `s9s templates export` |
+| `s9s templates export NAME` | Export a specific template | `s9s templates export "GPU Job"` |
+| `s9s templates export --force` | Overwrite existing files | `s9s templates export --force` |
+| `s9s templates export --dir PATH` | Export to custom directory | `s9s templates export --dir /tmp/templates` |
+
+**Example output of `s9s templates list`:**
+```
+NAME                   SOURCE    DESCRIPTION
+Basic Batch Job        builtin   Simple batch job for serial computations
+GPU Training Job       config    PyTorch training on GPU partition
+My Custom Job          saved     Custom template from user
+```
+
+See [Job Submission Configuration](../getting-started/configuration.md#job-submission-configuration) for details on defining templates in your configuration file.
+
 ### Filtering and Search
 | Command | Description | Example |
 |---------|-------------|---------|

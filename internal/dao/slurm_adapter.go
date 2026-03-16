@@ -281,47 +281,56 @@ func (j *jobManager) Get(id string) (*Job, error) {
 }
 
 func (j *jobManager) Submit(job *JobSubmission) (string, error) {
-	// Convert our JobSubmission to slurm-client format
-	slurmJob := convertJobSubmissionToSlurm(job)
+	// Convert our JobSubmission directly to slurm-client JobCreate,
+	// bypassing the lossy JobSubmission intermediate struct.
+	jobCreate := convertJobSubmissionToJobCreate(job)
 
-	// Call slurm-client Submit directly
-	result, err := j.client.Submit(j.ctx, slurmJob)
+	result, err := j.client.SubmitRaw(j.ctx, jobCreate)
 	if err != nil {
 		return "", errs.SlurmAPI("submit job", err)
 	}
 
-	// Convert JobId (int32) to string
 	return fmt.Sprintf("%d", result.JobId), nil
 }
 
-// convertJobSubmissionToSlurm converts our JobSubmission to the format expected by slurm-client
-func convertJobSubmissionToSlurm(job *JobSubmission) *slurm.JobSubmission {
-	// Convert time limit from string to int (minutes)
-	timeLimit := 0
+// convertJobSubmissionToJobCreate converts our JobSubmission directly to slurm-client's
+// JobCreate struct (the full OpenAPI type with 90+ fields). This bypasses the deprecated
+// slurm.JobSubmission which only supports 12 fields.
+func convertJobSubmissionToJobCreate(job *JobSubmission) *slurm.JobCreate {
+	// Convert time limit from string to uint32 minutes
+	var timeLimit uint32
 	if job.TimeLimit != "" {
-		// Parse time limit (e.g., "01:00:00" to minutes)
-		// Simple implementation: assume format is minutes or HH:MM:SS
 		var hours, minutes, seconds int
-		if _, err := fmt.Sscanf(job.TimeLimit, "%d:%d:%d", &hours, &minutes, &seconds); err == nil {
-			timeLimit = hours*60 + minutes
-		} else if _, err := fmt.Sscanf(job.TimeLimit, "%d", &timeLimit); err != nil {
-			// Default to 60 minutes if parsing fails
-			timeLimit = 60
+		if strings.Contains(job.TimeLimit, "-") {
+			// D-HH:MM:SS format
+			var days int
+			parts := strings.SplitN(job.TimeLimit, "-", 2)
+			_, _ = fmt.Sscanf(parts[0], "%d", &days)
+			_, _ = fmt.Sscanf(parts[1], "%d:%d:%d", &hours, &minutes, &seconds)
+			timeLimit = uint32(days*24*60 + hours*60 + minutes)
+		} else if _, err := fmt.Sscanf(job.TimeLimit, "%d:%d:%d", &hours, &minutes, &seconds); err == nil {
+			timeLimit = uint32(hours*60 + minutes)
+		} else {
+			var mins int
+			if _, err := fmt.Sscanf(job.TimeLimit, "%d", &mins); err == nil {
+				timeLimit = uint32(mins)
+			} else {
+				timeLimit = 60 // default
+			}
 		}
 	}
 
-	// Convert memory from string to int (MB).
-	// Supported formats: "1024M" (megabytes) or "4G" (gigabytes).
-	memory := 0
+	// Convert memory from string to uint64 MB
+	var memory uint64
 	if job.Memory != "" {
 		var num int
 		if _, err := fmt.Sscanf(job.Memory, "%d", &num); err == nil {
 			suffix := strings.ToUpper(job.Memory[len(job.Memory)-1:])
 			switch suffix {
 			case "G":
-				memory = num * 1024
+				memory = uint64(num) * 1024
 			default: // "M" or bare number
-				memory = num
+				memory = uint64(num)
 			}
 		}
 	}
@@ -338,31 +347,623 @@ func convertJobSubmissionToSlurm(job *JobSubmission) *slurm.JobSubmission {
 	// Filter to POSIX-valid names (letters/digits/underscore) to exclude
 	// bash-exported functions (e.g. BASH_FUNC_foo%%) which cause slurmrestd
 	// to reject the submission.
-	env := job.Environment
-	if len(env) == 0 {
-		env = make(map[string]string)
+	var envList []string
+	if len(job.Environment) > 0 {
+		for k, v := range job.Environment {
+			envList = append(envList, k+"="+v)
+		}
+	} else {
 		for _, e := range os.Environ() {
-			k, v, ok := strings.Cut(e, "=")
+			k, _, ok := strings.Cut(e, "=")
 			if ok && isPosixEnvKey(k) {
-				env[k] = v
+				envList = append(envList, e)
 			}
 		}
 	}
 
-	return &slurm.JobSubmission{
-		Name:        job.Name,
-		Script:      script,
-		Command:     job.Command,
-		Partition:   job.Partition,
-		Account:     job.Account,
-		CPUs:        job.CPUs,
-		Memory:      memory,
-		TimeLimit:   timeLimit,
-		WorkingDir:  job.WorkingDir,
-		Environment: env,
-		Nodes:       job.Nodes,
+	jc := &slurm.JobCreate{
+		Name:                    ptrString(job.Name),
+		Script:                  ptrString(script),
+		Partition:               ptrString(job.Partition),
+		Account:                 ptrString(job.Account),
+		CPUsPerTask:             ptrInt32(int32(job.CPUs)),
+		TimeLimit:               ptrUint32(timeLimit),
+		CurrentWorkingDirectory: ptrString(job.WorkingDir),
+		Environment:             envList,
+		MinimumNodes:            ptrInt32(int32(job.Nodes)),
+	}
+
+	// Memory
+	if memory > 0 {
+		jc.MemoryPerNode = ptrUint64(memory)
+	}
+
+	// QoS
+	if job.QoS != "" {
+		jc.QoS = ptrString(job.QoS)
+	}
+
+	// GPUs → TRESPerNode
+	if job.GPUs > 0 {
+		jc.TRESPerNode = ptrString(fmt.Sprintf("gres/gpu:%d", job.GPUs))
+	}
+
+	// Output/Error files
+	if job.OutputFile != "" {
+		jc.StandardOutput = ptrString(job.OutputFile)
+	}
+	if job.ErrorFile != "" {
+		jc.StandardError = ptrString(job.ErrorFile)
+	}
+
+	// Email notifications
+	if job.EmailNotify {
+		jc.MailType = []slurm.MailTypeValue{"ALL"}
+		if job.Email != "" {
+			jc.MailUser = ptrString(job.Email)
+		}
+	}
+
+	// Array job
+	if job.ArraySpec != "" {
+		jc.Array = ptrString(job.ArraySpec)
+	}
+
+	// Exclusive → Shared
+	if job.Exclusive {
+		jc.Shared = []slurm.SharedValue{"EXCLUSIVE"}
+	}
+
+	// Requeue
+	if job.Requeue {
+		jc.Requeue = ptrBool(true)
+	}
+
+	// Dependencies → "afterok:id1:id2"
+	if len(job.Dependencies) > 0 {
+		jc.Dependency = ptrString("afterok:" + strings.Join(job.Dependencies, ":"))
+	}
+
+	// Constraints (node features)
+	if job.Constraints != "" {
+		jc.Constraints = ptrString(job.Constraints)
+	}
+
+	// NTasks
+	if job.NTasks > 0 {
+		jc.Tasks = ptrInt32(int32(job.NTasks))
+	}
+
+	// NTasks per node
+	if job.NTasksPerNode > 0 {
+		jc.TasksPerNode = ptrInt32(int32(job.NTasksPerNode))
+	}
+
+	// Gres (generic resources, overrides GPUs if both set)
+	if job.Gres != "" {
+		jc.TRESPerNode = ptrString(job.Gres)
+	}
+
+	// Hold
+	if job.Hold {
+		jc.Hold = ptrBool(true)
+	}
+
+	// Reservation
+	if job.Reservation != "" {
+		jc.Reservation = ptrString(job.Reservation)
+	}
+
+	// Licenses
+	if job.Licenses != "" {
+		jc.Licenses = ptrString(job.Licenses)
+	}
+
+	// Wckey
+	if job.Wckey != "" {
+		jc.Wckey = ptrString(job.Wckey)
+	}
+
+	// Exclude nodes
+	if job.ExcludeNodes != "" {
+		jc.ExcludedNodes = []string{job.ExcludeNodes}
+	}
+
+	// Priority
+	if job.Priority > 0 {
+		jc.Priority = ptrUint32(uint32(job.Priority))
+	}
+
+	// Nice
+	if job.Nice != 0 {
+		jc.Nice = ptrInt32(int32(job.Nice))
+	}
+
+	// Memory per CPU (alternative to memory per node)
+	if job.MemoryPerCPU != "" {
+		var num int
+		if _, err := fmt.Sscanf(job.MemoryPerCPU, "%d", &num); err == nil {
+			suffix := strings.ToUpper(job.MemoryPerCPU[len(job.MemoryPerCPU)-1:])
+			memMB := uint64(num)
+			if suffix == "G" {
+				memMB = uint64(num) * 1024
+			}
+			jc.MemoryPerCPU = ptrUint64(memMB)
+		}
+	}
+
+	// Begin time (deferred start) — parse to unix timestamp
+	if job.BeginTime != "" {
+		if bt, err := parseBeginTime(job.BeginTime); err == nil {
+			jc.BeginTime = ptrUint64(bt)
+		}
+	}
+
+	// Comment
+	if job.Comment != "" {
+		jc.Comment = ptrString(job.Comment)
+	}
+
+	// Distribution
+	if job.Distribution != "" {
+		jc.Distribution = ptrString(job.Distribution)
+	}
+
+	// Prefer (preferred features)
+	if job.Prefer != "" {
+		jc.Prefer = ptrString(job.Prefer)
+	}
+
+	// Required nodes
+	if job.RequiredNodes != "" {
+		jc.RequiredNodes = []string{job.RequiredNodes}
+	}
+
+	// Standard input
+	if job.StandardInput != "" {
+		jc.StandardInput = ptrString(job.StandardInput)
+	}
+
+	// Container
+	if job.Container != "" {
+		jc.Container = ptrString(job.Container)
+	}
+
+	// Threads per core
+	if job.ThreadsPerCore > 0 {
+		jc.ThreadsPerCore = ptrInt32(int32(job.ThreadsPerCore))
+	}
+
+	// Tasks per core
+	if job.TasksPerCore > 0 {
+		jc.TasksPerCore = ptrInt32(int32(job.TasksPerCore))
+	}
+
+	// Tasks per socket
+	if job.TasksPerSocket > 0 {
+		jc.TasksPerSocket = ptrInt32(int32(job.TasksPerSocket))
+	}
+
+	// Sockets per node
+	if job.SocketsPerNode > 0 {
+		jc.SocketsPerNode = ptrInt32(int32(job.SocketsPerNode))
+	}
+
+	// Maximum nodes
+	if job.MaximumNodes > 0 {
+		jc.MaximumNodes = ptrInt32(int32(job.MaximumNodes))
+	}
+
+	// Maximum CPUs
+	if job.MaximumCPUs > 0 {
+		jc.MaximumCPUs = ptrInt32(int32(job.MaximumCPUs))
+	}
+
+	// Minimum CPUs per node
+	if job.MinimumCPUsPerNode > 0 {
+		jc.MinimumCPUsPerNode = ptrInt32(int32(job.MinimumCPUsPerNode))
+	}
+
+	// Time minimum (for backfill scheduling)
+	if job.TimeMinimum != "" {
+		var hours, minutes, seconds int
+		if _, err := fmt.Sscanf(job.TimeMinimum, "%d:%d:%d", &hours, &minutes, &seconds); err == nil {
+			jc.TimeMinimum = ptrUint32(uint32(hours*60 + minutes))
+		}
+	}
+
+	// Contiguous
+	if job.Contiguous {
+		jc.Contiguous = ptrBool(true)
+	}
+
+	// Overcommit
+	if job.Overcommit {
+		jc.Overcommit = ptrBool(true)
+	}
+
+	// Kill on node fail
+	if job.KillOnNodeFail {
+		jc.KillOnNodeFail = ptrBool(true)
+	}
+
+	// Wait all nodes
+	if job.WaitAllNodes {
+		jc.WaitAllNodes = ptrBool(true)
+	}
+
+	// Open mode
+	if job.OpenMode != "" {
+		jc.OpenMode = []slurm.OpenModeValue{slurm.OpenModeValue(strings.ToUpper(job.OpenMode))}
+	}
+
+	// TRES per task
+	if job.TRESPerTask != "" {
+		jc.TRESPerTask = ptrString(job.TRESPerTask)
+	}
+
+	// TRES per socket
+	if job.TRESPerSocket != "" {
+		jc.TRESPerSocket = ptrString(job.TRESPerSocket)
+	}
+
+	// Signal (kill warning) — parse "[B:|R:]<sig>[@<time>]" format
+	if job.Signal != "" {
+		sig := job.Signal
+		var delay int
+		if idx := strings.LastIndex(sig, "@"); idx >= 0 {
+			_, _ = fmt.Sscanf(sig[idx+1:], "%d", &delay)
+			sig = sig[:idx]
+		}
+		// Handle B: (batch only) and R: (reservation overlap) prefixes
+		if strings.HasPrefix(sig, "B:") {
+			jc.KillWarningFlags = []slurm.KillWarningFlagsValue{"BATCH_JOB"}
+			sig = sig[2:]
+		} else if strings.HasPrefix(sig, "R:") {
+			sig = sig[2:]
+		}
+		jc.KillWarningSignal = ptrString(sig)
+		if delay > 0 {
+			d := uint16(delay)
+			jc.KillWarningDelay = &d
+		}
+	}
+
+	// Temporary disk per node (MB)
+	if job.TmpDiskPerNode > 0 {
+		jc.TemporaryDiskPerNode = ptrInt32(int32(job.TmpDiskPerNode))
+	}
+
+	// Deadline
+	if job.Deadline != "" {
+		if dl, err := parseBeginTime(job.Deadline); err == nil {
+			jc.Deadline = ptrInt64(int64(dl))
+		}
+	}
+
+	// NTasks per TRES (--ntasks-per-gpu)
+	if job.NTasksPerTRES > 0 {
+		jc.NtasksPerTRES = ptrInt32(int32(job.NTasksPerTRES))
+	}
+
+	// CPU binding
+	if job.CPUBinding != "" {
+		jc.CPUBinding = ptrString(job.CPUBinding)
+	}
+
+	// CPU frequency
+	if job.CPUFrequency != "" {
+		jc.CPUFrequency = ptrString(job.CPUFrequency)
+	}
+
+	// Network
+	if job.Network != "" {
+		jc.Network = ptrString(job.Network)
+	}
+
+	// X11 forwarding
+	if job.X11 != "" {
+		jc.X11 = []slurm.X11Value{slurm.X11Value(strings.ToUpper(job.X11))}
+	}
+
+	// Immediate
+	if job.Immediate {
+		jc.Immediate = ptrBool(true)
+	}
+
+	// Burst buffer
+	if job.BurstBuffer != "" {
+		jc.BurstBuffer = ptrString(job.BurstBuffer)
+	}
+
+	// Batch features
+	if job.BatchFeatures != "" {
+		jc.BatchFeatures = ptrString(job.BatchFeatures)
+	}
+
+	// TRES bind
+	if job.TRESBind != "" {
+		jc.TRESBind = ptrString(job.TRESBind)
+	}
+
+	// TRES freq
+	if job.TRESFreq != "" {
+		jc.TRESFreq = ptrString(job.TRESFreq)
+	}
+
+	// Core specification
+	if job.CoreSpecification > 0 {
+		jc.CoreSpecification = ptrInt32(int32(job.CoreSpecification))
+	}
+
+	// Thread specification
+	if job.ThreadSpecification > 0 {
+		jc.ThreadSpecification = ptrInt32(int32(job.ThreadSpecification))
+	}
+
+	// Memory binding
+	if job.MemoryBinding != "" {
+		jc.MemoryBinding = ptrString(job.MemoryBinding)
+	}
+
+	// Minimum CPUs (total floor, different from CPUsPerTask)
+	if job.MinimumCPUs > 0 {
+		jc.MinimumCPUs = ptrInt32(int32(job.MinimumCPUs))
+	}
+
+	// TRES per job
+	if job.TRESPerJob != "" {
+		jc.TRESPerJob = ptrString(job.TRESPerJob)
+	}
+
+	// CPUs per TRES (--cpus-per-gpu)
+	if job.CPUsPerTRES != "" {
+		jc.CPUsPerTRES = ptrString(job.CPUsPerTRES)
+	}
+
+	// Memory per TRES (--mem-per-gpu)
+	if job.MemoryPerTRES != "" {
+		jc.MemoryPerTRES = ptrString(job.MemoryPerTRES)
+	}
+
+	// Script arguments
+	if job.Argv != "" {
+		jc.Argv = strings.Fields(job.Argv)
+	}
+
+	// Job flags (SPREAD_JOB, KILL_INVALID_DEPENDENCY, etc.)
+	if job.Flags != "" {
+		var flags []slurm.FlagsValue
+		for _, f := range strings.Split(job.Flags, ",") {
+			f = strings.TrimSpace(f)
+			if f != "" {
+				flags = append(flags, slurm.FlagsValue(strings.ToUpper(f)))
+			}
+		}
+		jc.Flags = flags
+	}
+
+	// Profile (ENERGY, LUSTRE, NETWORK, TASK)
+	if job.ProfileTypes != "" {
+		var profiles []slurm.ProfileValue
+		for _, p := range strings.Split(job.ProfileTypes, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				profiles = append(profiles, slurm.ProfileValue(strings.ToUpper(p)))
+			}
+		}
+		jc.Profile = profiles
+	}
+
+	// CPU binding flags
+	if job.CPUBindingFlags != "" {
+		var flags []slurm.CPUBindingFlagsValue
+		for _, f := range strings.Split(job.CPUBindingFlags, ",") {
+			f = strings.TrimSpace(f)
+			if f != "" {
+				flags = append(flags, slurm.CPUBindingFlagsValue(strings.ToUpper(f)))
+			}
+		}
+		jc.CPUBindingFlags = flags
+	}
+
+	// Memory binding type
+	if job.MemoryBindingType != "" {
+		var types []slurm.MemoryBindingTypeValue
+		for _, t := range strings.Split(job.MemoryBindingType, ",") {
+			t = strings.TrimSpace(t)
+			if t != "" {
+				types = append(types, slurm.MemoryBindingTypeValue(strings.ToUpper(t)))
+			}
+		}
+		jc.MemoryBindingType = types
+	}
+
+	// Required switches
+	if job.RequiredSwitches > 0 {
+		jc.RequiredSwitches = ptrUint32(uint32(job.RequiredSwitches))
+	}
+
+	// Wait for switch (seconds)
+	if job.WaitForSwitch > 0 {
+		jc.WaitForSwitch = ptrInt32(int32(job.WaitForSwitch))
+	}
+
+	// Cluster constraint (federation)
+	if job.ClusterConstraint != "" {
+		jc.ClusterConstraint = ptrString(job.ClusterConstraint)
+	}
+
+	// Clusters (federation)
+	if job.Clusters != "" {
+		jc.Clusters = ptrString(job.Clusters)
+	}
+
+	return jc
+}
+
+// parseBeginTime parses a time string into a unix timestamp.
+// Supports formats: "2024-01-01T15:00:00", "2024-01-01T15:00", "2024-01-01",
+// "now+1hour", "now+30minutes"
+// parseBeginTime parses a SLURM-style time string into a unix timestamp.
+// Supports all formats accepted by sbatch --begin:
+//   - Named times: "now", "today", "tomorrow", "midnight", "noon", "elevenses", "fika", "teatime"
+//   - Relative: "now+1hour", "now+30minutes", "now+60" (seconds default)
+//   - ISO dates: "2024-01-01", "2024-01-01T15:00", "2024-01-01T15:00:00"
+//   - US dates: "01/02/24", "010224"
+//   - Time of day: "16:00", "4:00PM"
+//   - RFC3339: "2024-01-01T15:00:00Z"
+func parseBeginTime(s string) (uint64, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, fmt.Errorf("empty time string")
+	}
+
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
+	// Named times
+	switch strings.ToLower(s) {
+	case "now":
+		return uint64(now.Unix()), nil
+	case "today":
+		return uint64(today.Unix()), nil
+	case "tomorrow":
+		return uint64(today.Add(24 * time.Hour).Unix()), nil
+	case "midnight":
+		next := today.Add(24 * time.Hour)
+		if now.Before(today.Add(1 * time.Second)) {
+			next = today // if it's exactly midnight, use now
+		}
+		return uint64(next.Unix()), nil
+	case "noon":
+		noon := today.Add(12 * time.Hour)
+		if now.After(noon) {
+			noon = noon.Add(24 * time.Hour) // next day's noon
+		}
+		return uint64(noon.Unix()), nil
+	case "elevenses":
+		t := today.Add(11 * time.Hour)
+		if now.After(t) {
+			t = t.Add(24 * time.Hour)
+		}
+		return uint64(t.Unix()), nil
+	case "fika":
+		t := today.Add(15 * time.Hour)
+		if now.After(t) {
+			t = t.Add(24 * time.Hour)
+		}
+		return uint64(t.Unix()), nil
+	case "teatime":
+		t := today.Add(16 * time.Hour)
+		if now.After(t) {
+			t = t.Add(24 * time.Hour)
+		}
+		return uint64(t.Unix()), nil
+	}
+
+	// Relative format: now+Nunit (default unit = seconds)
+	if strings.HasPrefix(strings.ToLower(s), "now+") {
+		rest := s[4:]
+		var n int
+		var unit string
+		if _, err := fmt.Sscanf(rest, "%d%s", &n, &unit); err == nil {
+			d := parseDurationUnit(n, unit)
+			if d > 0 {
+				return uint64(now.Add(d).Unix()), nil
+			}
+		} else if _, err := fmt.Sscanf(rest, "%d", &n); err == nil {
+			// bare number = seconds
+			return uint64(now.Add(time.Duration(n) * time.Second).Unix()), nil
+		}
+	}
+
+	// ISO and date-time formats
+	layouts := []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05",
+		"2006-01-02T15:04",
+		"2006-01-02",
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, s); err == nil {
+			return uint64(t.Unix()), nil
+		}
+	}
+
+	// US date formats: MM/DD/YY, MMDDYY
+	usLayouts := []string{
+		"01/02/06",
+		"010206",
+	}
+	for _, layout := range usLayouts {
+		if t, err := time.Parse(layout, s); err == nil {
+			return uint64(t.Unix()), nil
+		}
+	}
+
+	// Time of day: HH:MM[:SS] — schedule for today or tomorrow
+	todayLayouts := []string{
+		"15:04:05",
+		"15:04",
+	}
+	for _, layout := range todayLayouts {
+		if t, err := time.Parse(layout, s); err == nil {
+			target := time.Date(now.Year(), now.Month(), now.Day(),
+				t.Hour(), t.Minute(), t.Second(), 0, now.Location())
+			if now.After(target) {
+				target = target.Add(24 * time.Hour) // next day
+			}
+			return uint64(target.Unix()), nil
+		}
+	}
+
+	// AM/PM time: "4:00PM", "4PM"
+	ampmLayouts := []string{
+		"3:04PM",
+		"3:04pm",
+		"3PM",
+		"3pm",
+	}
+	for _, layout := range ampmLayouts {
+		if t, err := time.Parse(layout, s); err == nil {
+			target := time.Date(now.Year(), now.Month(), now.Day(),
+				t.Hour(), t.Minute(), 0, 0, now.Location())
+			if now.After(target) {
+				target = target.Add(24 * time.Hour)
+			}
+			return uint64(target.Unix()), nil
+		}
+	}
+
+	return 0, fmt.Errorf("cannot parse begin time: %s", s)
+}
+
+// parseDurationUnit converts a number and unit string to a time.Duration.
+func parseDurationUnit(n int, unit string) time.Duration {
+	switch strings.ToLower(unit) {
+	case "s", "sec", "second", "seconds":
+		return time.Duration(n) * time.Second
+	case "m", "min", "minute", "minutes":
+		return time.Duration(n) * time.Minute
+	case "h", "hour", "hours":
+		return time.Duration(n) * time.Hour
+	case "d", "day", "days":
+		return time.Duration(n) * 24 * time.Hour
+	case "w", "week", "weeks":
+		return time.Duration(n) * 7 * 24 * time.Hour
+	default:
+		return 0
 	}
 }
+
+// pointer helpers for JobCreate fields
+func ptrString(s string) *string { return &s }
+func ptrInt32(i int32) *int32    { return &i }
+func ptrUint32(i uint32) *uint32 { return &i }
+func ptrUint64(i uint64) *uint64 { return &i }
+func ptrInt64(i int64) *int64    { return &i }
+func ptrBool(b bool) *bool       { return &b }
 
 func (j *jobManager) Cancel(id string) error {
 	debug.Logger.Printf("Cancel job %s", id)
