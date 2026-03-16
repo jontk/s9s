@@ -1841,7 +1841,11 @@ func generateJobScript(job *dao.JobSubmission) string {
 	script.WriteString(fmt.Sprintf("[green]#SBATCH --job-name=[white]%s\n", job.Name))
 	script.WriteString(fmt.Sprintf("[green]#SBATCH --partition=[white]%s\n", job.Partition))
 	script.WriteString(fmt.Sprintf("[green]#SBATCH --time=[white]%s\n", job.TimeLimit))
-	script.WriteString(fmt.Sprintf("[green]#SBATCH --nodes=[white]%d\n", job.Nodes))
+	if job.MaximumNodes > 0 {
+		script.WriteString(fmt.Sprintf("[green]#SBATCH --nodes=[white]%d-%d\n", job.Nodes, job.MaximumNodes))
+	} else {
+		script.WriteString(fmt.Sprintf("[green]#SBATCH --nodes=[white]%d\n", job.Nodes))
+	}
 	script.WriteString(fmt.Sprintf("[green]#SBATCH --cpus-per-task=[white]%d\n", job.CPUs))
 	script.WriteString(fmt.Sprintf("[green]#SBATCH --mem=[white]%s\n", job.Memory))
 
@@ -1977,12 +1981,8 @@ func generateJobScript(job *dao.JobSubmission) string {
 		script.WriteString(fmt.Sprintf("[green]#SBATCH --sockets-per-node=[white]%d\n", job.SocketsPerNode))
 	}
 
-	if job.MaximumNodes > 0 {
-		script.WriteString(fmt.Sprintf("[green]#SBATCH --nodes=[white]%d-%d\n", job.Nodes, job.MaximumNodes))
-	}
-
 	if job.MaximumCPUs > 0 {
-		script.WriteString(fmt.Sprintf("[green]# max CPUs=[white]%d\n", job.MaximumCPUs))
+		script.WriteString(fmt.Sprintf("[green]# --cpus range up to [white]%d\n", job.MaximumCPUs))
 	}
 
 	if job.MinimumCPUsPerNode > 0 {
@@ -2002,7 +2002,7 @@ func generateJobScript(job *dao.JobSubmission) string {
 	}
 
 	if job.KillOnNodeFail {
-		script.WriteString("[green]#SBATCH --kill-on-invalid-dep=yes[white]\n")
+		script.WriteString("[green]#SBATCH --no-kill=off[white]\n")
 	}
 
 	if job.WaitAllNodes {
@@ -2018,7 +2018,7 @@ func generateJobScript(job *dao.JobSubmission) string {
 	}
 
 	if job.TRESPerSocket != "" {
-		script.WriteString(fmt.Sprintf("[green]# TRES per socket=[white]%s\n", job.TRESPerSocket))
+		script.WriteString(fmt.Sprintf("[green]#SBATCH --tres-per-socket=[white]%s\n", job.TRESPerSocket))
 	}
 
 	if job.Signal != "" {
@@ -2086,7 +2086,7 @@ func generateJobScript(job *dao.JobSubmission) string {
 	}
 
 	if job.MinimumCPUs > 0 {
-		script.WriteString(fmt.Sprintf("[green]#SBATCH --mincpus=[white]%d\n", job.MinimumCPUs))
+		script.WriteString(fmt.Sprintf("[green]# minimum total CPUs=[white]%d\n", job.MinimumCPUs))
 	}
 
 	if job.TRESPerJob != "" {
