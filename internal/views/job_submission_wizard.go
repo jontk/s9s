@@ -67,6 +67,8 @@ func (w *JobSubmissionWizard) Show(pages *tview.Pages, onSubmit func(jobID strin
 //  3. Built-in hardcoded templates
 //
 // Which tiers are active is controlled by the templateSources config option.
+//
+//nolint:cyclop // 3-tier template merge logic
 func (w *JobSubmissionWizard) mergeTemplates() []*dao.JobTemplate {
 	sources := config.ResolveTemplateSources(w.submissionConfig)
 	seen := make(map[string]int) // name -> index in result
@@ -83,7 +85,8 @@ func (w *JobSubmissionWizard) mergeTemplates() []*dao.JobTemplate {
 	// 2. Config YAML templates
 	if config.HasTemplateSource(sources, "config") && w.submissionConfig != nil {
 		for _, ct := range w.submissionConfig.Templates {
-			js := ConfigValuesToJobSubmission(config.JobSubmissionFromMap(ct.Defaults))
+			vals := config.JobSubmissionFromMap(ct.Defaults)
+			js := ConfigValuesToJobSubmission(&vals)
 			t := &dao.JobTemplate{
 				Name:          ct.Name,
 				Description:   ct.Description,
@@ -176,6 +179,8 @@ func (w *JobSubmissionWizard) showTemplateSelection() {
 }
 
 // showJobForm shows the job submission form
+//
+//nolint:cyclop // multi-step form initialization
 func (w *JobSubmissionWizard) showJobForm(template *dao.JobTemplate) {
 	form := styles.StyleForm(tview.NewForm())
 	w.form = form
@@ -189,7 +194,8 @@ func (w *JobSubmissionWizard) showJobForm(template *dao.JobTemplate) {
 
 	// 2. Overlay formDefaults from config
 	if w.submissionConfig != nil && w.submissionConfig.FormDefaults != nil {
-		cfgDefaults := ConfigValuesToJobSubmission(config.JobSubmissionFromMap(w.submissionConfig.FormDefaults))
+		vals := config.JobSubmissionFromMap(w.submissionConfig.FormDefaults)
+		cfgDefaults := ConfigValuesToJobSubmission(&vals)
 		overlayJobDefaults(job, &cfgDefaults)
 	}
 
@@ -244,7 +250,7 @@ func (w *JobSubmissionWizard) showJobForm(template *dao.JobTemplate) {
 }
 
 // ConfigValuesToJobSubmission converts config.JobSubmissionValues to dao.JobSubmission
-func ConfigValuesToJobSubmission(v config.JobSubmissionValues) dao.JobSubmission {
+func ConfigValuesToJobSubmission(v *config.JobSubmissionValues) dao.JobSubmission {
 	return dao.JobSubmission{
 		Name:                v.Name,
 		Script:              v.Script,
@@ -332,6 +338,8 @@ func ConfigValuesToJobSubmission(v config.JobSubmissionValues) dao.JobSubmission
 }
 
 // overlayJobDefaults overlays non-zero values from src onto dst
+//
+//nolint:cyclop // linear field-by-field overlay for 86 fields
 func overlayJobDefaults(dst *dao.JobSubmission, src *dao.JobSubmission) {
 	if src.Name != "" {
 		dst.Name = src.Name
@@ -634,6 +642,8 @@ func (w *JobSubmissionWizard) isFieldHidden(fieldName string) bool {
 }
 
 // fieldHasValue returns true if the named field on the job has a non-zero value.
+//
+//nolint:cyclop // switch on all field names
 func fieldHasValue(job *dao.JobSubmission, field string) bool {
 	switch field {
 	// string fields
@@ -805,6 +815,8 @@ func (w *JobSubmissionWizard) isExplicitlyHidden(fieldName string) bool {
 }
 
 // addJobFormFields adds all form fields for job configuration
+//
+//nolint:cyclop // form field builder for core fields
 func (w *JobSubmissionWizard) addJobFormFields(form *tview.Form, job *dao.JobSubmission) {
 	if !w.isFieldHidden("name") {
 		form.AddInputField("Job Name", job.Name, 50, nil, func(text string) {
@@ -872,6 +884,8 @@ func (w *JobSubmissionWizard) addJobFormFields(form *tview.Form, job *dao.JobSub
 }
 
 // addOptionalJobFields adds optional fields for advanced job configuration
+//
+//nolint:cyclop // form field builder for all optional fields
 func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.JobSubmission) {
 	if !w.isFieldHidden("gpus") {
 		gpusStr := ""
@@ -1900,6 +1914,7 @@ func isValidMemoryFormat(memStr string) bool {
 	return err == nil
 }
 
+//nolint:cyclop // linear script preview builder for all fields
 func generateJobScript(job *dao.JobSubmission) string {
 	var script strings.Builder
 

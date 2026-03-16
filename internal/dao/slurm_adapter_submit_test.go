@@ -1,7 +1,6 @@
 package dao
 
 import (
-	"os"
 	"testing"
 
 	slurm "github.com/jontk/slurm-client"
@@ -27,20 +26,6 @@ func derefInt32(p *int32) int32 {
 func derefUint32(p *uint32) uint32 {
 	if p == nil {
 		return 0
-	}
-	return *p
-}
-
-func derefUint64(p *uint64) uint64 {
-	if p == nil {
-		return 0
-	}
-	return *p
-}
-
-func derefBool(p *bool) bool {
-	if p == nil {
-		return false
 	}
 	return *p
 }
@@ -820,13 +805,6 @@ func TestConvertJobSubmissionToJobCreate_EmptyFieldsAreNil(t *testing.T) {
 	assert.Nil(t, jc.MailType, "MailType should be nil when no email notify")
 }
 
-func derefInt64(p *int64) int64 {
-	if p == nil {
-		return 0
-	}
-	return *p
-}
-
 func TestConvertJobSubmissionToJobCreate_ExcludeNodes(t *testing.T) {
 	t.Run("wraps entire comma-separated string in single-element slice", func(t *testing.T) {
 		job := &JobSubmission{Name: "test", Script: "#!/bin/bash\n", ExcludeNodes: "node01,node02"}
@@ -1092,8 +1070,7 @@ func TestConvertJobSubmissionToJobCreate_EnvironmentFiltersPosixKeys(t *testing.
 	// Set an env var with a valid POSIX name and verify it shows up
 	// when no custom environment is specified.
 	key := "S9S_TEST_POSIX_VAR"
-	os.Setenv(key, "testvalue")
-	defer os.Unsetenv(key)
+	t.Setenv(key, "testvalue")
 
 	job := &JobSubmission{
 		Name:   "test",

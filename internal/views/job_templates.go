@@ -7,10 +7,7 @@ import (
 	"strings"
 
 	"github.com/jontk/s9s/internal/dao"
-	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/fileperms"
-	"github.com/jontk/s9s/internal/ui/styles"
-	"github.com/rivo/tview"
 )
 
 // JobTemplate represents a saved job configuration
@@ -176,96 +173,5 @@ func (m *JobTemplateManager) createDefaultTemplates() {
 			JobSubmission: &js,
 		}
 		_ = m.addTemplate(template)
-	}
-}
-
-// saveJobAsTemplate saves the selected job as a template
-func (v *JobsView) saveJobAsTemplate(jobID string) {
-	go func() {
-		// Fetch job details off the UI thread
-		job, err := v.client.Jobs().Get(jobID)
-		if err != nil {
-			debug.Logger.Printf("saveJobAsTemplate() - failed to get job %s: %v", jobID, err)
-			return
-		}
-
-		if v.app != nil {
-			v.app.QueueUpdateDraw(func() {
-				// Show template save form
-				v.showSaveTemplateForm(job)
-			})
-		}
-	}()
-}
-
-// showSaveTemplateForm shows form to save job as template
-func (v *JobsView) showSaveTemplateForm(job *dao.Job) {
-	jobSub := &dao.JobSubmission{
-		Name:       job.Name,
-		Command:    job.Command,
-		Partition:  job.Partition,
-		Account:    job.Account,
-		QoS:        job.QOS,
-		Nodes:      job.NodeCount,
-		TimeLimit:  job.TimeLimit,
-		WorkingDir: job.WorkingDir,
-	}
-
-	v.showSaveTemplateFormFromSubmission(jobSub)
-}
-
-// showSaveTemplateFormFromSubmission shows template save form
-func (v *JobsView) showSaveTemplateFormFromSubmission(jobSub *dao.JobSubmission) {
-	if v.templateManager == nil {
-		v.templateManager = NewJobTemplateManager()
-	}
-
-	form := styles.StyleForm(tview.NewForm()).
-		AddInputField("Template Name", jobSub.Name+"_template", 30, nil, nil).
-		AddInputField("Description", "Custom job template", 50, nil, nil)
-
-	form.AddButton("Save", func() {
-		templateName := form.GetFormItemByLabel("Template Name").(*tview.InputField).GetText()
-		description := form.GetFormItemByLabel("Description").(*tview.InputField).GetText()
-
-		if templateName == "" {
-			// Note: Status bar update removed since individual view status bars are no longer used
-			return
-		}
-
-		template := JobTemplate{
-			Name:          templateName,
-			Description:   description,
-			JobSubmission: jobSub,
-		}
-
-		// Note: Status bar updates removed since individual view status bars are no longer used
-		_ = v.templateManager.addTemplate(template)
-
-		if v.pages != nil {
-			v.pages.RemovePage("save-template")
-		}
-	}).
-		AddButton("Cancel", func() {
-			if v.pages != nil {
-				v.pages.RemovePage("save-template")
-			}
-		})
-
-	form.SetBorder(true).
-		SetTitle(" Save Job Template ").
-		SetTitleAlign(tview.AlignCenter)
-
-	// Create centered modal layout
-	centeredModal := tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(nil, 0, 1, false).
-			AddItem(form, 0, 4, true).
-			AddItem(nil, 0, 1, false), 0, 4, true).
-		AddItem(nil, 0, 1, false)
-
-	if v.pages != nil {
-		v.pages.AddPage("save-template", centeredModal, true, true)
 	}
 }

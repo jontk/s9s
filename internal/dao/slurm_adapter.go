@@ -305,8 +305,8 @@ func convertJobSubmissionToJobCreate(job *JobSubmission) *slurm.JobCreate {
 			// D-HH:MM:SS format
 			var days int
 			parts := strings.SplitN(job.TimeLimit, "-", 2)
-			fmt.Sscanf(parts[0], "%d", &days)
-			fmt.Sscanf(parts[1], "%d:%d:%d", &hours, &minutes, &seconds)
+			_, _ = fmt.Sscanf(parts[0], "%d", &days)
+			_, _ = fmt.Sscanf(parts[1], "%d:%d:%d", &hours, &minutes, &seconds)
 			timeLimit = uint32(days*24*60 + hours*60 + minutes)
 		} else if _, err := fmt.Sscanf(job.TimeLimit, "%d:%d:%d", &hours, &minutes, &seconds); err == nil {
 			timeLimit = uint32(hours*60 + minutes)
@@ -612,7 +612,7 @@ func convertJobSubmissionToJobCreate(job *JobSubmission) *slurm.JobCreate {
 		sig := job.Signal
 		var delay int
 		if idx := strings.LastIndex(sig, "@"); idx >= 0 {
-			fmt.Sscanf(sig[idx+1:], "%d", &delay)
+			_, _ = fmt.Sscanf(sig[idx+1:], "%d", &delay)
 			sig = sig[:idx]
 		}
 		// Handle B: (batch only) and R: (reservation overlap) prefixes

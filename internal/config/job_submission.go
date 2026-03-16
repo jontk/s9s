@@ -93,6 +93,8 @@ type JobSubmissionValues struct {
 // It handles type assertions safely and supports both int and float64 for numeric fields,
 // since YAML/JSON unmarshaling may produce either type.
 // Keys are matched case-insensitively because Viper lowercases all YAML map keys.
+//
+//nolint:cyclop // linear field-by-field map extraction for 86 fields
 func JobSubmissionFromMap(m map[string]any) JobSubmissionValues {
 	// Normalize keys to lowercase for case-insensitive lookup.
 	// Viper lowercases YAML keys (e.g., "timeLimit" becomes "timelimit"),

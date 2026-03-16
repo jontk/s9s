@@ -37,7 +37,6 @@ type JobsView struct {
 	statusBar           *tview.TextView
 	app                 *tview.Application
 	pages               *tview.Pages
-	templateManager     *JobTemplateManager
 	autoRefresh         bool
 	selectedJobs        map[string]bool
 	filterBar           *components.FilterBar

@@ -425,7 +425,7 @@ func TestConfigValuesToJobSubmission_AllFields(t *testing.T) {
 		Dependencies:        []string{"123", "456"},
 	}
 
-	js := ConfigValuesToJobSubmission(v)
+	js := ConfigValuesToJobSubmission(&v)
 
 	// Core fields
 	assert.Equal(t, v.Name, js.Name)
@@ -516,7 +516,7 @@ func TestConfigValuesToJobSubmission_AllFields(t *testing.T) {
 
 func TestConfigValuesToJobSubmission_ZeroValues(t *testing.T) {
 	v := config.JobSubmissionValues{}
-	js := ConfigValuesToJobSubmission(v)
+	js := ConfigValuesToJobSubmission(&v)
 
 	assert.Equal(t, dao.JobSubmission{}, js)
 }

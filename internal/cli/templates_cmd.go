@@ -73,6 +73,7 @@ type exportTemplate struct {
 	JobSubmission *dao.JobSubmission `json:"job_submission"`
 }
 
+//nolint:cyclop // CLI command with arg parsing and file I/O
 func runTemplatesExport(_ *cobra.Command, args []string) error {
 	cfg, err := config.LoadWithPath(cfgFile)
 	if err != nil {
@@ -215,11 +216,11 @@ func runTemplatesList(_ *cobra.Command, _ []string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tSOURCE\tDESCRIPTION")
+	_, _ = fmt.Fprintln(w, "NAME\tSOURCE\tDESCRIPTION")
 	for _, e := range entries {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", e.Name, e.Source, e.Description)
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", e.Name, e.Source, e.Description)
 	}
-	w.Flush()
+	_ = w.Flush()
 
 	return nil
 }
@@ -238,7 +239,8 @@ func getExportableTemplates(cfg *config.Config) []*dao.JobTemplate {
 
 	// Config templates override built-in by name
 	for _, ct := range cfg.Views.Jobs.Submission.Templates {
-		js := views.ConfigValuesToJobSubmission(config.JobSubmissionFromMap(ct.Defaults))
+		vals := config.JobSubmissionFromMap(ct.Defaults)
+		js := views.ConfigValuesToJobSubmission(&vals)
 		t := &dao.JobTemplate{
 			Name:          ct.Name,
 			Description:   ct.Description,
