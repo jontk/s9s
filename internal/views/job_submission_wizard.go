@@ -340,7 +340,7 @@ func ConfigValuesToJobSubmission(v *config.JobSubmissionValues) dao.JobSubmissio
 // overlayJobDefaults overlays non-zero values from src onto dst
 //
 //nolint:cyclop // linear field-by-field overlay for 86 fields
-func overlayJobDefaults(dst *dao.JobSubmission, src *dao.JobSubmission) {
+func overlayJobDefaults(dst, src *dao.JobSubmission) {
 	if src.Name != "" {
 		dst.Name = src.Name
 	}
