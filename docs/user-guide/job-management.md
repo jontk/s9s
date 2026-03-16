@@ -38,8 +38,6 @@ Press `s` in Jobs view to open the submission wizard:
 3. **Set Script**:
    ```bash
    #!/bin/bash
-   #SBATCH --job-name=my_analysis
-   #SBATCH --output=output_%j.log
 
    module load python/3.9
    python analyze.py
@@ -55,41 +53,168 @@ The submission process guides you through all necessary options with helpful def
 
 ### Submission Wizard Fields
 
-The wizard supports 84 sbatch fields across the full SLURM OpenAPI spec. Fields are organized into three visibility tiers so the form stays manageable while still exposing every option when needed.
+The wizard supports 86 sbatch fields across the full SLURM OpenAPI spec. Fields are organized into three visibility tiers so the form stays manageable while still exposing every option when needed.
 
-**Always visible** -- these core fields appear on every new job form:
+**Always visible** -- these 7 core fields appear on every new job form:
 
-| Field | Description |
-|-------|-------------|
-| name | Job name |
-| script | Job script body |
-| partition | Target partition |
-| timeLimit | Wall-clock time limit |
-| nodes | Number of nodes |
-| cpus | CPUs per task |
-| memory | Total memory per node |
+| Config Key | JSON Key | sbatch Flag | Description |
+|---|---|---|---|
+| name | name | --job-name | Job name |
+| script | script | (script body) | Batch script content |
+| partition | partition | --partition | Target partition |
+| timeLimit | time_limit | --time | Wall-clock time limit (HH:MM:SS or D-HH:MM:SS) |
+| nodes | nodes | --nodes | Number of nodes |
+| cpus | cpus | --cpus-per-task | CPUs per task |
+| memory | memory | --mem | Memory per node (e.g., 4G, 1024M) |
 
-**Visible by default** -- shown on the form unless explicitly hidden:
+**Visible by default** -- these 8 fields are shown on the form unless explicitly hidden:
 
-| Field | Description |
-|-------|-------------|
-| gpus | Number of GPUs |
-| qos | Quality of service |
-| account | Charge account |
-| workingDir | Working directory |
-| outputFile | Stdout file path |
-| errorFile | Stderr file path |
-| emailNotify | Email notification events |
-| email | Notification email address |
+| Config Key | JSON Key | sbatch Flag | Description |
+|---|---|---|---|
+| gpus | gpus | --gres=gpu:N | Number of GPUs |
+| qos | qos | --qos | Quality of service |
+| account | account | --account | Charge account |
+| workingDir | working_directory | --chdir | Working directory |
+| outputFile | output_file | --output | Stdout file path |
+| errorFile | error_file | --error | Stderr file path |
+| emailNotify | email_notify | --mail-type | Enable email notifications |
+| email | email | --mail-user | Notification email address |
 
-**Hidden by default** -- accessible via templates or the `hiddenFields` config:
+**Hidden by default** -- these 71 fields become visible when a template sets a value for them, when they are removed from the `hiddenFields` list in config, or when a per-template `hiddenFields` override brings them into view.
 
-These include all advanced SLURM options: `arraySpec`, `exclusive`, `requeue`, `dependencies`, `constraints`, `ntasks`, `gres`, `hold`, `reservation`, `cpuBinding`, `memoryBinding`, `tresPerTask`, `cpusPerTRES` (`--cpus-per-gpu`), `memoryPerTRES` (`--mem-per-gpu`), `signal`, `container`, `distribution`, and many more.
+*Job arrays & dependencies:*
 
-Hidden fields become visible when:
-- A template specifies a value for them
-- They are removed from the `hiddenFields` list in config
-- A per-template `hiddenFields` override brings them into view
+| Config Key | JSON Key | sbatch Flag | Description |
+|---|---|---|---|
+| arraySpec | array | --array | Array job index spec (e.g., 1-100%10) |
+| dependencies | dependencies | --dependency | Job dependencies (list of job IDs, submitted as afterok:id1:id2) |
+
+*Resource controls:*
+
+| Config Key | JSON Key | sbatch Flag | Description |
+|---|---|---|---|
+| exclusive | exclusive | --exclusive | Exclusive node access |
+| requeue | requeue | --requeue | Requeue on failure |
+| gres | gres | --gres | Generic resources (e.g., gpu:a100:2) |
+| constraints | constraints | --constraint | Required node features |
+| ntasks | ntasks | --ntasks | Total number of tasks |
+| ntasksPerNode | ntasks_per_node | --ntasks-per-node | Tasks per node |
+| memoryPerCPU | memory_per_cpu | --mem-per-cpu | Memory per CPU (e.g., 4G) |
+| minimumCPUs | minimum_cpus | (API only) | Minimum total CPUs |
+| minimumCPUsPerNode | minimum_cpus_per_node | --mincpus | Minimum CPUs per node |
+| maximumNodes | maximum_nodes | --nodes (max) | Maximum node count |
+| maximumCPUs | maximum_cpus | (API only) | Maximum CPU count |
+| tmpDiskPerNode | tmp_disk_per_node | --tmp | Temporary disk per node (MB) |
+| overcommit | overcommit | --overcommit | Overcommit resources |
+| contiguous | contiguous | --contiguous | Require contiguous nodes |
+
+*Scheduling:*
+
+| Config Key | JSON Key | sbatch Flag | Description |
+|---|---|---|---|
+| hold | hold | --hold | Submit in held state |
+| priority | priority | --priority | Job priority |
+| nice | nice | --nice | Priority adjustment |
+| beginTime | begin_time | --begin | Deferred start (see [Begin Time Formats](#begin-time-formats) below) |
+| deadline | deadline | --deadline | Latest acceptable start time |
+| immediate | immediate | --immediate | Fail if resources not available now |
+| timeMinimum | time_minimum | --time-min | Minimum time for backfill scheduling |
+
+*Placement & topology:*
+
+| Config Key | JSON Key | sbatch Flag | Description |
+|---|---|---|---|
+| distribution | distribution | --distribution | Task distribution (block, cyclic, etc.) |
+| threadsPerCore | threads_per_core | --threads-per-core | Threads per core |
+| tasksPerCore | tasks_per_core | --ntasks-per-core | Tasks per core |
+| tasksPerSocket | tasks_per_socket | --ntasks-per-socket | Tasks per socket |
+| socketsPerNode | sockets_per_node | --sockets-per-node | Sockets per node |
+| cpuBinding | cpu_binding | --cpu-bind | CPU binding method |
+| cpuBindingFlags | cpu_binding_flags | --cpu-bind (flags) | CPU binding flags (VERBOSE, etc.) |
+| memoryBinding | memory_binding | --mem-bind | Memory NUMA binding |
+| memoryBindingType | memory_binding_type | --mem-bind (type) | Memory binding type (LOCAL, RANK) |
+| requiredNodes | required_nodes | --nodelist | Required specific nodes |
+| excludeNodes | exclude_nodes | --exclude | Excluded nodes |
+
+*TRES (Trackable Resources):*
+
+| Config Key | JSON Key | sbatch Flag | Description |
+|---|---|---|---|
+| cpusPerTRES | cpus_per_tres | --cpus-per-gpu | CPUs per GPU/TRES |
+| memoryPerTRES | memory_per_tres | --mem-per-gpu | Memory per GPU/TRES |
+| ntasksPerTRES | ntasks_per_tres | --ntasks-per-gpu | Tasks per GPU/TRES |
+| tresPerTask | tres_per_task | --tres-per-task | TRES per task |
+| tresPerSocket | tres_per_socket | --tres-per-socket | TRES per socket |
+| tresPerJob | tres_per_job | --tres-per-job | TRES per job |
+| tresBind | tres_bind | --tres-bind | TRES binding (e.g., gres/gpu:closest) |
+| tresFreq | tres_freq | --tres-freq | TRES frequency control |
+
+*Signals & notifications:*
+
+| Config Key | JSON Key | sbatch Flag | Description |
+|---|---|---|---|
+| signal | signal | --signal | Pre-termination signal (e.g., B:USR1@300) |
+| killOnNodeFail | kill_on_node_fail | --no-kill | Kill job on node failure |
+| waitAllNodes | wait_all_nodes | --wait-all-nodes | Wait for all nodes to boot |
+
+*Accounting & admin:*
+
+| Config Key | JSON Key | sbatch Flag | Description |
+|---|---|---|---|
+| reservation | reservation | --reservation | Reservation name |
+| licenses | licenses | --licenses | Required licenses |
+| wckey | wckey | --wckey | Workload characterization key |
+| comment | comment | --comment | Job comment |
+| prefer | prefer | --prefer | Preferred (not required) features |
+
+*I/O & environment:*
+
+| Config Key | JSON Key | sbatch Flag | Description |
+|---|---|---|---|
+| standardInput | standard_input | --input | Stdin file path |
+| openMode | open_mode | --open-mode | Output file mode (append or truncate) |
+| container | container | --container | OCI container path |
+
+*Advanced:*
+
+| Config Key | JSON Key | sbatch Flag | Description |
+|---|---|---|---|
+| cpuFrequency | cpu_frequency | --cpu-freq | CPU frequency (low, medium, high, or KHz) |
+| network | network | --network | Network specs |
+| x11 | x11 | --x11 | X11 forwarding (batch, first, last, all) |
+| burstBuffer | burst_buffer | --bb | Burst buffer specification |
+| batchFeatures | batch_features | --batch | Batch node features |
+| coreSpecification | core_specification | --core-spec | Reserved system cores |
+| threadSpecification | thread_specification | --thread-spec | Reserved system threads |
+| argv | argv | (script arguments) | Script arguments (space-separated) |
+| flags | flags | --spread-job, etc. | Job flags (comma-separated) |
+| profile | profile | --profile | Profiling (ENERGY, NETWORK, TASK) |
+
+*Cluster federation:*
+
+| Config Key | JSON Key | sbatch Flag | Description |
+|---|---|---|---|
+| requiredSwitches | required_switches | --switches | Required network switch count |
+| waitForSwitch | wait_for_switch | --switches (timeout) | Switch wait timeout (seconds) |
+| clusterConstraint | cluster_constraint | --cluster-constraint | Federation cluster constraint |
+| clusters | clusters | --clusters | Target clusters (federation) |
+
+### Begin Time Formats
+
+The `beginTime` field accepts all formats supported by sbatch `--begin`:
+
+| Format | Example | Description |
+|---|---|---|
+| Named time | `now`, `today`, `tomorrow` | Current time, midnight today, midnight tomorrow |
+| Named hour | `midnight`, `noon`, `teatime` | 00:00, 12:00, 16:00 (next occurrence) |
+| Relative | `now+1hour`, `now+30minutes` | Offset from current time |
+| Relative (seconds) | `now+3600` | Bare number = seconds |
+| ISO date | `2024-12-31` | Midnight on date |
+| ISO datetime | `2024-12-31T14:30` | Specific date and time |
+| US date | `12/31/24`, `123124` | US date format |
+| Time of day | `16:00`, `4:00PM` | Next occurrence of time |
+
+Named times: `midnight` (00:00), `noon` (12:00), `elevenses` (11:00), `fika` (15:00), `teatime` (16:00).
 
 ### Template-Based Submission
 
