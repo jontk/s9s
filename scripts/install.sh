@@ -207,7 +207,7 @@ verify_installation() {
     
     if command_exists "$BINARY_NAME"; then
         local installed_version
-        installed_version=$("$BINARY_NAME" --version 2>/dev/null | head -1 | awk '{print $3}' || echo "unknown")
+        installed_version=$("$BINARY_NAME" --version 2>/dev/null | head -1 | awk '{print $NF}' || echo "unknown")
         log "s9s $installed_version installed successfully!"
         
         echo
