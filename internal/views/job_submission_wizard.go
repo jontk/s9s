@@ -1,11 +1,14 @@
 package views
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	osuser "os/user"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/config"
@@ -1642,10 +1645,14 @@ func (w *JobSubmissionWizard) showJobPreview(job *dao.JobSubmission) {
 		SetDynamicColors(true).
 		SetScrollable(true)
 
+	helpText := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText("[yellow]ESC[white] close  [yellow]Ctrl+Y[white] copy to clipboard")
+
 	modal := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(textView, 0, 1, true).
-		AddItem(tview.NewTextView().SetText("Press ESC to close"), 1, 0, false)
+		AddItem(helpText, 1, 0, false)
 
 	modal.SetBorder(true).
 		SetTitle(" Job Script Preview ").
@@ -1656,11 +1663,43 @@ func (w *JobSubmissionWizard) showJobPreview(job *dao.JobSubmission) {
 			w.pages.RemovePage("job-preview")
 			return nil
 		}
+		if event.Key() == tcell.KeyCtrlY {
+			// Generate a clean script without tview color tags
+			cleanScript := generateCleanJobScript(job)
+			copyToClipboard(cleanScript)
+			// Brief visual feedback
+			helpText.SetText("[green]Copied to clipboard!")
+			go func() {
+				time.Sleep(2 * time.Second)
+				if w.app != nil {
+					w.app.QueueUpdateDraw(func() {
+						helpText.SetText("[yellow]ESC[white] close  [yellow]Ctrl+Y[white] copy to clipboard")
+					})
+				}
+			}()
+			return nil // consume the event so tview doesn't quit
+		}
 		return event
 	})
 
 	centered := createCenteredModal(modal, 70, 25)
 	w.pages.AddPage("job-preview", centered, true, true)
+}
+
+// generateCleanJobScript produces a plain-text sbatch script without color tags
+func generateCleanJobScript(job *dao.JobSubmission) string {
+	colored := generateJobScript(job)
+	// Strip tview color tags: [green], [white], [yellow], [cyan], etc.
+	re := regexp.MustCompile(`\[[a-zA-Z]+\]`)
+	return re.ReplaceAllString(colored, "")
+}
+
+// copyToClipboard writes text to the system clipboard using OSC 52 escape sequence.
+// This works in most modern terminals (iTerm2, kitty, tmux, Windows Terminal, etc.)
+func copyToClipboard(text string) {
+	encoded := base64.StdEncoding.EncodeToString([]byte(text))
+	// OSC 52: \033]52;c;<base64-data>\a
+	fmt.Fprintf(os.Stderr, "\033]52;c;%s\a", encoded)
 }
 
 // showError shows an error message
