@@ -286,9 +286,9 @@ func TestConvertJobSubmissionToJobCreate_Exclusive(t *testing.T) {
 
 func TestConvertJobSubmissionToJobCreate_BoolFields(t *testing.T) {
 	tests := []struct {
-		name    string
-		setup   func(*JobSubmission)
-		check   func(*testing.T, *slurm.JobCreate)
+		name  string
+		setup func(*JobSubmission)
+		check func(*testing.T, *slurm.JobCreate)
 	}{
 		{
 			name:  "Requeue",

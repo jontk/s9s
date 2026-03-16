@@ -43,9 +43,9 @@ func TestParseBeginTime_NamedDayTimes(t *testing.T) {
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
 	tests := []struct {
-		name     string
-		input    string
-		hour     int
+		name  string
+		input string
+		hour  int
 	}{
 		{"noon", "noon", 12},
 		{"elevenses", "elevenses", 11},

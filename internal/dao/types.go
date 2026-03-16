@@ -47,93 +47,93 @@ type ListJobsOptions struct {
 
 // JobSubmission represents a job submission request
 type JobSubmission struct {
-	Name         string            `json:"name"`
-	Script       string            `json:"script,omitempty"`
-	Command      string            `json:"command,omitempty"`
-	Partition    string            `json:"partition,omitempty"`
-	Account      string            `json:"account,omitempty"`
-	QoS          string            `json:"qos,omitempty"`
-	Nodes        int               `json:"nodes,omitempty"`
-	CPUs         int               `json:"cpus,omitempty"` // Simplified from CPUsPerNode
-	CPUsPerNode  int               `json:"cpus_per_node,omitempty"`
-	Memory       string            `json:"memory,omitempty"`
-	GPUs         int               `json:"gpus,omitempty"`
-	TimeLimit    string            `json:"time_limit,omitempty"`
-	WorkingDir   string            `json:"working_directory,omitempty"`
-	OutputFile   string            `json:"output_file,omitempty"`
-	ErrorFile    string            `json:"error_file,omitempty"`
-	StdOut       string            `json:"stdout,omitempty"`
-	StdErr       string            `json:"stderr,omitempty"`
-	EmailNotify  bool              `json:"email_notify,omitempty"`
-	Email        string            `json:"email,omitempty"`
-	Environment  map[string]string `json:"environment,omitempty"`
-	Dependencies []string          `json:"dependencies,omitempty"`
-	ArraySpec    string            `json:"array,omitempty"`
-	Exclusive    bool              `json:"exclusive,omitempty"`
-	Requeue      bool              `json:"requeue,omitempty"`
-	Constraints  string            `json:"constraints,omitempty"`
-	NTasks       int               `json:"ntasks,omitempty"`
-	NTasksPerNode int              `json:"ntasks_per_node,omitempty"`
-	Gres         string            `json:"gres,omitempty"`
-	Hold         bool              `json:"hold,omitempty"`
-	Reservation  string            `json:"reservation,omitempty"`
-	Licenses     string            `json:"licenses,omitempty"`
-	Wckey        string            `json:"wckey,omitempty"`
-	ExcludeNodes string            `json:"exclude_nodes,omitempty"`
-	Priority     int               `json:"priority,omitempty"`
-	Nice         int               `json:"nice,omitempty"`
-	MemoryPerCPU     string `json:"memory_per_cpu,omitempty"`
-	BeginTime        string `json:"begin_time,omitempty"`
-	Comment          string `json:"comment,omitempty"`
-	Distribution     string `json:"distribution,omitempty"`
-	Prefer           string `json:"prefer,omitempty"`
-	RequiredNodes    string `json:"required_nodes,omitempty"`
-	StandardInput    string `json:"standard_input,omitempty"`
-	Container        string `json:"container,omitempty"`
-	ThreadsPerCore   int    `json:"threads_per_core,omitempty"`
-	TasksPerCore     int    `json:"tasks_per_core,omitempty"`
-	TasksPerSocket   int    `json:"tasks_per_socket,omitempty"`
-	SocketsPerNode   int    `json:"sockets_per_node,omitempty"`
-	MaximumNodes     int    `json:"maximum_nodes,omitempty"`
-	MaximumCPUs      int    `json:"maximum_cpus,omitempty"`
-	MinimumCPUsPerNode int  `json:"minimum_cpus_per_node,omitempty"`
-	TimeMinimum      string `json:"time_minimum,omitempty"`
-	Contiguous       bool   `json:"contiguous,omitempty"`
-	Overcommit       bool   `json:"overcommit,omitempty"`
-	KillOnNodeFail   bool   `json:"kill_on_node_fail,omitempty"`
-	WaitAllNodes     bool   `json:"wait_all_nodes,omitempty"`
-	OpenMode         string `json:"open_mode,omitempty"`
-	TRESPerTask        string `json:"tres_per_task,omitempty"`
-	TRESPerSocket      string `json:"tres_per_socket,omitempty"`
-	Signal             string `json:"signal,omitempty"`              // --signal=[B:]<sig_num>[@<sig_time>]
-	TmpDiskPerNode     int    `json:"tmp_disk_per_node,omitempty"`  // --tmp (MB)
-	Deadline           string `json:"deadline,omitempty"`            // --deadline
-	NTasksPerTRES      int    `json:"ntasks_per_tres,omitempty"`    // --ntasks-per-gpu
-	CPUBinding         string `json:"cpu_binding,omitempty"`         // --cpu-bind
-	CPUFrequency       string `json:"cpu_frequency,omitempty"`      // --cpu-freq
-	Network            string `json:"network,omitempty"`             // --network
-	X11                string `json:"x11,omitempty"`                 // --x11
-	Immediate          bool   `json:"immediate,omitempty"`           // --immediate
-	BurstBuffer        string `json:"burst_buffer,omitempty"`        // --bb
-	BatchFeatures      string `json:"batch_features,omitempty"`      // --batch
-	TRESBind           string `json:"tres_bind,omitempty"`           // --tres-bind
-	TRESFreq           string `json:"tres_freq,omitempty"`           // --tres-freq
-	CoreSpecification  int    `json:"core_specification,omitempty"`  // --core-spec
-	ThreadSpecification int   `json:"thread_specification,omitempty"` // --thread-spec
-	MemoryBinding      string `json:"memory_binding,omitempty"`      // --mem-bind
-	MinimumCPUs         int    `json:"minimum_cpus,omitempty"`         // --mincpus (total CPU floor)
-	TRESPerJob          string `json:"tres_per_job,omitempty"`         // --tres-per-job
-	CPUsPerTRES         string `json:"cpus_per_tres,omitempty"`        // --cpus-per-gpu
-	MemoryPerTRES       string `json:"memory_per_tres,omitempty"`      // --mem-per-gpu
-	Argv                string `json:"argv,omitempty"`                 // script arguments (space-separated)
-	Flags               string `json:"flags,omitempty"`                // comma-separated job flags (SPREAD_JOB, etc)
-	ProfileTypes        string `json:"profile,omitempty"`              // --profile (ENERGY, LUSTRE, NETWORK, TASK)
-	CPUBindingFlags     string `json:"cpu_binding_flags,omitempty"`    // --cpu-bind flags (verbose, etc)
-	MemoryBindingType   string `json:"memory_binding_type,omitempty"`  // --mem-bind type (local, rank, etc)
-	RequiredSwitches    int    `json:"required_switches,omitempty"`    // --switches count
-	WaitForSwitch       int    `json:"wait_for_switch,omitempty"`      // --switches timeout (seconds)
-	ClusterConstraint   string `json:"cluster_constraint,omitempty"`   // --cluster-constraint (federation)
-	Clusters            string `json:"clusters,omitempty"`             // --clusters (federation)
+	Name                string            `json:"name"`
+	Script              string            `json:"script,omitempty"`
+	Command             string            `json:"command,omitempty"`
+	Partition           string            `json:"partition,omitempty"`
+	Account             string            `json:"account,omitempty"`
+	QoS                 string            `json:"qos,omitempty"`
+	Nodes               int               `json:"nodes,omitempty"`
+	CPUs                int               `json:"cpus,omitempty"` // Simplified from CPUsPerNode
+	CPUsPerNode         int               `json:"cpus_per_node,omitempty"`
+	Memory              string            `json:"memory,omitempty"`
+	GPUs                int               `json:"gpus,omitempty"`
+	TimeLimit           string            `json:"time_limit,omitempty"`
+	WorkingDir          string            `json:"working_directory,omitempty"`
+	OutputFile          string            `json:"output_file,omitempty"`
+	ErrorFile           string            `json:"error_file,omitempty"`
+	StdOut              string            `json:"stdout,omitempty"`
+	StdErr              string            `json:"stderr,omitempty"`
+	EmailNotify         bool              `json:"email_notify,omitempty"`
+	Email               string            `json:"email,omitempty"`
+	Environment         map[string]string `json:"environment,omitempty"`
+	Dependencies        []string          `json:"dependencies,omitempty"`
+	ArraySpec           string            `json:"array,omitempty"`
+	Exclusive           bool              `json:"exclusive,omitempty"`
+	Requeue             bool              `json:"requeue,omitempty"`
+	Constraints         string            `json:"constraints,omitempty"`
+	NTasks              int               `json:"ntasks,omitempty"`
+	NTasksPerNode       int               `json:"ntasks_per_node,omitempty"`
+	Gres                string            `json:"gres,omitempty"`
+	Hold                bool              `json:"hold,omitempty"`
+	Reservation         string            `json:"reservation,omitempty"`
+	Licenses            string            `json:"licenses,omitempty"`
+	Wckey               string            `json:"wckey,omitempty"`
+	ExcludeNodes        string            `json:"exclude_nodes,omitempty"`
+	Priority            int               `json:"priority,omitempty"`
+	Nice                int               `json:"nice,omitempty"`
+	MemoryPerCPU        string            `json:"memory_per_cpu,omitempty"`
+	BeginTime           string            `json:"begin_time,omitempty"`
+	Comment             string            `json:"comment,omitempty"`
+	Distribution        string            `json:"distribution,omitempty"`
+	Prefer              string            `json:"prefer,omitempty"`
+	RequiredNodes       string            `json:"required_nodes,omitempty"`
+	StandardInput       string            `json:"standard_input,omitempty"`
+	Container           string            `json:"container,omitempty"`
+	ThreadsPerCore      int               `json:"threads_per_core,omitempty"`
+	TasksPerCore        int               `json:"tasks_per_core,omitempty"`
+	TasksPerSocket      int               `json:"tasks_per_socket,omitempty"`
+	SocketsPerNode      int               `json:"sockets_per_node,omitempty"`
+	MaximumNodes        int               `json:"maximum_nodes,omitempty"`
+	MaximumCPUs         int               `json:"maximum_cpus,omitempty"`
+	MinimumCPUsPerNode  int               `json:"minimum_cpus_per_node,omitempty"`
+	TimeMinimum         string            `json:"time_minimum,omitempty"`
+	Contiguous          bool              `json:"contiguous,omitempty"`
+	Overcommit          bool              `json:"overcommit,omitempty"`
+	KillOnNodeFail      bool              `json:"kill_on_node_fail,omitempty"`
+	WaitAllNodes        bool              `json:"wait_all_nodes,omitempty"`
+	OpenMode            string            `json:"open_mode,omitempty"`
+	TRESPerTask         string            `json:"tres_per_task,omitempty"`
+	TRESPerSocket       string            `json:"tres_per_socket,omitempty"`
+	Signal              string            `json:"signal,omitempty"`               // --signal=[B:]<sig_num>[@<sig_time>]
+	TmpDiskPerNode      int               `json:"tmp_disk_per_node,omitempty"`    // --tmp (MB)
+	Deadline            string            `json:"deadline,omitempty"`             // --deadline
+	NTasksPerTRES       int               `json:"ntasks_per_tres,omitempty"`      // --ntasks-per-gpu
+	CPUBinding          string            `json:"cpu_binding,omitempty"`          // --cpu-bind
+	CPUFrequency        string            `json:"cpu_frequency,omitempty"`        // --cpu-freq
+	Network             string            `json:"network,omitempty"`              // --network
+	X11                 string            `json:"x11,omitempty"`                  // --x11
+	Immediate           bool              `json:"immediate,omitempty"`            // --immediate
+	BurstBuffer         string            `json:"burst_buffer,omitempty"`         // --bb
+	BatchFeatures       string            `json:"batch_features,omitempty"`       // --batch
+	TRESBind            string            `json:"tres_bind,omitempty"`            // --tres-bind
+	TRESFreq            string            `json:"tres_freq,omitempty"`            // --tres-freq
+	CoreSpecification   int               `json:"core_specification,omitempty"`   // --core-spec
+	ThreadSpecification int               `json:"thread_specification,omitempty"` // --thread-spec
+	MemoryBinding       string            `json:"memory_binding,omitempty"`       // --mem-bind
+	MinimumCPUs         int               `json:"minimum_cpus,omitempty"`         // --mincpus (total CPU floor)
+	TRESPerJob          string            `json:"tres_per_job,omitempty"`         // --tres-per-job
+	CPUsPerTRES         string            `json:"cpus_per_tres,omitempty"`        // --cpus-per-gpu
+	MemoryPerTRES       string            `json:"memory_per_tres,omitempty"`      // --mem-per-gpu
+	Argv                string            `json:"argv,omitempty"`                 // script arguments (space-separated)
+	Flags               string            `json:"flags,omitempty"`                // comma-separated job flags (SPREAD_JOB, etc)
+	ProfileTypes        string            `json:"profile,omitempty"`              // --profile (ENERGY, LUSTRE, NETWORK, TASK)
+	CPUBindingFlags     string            `json:"cpu_binding_flags,omitempty"`    // --cpu-bind flags (verbose, etc)
+	MemoryBindingType   string            `json:"memory_binding_type,omitempty"`  // --mem-bind type (local, rank, etc)
+	RequiredSwitches    int               `json:"required_switches,omitempty"`    // --switches count
+	WaitForSwitch       int               `json:"wait_for_switch,omitempty"`      // --switches timeout (seconds)
+	ClusterConstraint   string            `json:"cluster_constraint,omitempty"`   // --cluster-constraint (federation)
+	Clusters            string            `json:"clusters,omitempty"`             // --clusters (federation)
 }
 
 // JobTemplate represents a predefined job template

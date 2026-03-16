@@ -6,7 +6,7 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/golang-jwt/jwt/v5 v5.3.0
-	github.com/jontk/slurm-client v0.3.3
+	github.com/jontk/slurm-client v0.4.0
 	github.com/mattn/go-runewidth v0.0.16
 	github.com/rivo/tview v0.0.0-20250625164341-a4a78f1e05cb
 	github.com/rs/zerolog v1.34.0
@@ -58,5 +58,3 @@ require (
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 )
-
-replace github.com/jontk/slurm-client => ../slurm-client

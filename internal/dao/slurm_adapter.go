@@ -958,12 +958,12 @@ func parseDurationUnit(n int, unit string) time.Duration {
 }
 
 // pointer helpers for JobCreate fields
-func ptrString(s string) *string   { return &s }
-func ptrInt32(i int32) *int32      { return &i }
-func ptrUint32(i uint32) *uint32   { return &i }
-func ptrUint64(i uint64) *uint64   { return &i }
-func ptrInt64(i int64) *int64      { return &i }
-func ptrBool(b bool) *bool         { return &b }
+func ptrString(s string) *string { return &s }
+func ptrInt32(i int32) *int32    { return &i }
+func ptrUint32(i uint32) *uint32 { return &i }
+func ptrUint64(i uint64) *uint64 { return &i }
+func ptrInt64(i int64) *int64    { return &i }
+func ptrBool(b bool) *bool       { return &b }
 
 func (j *jobManager) Cancel(id string) error {
 	debug.Logger.Printf("Cancel job %s", id)

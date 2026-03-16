@@ -88,20 +88,20 @@ type JobsViewConfig struct {
 
 // JobSubmissionConfig holds job submission form settings and templates
 type JobSubmissionConfig struct {
-	FormDefaults         map[string]any `mapstructure:"formDefaults"`
-	HiddenFields         []string               `mapstructure:"hiddenFields"`
-	FieldOptions         map[string][]string    `mapstructure:"fieldOptions"`
-	ShowBuiltinTemplates *bool                  `mapstructure:"showBuiltinTemplates"`
-	TemplateSources      []string               `mapstructure:"templateSources"`
-	Templates            []JobTemplateConfig    `mapstructure:"templates"`
+	FormDefaults         map[string]any      `mapstructure:"formDefaults"`
+	HiddenFields         []string            `mapstructure:"hiddenFields"`
+	FieldOptions         map[string][]string `mapstructure:"fieldOptions"`
+	ShowBuiltinTemplates *bool               `mapstructure:"showBuiltinTemplates"`
+	TemplateSources      []string            `mapstructure:"templateSources"`
+	Templates            []JobTemplateConfig `mapstructure:"templates"`
 }
 
 // JobTemplateConfig represents a user-defined job submission template
 type JobTemplateConfig struct {
-	Name         string                 `mapstructure:"name"`
-	Description  string                 `mapstructure:"description"`
+	Name         string         `mapstructure:"name"`
+	Description  string         `mapstructure:"description"`
 	Defaults     map[string]any `mapstructure:"defaults"`
-	HiddenFields []string               `mapstructure:"hiddenFields"`
+	HiddenFields []string       `mapstructure:"hiddenFields"`
 }
 
 // NodesViewConfig holds nodes view settings
@@ -134,9 +134,9 @@ type ShortcutConfig struct {
 
 // PluginConfig represents a plugin configuration
 type PluginConfig struct {
-	Name    string                 `mapstructure:"name"`
-	Enabled bool                   `mapstructure:"enabled"`
-	Path    string                 `mapstructure:"path"`
+	Name    string         `mapstructure:"name"`
+	Enabled bool           `mapstructure:"enabled"`
+	Path    string         `mapstructure:"path"`
 	Config  map[string]any `mapstructure:"config"`
 }
 
