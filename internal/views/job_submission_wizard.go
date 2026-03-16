@@ -206,8 +206,13 @@ func (w *JobSubmissionWizard) showJobForm(template *dao.JobTemplate) {
 	// 4. Set defaults from current SLURM user (account, QoS) if not already set
 	if job.Account == "" || job.QoS == "" {
 		if user := w.getCurrentUser(); user != nil {
-			if job.Account == "" && user.DefaultAccount != "" {
-				job.Account = user.DefaultAccount
+			if job.Account == "" {
+				if user.DefaultAccount != "" {
+					job.Account = user.DefaultAccount
+				} else if user.Name != "" {
+					// Fall back to username as account name
+					job.Account = user.Name
+				}
 			}
 			if job.QoS == "" && user.DefaultQoS != "" {
 				job.QoS = user.DefaultQoS
