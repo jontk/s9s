@@ -3,6 +3,7 @@ package views
 import (
 	"fmt"
 	"os"
+	osuser "os/user"
 	"strconv"
 	"strings"
 
@@ -199,7 +200,19 @@ func (w *JobSubmissionWizard) showJobForm(template *dao.JobTemplate) {
 		form.SetTitle(" Submit Job - Custom ")
 	}
 
-	// 4. Set workingDir from cwd if still empty
+	// 4. Set defaults from current SLURM user (account, QoS) if not already set
+	if job.Account == "" || job.QoS == "" {
+		if user := w.getCurrentUser(); user != nil {
+			if job.Account == "" && user.DefaultAccount != "" {
+				job.Account = user.DefaultAccount
+			}
+			if job.QoS == "" && user.DefaultQoS != "" {
+				job.QoS = user.DefaultQoS
+			}
+		}
+	}
+
+	// 5. Set workingDir from cwd if still empty
 	if job.WorkingDir == "" {
 		job.WorkingDir = w.workingDir
 	}
@@ -867,16 +880,21 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 	}
 
 	if !w.isFieldHidden("qos") {
-		// QoS - check if we have fieldOptions to show as dropdown
-		qosOptions := w.getConfigFieldOptions("qos")
+		// Fetch QoS from cluster, then filter with config fieldOptions
+		qosOptions := w.getAvailableQoS()
+		qosOptions = w.filterFieldOptions(qosOptions, "qos")
+		if len(qosOptions) == 0 {
+			// Fall back to config-only fieldOptions if cluster returned nothing
+			qosOptions = w.getConfigFieldOptions("qos")
+		}
 		if len(qosOptions) > 0 {
 			// Prepend empty option for "not set"
 			qosOptions = append([]string{""}, qosOptions...)
-			form.AddDropDown("QoS (optional)", qosOptions, w.getStringIndex(qosOptions, job.QoS), func(option string, index int) {
+			form.AddDropDown("QoS", qosOptions, w.getStringIndex(qosOptions, job.QoS), func(option string, index int) {
 				job.QoS = option
 			})
 		} else {
-			form.AddInputField("QoS (optional)", job.QoS, 30, nil, func(text string) {
+			form.AddInputField("QoS", job.QoS, 30, nil, func(text string) {
 				job.QoS = text
 			})
 		}
@@ -888,11 +906,11 @@ func (w *JobSubmissionWizard) addOptionalJobFields(form *tview.Form, job *dao.Jo
 		if len(accounts) > 0 {
 			// Prepend empty option for "not set"
 			accounts = append([]string{""}, accounts...)
-			form.AddDropDown("Account (optional)", accounts, w.getAccountIndex(accounts, job.Account), func(option string, index int) {
+			form.AddDropDown("Account", accounts, w.getAccountIndex(accounts, job.Account), func(option string, index int) {
 				job.Account = option
 			})
 		} else {
-			form.AddInputField("Account (optional)", job.Account, 30, nil, func(text string) {
+			form.AddInputField("Account", job.Account, 30, nil, func(text string) {
 				job.Account = text
 			})
 		}
@@ -2211,4 +2229,35 @@ func (w *JobSubmissionWizard) getAccountIndex(accounts []string, account string)
 		}
 	}
 	return 0
+}
+
+// getAvailableQoS fetches the list of available QoS from the SLURM cluster
+func (w *JobSubmissionWizard) getAvailableQoS() []string {
+	qosList, _ := w.client.QoS().List()
+	if qosList == nil || len(qosList.QoS) == 0 {
+		return []string{}
+	}
+
+	var result []string
+	for _, q := range qosList.QoS {
+		if q != nil {
+			result = append(result, q.Name)
+		}
+	}
+	return result
+}
+
+// getCurrentUser fetches the current OS user's SLURM user record
+func (w *JobSubmissionWizard) getCurrentUser() *dao.User {
+	username := os.Getenv("USER")
+	if username == "" {
+		if u, err := osuser.Current(); err == nil {
+			username = u.Username
+		}
+	}
+	if username == "" {
+		return nil
+	}
+	user, _ := w.client.Users().Get(username)
+	return user
 }
