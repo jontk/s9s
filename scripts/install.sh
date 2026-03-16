@@ -183,9 +183,6 @@ setup_config() {
 # s9s Configuration File
 # See https://s9s.dev/docs/configuration for full documentation
 
-# Refresh rate for auto-updates
-refreshRate: "2s"
-
 # Cluster connections (optional - s9s auto-discovers on SLURM nodes)
 # clusters:
 #   - name: default
@@ -193,11 +190,6 @@ refreshRate: "2s"
 #       endpoint: https://slurm.example.com:6820
 #       token: ${SLURM_JWT}
 #       timeout: 30s
-
-# UI settings
-ui:
-  skin: default
-  enableMouse: true
 EOF
         log "Created default configuration at $CONFIG_DIR/config.yaml"
     else
