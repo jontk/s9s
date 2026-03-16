@@ -136,14 +136,16 @@ See [Configuration Guide](configuration.md) for complete configuration options.
 ### 3. Test Connection
 
 ```bash
-# Test with your SLURM cluster
+# On a SLURM node (auto-discovers slurmrestd)
 s9s
 
-# Or test with mock mode (no SLURM required)
-s9s --mock
+# Or connect manually
+export SLURM_REST_URL=https://your-slurm-api.example.com:6820
+export SLURM_JWT=your-token
+s9s
 ```
 
-If connection succeeds, you should see the s9s dashboard.
+If connection succeeds, you should see the s9s dashboard. See [Mock Mode](../guides/mock-mode.md) for testing without a SLURM cluster.
 
 ## Platform-Specific Notes
 
@@ -244,8 +246,9 @@ If you cannot connect to SLURM:
    - Check token is valid
    - Verify API URL is correct
 
-3. **Try mock mode** to rule out s9s issues:
+3. **Try mock mode** to rule out s9s issues (see [Mock Mode Guide](../guides/mock-mode.md)):
    ```bash
+   export S9S_ENABLE_MOCK=1
    s9s --mock
    ```
 

@@ -183,23 +183,21 @@ setup_config() {
 # s9s Configuration File
 # See https://s9s.dev/docs/configuration for full documentation
 
-# Default cluster (optional - you can specify multiple clusters)
+# Refresh rate for auto-updates
+refreshRate: "2s"
+
+# Cluster connections (optional - s9s auto-discovers on SLURM nodes)
 # clusters:
-#   production:
-#     url: https://slurm.example.com
-#     auth:
-#       method: token
-#       token: ${SLURM_TOKEN}
+#   - name: default
+#     cluster:
+#       endpoint: https://slurm.example.com:6820
+#       token: ${SLURM_JWT}
+#       timeout: 30s
 
-# User preferences
-preferences:
-  theme: dark
-  refresh_interval: 30s
-  default_view: jobs
-
-# Logging
-logging:
-  level: info
+# UI settings
+ui:
+  skin: default
+  enableMouse: true
 EOF
         log "Created default configuration at $CONFIG_DIR/config.yaml"
     else
@@ -222,25 +220,21 @@ verify_installation() {
         
         echo
         echo "🚀 Quick Start:"
-        echo "  # Run setup wizard (recommended for first-time users)"
-        echo "  s9s setup"
         echo
-        echo "  # Or run with mock data (no SLURM cluster required)"
-        echo "  s9s --mock"
-        echo
-        echo "  # Or connect to your SLURM cluster manually"
-        echo "  export SLURM_URL=https://your-slurm-cluster.com"
-        echo "  export SLURM_TOKEN=your-token"
+        echo "  # On a SLURM node (auto-discovers slurmrestd):"
         echo "  s9s"
         echo
-        echo "📖 Documentation:"
-        echo "  https://s9s.dev/docs"
+        echo "  # Or connect manually:"
+        echo "  export SLURM_REST_URL=https://your-slurm-cluster.com:6820"
+        echo "  export SLURM_JWT=your-token"
+        echo "  s9s"
         echo
-        echo "🔧 Configuration:"
-        echo "  $CONFIG_DIR/config.yaml"
+        echo "  # If auto-discovery doesn't work, run the setup wizard:"
+        echo "  s9s setup"
         echo
-        echo "❓ Get help:"
-        echo "  s9s --help"
+        echo "📖 Documentation: https://s9s.dev/docs"
+        echo "🔧 Configuration: $CONFIG_DIR/config.yaml"
+        echo "❓ Help:          s9s --help"
         
         return 0
     else
