@@ -538,21 +538,67 @@ views:
           hiddenFields: ["arraySpec"]
 ```
 
-**`formDefaults`** -- Default values pre-filled in the submission form. Users can override these per job.
+**`formDefaults`** -- Default values pre-filled in the submission form for all new jobs (including "Custom Job"). Template-specific defaults override these values. Any field from the [field reference](../user-guide/job-management.md#submission-wizard-fields) can be used as a key (camelCase).
 
-**`hiddenFields`** -- A list of form fields to hide entirely. Useful for removing options that are not relevant to your cluster or that administrators want to control centrally.
+**`hiddenFields`** -- A list of form fields to hide globally. These fields are hidden for all templates and Custom Job. Per-template `hiddenFields` are additive — a template cannot un-hide a globally hidden field. Field names use the camelCase config key format.
 
-**`fieldOptions`** -- Restricts dropdown menus to a specific set of values. Only the listed options will appear for partition, QoS, and other selectable fields.
+**`fieldOptions`** -- Restricts dropdown menus to a specific set of values. Supported fields: `partition`, `qos`, `account`.
 
-**`templateSources`** -- Controls which template sources appear in the template picker. Possible values are `builtin` (shipped with s9s), `config` (defined in the configuration file), and `saved` (user-saved templates stored in `~/.s9s/templates/`).
+**`templateSources`** -- Controls which template sources appear in the template picker. Possible values:
 
-**`templates`** -- Define reusable job templates. Each template has a `name`, optional `description`, a `defaults` map (same keys as `formDefaults`), and an optional `hiddenFields` list that applies when the template is selected. See the [Template Management Commands](../reference/commands.md#template-management-commands) for CLI operations on templates.
+| Value | Description |
+|-------|-------------|
+| `"builtin"` | 8 built-in templates shipped with s9s |
+| `"config"` | Templates defined in this config file under `templates` |
+| `"saved"` | User-saved templates from `~/.s9s/templates/*.json` |
 
-> **Note:** Boolean fields (like `exclusive`, `requeue`, `hold`) use zero-value overlay semantics. Once set to `true` by `formDefaults`, a template cannot set them back to `false` — only `true` values are overlaid. To work around this, avoid setting boolean fields in `formDefaults` and instead set them per-template.
+Default: `["builtin", "config", "saved"]` (all three). Invalid values are silently filtered; if all values are invalid, falls back to showing all three sources.
 
-> **Filtering behavior:** For `partition` and `account`, the configured values are intersected with values fetched from the cluster — only values that exist on both lists are shown. If the intersection is empty, all cluster values are shown as a fallback. For `qos`, if configured values are provided, they replace the input field with a dropdown containing only the configured values (cluster QoS values are not fetched for the dropdown).
+Examples:
+```yaml
+# Only show templates defined in config (org-managed)
+templateSources: ["config"]
 
-> **Migration:** `showBuiltinTemplates` (boolean) is the legacy equivalent of `templateSources`. Setting `showBuiltinTemplates: false` is equivalent to `templateSources: ["config", "saved"]`. If both are set, `templateSources` takes precedence. New configurations should use `templateSources`.
+# Only show user-saved templates
+templateSources: ["saved"]
+
+# Hide built-ins, show config + saved
+templateSources: ["config", "saved"]
+```
+
+**`templates`** -- Define reusable job templates. Each template has a `name`, optional `description`, a `defaults` map (same keys as `formDefaults`), and an optional `hiddenFields` list that applies when the template is selected.
+
+- **Name-based override**: If a config template has the same name as a built-in template, it replaces the built-in entirely. Similarly, a saved template with the same name replaces both config and built-in versions.
+- **Per-template `hiddenFields`**: These are additive with the global `hiddenFields`. When the template is selected, fields in both lists are hidden.
+- **Advanced field visibility**: Fields not in the default-visible set are automatically hidden unless the template's `defaults` sets a non-zero value for them. This means a template only shows the fields it actually uses.
+
+See the [Template Management Commands](../reference/commands.md#template-management-commands) for CLI operations and the [field reference](../user-guide/job-management.md#submission-wizard-fields) for all available field keys.
+
+#### Default Value Precedence
+
+Values are applied in this order (later overrides earlier):
+
+1. **Hardcoded defaults** — `timeLimit: "01:00:00"`, `nodes: 1`, `cpus: 1`
+2. **`formDefaults`** from config
+3. **Current SLURM user** — `account` defaults to user's `DefaultAccount` (or username if no default), `qos` defaults to user's `DefaultQoS`
+4. **Template defaults** — if a template is selected
+5. **Working directory** — defaults to the directory where s9s was launched
+
+#### Field Options Behavior
+
+> **`partition` and `account`**: The configured values are *intersected* with values fetched from the cluster API. Only values that exist in both the config list and the cluster are shown. If the intersection is empty (e.g., the cluster doesn't have any of the configured partitions), all cluster values are shown as a fallback. If no cluster data is available, the config values are shown as-is.
+>
+> **`qos`**: QoS values are fetched from the cluster API and filtered by `fieldOptions.qos` (same intersection behavior as partition/account). If neither the cluster nor config provides QoS values, a plain text input is shown instead of a dropdown.
+>
+> **`account` and `qos` dropdowns** include an empty option at the top, allowing users to submit without specifying these fields. `partition` does not have an empty option since it is required.
+
+#### Boolean Overlay Limitation
+
+> Boolean fields (`exclusive`, `requeue`, `hold`, `contiguous`, `overcommit`, etc.) use zero-value overlay semantics. Once set to `true` by `formDefaults`, a template cannot set them back to `false`. To work around this, avoid setting boolean fields in `formDefaults` and instead set them per-template.
+
+#### Migration from `showBuiltinTemplates`
+
+> `showBuiltinTemplates` (boolean) is the legacy equivalent of `templateSources`. Setting `showBuiltinTemplates: false` is equivalent to `templateSources: ["config", "saved"]`. If both are set, `templateSources` takes precedence. New configurations should use `templateSources`.
 
 ### Custom Keybindings
 
