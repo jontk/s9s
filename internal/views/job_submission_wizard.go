@@ -1686,7 +1686,7 @@ func BuiltinTemplates() []*dao.JobTemplate {
 				Nodes:      1,
 				CPUs:       1,
 				Memory:     "4G",
-				Script:     "#!/bin/bash\n#SBATCH --job-name=basic_job\n\n# Your commands here\necho \"Hello from SLURM job $SLURM_JOB_ID\"\n",
+				Script:     "#!/bin/bash\n\n# Your commands here\necho \"Hello from SLURM job $SLURM_JOB_ID\"\n",
 				OutputFile: "job_%j.out",
 				ErrorFile:  "job_%j.err",
 			},
@@ -1701,7 +1701,7 @@ func BuiltinTemplates() []*dao.JobTemplate {
 				Nodes:      4,
 				CPUs:       16,
 				Memory:     "8G",
-				Script:     "#!/bin/bash\n#SBATCH --job-name=mpi_job\n#SBATCH --ntasks-per-node=16\n\nmodule load mpi\nmpirun -np $SLURM_NTASKS ./my_mpi_program\n",
+				Script:     "#!/bin/bash\n\nmodule load mpi\nmpirun -np $SLURM_NTASKS ./my_mpi_program\n",
 				OutputFile: "mpi_%j.out",
 				ErrorFile:  "mpi_%j.err",
 			},
@@ -1717,7 +1717,7 @@ func BuiltinTemplates() []*dao.JobTemplate {
 				CPUs:       8,
 				Memory:     "16G",
 				GPUs:       1,
-				Script:     "#!/bin/bash\n#SBATCH --job-name=gpu_job\n#SBATCH --gres=gpu:1\n\nmodule load cuda\n./my_gpu_program\n",
+				Script:     "#!/bin/bash\n\nmodule load cuda\n./my_gpu_program\n",
 				OutputFile: "gpu_%j.out",
 				ErrorFile:  "gpu_%j.err",
 			},
@@ -1732,7 +1732,7 @@ func BuiltinTemplates() []*dao.JobTemplate {
 				Nodes:      1,
 				CPUs:       1,
 				Memory:     "2G",
-				Script:     "#!/bin/bash\n#SBATCH --job-name=array_job\n#SBATCH --array=1-100\n\n# Process file based on array task ID\n./process_file.sh input_${SLURM_ARRAY_TASK_ID}.dat\n",
+				Script:     "#!/bin/bash\n\n# Process file based on array task ID\n./process_file.sh input_${SLURM_ARRAY_TASK_ID}.dat\n",
 				OutputFile: "array_%A_%a.out",
 				ErrorFile:  "array_%A_%a.err",
 			},
@@ -1760,7 +1760,7 @@ func BuiltinTemplates() []*dao.JobTemplate {
 				Nodes:       1,
 				CPUs:        8,
 				Memory:      "32G",
-				Script:      "#!/bin/bash\n#SBATCH --job-name=long_job\n\n# Enable checkpointing\n./my_long_computation --checkpoint-interval=3600\n",
+				Script:      "#!/bin/bash\n\n# Enable checkpointing\n./my_long_computation --checkpoint-interval=3600\n",
 				OutputFile:  "long_%j.out",
 				ErrorFile:   "long_%j.err",
 				EmailNotify: true,
@@ -1776,7 +1776,7 @@ func BuiltinTemplates() []*dao.JobTemplate {
 				Nodes:      1,
 				CPUs:       32,
 				Memory:     "256G",
-				Script:     "#!/bin/bash\n#SBATCH --job-name=highmem_job\n\n# Large memory computation\n./memory_intensive_program\n",
+				Script:     "#!/bin/bash\n\n# Large memory computation\n./memory_intensive_program\n",
 				OutputFile: "highmem_%j.out",
 				ErrorFile:  "highmem_%j.err",
 			},
@@ -1792,7 +1792,7 @@ func BuiltinTemplates() []*dao.JobTemplate {
 				CPUs:       2,
 				Memory:     "4G",
 				QoS:        "debug",
-				Script:     "#!/bin/bash\n#SBATCH --job-name=debug_job\n\n# Debug commands\nset -x\necho \"Debug output\"\n./my_program --debug\n",
+				Script:     "#!/bin/bash\n\n# Debug commands\nset -x\necho \"Debug output\"\n./my_program --debug\n",
 				OutputFile: "debug_%j.out",
 				ErrorFile:  "debug_%j.err",
 			},
@@ -2131,7 +2131,12 @@ func generateJobScript(job *dao.JobSubmission) string {
 	}
 
 	script.WriteString("\n[cyan]# Job script[white]\n")
-	script.WriteString(job.Script)
+	// Strip shebang from script body — it's already at the top of the preview
+	scriptBody := job.Script
+	scriptBody = strings.TrimPrefix(scriptBody, "#!/bin/bash\n")
+	scriptBody = strings.TrimPrefix(scriptBody, "#!/bin/sh\n")
+	scriptBody = strings.TrimLeft(scriptBody, "\n")
+	script.WriteString(scriptBody)
 
 	return script.String()
 }
