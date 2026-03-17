@@ -1,475 +1,125 @@
-# Job Streaming Guide
+# Job Output Streaming
 
-s9s provides powerful real-time job log streaming capabilities that allow you to monitor job output as it's being written, similar to `tail -f` but with advanced features for SLURM environments.
-
-## Overview
-
-The streaming system supports:
-- **Real-time log tailing**: Watch job stdout/stderr as it's written
-- **Multi-stream monitoring**: Monitor multiple jobs simultaneously
-- **SSH-based streaming**: Stream logs from compute nodes via SSH
-- **File-based streaming**: Monitor log files on shared filesystems
-- **Intelligent path resolution**: Automatically find job output files
-- **Advanced filtering**: Filter log content in real-time
-- **Buffer management**: Handle high-volume log streams efficiently
+s9s supports real-time job output streaming, allowing you to watch stdout and stderr as a job writes to its output files. This works similar to `tail -f` but is integrated directly into the TUI.
 
 ## Quick Start
 
-### Basic Streaming
-1. Open s9s: `s9s` or `s9s --mock`
-2. Navigate to Jobs view
-3. Select a running job
-4. Press `o` to view job output
-5. Press `s` to start streaming mode
+1. Open s9s and navigate to the **Jobs** view.
+2. Select a running job.
+3. Press `o` to open the Job Output Viewer.
+4. Press `t` to start real-time streaming.
 
-### Stream Monitor
-1. Press `Ctrl+s` to open Stream Monitor
-2. Add streams using `+` key
-3. Navigate between streams with arrow keys
-4. Use `Ctrl+f` for filtering
+Output appears in real time as the job writes to its log files.
 
-## Streaming Sources
+## Enabling Streaming
 
-### 1. File-based Streaming
+Streaming is enabled by default. You can toggle it in your configuration file:
 
-Monitor log files on shared storage:
-```bash
-# SLURM output files (default pattern)
-/path/to/slurm/output/job_%j.out
-/path/to/slurm/output/job_%j.err
-
-# Custom paths
-/shared/logs/job_123.log
-/nfs/user/logs/my_job.out
-```
-
-**Configuration:**
 ```yaml
-streaming:
-  file_paths:
-    base_dir: "/shared/slurm/logs"
-    stdout_pattern: "job_%j.out"
-    stderr_pattern: "job_%j.err"
-  polling_interval: 100ms
-  buffer_size: 64KB
+features:
+  streaming: true
 ```
 
-### 2. SSH-based Streaming
+Or set the default in `config.example.yaml`. When disabled, the Job Output Viewer still works for loading output on demand (press `r` to refresh), but real-time streaming is unavailable.
 
-Stream logs directly from compute nodes:
-```bash
-# Stream from specific node
-ssh node001 tail -f /tmp/job_123.out
+## Job Output Viewer
 
-# Auto-detect job location
-s9s stream --job 123 --auto-detect
-```
-
-**Configuration:**
-```yaml
-streaming:
-  ssh:
-    enabled: true
-    timeout: 30s
-    max_connections: 10
-    commands:
-      tail: "tail -f"
-      grep: "grep"
-```
-
-### 3. SLURM API Streaming
-
-Use SLURM's built-in streaming (if available):
-```yaml
-streaming:
-  slurm_api:
-    enabled: true
-    endpoint: "/slurm/v0.0.43/job/{job_id}/output"
-    chunk_size: 4KB
-```
-
-## Stream Monitor Interface
-
-### Multi-Stream Layout
-
-The Stream Monitor can display multiple job streams simultaneously:
-
-```
-┌─ Stream Monitor ─────────────────────────────────────┐
-│ ┌─Job 123─┐ ┌─Job 124─┐ ┌─Job 125─┐ ┌─Job 126─┐     │
-│ │[STDOUT] │ │[STDERR] │ │[STDOUT] │ │[STDOUT] │     │
-│ │Running  │ │Running  │ │Running  │ │Running  │     │
-│ │         │ │ERROR:   │ │Progress │ │Finished │     │
-│ │Output   │ │Failed   │ │50%      │ │Success  │     │
-│ │line 1   │ │to load  │ │Working  │ │100%     │     │
-│ │Output   │ │module   │ │...      │ │Done.    │     │
-│ │line 2   │ │         │ │         │ │         │     │
-│ └─────────┘ └─────────┘ └─────────┘ └─────────┘     │
-├─────────────────────────────────────────────────────┤
-│ Streams: 4 | Active: 3 | Ctrl+s:Add | q:Quit       │
-└─────────────────────────────────────────────────────┘
-```
+The Job Output Viewer is a modal that opens over the Jobs view. It displays the contents of a single job's stdout or stderr file.
 
 ### Key Bindings
 
-| Key | Action |
-|-----|--------|
-| `Ctrl+s` | Open Stream Monitor |
-| `+` | Add new stream |
-| `-` | Remove current stream |
-| `←/→` | Navigate between streams |
-| `↑/↓` | Scroll within stream |
-| `f` | Filter content |
-| `c` | Clear stream buffer |
-| `p` | Pause/resume streaming |
-| `s` | Save stream to file |
-| `r` | Restart stream |
-| `q` | Close Stream Monitor |
+| Key   | Action                                |
+|-------|---------------------------------------|
+| `o`   | Open Job Output Viewer (from Jobs)    |
+| `t`   | Toggle real-time streaming on/off     |
+| `a`   | Toggle auto-scroll                    |
+| `s`   | Switch between stdout and stderr      |
+| `f`   | Follow output (scroll to end + auto-refresh) |
+| `r`   | Refresh output manually               |
+| `e`   | Export output to file                 |
+| `Esc` | Close the viewer                      |
 
-## Advanced Features
+### Streaming Status
 
-### Real-time Filtering
+When streaming is active, the title bar shows a **LIVE** indicator. The status bar at the bottom displays:
 
-Apply filters to streaming content:
+- **Streaming ACTIVE** with buffer usage when a stream is running.
+- **Streaming stopped** with a hint to press `t` when idle.
+- **Streaming not available** if the `StreamManager` is not configured (for example, when the feature flag is off).
 
-```bash
-# Filter for errors
-s9s stream --job 123 --filter "ERROR"
+### Auto-Scroll
 
-# Multiple filters
-s9s stream --job 123 --filter "ERROR|WARN|FAIL"
+Auto-scroll is enabled by default. When new output arrives, the viewer automatically scrolls to the bottom. Press `a` to toggle this behavior if you need to review earlier output without being interrupted.
 
-# Exclude patterns
-s9s stream --job 123 --exclude "DEBUG|TRACE"
-```
+## How Streaming Works
 
-**Filter Configuration:**
-```yaml
-streaming:
-  filters:
-    - name: "errors"
-      pattern: "ERROR|FATAL|EXCEPTION"
-      color: "red"
-      highlight: true
-    - name: "warnings"
-      pattern: "WARN|WARNING"
-      color: "yellow"
-    - name: "progress"
-      pattern: "Progress:|\\d+%"
-      color: "green"
-```
+Behind the scenes, the `StreamManager` in `internal/streaming/` coordinates output streaming for a single job at a time.
 
-### Buffer Management
+### Path Resolution
 
-Handle high-volume streams efficiently:
+When you start a stream, the `PathResolver` determines where the output file lives:
 
-```yaml
-streaming:
-  buffer:
-    max_size: 10MB          # Maximum buffer size per stream
-    max_lines: 10000        # Maximum lines to keep
-    cleanup_threshold: 80   # Cleanup when buffer reaches 80%
-    compression: true       # Compress old buffer data
-```
+1. It queries the SLURM API (via `slurmrestd`) for the job's `StdOut` and `StdErr` paths.
+2. If the API does not provide a path, it falls back to the job's working directory or the configured SLURM spool directory.
+3. It checks whether the file is on the local filesystem or on a remote compute node.
 
-### Stream Persistence
+### Local File Streaming
 
-Save streaming sessions:
+For files on a shared filesystem (the common HPC setup with NFS or Lustre), the `StreamManager` uses `fsnotify` to watch for file changes. When the output file is written to, new content is read from the last known offset and pushed to the viewer.
 
-```yaml
-streaming:
-  persistence:
-    enabled: true
-    base_dir: "~/.s9s/streams"
-    auto_save: true
-    max_files: 100
-```
+### Remote File Streaming (SSH)
 
-## Configuration
+When the output file is on a remote compute node that is not accessible via a shared filesystem, the `StreamManager` falls back to SSH-based polling:
 
-### Complete Streaming Configuration
+- It connects to the compute node using the configured SSH credentials.
+- It periodically runs `tail -c +<offset>` to fetch new content since the last read.
+- The default polling interval is 3 seconds.
 
-```yaml
-streaming:
-  # General settings
-  enabled: true
-  max_concurrent_streams: 20
-  default_buffer_size: 1MB
-  refresh_interval: 100ms
+If a local file watch fails because the file does not exist locally but a compute node is assigned to the job, the manager automatically falls back to SSH polling.
 
-  # File-based streaming
-  file_paths:
-    base_dir: "/shared/slurm/logs"
-    stdout_pattern: "slurm-%j.out"
-    stderr_pattern: "slurm-%j.err"
-    custom_patterns:
-      - "/nfs/logs/job_%j/*.log"
-      - "/tmp/slurm_%j_*.out"
+### Circular Buffer
 
-  # SSH streaming
-  ssh:
-    enabled: true
-    timeout: 30s
-    max_connections: 5
-    retry_attempts: 3
-    key_file: "~/.ssh/id_rsa"
+Each active stream maintains a `CircularBuffer` (default capacity: 10,000 lines) to store recent output efficiently. When the buffer reaches capacity, the oldest lines are discarded. This keeps memory usage bounded regardless of how much output a job produces.
 
-  # SLURM API streaming
-  slurm_api:
-    enabled: false
-    chunk_size: 8KB
-    poll_interval: 1s
+### Event Bus
 
-  # Filters
-  filters:
-    - name: "errors"
-      pattern: "(?i)error|fail|exception|fatal"
-      action: "highlight"
-      color: "red"
-    - name: "warnings"
-      pattern: "(?i)warn|warning"
-      action: "highlight"
-      color: "yellow"
-    - name: "progress"
-      pattern: "\\d+(\\.\\d+)?%|progress:"
-      action: "highlight"
-      color: "green"
+The streaming system uses an internal `EventBus` for pub/sub event delivery. The Job Output Viewer subscribes to events for the active job and output type. Events include:
 
-  # Buffer management
-  buffer:
-    max_size_per_stream: 10MB
-    max_total_size: 100MB
-    max_lines: 50000
-    cleanup_interval: 5m
+- `NEW_OUTPUT` -- new content available.
+- `JOB_COMPLETE` -- the job has finished.
+- `ERROR` -- a streaming error occurred.
+- `STREAM_START` / `STREAM_STOP` -- lifecycle events.
 
-  # Persistence
-  persistence:
-    enabled: true
-    directory: "~/.s9s/stream_history"
-    max_files: 50
-    max_file_size: 100MB
-    auto_cleanup_days: 7
-```
+## Export
+
+From the Job Output Viewer, press `e` to export the currently displayed output. Supported formats:
+
+- **Text** -- plain text with a header.
+- **JSON** -- structured output with metadata.
+- **CSV** -- line-by-line for analysis.
+- **Markdown** -- output in fenced code blocks.
+
+Exported files are saved to `~/slurm_exports/` by default.
 
 ## Troubleshooting
 
-### Common Issues
+### No output appears
 
-#### Stream Not Starting
+- Verify the job is running and has started writing output. Check with `scontrol show job <id> | grep StdOut`.
+- Confirm the output file exists and is readable: `ls -la <path>`.
+- If the file is on a remote node, verify SSH connectivity: `ssh <node> cat <path>`.
 
-**Symptoms**: No output appears when streaming
+### Streaming says "not available"
 
-**Causes**: File not found, permission issues, job not started
+- Check that `features.streaming: true` is set in your configuration.
+- Ensure the `StreamManager` was initialized at startup (check debug logs with `s9s --debug`).
 
-**Solutions**:
-```bash
-# Check if job output files exist
-scontrol show job 123 | grep StdOut
+### SSH streaming is slow or failing
 
-# Verify file permissions
-ls -la /path/to/job_output.out
-
-# Check SSH connectivity
-ssh node001 tail -f /tmp/job_123.out
-```
-
-#### High CPU/Memory Usage
-
-**Symptoms**: s9s consuming excessive resources
-
-**Causes**: Too many streams, large buffers, inefficient filtering
-
-**Solutions**:
-```yaml
-streaming:
-  max_concurrent_streams: 5    # Reduce concurrent streams
-  buffer:
-    max_size_per_stream: 1MB   # Smaller buffers
-  refresh_interval: 500ms      # Slower refresh rate
-```
-
-#### SSH Connection Failures
-
-**Symptoms**: "Connection refused" or timeout errors
-
-**Causes**: SSH not configured, firewall, authentication issues
-
-**Solutions**:
-```bash
-# Test SSH connectivity
-ssh -o ConnectTimeout=10 node001 echo "test"
-
-# Configure SSH keys
-ssh-copy-id node001
-
-# Update SSH config
-cat >> ~/.ssh/config << 'EOF'
-Host node*
-    StrictHostKeyChecking no
-    ConnectTimeout 30
-    ServerAliveInterval 60
-EOF
-```
-
-#### Missing Log Files
-
-**Symptoms**: "File not found" errors
-
-**Causes**: Incorrect paths, job not writing output, timing issues
-
-**Solutions**:
-```bash
-# Check SLURM output configuration
-scontrol show config | grep SlurmdLogFile
-
-# Verify job script output redirection
-cat job_script.sh | grep -E "(>|>>)"
-
-# Use custom path patterns
-s9s stream --job 123 --path "/custom/path/job_%j.log"
-```
-
-### Debug Mode
-
-Enable detailed logging for troubleshooting:
-
-```bash
-# Enable streaming debug
-export S9S_STREAMING_DEBUG=true
-s9s --debug
-
-# View streaming logs
-tail -f ~/.s9s/debug.log | grep STREAM
-```
-
-## Performance Optimization
-
-### For High-Volume Logs
-
-```yaml
-streaming:
-  # Larger buffers for efficiency
-  buffer:
-    max_size_per_stream: 50MB
-    max_lines: 100000
-
-  # Batch updates
-  refresh_interval: 200ms
-
-  # Compression
-  compression:
-    enabled: true
-    algorithm: "gzip"
-    level: 6
-```
-
-### For Many Streams
-
-```yaml
-streaming:
-  # Connection pooling
-  ssh:
-    connection_pooling: true
-    max_idle_connections: 10
-
-  # Efficient polling
-  file_polling:
-    use_inotify: true
-    batch_size: 100
-
-  # Resource limits
-  max_concurrent_streams: 10
-  memory_limit: 500MB
-```
-
-### For Slow Networks
-
-```yaml
-streaming:
-  # Larger chunks
-  ssh:
-    chunk_size: 64KB
-
-  # Compression
-  compression:
-    enabled: true
-
-  # Slower refresh
-  refresh_interval: 1s
-```
-
-## Integration Examples
-
-### With Monitoring Tools
-
-```bash
-# Export streaming metrics
-s9s stream --job 123 --export-metrics prometheus://localhost:9090
-
-# Forward to syslog
-s9s stream --job 123 --forward syslog://logserver:514
-```
-
-### With Alerting
-
-```yaml
-streaming:
-  alerts:
-    - pattern: "(?i)error|exception|fatal"
-      action: "webhook"
-      url: "https://alerts.example.com/webhook"
-    - pattern: "(?i)completed successfully"
-      action: "notification"
-      type: "success"
-```
-
-### Scripting Integration
-
-```bash
-#!/bin/bash
-# Start streaming and process output
-s9s stream --job $JOB_ID --output-format json | \
-jq -r '.content' | \
-while IFS= read -r line; do
-    if [[ $line == *"ERROR"* ]]; then
-        echo "Alert: $line" | mail -s "Job Error" admin@example.com
-    fi
-done
-```
-
-## API Reference
-
-### Streaming API
-
-```go
-// Start streaming a job
-manager.StartStream(jobID, "stdout")
-
-// Add filter
-manager.AddFilter("errors", "ERROR|FAIL")
-
-// Get stream data
-events := manager.GetStream(jobID)
-for event := range events {
-    fmt.Printf("%s: %s\n", event.Timestamp, event.Content)
-}
-```
-
-### Event Types
-
-```go
-type StreamEvent struct {
-    JobID     string    `json:"job_id"`
-    Type      string    `json:"type"`      // "stdout", "stderr"
-    Content   string    `json:"content"`
-    Timestamp time.Time `json:"timestamp"`
-    LineNum   int       `json:"line_num"`
-    Source    string    `json:"source"`    // "file", "ssh", "api"
-}
-```
+- The default SSH polling interval is 3 seconds. This is intentional to avoid overloading compute nodes.
+- Verify SSH key-based authentication is configured for the compute nodes.
+- Check that the SSH user has read access to the output file.
 
 ## Related Guides
 
-- [Configuration Guide](../CONFIGURATION.md)
-- [SSH Integration](./ssh-guide.md)
-- [Performance Analysis](./performance-analysis.md)
+- [Configuration Guide](../getting-started/configuration.md)

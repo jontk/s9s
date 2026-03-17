@@ -8,10 +8,9 @@ This guide provides comprehensive instructions for developing plugins for the s9
 - [Plugin Architecture](#plugin-architecture)
 - [Project Structure](#project-structure)
 - [Basic Plugin Implementation](#basic-plugin-implementation)
-- [Adding Custom Commands](#adding-custom-commands)
 - [Creating Custom Views](#creating-custom-views)
-- [Custom Key Bindings](#custom-key-bindings)
-- [Event Handling](#event-handling)
+- [Creating Overlay Plugins](#creating-overlay-plugins)
+- [Event Handling with Hooks](#event-handling-with-hooks)
 - [Building Plugins](#building-plugins)
 - [Installation](#installation)
 - [Testing](#testing)
@@ -23,11 +22,11 @@ This guide provides comprehensive instructions for developing plugins for the s9
 ## Overview
 
 The s9s plugin system allows you to:
-- Add custom views to the TUI
-- Implement new commands
-- Define custom key bindings
-- React to application events
-- Integrate with external systems
+- Add custom views to the TUI (via `ViewPlugin`)
+- Overlay additional data on existing views (via `OverlayPlugin`)
+- Provide data to other plugins (via `DataPlugin`)
+- React to lifecycle and configuration events (via `LifecycleAware`)
+- Integrate with external systems through hooks (via `HookablePlugin`)
 
 ## Plugin Architecture
 
@@ -35,17 +34,38 @@ Plugins are implemented as Go shared libraries (`.so` files) that implement the 
 
 ### Plugin Interface
 
+Every plugin must implement the base `Plugin` interface defined in `internal/plugin/interface.go`:
+
 ```go
 type Plugin interface {
-    GetInfo() PluginInfo
-    Initialize(ctx context.Context, client dao.SlurmClient) error
-    GetCommands() []Command
-    GetViews() []View
-    GetKeyBindings() []KeyBinding
-    OnEvent(event Event) error
-    Cleanup() error
+    // GetInfo returns metadata about the plugin
+    GetInfo() Info
+
+    // Init initializes the plugin with configuration
+    Init(ctx context.Context, config map[string]interface{}) error
+
+    // Start starts the plugin's background processes
+    Start(ctx context.Context) error
+
+    // Stop gracefully stops the plugin
+    Stop(ctx context.Context) error
+
+    // Health returns the current health status of the plugin
+    Health() HealthStatus
 }
 ```
+
+Plugins can also implement additional interfaces for extended functionality:
+
+- **`ViewPlugin`** -- provides custom TUI views (`GetViews()`, `CreateView()`)
+- **`OverlayPlugin`** -- adds data overlays to existing views (`GetOverlays()`, `CreateOverlay()`)
+- **`DataPlugin`** -- provides data to other plugins via pub/sub (`Subscribe()`, `Query()`)
+- **`ConfigurablePlugin`** -- supports runtime configuration changes (`GetConfig()`, `SetConfig()`, `ValidateConfig()`)
+- **`HookablePlugin`** -- provides hooks for event-driven integration (`GetHooks()`, `RegisterHook()`)
+- **`LifecycleAware`** -- receives lifecycle events (`OnEnable()`, `OnDisable()`, `OnConfigChange()`)
+- **`Prioritizable`** -- controls initialization order (`GetPriority()`)
+
+See `internal/plugin/interface.go` for the full interface definitions.
 
 ## Project Structure
 
@@ -68,79 +88,81 @@ package main
 
 import (
     "context"
-    "github.com/jontk/s9s/internal/dao"
-    "github.com/jontk/s9s/internal/plugins"
+    "github.com/jontk/s9s/internal/plugin"
 )
 
 type MyPlugin struct {
-    client dao.SlurmClient
+    config map[string]interface{}
 }
 
 // Entry point - must be exported
-func NewPlugin() plugins.Plugin {
+func NewPlugin() plugin.Plugin {
     return &MyPlugin{}
 }
 
-func (p *MyPlugin) GetInfo() plugins.PluginInfo {
-    return plugins.PluginInfo{
+func (p *MyPlugin) GetInfo() plugin.Info {
+    return plugin.Info{
         Name:        "my-plugin",
         Version:     "1.0.0",
         Description: "My custom s9s plugin",
         Author:      "Your Name",
-        Website:     "https://example.com",
+        License:     "MIT",
+        Provides:    []string{"my-capability"},
+        ConfigSchema: map[string]plugin.ConfigField{
+            "api_key": {
+                Type:        "string",
+                Description: "API key for external service",
+                Required:    true,
+            },
+        },
     }
 }
 
-func (p *MyPlugin) Initialize(ctx context.Context, client dao.SlurmClient) error {
-    p.client = client
+func (p *MyPlugin) Init(ctx context.Context, config map[string]interface{}) error {
+    p.config = config
     return nil
 }
 
-func (p *MyPlugin) GetCommands() []plugins.Command {
-    return []plugins.Command{}
-}
-
-func (p *MyPlugin) GetViews() []plugins.View {
-    return []plugins.View{}
-}
-
-func (p *MyPlugin) GetKeyBindings() []plugins.KeyBinding {
-    return []plugins.KeyBinding{}
-}
-
-func (p *MyPlugin) OnEvent(event plugins.Event) error {
+func (p *MyPlugin) Start(ctx context.Context) error {
+    // Start background processes
     return nil
 }
 
-func (p *MyPlugin) Cleanup() error {
+func (p *MyPlugin) Stop(ctx context.Context) error {
+    // Clean up resources
     return nil
 }
-```
 
-## Adding Custom Commands
-
-Extend the `GetCommands()` method to provide custom commands:
-
-```go
-func (p *MyPlugin) GetCommands() []plugins.Command {
-    return []plugins.Command{
-        {
-            Name:        "status",
-            Description: "Show custom status information",
-            Usage:       "status [options]",
-            Handler: func(args []string) error {
-                // Your command logic here
-                fmt.Println("Custom status command executed")
-                return nil
-            },
-        },
+func (p *MyPlugin) Health() plugin.HealthStatus {
+    return plugin.HealthStatus{
+        Healthy: true,
+        Status:  "healthy",
+        Message: "Plugin is running normally",
     }
 }
 ```
 
 ## Creating Custom Views
 
+Implement the `ViewPlugin` interface to add custom views to the TUI. Your plugin must implement both `Plugin` and `ViewPlugin`.
+
+### ViewPlugin Interface
+
+```go
+type ViewPlugin interface {
+    Plugin
+
+    // GetViews returns the views provided by this plugin
+    GetViews() []ViewInfo
+
+    // CreateView creates a specific view instance
+    CreateView(ctx context.Context, viewID string) (View, error)
+}
+```
+
 ### View Structure
+
+Each view must implement the `View` interface:
 
 ```go
 type MyView struct {
@@ -148,14 +170,14 @@ type MyView struct {
 }
 
 func (v *MyView) GetName() string {
-    return "myview"
-}
-
-func (v *MyView) GetTitle() string {
     return "My Custom View"
 }
 
-func (v *MyView) Render() tview.Primitive {
+func (v *MyView) GetID() string {
+    return "my-view"
+}
+
+func (v *MyView) GetPrimitive() tview.Primitive {
     if v.content == nil {
         v.content = tview.NewTextView()
         v.content.SetBorder(true).SetTitle("My Plugin View")
@@ -164,73 +186,85 @@ func (v *MyView) Render() tview.Primitive {
     return v.content
 }
 
-func (v *MyView) OnKey(event *tcell.EventKey) *tcell.EventKey {
+func (v *MyView) Update(ctx context.Context) error {
+    // Refresh the view data
+    return nil
+}
+
+func (v *MyView) HandleKey(event *tcell.EventKey) bool {
     switch event.Rune() {
-    case 'q':
-        return nil // Close view
     case 'r':
-        v.Refresh()
+        v.Update(context.Background())
+        return true
     }
-    return event
+    return false
 }
 
-func (v *MyView) Refresh() error {
-    // Update view content
-    return nil
+func (v *MyView) SetFocus(app *tview.Application) {
+    app.SetFocus(v.content)
 }
 
-func (v *MyView) Init(ctx context.Context) error {
-    return nil
+func (v *MyView) GetHelp() string {
+    return "r=Refresh"
 }
 ```
 
 ### Registering Views
 
 ```go
-func (p *MyPlugin) GetViews() []plugins.View {
-    return []plugins.View{
-        &MyView{},
-    }
-}
-```
-
-## Custom Key Bindings
-
-Define custom key bindings for your plugin:
-
-```go
-func (p *MyPlugin) GetKeyBindings() []plugins.KeyBinding {
-    return []plugins.KeyBinding{
+func (p *MyPlugin) GetViews() []plugin.ViewInfo {
+    return []plugin.ViewInfo{
         {
-            Key:         'M',
-            Modifiers:   tcell.ModCtrl,
-            Description: "My custom action",
-            Handler: func() error {
-                // Your key binding logic
-                return nil
-            },
+            ID:          "my-view",
+            Name:        "My Custom View",
+            Description: "Displays custom information",
+            Icon:        "M",
+            Shortcut:    "Ctrl+M",
+            Category:    "monitoring",
         },
     }
 }
+
+func (p *MyPlugin) CreateView(ctx context.Context, viewID string) (plugin.View, error) {
+    if viewID == "my-view" {
+        return &MyView{}, nil
+    }
+    return nil, fmt.Errorf("unknown view: %s", viewID)
+}
 ```
 
-## Event Handling
+## Creating Overlay Plugins
 
-Respond to application events:
+Overlays add columns or modify data in existing views without replacing them. Implement the `OverlayPlugin` interface:
 
 ```go
-func (p *MyPlugin) OnEvent(event plugins.Event) error {
-    switch event.Type {
-    case plugins.EventJobSubmitted:
-        // React to job submission
-        jobData := event.Data.(JobData)
-        fmt.Printf("Job %s submitted\n", jobData.ID)
+type OverlayPlugin interface {
+    Plugin
 
-    case plugins.EventViewChanged:
-        // React to view changes
-        viewName := event.Data.(string)
-        fmt.Printf("Switched to view: %s\n", viewName)
+    GetOverlays() []OverlayInfo
+    CreateOverlay(ctx context.Context, overlayID string) (Overlay, error)
+}
+```
+
+Each overlay can define additional columns and provide cell data and styling for rows in target views.
+
+## Event Handling with Hooks
+
+Use the `HookablePlugin` interface to provide hooks that other plugins or the application can subscribe to:
+
+```go
+func (p *MyPlugin) GetHooks() []plugin.HookInfo {
+    return []plugin.HookInfo{
+        {
+            ID:          "on-metric-update",
+            Name:        "Metric Update",
+            Description: "Triggered when new metrics are collected",
+        },
     }
+}
+
+func (p *MyPlugin) RegisterHook(hookID string, callback plugin.HookCallback) error {
+    // Store and call the callback when the hook fires
     return nil
 }
 ```
@@ -291,13 +325,9 @@ plugins:
 
 ### Loading at Runtime
 
-```bash
-# Enable plugins
-s9s --plugins
+Plugins are loaded automatically from the configured directory when s9s starts with `plugins.enabled: true`. There are no CLI flags for loading individual plugins at this time.
 
-# Load specific plugin
-s9s --plugin my-plugin
-```
+> **Note:** See [#119](https://github.com/jontk/s9s/issues/119) for planned plugin CLI commands.
 
 ## Testing
 
@@ -307,56 +337,54 @@ s9s --plugin my-plugin
 // +build plugin
 
 func TestMyPlugin(t *testing.T) {
-    plugin := &MyPlugin{}
+    p := &MyPlugin{}
 
     // Test plugin info
-    info := plugin.GetInfo()
+    info := p.GetInfo()
     assert.Equal(t, "my-plugin", info.Name)
+    assert.NotEmpty(t, info.Version)
+    assert.NotEmpty(t, info.Description)
 
     // Test initialization
     ctx := context.Background()
-    err := plugin.Initialize(ctx, nil)
+    err := p.Init(ctx, map[string]interface{}{"api_key": "test"})
     assert.NoError(t, err)
 
-    // Test commands
-    commands := plugin.GetCommands()
-    assert.Len(t, commands, 1)
+    // Test start/stop lifecycle
+    err = p.Start(ctx)
+    assert.NoError(t, err)
+
+    health := p.Health()
+    assert.True(t, health.Healthy)
+
+    err = p.Stop(ctx)
+    assert.NoError(t, err)
 }
 ```
 
 ### Integration Testing
 
 ```bash
-# Build and test with s9s
-make build
-s9s --plugin ./my-plugin.so --mock
+# Build and install the plugin, then run s9s in mock mode
+make install
+s9s --mock
 ```
 
 ## Advanced Features
 
 ### SLURM Client Integration
 
-Access SLURM cluster information through the client:
+If your plugin needs access to SLURM data, accept a `dao.SlurmClient` via configuration or dependency injection during `Init()`:
 
 ```go
-func (p *MyPlugin) Initialize(ctx context.Context, client dao.SlurmClient) error {
-    p.client = client
-
-    // Access SLURM cluster information
-    info, err := client.ClusterInfo()
-    if err != nil {
-        return err
-    }
-
-    // Get job information
-    jobs, err := client.GetJobs()
-    if err != nil {
-        return err
-    }
-
+func (p *MyPlugin) Init(ctx context.Context, config map[string]interface{}) error {
+    // Configuration is passed as a map; extract what you need
+    p.config = config
     return nil
 }
 ```
+
+The plugin manager handles dependency resolution. Declare dependencies in your `Info.Requires` field to ensure required plugins are started first.
 
 ### SSH Integration
 
@@ -409,8 +437,8 @@ Always handle errors gracefully:
 
 ### 2. Resource Management
 
-- Clean up resources in the `Cleanup()` method
-- Cancel goroutines when plugin is unloaded
+- Clean up resources in the `Stop()` method
+- Cancel goroutines when plugin is stopped
 - Close file handles and network connections
 
 ### 3. Performance
@@ -438,25 +466,48 @@ Always handle errors gracefully:
 
 ### Monitoring Plugin
 
-This plugin displays custom metrics collected periodically:
+This plugin collects custom metrics periodically and exposes a view:
 
 ```go
 // Monitoring plugin that displays custom metrics
 type MonitoringPlugin struct {
-    client dao.SlurmClient
-    ticker *time.Ticker
+    ticker  *time.Ticker
     metrics map[string]interface{}
+    cancel  context.CancelFunc
 }
 
-func (p *MonitoringPlugin) Initialize(ctx context.Context, client dao.SlurmClient) error {
-    p.client = client
-    p.metrics = make(map[string]interface{})
+func (p *MonitoringPlugin) GetInfo() plugin.Info {
+    return plugin.Info{
+        Name:        "monitoring",
+        Version:     "1.0.0",
+        Description: "Collects and displays custom cluster metrics",
+        Author:      "Your Name",
+        Provides:    []string{"metrics"},
+    }
+}
 
-    // Start background metrics collection
+func (p *MonitoringPlugin) Init(ctx context.Context, config map[string]interface{}) error {
+    p.metrics = make(map[string]interface{})
+    return nil
+}
+
+func (p *MonitoringPlugin) Start(ctx context.Context) error {
+    ctx, p.cancel = context.WithCancel(ctx)
     p.ticker = time.NewTicker(30 * time.Second)
     go p.collectMetrics(ctx)
-
     return nil
+}
+
+func (p *MonitoringPlugin) Stop(ctx context.Context) error {
+    p.cancel()
+    if p.ticker != nil {
+        p.ticker.Stop()
+    }
+    return nil
+}
+
+func (p *MonitoringPlugin) Health() plugin.HealthStatus {
+    return plugin.HealthStatus{Healthy: true, Status: "healthy", Message: "OK"}
 }
 
 func (p *MonitoringPlugin) collectMetrics(ctx context.Context) {
@@ -465,31 +516,9 @@ func (p *MonitoringPlugin) collectMetrics(ctx context.Context) {
         case <-ctx.Done():
             return
         case <-p.ticker.C:
-            // Collect custom metrics
             p.updateMetrics()
         }
     }
-}
-```
-
-### Notification Plugin
-
-This plugin sends notifications for job events:
-
-```go
-// Plugin that sends notifications for job events
-type NotificationPlugin struct {
-    webhookURL string
-}
-
-func (p *NotificationPlugin) OnEvent(event plugins.Event) error {
-    switch event.Type {
-    case plugins.EventJobCompleted:
-        return p.sendNotification("Job completed", event.Data)
-    case plugins.EventNodeStateChanged:
-        return p.sendNotification("Node state changed", event.Data)
-    }
-    return nil
 }
 ```
 
@@ -510,34 +539,33 @@ func (p *NotificationPlugin) OnEvent(event plugins.Event) error {
 **Runtime panics**
 - Add proper error handling and validation
 - Test with mock data before integration
-- Check goroutine cleanup in Cleanup()
+- Check goroutine cleanup in Stop()
 
 **Memory leaks**
-- Implement proper cleanup in `Cleanup()` method
-- Cancel all goroutines on cleanup
+- Implement proper cleanup in `Stop()` method
+- Cancel all goroutines on stop
 - Close all file handles and connections
 
 ### Debugging
 
-Enable debug logging and validation:
+Enable debug logging to troubleshoot plugin loading issues:
 
 ```bash
 # Enable debug logging
-s9s --debug --plugin ./my-plugin.so
-
-# Check plugin loading
-s9s --list-plugins
-
-# Validate plugin
-s9s --validate-plugin ./my-plugin.so
+s9s --debug
 ```
+
+The plugin manager logs registration, initialization, start, stop, and health check events. Look for lines containing the plugin name in the debug output.
+
+> **Note:** See [#119](https://github.com/jontk/s9s/issues/119) for planned plugin CLI commands such as listing and validating plugins.
 
 ## API Reference
 
 For complete API documentation, see:
-- Plugin Interface: `/internal/plugins/interface.go`
+- Plugin Interface: `/internal/plugin/interface.go`
+- Plugin Manager: `/internal/plugin/manager.go`
+- Plugin Registry: `/internal/plugin/registry.go`
 - DAO Interface: `/internal/dao/interface.go`
-- Example Plugins: `/internal/plugins/examples/`
 
 ## Contributing
 
