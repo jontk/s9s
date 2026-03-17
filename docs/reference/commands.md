@@ -25,16 +25,16 @@ Press `:` to enter command mode (vim-style). Commands support tab completion for
 ### Navigation Commands
 | Command | Description | Shortcut |
 |---------|-------------|----------|
-| `:view jobs` or `:jobs` | Switch to jobs view | `1` or `j` |
-| `:view nodes` or `:nodes` | Switch to nodes view | `2` or `n` |
-| `:view users` or `:users` | Switch to users view | `3` |
-| `:view partitions` or `:partitions` | Switch to partitions view | `4` or `p` |
-| `:view dashboard` or `:dashboard` | Switch to dashboard | `0` |
-| `:view reservations` or `:reservations` | Switch to reservations view | - |
-| `:view qos` or `:qos` | Switch to QoS view | - |
-| `:view accounts` or `:accounts` | Switch to accounts view | - |
-| `:view health` or `:health` | Switch to health view | - |
-| `:view performance` or `:performance` | Switch to performance view | - |
+| `:jobs` | Switch to jobs view | `1` or `j` |
+| `:nodes` | Switch to nodes view | `2` or `n` |
+| `:users` | Switch to users view | `3` |
+| `:partitions` | Switch to partitions view | `4` or `p` |
+| `:dashboard` | Switch to dashboard | `0` |
+| `:reservations` | Switch to reservations view | - |
+| `:qos` | Switch to QoS view | - |
+| `:accounts` | Switch to accounts view | - |
+| `:health` | Switch to health view | - |
+| `:performance` | Switch to performance view | - |
 | `:help` or `:h` | Show help | `?` |
 | `:quit` or `:q` | Exit S9S | `q` |
 
