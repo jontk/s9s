@@ -264,7 +264,7 @@ Press `:` to enter command mode (vim-style) with intelligent autocomplete:
 ```bash
 :help              # Show help
 :quit              # Exit s9s
-:view nodes        # Switch to nodes view
+:nodes        # Switch to nodes view
 :refresh           # Force refresh
 ```
 
@@ -321,7 +321,7 @@ Now that you know the basics, explore:
 1. **Practice with mock mode** - `s9s --mock` is risk-free
 2. **Use keyboard shortcuts** - Faster than mouse for everything
 3. **Multi-select is powerful** - Batch operations save time
-4. **Pin important filters** - Save frequently used filters
+4. **Use quick filters** - Press `/` to filter any view instantly
 5. **Context help** - Press `?` in any view for specific shortcuts
 6. **Group nodes** - Makes large clusters manageable
 7. **SSH from UI** - No need to remember node names
@@ -353,7 +353,7 @@ A: Yes! Press `s/S` in Nodes view for SSH options.
 A: Use `/` and type `p:partitionname` or `partition:name`.
 
 **Q: Is there a way to save my filters?**
-A: Yes, see [Configuration Guide](configuration.md) for saved filters.
+A: Saved filters are a planned feature. For now, use `/` to quickly re-enter filters in any view.
 
 **Q: Can I customize colors/theme?**
 A: Yes, see [Configuration Guide](configuration.md) for theme options.

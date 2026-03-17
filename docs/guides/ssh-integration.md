@@ -29,7 +29,7 @@ From the Nodes View, press `s` on a selected node to open an interactive SSH ses
 **From Nodes View**:
 ```bash
 # Navigate to nodes view
-:view nodes
+:nodes
 
 # Select a node and press 's' to open SSH session
 node001  IDLE    16/32 cores  64GB/128GB  ← [s] SSH here
@@ -38,7 +38,7 @@ node001  IDLE    16/32 cores  64GB/128GB  ← [s] SSH here
 **From Jobs View**:
 ```bash
 # Navigate to jobs view
-:view jobs
+:jobs
 
 # Press 's' on a running job to SSH to its allocated nodes
 12345  alice  RUNNING  node[001-004]  ← [s] SSH to job nodes
@@ -261,7 +261,7 @@ If SSH connection fails:
 
 ```bash
 # 1. Navigate to jobs view
-:view jobs
+:jobs
 
 # 2. Find your running job
 12345  alice  RUNNING  node[001-004]
@@ -281,7 +281,7 @@ user@node001:~$ tail -f /path/to/job/output
 
 ```bash
 # 1. Navigate to nodes view
-:view nodes
+:nodes
 
 # 2. Select a problematic node
 # 3. Press 's' → choose "Get Node Info"

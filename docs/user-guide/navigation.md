@@ -78,7 +78,7 @@ These shortcuts work across all views:
 | `Ctrl+F` | Search | Global search |
 | `F1` | Actions Menu | Show actions menu |
 | `F2` | Templates | Show job templates |
-| `1-9` | Sort | Sort by column |
+| `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
 
 ### Nodes View
@@ -92,7 +92,7 @@ These shortcuts work across all views:
 | `/` | Filter | Filter nodes |
 | `F3` | Adv Filter | Advanced filter mode |
 | `Ctrl+F` | Search | Global search |
-| `1-9` | Sort | Sort by column |
+| `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
 | `p` | Partition | Filter by partition |
 | `a` | All States | Show all node states |
@@ -111,7 +111,7 @@ These shortcuts work across all views:
 | `/` | Filter | Filter partitions |
 | `F3` | Adv Filter | Advanced filter mode |
 | `Ctrl+F` | Search | Global search |
-| `1-9` | Sort | Sort by column |
+| `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
 
 ### QoS View
@@ -122,7 +122,7 @@ These shortcuts work across all views:
 | `/` | Filter | Filter QoS policies |
 | `F3` | Adv Filter | Advanced filter mode |
 | `Ctrl+F` | Search | Global search |
-| `1-9` | Sort | Sort by column |
+| `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
 
 ### Accounts View
@@ -134,7 +134,7 @@ These shortcuts work across all views:
 | `/` | Filter | Filter accounts |
 | `F3` | Adv Filter | Advanced filter mode |
 | `Ctrl+F` | Search | Global search |
-| `1-9` | Sort | Sort by column |
+| `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
 
 ### Users View
@@ -146,7 +146,7 @@ These shortcuts work across all views:
 | `/` | Filter | Filter users |
 | `F3` | Adv Filter | Advanced filter mode |
 | `Ctrl+F` | Search | Global search |
-| `1-9` | Sort | Sort by column |
+| `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
 
 ### Reservations View
@@ -159,7 +159,7 @@ These shortcuts work across all views:
 | `/` | Filter | Filter reservations |
 | `F3` | Adv Filter | Advanced filter mode |
 | `Ctrl+F` | Search | Global search |
-| `1-9` | Sort | Sort by column |
+| `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
 
 ### Dashboard View
@@ -217,7 +217,7 @@ Press `Ctrl+F` to search across all views simultaneously and jump to results.
 2. **Quick view switching**: Number keys `1-9` switch directly to views
 3. **Quick filters**: `/` for instant filtering in any view
 4. **Multi-select**: Use `v` in jobs view for batch operations
-5. **Sort quickly**: Use `1-9` to sort by different columns
+5. **Sort quickly**: Press `S` to open the sort modal
 
 ### Power User Workflows
 
@@ -264,7 +264,7 @@ See [Commands Reference](../reference/commands.md) for complete command document
 - **Command mode with autocomplete** - Vim-style `:` commands with Tab completion
 - **ASCII visualizations** - Resource usage shown with colored progress bars
 - **Advanced filtering** - Use `/` to filter data in any view or `F3` for advanced filters
-- **Sortable columns** - Use number keys `1-9` to sort
+- **Sortable columns** - Press `S` to open the sort modal
 - **Detailed analytics** - Press `A` or `W` in partitions for insights
 - **Node grouping** - Group nodes by partition, state, or features
 - **Wait time analysis** - Predictive queue analytics in partitions
