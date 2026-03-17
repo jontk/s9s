@@ -218,14 +218,12 @@ Named times: `midnight` (00:00), `noon` (12:00), `elevenses` (11:00), `fika` (15
 
 ### Template-Based Submission
 
-Select a template from the wizard's template selector to pre-fill the form. Templates can set any field value and control which fields are visible.
+To submit a job from a template, press `s` to open the submission wizard, then select "From template" and pick a template from the list. The selected template pre-fills the form with its configured defaults and controls which fields are visible.
+
+You can also list available templates from the shell:
 
 ```bash
-# List all templates from every source
 s9s templates list
-
-# Submit from template in the wizard
-# Press s -> choose "From template" -> pick a template
 ```
 
 ### Config-Driven Customization
@@ -278,16 +276,6 @@ views:
               module load cuda pytorch
               python train.py
           hiddenFields: ["arraySpec"]
-```
-
-### Command Line Submit
-
-```bash
-# Submit with S9S command mode
-:submit --partition=gpu --nodes=4 --time=2:00:00 myscript.sh
-
-# Submit with dependencies
-:submit --dependency=afterok:12345 --array=1-100 array_job.sh
 ```
 
 ## Monitoring Jobs
@@ -371,39 +359,13 @@ Select multiple jobs with `Space`, then press `b`:
 
 #### Job Arrays
 
-Manage array jobs efficiently:
-
-```bash
-# View array summary
-:array-summary 12345
-
-# Expand all array tasks
-:expand-array 12345
-
-# Cancel specific tasks
-:cancel 12345_[1-10,20,30-40]
-
-# Hold array subset
-:hold 12345_[50-100]
-```
+Array jobs are created by setting the `arraySpec` field in the submission wizard (for example, `1-100%10`). Once submitted, individual array tasks appear in the jobs list and can be managed with standard job operations (cancel, hold, release) using the task's full job ID.
 
 #### Dependencies
 
-Visualize and manage job dependencies:
+Job dependencies are set in the submission wizard via the `dependencies` field. Enter a comma-separated list of job IDs; S9S submits them as `afterok:id1:id2` automatically. Dependency information is displayed in the job details view.
 
-```bash
-# View dependency tree
-:deps tree 12345
-
-# Add dependency
-:deps add 12346 --after 12345
-
-# Remove dependency
-:deps remove 12346
-
-# View dependency graph
-:deps graph --format=dot | dot -Tpng > deps.png
-```
+See [#115](https://github.com/jontk/s9s/issues/115) for planned command-mode enhancements to array and dependency management.
 
 ## Advanced Filtering
 
@@ -440,21 +402,7 @@ S9S supports powerful job filtering:
 
 ### Saved Filters
 
-Save frequently used filters:
-
-```bash
-# Save current filter
-:filter save gpu-queue "/partition:gpu state:PENDING"
-
-# Load saved filter
-:filter load gpu-queue
-
-# List saved filters
-:filter list
-
-# Delete filter
-:filter delete old-filter
-```
+Saved filters are not yet implemented. Use the `/` quick filter for on-the-fly filtering. See [#115](https://github.com/jontk/s9s/issues/115) for planned saved-filter support.
 
 ## Job Performance
 
@@ -661,72 +609,15 @@ Valid values: `"builtin"`, `"config"`, `"saved"`.
 
 ### Job Chains
 
-Create dependent job workflows:
+To create a chain of dependent jobs, submit each job with its dependencies set in the submission wizard's `dependencies` field. For example, submit a preprocessing job first, then submit an analysis job with the preprocessing job's ID in the dependencies field, and so on. S9S automatically formats these as `afterok` dependencies.
 
-```bash
-# Submit job chain
-:chain submit \
-  --job1 preprocess.sh \
-  --job2 analyze.sh --after job1 \
-  --job3 cleanup.sh --after job2
-
-# View chain status
-:chain status my-workflow
-
-# Cancel entire chain
-:chain cancel my-workflow
-```
-
-### Recurring Jobs
-
-Set up recurring job submissions:
-
-```bash
-# Daily job
-:schedule add daily-backup \
-  --script backup.sh \
-  --time "02:00" \
-  --repeat daily
-
-# Weekly analysis
-:schedule add weekly-report \
-  --script report.sh \
-  --day monday \
-  --time "09:00" \
-  --repeat weekly
-```
+Job chains and recurring job scheduling via command mode are not yet available. See [#115](https://github.com/jontk/s9s/issues/115) for planned workflow enhancements.
 
 ## Job Reporting
 
 ### Export Job Data
 
-Export job information for analysis:
-
-```bash
-# Export current view
-:export csv jobs.csv
-
-# Export with filters
-:export json --filter "state:COMPLETED user:${USER}" my-jobs.json
-
-# Export with specific columns
-:export markdown --columns "JobID,Name,State,Runtime,Efficiency" report.md
-```
-
-### Generate Reports
-
-Create job reports:
-
-```bash
-# User summary report
-:report user-summary --period month
-
-# Efficiency report
-:report efficiency --threshold 0.7
-
-# Failed jobs analysis
-:report failures --period week --format html > failures.html
-```
+Export the current view by pressing `Ctrl+E` or `e` (depending on the view). This exports the visible data to a file. Command-mode export and report generation are not yet available. See [#115](https://github.com/jontk/s9s/issues/115) for planned reporting enhancements.
 
 ## Tips & Best Practices
 
