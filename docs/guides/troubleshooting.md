@@ -195,21 +195,18 @@ echo $SLURM_TOKEN
 **Solutions**:
 
 1. **Adjust refresh rate**:
-   ```bash
-   # Slower refresh
-   :set refresh 10s
-
-   # Disable auto-refresh
-   :set refresh 0
+   Change the `refreshRate` setting in your configuration file (`~/.s9s/config.yaml`):
+   ```yaml
+   preferences:
+     refreshRate: 10s  # Slower refresh (default is 30s)
    ```
 
-2. **Reduce data displayed**:
-   ```bash
-   # Limit results
-   :set pageSize 25
-
-   # Hide unnecessary columns
-   :columns JobID,Name,State,Time
+2. **Customize visible columns**:
+   Configure columns in your configuration file:
+   ```yaml
+   views:
+     jobs:
+       columns: [JobID, Name, State, Time]
    ```
 
 3. **Check system resources**:
@@ -228,16 +225,8 @@ echo $SLURM_TOKEN
 **Problem**: Missing or filtered jobs
 
 **Diagnostics**:
-```bash
-# Check active filters
-:filters show
-
-# Clear all filters
-:clear
-
-# Verify with squeue
-:!squeue -u $USER
-```
+- Press `/` to check if a filter is active, then press `Esc` to clear it
+- Press `R` to force a manual refresh
 
 **Solutions**:
 
@@ -260,10 +249,10 @@ echo $SLURM_TOKEN
 
 3. **Partition visibility**:
    ```bash
-   # List visible partitions
-   :partitions list
+   # Switch to partitions view in s9s
+   :partitions
 
-   # Check partition access
+   # Or check partition access from the command line
    sinfo -s
    ```
 
@@ -276,10 +265,7 @@ echo $SLURM_TOKEN
 1. **Force refresh**:
    ```bash
    # Manual refresh
-   Ctrl+R
-
-   # Clear cache
-   :cache clear
+   R       # Press R in any view
    ```
 
 2. **Check time sync**:
@@ -365,39 +351,19 @@ echo $SLURM_TOKEN
 
 ### Debug Mode
 
-Enable comprehensive debugging:
+Enable debug logging:
 
 ```bash
 # Start with debug logging
-s9s --debug --log-level=trace
+s9s --debug
 
-# Debug specific component
-s9s --debug-component=api
-s9s --debug-component=ui
-s9s --debug-component=ssh
-
-# Save debug session
+# Save debug output to a file
 s9s --debug 2>&1 | tee debug.log
-```
-
-### Configuration Validation
-
-Verify configuration:
-
-```bash
-# Validate syntax
-s9s config validate
-
-# Test specific cluster
-s9s config test --cluster production
-
-# Show effective configuration
-s9s config show --resolved
 ```
 
 ### API Testing
 
-Test SLURM API directly:
+Test the SLURM REST API directly to isolate connection issues:
 
 ```bash
 # Test API endpoint
@@ -407,10 +373,6 @@ curl -k -H "X-Auth-Token: $SLURM_TOKEN" \
 # List jobs via API
 curl -k -H "X-Auth-Token: $SLURM_TOKEN" \
      https://slurm.example.com/slurm/v0.0.40/jobs
-
-# Test with S9S
-s9s api GET /jobs
-s9s api GET /nodes
 ```
 
 ### Log Analysis
@@ -424,49 +386,29 @@ tail -n 100 ~/.s9s/s9s.log
 # Search for errors
 grep ERROR ~/.s9s/s9s.log
 
-# Monitor logs
+# Monitor logs in real time
 tail -f ~/.s9s/s9s.log
-
-# Rotate logs
-s9s logs rotate
 ```
 
-## Diagnostic Commands
+## Diagnostic Information
 
-### Built-in Diagnostics
+To view cluster health information, use the built-in health view:
 
 ```bash
-# System information
-:diag system
+# Switch to health view
+:health
 
-# Connection test
-:diag connection
-
-# Performance metrics
-:diag performance
-
-# Configuration check
-:diag config
-
-# Full diagnostic report
-:diag full > diagnostic-report.txt
+# Or press 9 to switch to the health view
 ```
 
-### Health Checks
+For configuration issues, use the config view:
 
 ```bash
-# API health
-:health api
-
-# Cache status
-:health cache
-
-# Plugin status
-:health plugins
-
-# Overall health
-:health all
+# Open configuration
+:config
 ```
+
+> **Note**: Additional diagnostic commands are planned. See [#119](https://github.com/jontk/s9s/issues/119) for planned diagnostic commands.
 
 ## Getting Help
 
@@ -475,13 +417,13 @@ s9s logs rotate
 When reporting issues, include:
 
 ```bash
-# Generate support bundle
-s9s support-bundle
+# Check s9s version
+s9s --version
 
-# Manual collection
-s9s --version > support.txt
-s9s config show --sanitized >> support.txt
-s9s diag full >> support.txt
+# Run with debug logging
+s9s --debug 2>&1 | tee debug.log
+
+# Collect log files if available
 tar czf s9s-debug.tar.gz ~/.s9s/logs/
 ```
 
@@ -509,24 +451,16 @@ Complete reset:
 # Backup configuration
 cp -r ~/.s9s ~/.s9s.backup
 
-# Reset to defaults
-s9s reset
-
-# Or manual reset
+# Manual reset
 rm -rf ~/.s9s
-s9s setup
+
+# S9S will recreate defaults on next launch
+s9s
 ```
 
 ### Clear Cache
 
 ```bash
-# Clear all caches
-s9s cache clear
-
-# Clear specific cache
-s9s cache clear --type=api
-s9s cache clear --type=ui
-
 # Manual cache clear
 rm -rf ~/.s9s/cache/
 ```

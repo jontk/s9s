@@ -24,8 +24,6 @@ Press `/` in any view to activate quick filter:
 ### Clear Filters
 
 - `Esc` - Clear current filter and exit search mode
-- `:clear` - Clear all active filters
-- `Ctrl+/` - Toggle last filter on/off
 
 ## Filter Syntax
 
@@ -238,54 +236,11 @@ Use regex for complex pattern matching:
 /state:unusable       # down,drain,maint
 ```
 
-## Saved Filters
+## Saved Filters and Presets (Planned)
 
-### Creating Saved Filters
-
-Save frequently used filters:
-
-```bash
-# Save current filter
-:filter save my-jobs "/user:${USER} state:active"
-
-# Save with description
-:filter save gpu-pending "/partition:gpu state:PENDING" --desc "Pending GPU jobs"
-
-# Save complex filter
-:filter save inefficient "/state:RUNNING efficiency:<0.5 runtime:>1h"
-```
-
-### Using Saved Filters
-
-```bash
-# List saved filters
-:filter list
-
-# Load saved filter
-:filter load my-jobs
-# Or use shortcut
-/~my-jobs
-
-# Edit saved filter
-:filter edit gpu-pending
-
-# Delete saved filter
-:filter delete old-filter
-```
-
-### Filter Presets
-
-s9s includes built-in filter presets:
-
-| Preset | Description | Filter |
-|--------|-------------|--------|
-| `~active` | Active jobs | `state:RUNNING,PENDING` |
-| `~mine` | My jobs | `user:${USER}` |
-| `~recent` | Recent jobs | `submitted:<1d` |
-| `~failed` | Failed jobs | `state:FAILED,TIMEOUT` |
-| `~gpu` | GPU jobs | `gpus:>0` |
-| `~long` | Long jobs | `runtime:>1d` |
-| `~today` | Today's jobs | `submitted:today` |
+> **Note**: Saved filters, filter presets (`~` prefix shortcuts like `/~active`, `/~mine`), and `:filter save/load/list/delete` commands are planned features. See [#119](https://github.com/jontk/s9s/issues/119) for details.
+>
+> In the meantime, you can re-enter filters manually using `/` in any view.
 
 ## Dynamic Filters
 
@@ -310,14 +265,16 @@ Filters that adapt to current view:
 
 ```bash
 # In Jobs view
-/efficiency:<0.7      # Low efficiency jobs
+/state:RUNNING        # Running jobs
 
 # In Nodes view
-/load:>0.8           # High load nodes
+/state:idle           # Idle nodes
 
 # In Users view
-/active:true         # Users with running jobs
+/user:alice           # Specific user
 ```
+
+> **Note**: Advanced context-aware fields like `efficiency`, `load`, and `gpu_util` depend on those fields being available in the data returned by the SLURM REST API. Some advanced filter features are planned. See [#119](https://github.com/jontk/s9s/issues/119).
 
 ## Filter Examples
 
@@ -328,9 +285,9 @@ Filters that adapt to current view:
 /state:PENDING submitted:>1h reason:!Resources
 ```
 
-#### Inefficient GPU Jobs
+#### GPU Partition Jobs
 ```bash
-/partition:gpu state:RUNNING gpu_util:<50%
+/partition:gpu state:RUNNING
 ```
 
 #### Failed Jobs Today
@@ -369,10 +326,9 @@ Filters that adapt to current view:
 
 ### Efficient Filtering
 
-1. **Use indexes**: Filter by indexed fields first (JobID, User, State)
+1. **Use indexed fields**: Filter by indexed fields first (JobID, User, State)
 2. **Narrow scope**: Start with restrictive filters, then broaden
-3. **Save complex filters**: Reuse instead of retyping
-4. **Use shortcuts**: Learn preset filters for common queries
+3. **State first**: Filter by state for best performance
 
 ### Filter Optimization
 
@@ -393,23 +349,11 @@ Filters that adapt to current view:
 | `/` | Start filter | Enter filter mode |
 | `Tab` | Autocomplete | Complete filter fields |
 | `↑/↓` | History | Browse filter history |
-| `Ctrl+/` | Toggle | Toggle last filter |
-| `Alt+/` | Presets | Show filter presets |
 | `Esc` | Clear | Clear current filter |
 
-### Command Mode Filters
+### Using Filters
 
-```bash
-# Apply filter via command
-:filter "state:RUNNING nodes:>4"
-
-# Chain filters
-:filter add "user:alice"
-:filter add "partition:gpu"
-
-# Remove specific filter
-:filter remove "user:alice"
-```
+Use `/` in any view to enter filter mode and type your filter expression. Press `Esc` to clear the filter.
 
 ## Troubleshooting Filters
 
@@ -436,7 +380,6 @@ Filters that adapt to current view:
 ## Next Steps
 
 - Practice filters in [Mock Mode](../MOCK_MODE.md)
-- Set up [Saved Filters](../getting-started/configuration.md#filters)
 - Learn [Batch Operations](../user-guide/job-management.md) with filters
 - Explore filtering in specific views:
   - [Jobs View](../user-guide/views/jobs.md)
