@@ -22,15 +22,13 @@ These shortcuts work across all views:
 | `Shift+Tab` | Previous View | Cycle to previous view |
 | `h` | Previous View | Move to previous view |
 | `l` | Next View | Move to next view |
-| `F1` | Help | Show context-sensitive help |
-| `F2` | Alerts | Show system alerts |
+| `F1` | Help | Show help modal |
+| `F2` | Alerts | Show system alerts (passes through to Jobs view for templates) |
 | `F3` | Preferences | Show preferences dialog |
 | `F4` | Layout | Show layout switcher |
 | `F5` | Refresh | Refresh current view |
 | `F10` | Configuration | Show configuration |
-| `Ctrl+F` | Global Search | Search across all resources |
 | `Ctrl+K` | Switch Cluster | Switch between configured clusters |
-| `R` | Manual Refresh | Force refresh current view |
 
 ### View Navigation
 
@@ -53,7 +51,7 @@ These shortcuts work across all views:
 |-----|--------|-------------|
 | `j` or `↓` | Down | Move cursor down |
 | `k` or `↑` | Up | Move cursor up |
-| `g` | Top | Go to first item |
+| `gg` | Top | Go to first item (vim double-g motion) |
 | `G` | Bottom | Go to last item |
 
 ## View-Specific Shortcuts
@@ -69,14 +67,11 @@ These shortcuts work across all views:
 | `r` | Release | Release held job |
 | `o` | Output | View job output |
 | `d` | Dependencies | Show job dependencies |
-| `q` | Requeue | Requeue failed job |
 | `b` | Batch Ops | Enter batch operations mode |
 | `v` | Multi-Select | Toggle multi-select mode |
 | `m` | Auto Refresh | Toggle auto-refresh |
 | `/` | Filter | Filter jobs |
-| `F3` | Adv Filter | Advanced filter mode |
-| `Ctrl+F` | Search | Global search |
-| `F1` | Actions Menu | Show actions menu |
+| `Ctrl+F` | Search | Global search (view-specific) |
 | `F2` | Templates | Show job templates |
 | `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
@@ -89,11 +84,10 @@ These shortcuts work across all views:
 | `s` | SSH | SSH to selected node |
 | `d` | Drain | Drain node |
 | `r` | Resume | Resume drained node |
-| `/` | Filter | Filter nodes |
-| `F3` | Adv Filter | Advanced filter mode |
-| `Ctrl+F` | Search | Global search |
-| `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
+| `/` | Filter | Filter nodes |
+| `Ctrl+F` | Search | Global search (view-specific) |
+| `S` | Sort | Open sort modal |
 | `p` | Partition | Filter by partition |
 | `a` | All States | Show all node states |
 | `g` | Group By | Group nodes by attribute |
@@ -109,10 +103,7 @@ These shortcuts work across all views:
 | `A` | Analytics | Show partition analytics |
 | `W` | Wait Times | Show wait time analytics |
 | `/` | Filter | Filter partitions |
-| `F3` | Adv Filter | Advanced filter mode |
-| `Ctrl+F` | Search | Global search |
 | `S` | Sort | Open sort modal |
-| `R` | Refresh | Force refresh view |
 
 ### QoS View
 
@@ -120,10 +111,7 @@ These shortcuts work across all views:
 |-----|--------|-------------|
 | `Enter` | Details | Show QoS details |
 | `/` | Filter | Filter QoS policies |
-| `F3` | Adv Filter | Advanced filter mode |
-| `Ctrl+F` | Search | Global search |
 | `S` | Sort | Open sort modal |
-| `R` | Refresh | Force refresh view |
 
 ### Accounts View
 
@@ -132,10 +120,7 @@ These shortcuts work across all views:
 | `Enter` | Details | Show account details |
 | `H` | Hierarchy | Show account hierarchy |
 | `/` | Filter | Filter accounts |
-| `F3` | Adv Filter | Advanced filter mode |
-| `Ctrl+F` | Search | Global search |
 | `S` | Sort | Open sort modal |
-| `R` | Refresh | Force refresh view |
 
 ### Users View
 
@@ -144,10 +129,7 @@ These shortcuts work across all views:
 | `Enter` | Details | Show user details |
 | `a` | Toggle Filter | Show admin users / all users |
 | `/` | Filter | Filter users |
-| `F3` | Adv Filter | Advanced filter mode |
-| `Ctrl+F` | Search | Global search |
 | `S` | Sort | Open sort modal |
-| `R` | Refresh | Force refresh view |
 
 ### Reservations View
 
@@ -157,10 +139,7 @@ These shortcuts work across all views:
 | `a` | Active Only | Filter active reservations |
 | `f` | Future Only | Filter future reservations |
 | `/` | Filter | Filter reservations |
-| `F3` | Adv Filter | Advanced filter mode |
-| `Ctrl+F` | Search | Global search |
 | `S` | Sort | Open sort modal |
-| `R` | Refresh | Force refresh view |
 
 ### Dashboard View
 
@@ -187,7 +166,7 @@ These shortcuts work across all views:
 
 ## Search and Filter Mode
 
-Enter filter mode with `/` or advanced filter with `F3`:
+Enter filter mode with `/` in any view:
 
 ### Basic Filter
 
@@ -199,7 +178,9 @@ Enter filter mode with `/` or advanced filter with `F3`:
 
 ### Advanced Filter
 
-Press `F3` to access the advanced filter builder with:
+The advanced filter bar is available via view-specific key handlers (e.g., `Ctrl+F` in Jobs and Nodes views). Note that the global `F3` key opens Preferences, which takes priority over view-level advanced filter bindings.
+
+The advanced filter supports:
 - Field-specific filtering
 - Operator support (equals, contains, greater than, less than)
 - Multiple filter conditions
@@ -207,13 +188,13 @@ Press `F3` to access the advanced filter builder with:
 
 ### Global Search
 
-Press `Ctrl+F` to search across all views simultaneously and jump to results.
+Press `Ctrl+F` in supported views (Jobs, Nodes) to search across resources.
 
 ## Tips & Tricks
 
 ### Efficiency Tips
 
-1. **Use vim keys**: `j`/`k` for up/down, `g`/`G` for top/bottom
+1. **Use vim keys**: `j`/`k` for up/down, `gg`/`G` for top/bottom
 2. **Quick view switching**: Number keys `1-9` switch directly to views
 3. **Quick filters**: `/` for instant filtering in any view
 4. **Multi-select**: Use `v` in jobs view for batch operations
@@ -263,7 +244,7 @@ See [Commands Reference](../reference/commands.md) for complete command document
 - **Real-time updates** - Data refreshes automatically
 - **Command mode with autocomplete** - Vim-style `:` commands with Tab completion
 - **ASCII visualizations** - Resource usage shown with colored progress bars
-- **Advanced filtering** - Use `/` to filter data in any view or `F3` for advanced filters
+- **Advanced filtering** - Use `/` to filter data in any view, or `Ctrl+F` in Jobs/Nodes for advanced search
 - **Sortable columns** - Press `S` to open the sort modal
 - **Detailed analytics** - Press `A` or `W` in partitions for insights
 - **Node grouping** - Group nodes by partition, state, or features

@@ -30,10 +30,13 @@ The jobs table displays 11 columns:
 
 ### Color Coding
 - **State column**: Color varies by job state
-  - Green: RUNNING, COMPLETED
+  - Green: RUNNING
+  - Cyan: COMPLETED
   - Yellow: PENDING, CONFIGURING
-  - Red: FAILED, CANCELLED, TIMEOUT
-  - Cyan: SUSPENDED
+  - Red: FAILED, TIMEOUT
+  - Gray: CANCELED
+  - Orange: SUSPENDED, PREEMPTED
+  - Blue: COMPLETING
 - **Table header**: Teal
 - **Selected rows**: Yellow highlight
 
@@ -53,10 +56,10 @@ Shows detailed information about the selected job:
 - Standard output/error paths
 
 ### Submit New Job
-**Shortcuts**: `s/S` (wizard), `F2` (templates)
+**Shortcuts**: `s` (wizard), `F2` (templates)
 
 Two submission methods:
-1. **Job Submission Wizard** (`s/S`): Step-by-step guided submission
+1. **Job Submission Wizard** (`s`): Step-by-step guided submission
 2. **Job Templates** (`F2`): Pre-configured job templates
 
 See [Job Management](../job-management.md) for detailed submission guide.
@@ -89,6 +92,8 @@ Available for:
 **Shortcut**: `q/Q`
 
 Requeues a completed, failed, or cancelled job for re-execution.
+
+Note: Since `q/Q` is also the global quit shortcut, the requeue action is intercepted by the global quit handler before reaching the Jobs view, making requeue via `q/Q` unreachable.
 
 ### View Job Output
 **Shortcut**: `o/O`
@@ -160,17 +165,17 @@ Activates the filter input box. Filters jobs by:
 **Example**: `/` then type "gpu" to find all jobs with "gpu" in any field.
 
 ### Advanced Filter
-**Shortcut**: `F3`
+**Shortcut**: `Ctrl+F`
 
 Opens the advanced filter bar with expression-based filtering.
 
 **Filter expressions:**
 ```
-state:RUNNING
-user:alice
-partition:gpu
-nodes:>4
-priority:>=1000
+state=RUNNING
+user=alice
+partition=gpu
+nodes>4
+priority>=1000
 ```
 
 **Supported fields:**
@@ -193,14 +198,14 @@ priority:>=1000
 
 **Operators:**
 - `=` - Exact match
-- `:` - Contains
+- `~` - Contains
 - `>`, `<`, `>=`, `<=` - Numeric comparison
 
 **Example filters:**
 ```
-state:RUNNING partition:gpu
-user:alice priority:>500
-nodes:>=8 state:PENDING
+state=RUNNING partition=gpu
+user=alice priority>500
+nodes>=8 state=PENDING
 ```
 
 Press `ESC` to exit advanced filter mode.
@@ -252,7 +257,7 @@ Shows context-sensitive action menu with all available actions for the selected 
 | Key | Action |
 |-----|--------|
 | `Enter` | View job details |
-| `s/S` | Submit job (wizard) |
+| `s` | Submit job (wizard) |
 | `F2` | Job templates |
 | `c/C` | Cancel job |
 | `H` | Hold job |
@@ -273,8 +278,7 @@ Shows context-sensitive action menu with all available actions for the selected 
 | Key | Action |
 |-----|--------|
 | `/` | Simple filter |
-| `F3` | Advanced filter |
-| `Ctrl+F` | Global search |
+| `Ctrl+F` | Advanced filter / Global search |
 | `a/A` | Filter all states |
 | `p/P` | Filter pending |
 | `u/U` | Filter by user |
@@ -294,7 +298,7 @@ Shows context-sensitive action menu with all available actions for the selected 
 
 *Job submission wizard with step-by-step configuration*
 
-The job submission wizard (`s/S`) guides you through:
+The job submission wizard (`s`) guides you through:
 
 1. **Basic Information**
    - Job name
@@ -324,8 +328,8 @@ See [Job Management](../job-management.md) for detailed submission guide.
 
 - Use `v/V` for multi-select when you need to operate on specific jobs
 - Use batch operations by state when you want to affect all jobs in a state
-- Press `F3` for powerful filtering with expressions
-- Use `partition:name` syntax in simple filter for quick partition filtering
+- Press `Ctrl+F` for powerful filtering with expressions
+- Use `p:name` syntax in simple filter for quick partition filtering
 - Check job output with `o/O` to debug issues
 - Use `d/D` to understand job dependencies before canceling
 - Enable auto-refresh (`m/M`) for monitoring active jobs

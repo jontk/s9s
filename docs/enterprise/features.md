@@ -137,10 +137,11 @@ FROM alpine:latest
 COPY s9s /usr/local/bin/s9s
 RUN chmod +x /usr/local/bin/s9s
 
-# Run in non-interactive mode for monitoring
+# s9s is an interactive TUI application
 ENTRYPOINT ["/usr/local/bin/s9s"]
-CMD ["jobs", "--format", "json"]
 ```
+
+> **Note:** s9s is a terminal UI application and does not have a non-interactive `jobs --format json` mode. For non-interactive SLURM data access, use `scontrol` or `sacct` directly, or the SLURM REST API.
 
 ### SSH Integration
 

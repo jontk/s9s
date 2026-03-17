@@ -93,13 +93,16 @@ Views implement the UI for different resources:
 - **PartitionsView**: Partition information
 - **Additional Views**: Users, QoS, Reservations, etc.
 
-Key interfaces:
+Key interfaces (see `internal/views/base.go` for full definition):
 ```go
 type View interface {
     Name() string
-    Title() string
-    SetupView() tview.Primitive
     Refresh() error
+    OnKey(event *tcell.EventKey) *tcell.EventKey
+    OnFocus() error
+    OnLoseFocus() error
+    Hints() []string
+    // ... and more
 }
 ```
 
@@ -177,22 +180,15 @@ func NewJobsView(client dao.SlurmClient) *JobsView {
 }
 ```
 
-### Observer Pattern
-
-Views can subscribe to refresh events:
-```go
-type RefreshObserver interface {
-    OnRefresh() error
-}
-```
-
 ### Command Pattern
 
-User actions are encapsulated as commands:
+Commands are represented as structs (see `internal/plugins/interface.go`):
 ```go
-type Command interface {
-    Execute() error
-    Undo() error
+type Command struct {
+    Name        string
+    Description string
+    Usage       string
+    Handler     func(args []string) error
 }
 ```
 
@@ -377,15 +373,32 @@ type MockTimeProvider struct {
 
 ## Extension Points
 
-### Plugin System (Planned)
+### Plugin System (Implemented)
 
+s9s has two plugin systems:
+
+**Compile-time registration** (`internal/plugin/interface.go`):
 ```go
 type Plugin interface {
-    Name() string
-    Version() string
-    Init(api PluginAPI) error
-    RegisterCommands() []Command
-    RegisterViews() []View
+    GetInfo() Info
+    Init(ctx context.Context, config map[string]interface{}) error
+    Start(ctx context.Context) error
+    Stop(ctx context.Context) error
+    Health() HealthStatus
+}
+```
+With specialized interfaces: `ViewPlugin`, `OverlayPlugin`, `DataPlugin`, `ConfigurablePlugin`, `HookablePlugin`.
+
+**Shared library loading** (`internal/plugins/interface.go`):
+```go
+type Plugin interface {
+    GetInfo() PluginInfo
+    Initialize(ctx context.Context, client dao.SlurmClient) error
+    GetCommands() []Command
+    GetViews() []View
+    GetKeyBindings() []KeyBinding
+    OnEvent(event Event) error
+    Cleanup() error
 }
 ```
 
@@ -411,11 +424,10 @@ type Exporter interface {
 
 ### Planned Improvements
 
-1. **Plugin System**: Dynamic loading of extensions
-2. **Event Bus**: Decoupled component communication
-3. **State Store**: Centralized state management
-4. **API Gateway**: Multiple backend support
-5. **Metrics Collection**: Performance monitoring
+1. **Event Bus**: Decoupled component communication
+2. **State Store**: Centralized state management
+3. **API Gateway**: Multiple backend support
+4. **Metrics Collection**: Performance monitoring
 
 ### Scalability
 

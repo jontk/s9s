@@ -61,7 +61,7 @@ go test -tags=integration ./test/integration
 
 # With specific SLURM cluster
 SLURM_URL=https://test.example.com \
-SLURM_TOKEN=token123 \
+SLURM_JWT=token123 \
 go test -tags=integration ./test/integration
 ```
 
@@ -75,14 +75,14 @@ Performance benchmarks measure and track code performance over time.
 # Run all benchmarks
 make bench
 
-# Or manually
-go test -bench=. ./test/performance
+# Or manually (both performance and integration directories)
+go test -bench=. -benchmem ./test/performance/... ./test/integration/...
 
 # Run specific benchmark
-go test -bench=BenchmarkJobRefresh ./test/performance
+go test -bench=BenchmarkJobRefresh ./test/performance/...
 
 # With memory profiling
-go test -bench=. -benchmem ./test/performance
+go test -bench=. -benchmem ./test/performance/...
 ```
 
 ## Test Coverage
@@ -173,7 +173,7 @@ func TestParseState(t *testing.T) {
 
 ```
 internal/views/jobs_test.go      # Unit tests for views
-pkg/slurm/mock_test.go          # Mock implementation tests
+pkg/slurm/mock.go               # Mock SLURM implementation
 test/integration/               # Integration tests
 test/performance/              # Performance benchmarks
 ```
@@ -366,12 +366,8 @@ for _, id := range jobIDs {
 # Enable debug logging
 s9s --debug
 
-# Or with environment variable
-export S9S_DEBUG=true
-s9s
-
-# Check debug log location
-tail -f ~/.s9s/debug.log
+# Check debug log location (written to current directory)
+tail -f s9s-debug.log
 ```
 
 ### Add Debug Statements

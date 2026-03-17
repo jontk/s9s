@@ -14,7 +14,7 @@ The Nodes view displays all compute nodes in your cluster with real-time resourc
 
 | Column | Description |
 |--------|-------------|
-| **Node Name** | Node identifier |
+| **Name** | Node identifier |
 | **State** | Color-coded node status |
 | **Partitions** | Associated partition names |
 | **CPU Usage** | Dual visual bar with allocated vs. actual usage |
@@ -31,13 +31,13 @@ Node states are color-coded for quick identification:
 | State | Color | Description |
 |-------|-------|-------------|
 | **IDLE** | Green | Available for work |
-| **ALLOCATED** | Cyan | Fully assigned to jobs |
-| **MIXED** | Yellow | Partially allocated |
+| **ALLOCATED** | Blue | Fully assigned to jobs |
+| **MIXED** | Blue | Partially allocated |
 | **DOWN** | Red | Unavailable/offline |
-| **DRAIN** | Orange | Being drained |
-| **IDLE+DRAIN** | Orange | Idle but draining |
-| **COMPLETING** | Blue | Jobs completing |
-| **RESERVED** | Magenta | Reserved |
+| **DRAIN** | Red | Being drained |
+| **DRAINING** | Red | Draining in progress |
+| **RESERVED** | Yellow | Reserved |
+| **MAINTENANCE** | Orange | Under maintenance |
 
 ## Resource Usage Visualization
 
@@ -130,7 +130,7 @@ Resumes a drained node, making it available for new jobs.
 - State changes from DRAIN to IDLE (or appropriate state)
 
 ### SSH Access
-**Shortcut**: `s/S`
+**Shortcut**: `s`
 
 Opens SSH options menu with four choices:
 
@@ -181,16 +181,16 @@ Filters nodes by any column value:
 - `p:partition` or `partition:name` - Filter by partition
 
 ### Advanced Filter
-**Shortcut**: `F3`
+**Shortcut**: `Ctrl+F`
 
 Expression-based filtering with field matching:
 
 ```
-state:IDLE
-partition:gpu
-features:nvlink
-cpus:>64
-memory:>256GB
+state=IDLE
+partition=gpu
+features~nvlink
+cpus>64
+memory>256GB
 ```
 
 Press `ESC` to exit advanced filter.
@@ -261,14 +261,14 @@ Press `S` to open the interactive sort modal.
 | `Enter` | View node details |
 | `d/D` | Drain node |
 | `r` | Resume node |
-| `s/S` | SSH to node |
+| `s` | SSH to node |
+| `S` | Sort modal |
 
 ### Filtering & Search
 | Key | Action |
 |-----|--------|
 | `/` | Simple filter |
-| `F3` | Advanced filter |
-| `Ctrl+F` | Global search |
+| `Ctrl+F` | Advanced filter / Global search |
 | `p/P` | Filter by partition |
 | `a/A` | Toggle all states |
 | `i/I` | Toggle idle filter |

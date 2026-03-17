@@ -60,7 +60,7 @@ As of **PR #29**, we systematically fixed all revive linter violations through a
 
 ## Enabled Linters
 
-s9s uses **15 enabled linters** configured in `.golangci.yml`. They are organized by category:
+s9s uses **14 enabled linters** configured in `.golangci.yml`. They are organized by category:
 
 ### Core Linters
 
@@ -111,13 +111,6 @@ These improve code quality and catch common issues:
   - Similar to ineffassign but for different patterns
   - Helps identify unnecessary variables
 
-### Security Linters
-
-- **gosec** (configured): Security-focused static analysis
-  - Detects security vulnerabilities
-  - Checks for weak randomness, SQL injection, path traversal, etc.
-  - Configured with exclusions for accepted patterns
-
 ### Style and Pattern Linters
 
 - **gocritic**: Style and code pattern checks
@@ -144,15 +137,14 @@ These improve code quality and catch common issues:
 
 ### Advanced Linters
 
-- **gocognit**: Cognitive complexity checking
-  - Measures how difficult code is to understand
-  - Threshold: 30 (allows moderate complexity)
-  - Helps identify hard-to-understand code
+- **cyclop**: Cyclomatic complexity checking
+  - Measures cyclomatic complexity of functions
+  - Max complexity: 10 (with file-specific exclusions)
+  - Helps keep functions simple and testable
 
-- **dupl**: Code duplication detection
-  - Detects duplicated code blocks
-  - Threshold: 150 lines
-  - Helps identify abstraction opportunities
+- **noctx**: Context propagation checking
+  - Ensures context.Context is passed to HTTP requests
+  - Prevents missing context in API calls
 
 ## Linter Configuration
 
@@ -162,13 +154,11 @@ The `.golangci.yml` file contains our linter configuration with three main secti
 
 - **timeout**: 10m - Linting timeout (prevents hanging on large files)
 - **tests**: true - Include test files in linting
-- **skip-dirs**: Excludes vendor, .git, .github directories
+- **exclusions.paths**: Excludes vendor, .git, .github directories
 
 ### linters
 
-- **disable-all**: true - Start with all linters disabled, explicitly enable only those we want
-- **enable**: List of 15 enabled linters
-- **disable**: List of linters we deliberately don't use
+- **enable**: List of enabled linters (explicitly listed)
 
 ### linters-settings
 
@@ -180,10 +170,9 @@ Specific configuration for each linter:
 - **gocritic**: Enables diagnostic, performance, and style check tags
 - **errorlint**: Checks errorf with %w, type assertions, and error comparisons
 - **misspell**: US English locale
-- **gocognit**: Cognitive complexity minimum of 30
 - **nolintlint**: Validates nolint directives
 - **dupl**: Minimum 150 lines to consider as duplication
-- **containedctx**: Prevents context in struct fields
+- **cyclop**: Max complexity of 10 with file-specific exclusions
 
 ## Running Linters
 
@@ -195,9 +184,6 @@ make lint
 
 # Fix formatting issues (gofumpt and goimports)
 make fmt
-
-# Run all checks (lint + fmt)
-make check
 ```
 
 ### Manual golangci-lint Execution
@@ -394,26 +380,23 @@ If any hook fails, the commit is aborted. You must fix the issues and try again.
 
 Some linters are **disabled** because they require substantial refactoring or don't fit our project patterns.
 
-### cyclop - Cyclomatic Complexity
+### gosec - Security Analysis
 
 **Status**: Disabled
 
-**Reason**: Configuration issues and high issue count (136 violations)
+**Reason**: Exclusion rules not being respected by golangci-lint. All security issues are documented as acceptable. See `.golangci.yml` for details.
+
+### dupl - Code Duplication
+
+**Status**: Disabled
+
+**Reason**: 16 violations in UI code (views and layouts), acceptable duplication for UI patterns.
 
 ### containedctx - Context in Structs
 
 **Status**: Disabled
 
 **Reason**: Architectural pattern used throughout codebase (22+ instances)
-
-### gosec - Security Analysis
-
-**Status**: Enabled but heavily configured
-
-**Excluded rules**:
-- **G204**: exec.Command flagged as unsafe (false positive with safe arg separation)
-- **G304**: File inclusion via variable (acceptable for app-controlled paths)
-- **G115**: Integer overflow conversions (safe in metrics/test code)
 
 ## CI/CD Integration
 
@@ -545,7 +528,7 @@ git commit -m "fix: address linting issues"
 
 ## Summary
 
-Linting is essential for maintaining code quality in s9s. Our 15-linter configuration balances comprehensiveness with practicality. The key principles are:
+Linting is essential for maintaining code quality in s9s. Our 14-linter configuration balances comprehensiveness with practicality. The key principles are:
 
 1. **Automatic enforcement**: Pre-commit hooks catch issues before they're committed
 2. **Team consistency**: All developers use the same linting rules

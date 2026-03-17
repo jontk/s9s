@@ -8,7 +8,7 @@ The Dashboard provides a real-time overview of your SLURM cluster with comprehen
 
 ## Overview
 
-The Dashboard is the default view in s9s, displaying six information panels organized in a responsive layout:
+The Dashboard provides a cluster overview accessible via key `8`, displaying six information panels organized in a responsive layout:
 
 - **Cluster Overview** - System information and health status
 - **Jobs Summary** - Job queue and state distribution
@@ -80,12 +80,12 @@ Shows "No issues detected" with green checkmark when system is healthy.
 
 ### Performance Trends (Bottom)
 
-Displays demo visualizations:
+Displays cluster performance visualizations:
 - Job throughput sparklines
 - Resource efficiency percentages
 - System health score with visual bar
 
-> **Note:** This panel shows demo data only, not actual cluster metrics.
+These values are computed from real cluster metrics collected during the session.
 
 ## Actions & Shortcuts
 
@@ -126,8 +126,8 @@ Press `A` to open the Advanced Analytics modal with comprehensive cluster analys
 - Node utilization metrics
 - Resource availability trends
 
-### AI-Generated Recommendations
-The system analyzes current metrics and provides:
+### Recommendations
+The system applies rule-based heuristics to current metrics and provides:
 - Performance optimization suggestions
 - Resource allocation recommendations
 - Potential issue warnings
@@ -178,7 +178,7 @@ Each component shows:
 
 ## Auto-Refresh
 
-The Dashboard automatically refreshes every **10 seconds** (more frequent than other views) to provide real-time cluster monitoring.
+The Dashboard loads data on initial display but does not automatically refresh afterward. Press `R` for a manual refresh to update the dashboard data.
 
 ## Visual Design
 
@@ -212,7 +212,7 @@ The Dashboard uses flexible layout proportions to adapt to different terminal si
 ## Tips
 
 - Use the Dashboard as your cluster monitoring hub
-- Press `A` regularly to review AI recommendations
+- Press `A` regularly to review recommendations
 - Check `H` for detailed health diagnostics
 - Navigate directly to specific views using `J`, `N`, or `P`
-- The Dashboard refreshes automatically—no need to manually refresh unless you want immediate updates
+- Press `R` to manually refresh the dashboard data when you want the latest metrics

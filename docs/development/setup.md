@@ -13,7 +13,7 @@ This guide covers everything you need to set up your development environment for
 
 ### Go Installation
 
-1. **Go 1.19+**
+1. **Go 1.24 or higher**
    ```bash
    # Check version
    go version
@@ -23,8 +23,8 @@ This guide covers everything you need to set up your development environment for
    brew install go
 
    # Linux
-   wget https://go.dev/dl/go1.21.0.linux-amd64.tar.gz
-   sudo tar -C /usr/local -xzf go1.21.0.linux-amd64.tar.gz
+   wget https://go.dev/dl/go1.24.4.linux-amd64.tar.gz
+   sudo tar -C /usr/local -xzf go1.24.4.linux-amd64.tar.gz
    ```
 
 ### Development Tools
@@ -82,10 +82,7 @@ go install honnef.co/go/tools/cmd/staticcheck@latest
          "request": "launch",
          "mode": "debug",
          "program": "${workspaceFolder}/cmd/s9s",
-         "args": ["--mock", "--debug"],
-         "env": {
-           "S9S_DEBUG": "true"
-         }
+         "args": ["--mock", "--debug"]
        }
      ]
    }
@@ -96,7 +93,7 @@ go install honnef.co/go/tools/cmd/staticcheck@latest
 1. Open project as Go module
 2. Configure Run Configuration:
    - Program arguments: `--mock --debug`
-   - Environment: `S9S_DEBUG=true`
+   - Program arguments include `--debug`
 3. Enable Go modules support
 
 ## Development Workflow
@@ -199,8 +196,8 @@ make build
 # Install to $GOPATH/bin
 make install
 
-# Build for all platforms
-make build-all
+# Build for all platforms (Linux, macOS, Windows)
+make ci-build
 ```
 
 ### Manual Build
@@ -210,7 +207,7 @@ make build-all
 go build -o s9s cmd/s9s/main.go
 
 # Build with version info
-go build -ldflags "-X main.version=1.0.0 -X main.commit=$(git rev-parse HEAD)" \
+go build -ldflags "-X github.com/jontk/s9s/internal/version.Version=1.0.0 -X github.com/jontk/s9s/internal/version.Commit=$(git rev-parse HEAD)" \
   -o s9s cmd/s9s/main.go
 
 # Optimized build
@@ -236,14 +233,9 @@ GOOS=windows GOARCH=amd64 go build -o s9s-windows-amd64.exe cmd/s9s/main.go
 ### Running Mock Mode
 
 ```bash
-# Basic mock mode
+# Mock mode (requires S9S_ENABLE_MOCK=1)
+export S9S_ENABLE_MOCK=1
 s9s --mock
-
-# Customize mock data
-s9s --mock --mock-jobs 500 --mock-nodes 200
-
-# With specific scenarios
-S9S_MOCK_SCENARIO=high-load s9s --mock
 ```
 
 ### Extending Mock Data
@@ -270,28 +262,9 @@ func (m *MockClient) generateMockJobs(count int) {
 }
 ```
 
-### Mock Scenarios
+### Mock Data
 
-Create scenario in `pkg/slurm/mock_scenarios.go`:
-
-```go
-func (m *MockClient) LoadScenario(name string) {
-    switch name {
-    case "high-load":
-        m.generateMockJobs(10000)
-        m.generateMockNodes(500)
-
-    case "failing-jobs":
-        // Generate jobs that fail
-        for i := 0; i < 100; i++ {
-            m.AddJob(&dao.Job{
-                ID:    fmt.Sprintf("fail_%d", i),
-                State: dao.JobStateFailed,
-            })
-        }
-    }
-}
-```
+Mock data is generated in `pkg/slurm/mock.go`. The mock client simulates a SLURM cluster with realistic job and node data for development and testing.
 
 ## Troubleshooting
 

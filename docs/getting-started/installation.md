@@ -5,7 +5,7 @@ s9s can be installed using several methods. Choose the one that best fits your e
 ## System Requirements
 
 - **Operating System**: Linux, macOS, or Windows
-- **Go Version**: 1.19 or higher (for building from source)
+- **Go Version**: 1.24 or higher (for building from source)
 - **Terminal**: 256 color support recommended
 - **SLURM REST API**: A running `slurmrestd` instance — see [Troubleshooting](../guides/troubleshooting.md#cannot-connect-to-slurm-cluster) if connection fails ([mock mode](../guides/mock-mode.md) available for testing without SLURM)
 
@@ -83,12 +83,12 @@ cd s9s
 # Build the binary
 make build
 
-# Install to system path
-sudo make install
+# Install to GOPATH/bin
+make install
 
 # Or install to user directory
 mkdir -p ~/.local/bin
-cp ./bin/s9s ~/.local/bin/
+cp ./build/s9s ~/.local/bin/
 export PATH=$PATH:~/.local/bin
 ```
 
@@ -102,7 +102,7 @@ s9s --version
 
 You should see output like:
 ```
-s9s version 0.7.0
+S9S - SLURM Terminal UI version 0.7.0
 ```
 
 ### 2. Initial Configuration
@@ -179,10 +179,9 @@ rm ~/.local/bin/s9s
 
 # Remove configuration (optional)
 rm -rf ~/.s9s
-rm -rf ~/.config/s9s
 
 # Remove cache (optional)
-rm -rf ~/.cache/s9s
+rm -rf ~/.s9s/cache
 ```
 
 ## Troubleshooting Installation
@@ -224,12 +223,14 @@ If `s9s` is not found after installation:
 
 If you encounter SSL certificate errors:
 
-```bash
-# For self-signed certificates
-export S9S_INSECURE_TLS=true
+Set `insecure: true` in the cluster config for self-signed certificates:
 
-# Or add to config
-echo "insecureTLS: true" >> ~/.s9s/config.yaml
+```yaml
+clusters:
+  - name: default
+    cluster:
+      endpoint: https://slurm.example.com:6820
+      insecure: true
 ```
 
 ### Connection Refused
@@ -242,7 +243,7 @@ If you cannot connect to SLURM:
    ```
 
 2. **Verify authentication**:
-   - Ensure SLURM_TOKEN is set
+   - Ensure SLURM_JWT is set
    - Check token is valid
    - Verify API URL is correct
 
@@ -261,10 +262,10 @@ On Linux, if you get "cannot execute binary file":
 uname -m
 
 # For x86_64/AMD64
-wget https://github.com/jontk/s9s/releases/latest/download/s9s-linux-amd64
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.0_Linux_x86_64.tar.gz
 
 # For ARM64/aarch64
-wget https://github.com/jontk/s9s/releases/latest/download/s9s-linux-arm64
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.0_Linux_arm64.tar.gz
 ```
 
 ## Upgrading
@@ -275,11 +276,11 @@ To upgrade to the latest version:
 # If installed via script
 curl -sSL https://get.s9s.dev | bash
 
-# If installed via binary download
-wget https://github.com/jontk/s9s/releases/latest/download/s9s-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)
-chmod +x s9s-*
+# If installed via binary download (replace version and arch as needed)
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.0_Linux_x86_64.tar.gz
+tar -xzf s9s_0.7.0_Linux_x86_64.tar.gz
 mkdir -p ~/.local/bin
-mv s9s-* ~/.local/bin/s9s
+mv s9s ~/.local/bin/
 
 # If installed via Go
 go install github.com/jontk/s9s/cmd/s9s@latest

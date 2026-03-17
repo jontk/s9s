@@ -166,7 +166,7 @@ observability:
 
 ### Web Interface
 
-1. **Observability View**: Access the main observability dashboard by pressing 'o' in the s9s interface
+1. **Observability View**: Access the main observability dashboard via the plugin's registered view
 2. **Metric Overlays**: View real-time metrics overlaid on jobs and nodes views
 3. **Historical Charts**: Access time-series charts and trend analysis
 4. **Efficiency Dashboard**: Review resource efficiency scores and recommendations

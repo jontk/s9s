@@ -27,7 +27,7 @@ By participating in this project, you agree to abide by our Code of Conduct:
 
 ### Prerequisites
 
-- Go 1.19 or higher
+- Go 1.24 or higher
 - Git
 - Make (optional but recommended)
 - golangci-lint (for linting)
@@ -63,7 +63,7 @@ By participating in this project, you agree to abide by our Code of Conduct:
 
 5. **Run the application in mock mode**
    ```bash
-   go run cmd/s9s/main.go --mock
+   S9S_ENABLE_MOCK=1 go run cmd/s9s/main.go --mock
    ```
 
 ## 🔄 Development Process
@@ -209,7 +209,7 @@ refactor: simplify job filtering logic
 
 ## 🔍 Linting and Code Quality
 
-We use **golangci-lint** with 15 enabled linters to maintain code quality and consistency throughout the project.
+We use **golangci-lint** with 14 enabled linters to maintain code quality and consistency throughout the project.
 
 ### Quick Start
 
@@ -233,7 +233,7 @@ All pull requests are automatically checked by our CI/CD pipeline. **Linting fai
 - ✅ Branch protection requires lint check
 - ✅ Pre-commit hooks catch issues before push
 
-See [docs/CI_CD_SETUP.md](docs/CI_CD_SETUP.md) for complete CI/CD documentation including:
+See [docs/development/ci-cd.md](docs/development/ci-cd.md) for complete CI/CD documentation including:
 - How the linting gate works
 - Troubleshooting failed CI checks
 - Branch protection rule configuration
@@ -245,7 +245,7 @@ As of **PR #29**, we completed a comprehensive 3-phase systematic fix of revive 
 - **460 revive violations reduced to 36** (92% reduction)
 - All violations fixed except 36 backward-compatible type aliases
 - Full backward compatibility maintained throughout
-- See [docs/LINTING.md](docs/LINTING.md#revive-linter-improvements) for details
+- See [docs/development/linting.md](docs/development/linting.md#revive-linter-improvements) for details
 
 ### Enabled Linters
 
@@ -259,20 +259,16 @@ The linters are organized by category:
   - Improve code quality and catch common mistakes
   - Ensure HTTP resources are properly closed
 
-- **Security**: gosec (configured with exclusions)
-  - Security-focused static analysis
-  - Detects vulnerabilities and unsafe patterns
-
 - **Style & Patterns**: gocritic, unused, nolintlint, revive
   - Code style and pattern checks
   - Identifies dead code and unused suppressions
   - Enforces Go idioms (revive: package comments, exported symbols, naming conventions)
 
-- **Advanced**: gocognit, dupl
-  - Cognitive complexity checking (threshold: 30)
-  - Code duplication detection
+- **Advanced**: cyclop (max-complexity: 10), noctx
+  - Cyclomatic complexity checking
+  - Context propagation verification
 
-See [docs/LINTING.md](docs/LINTING.md) for complete linting standards, configuration details, and best practices.
+See [docs/development/linting.md](docs/development/linting.md) for complete linting standards, configuration details, and best practices.
 
 ### Pre-commit Hooks
 
@@ -297,7 +293,7 @@ The hooks automatically:
 - Tidy go.mod and go.sum
 - Run golangci-lint to check for violations
 
-See [docs/PRE_COMMIT_SETUP.md](docs/PRE_COMMIT_SETUP.md) for detailed pre-commit hook setup, usage, and troubleshooting guide.
+Pre-commit hooks are configured in `.pre-commit-config.yaml`. Run `pre-commit install` to set up.
 
 ### CI Requirements
 
@@ -327,7 +323,7 @@ var globalState int
 
 ```
 internal/views/jobs_test.go      # Unit tests for views
-pkg/slurm/mock_test.go          # Mock implementation tests
+pkg/slurm/mock.go               # Mock SLURM implementation
 test/integration/               # Integration tests
 test/performance/              # Performance benchmarks
 ```
@@ -528,10 +524,9 @@ Look for issues labeled:
 - [Go Documentation](https://golang.org/doc/)
 - [tview Documentation](https://github.com/rivo/tview/wiki)
 - [SLURM Documentation](https://slurm.schedmd.com/documentation.html)
-- [s9s Architecture](docs/ARCHITECTURE.md)
-- [CI/CD Setup & Linting Gate](docs/CI_CD_SETUP.md)
-- [Linting Standards](docs/LINTING.md)
-- [Pre-commit Hook Setup](docs/PRE_COMMIT_SETUP.md)
+- [s9s Architecture](docs/development/architecture.md)
+- [CI/CD Setup & Linting Gate](docs/development/ci-cd.md)
+- [Linting Standards](docs/development/linting.md)
 
 ## 🤝 Getting Help
 

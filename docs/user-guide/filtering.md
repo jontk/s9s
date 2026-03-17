@@ -15,226 +15,145 @@ See filtering in action:
 Press `/` in any view to activate quick filter:
 
 ```bash
-# Simple text search
+# Simple text search (matches across all visible columns)
 /analysis      # Find items containing "analysis"
 /GPU          # Case-insensitive search for "GPU"
 /node001      # Find specific node
 ```
 
+The quick filter is a plain text search only. The only special prefix is `p:` for partition filtering (works in both Jobs and Nodes views).
+
 ### Clear Filters
 
 - `Esc` - Clear current filter and exit search mode
 
-## Filter Syntax
+## Advanced Filter
 
 ### Field-Specific Filters
 
-Target specific fields with the `field:value` syntax:
+Press `Ctrl+F` to open the advanced filter (available in Jobs and Nodes views). Use `field=value` syntax:
 
 ```bash
-# Job filters
-/user:alice              # Jobs by user alice
-/name:simulation        # Jobs with "simulation" in name
-/jobid:12345           # Specific job ID
-/state:RUNNING         # Jobs in RUNNING state
-/partition:gpu         # Jobs in GPU partition
+# Job filters (advanced filter, Ctrl+F)
+user=alice              # Jobs by user alice
+name~simulation        # Jobs containing "simulation" in name
+state=RUNNING          # Jobs in RUNNING state
+partition=gpu          # Jobs in GPU partition
 
-# Node filters
-/node:node001          # Specific node
-/state:idle           # Idle nodes
-/features:gpu         # Nodes with GPU feature
-/memory:>128GB       # Nodes with >128GB RAM
+# Node filters (advanced filter, Ctrl+F)
+state=idle             # Idle nodes
+name~compute           # Nodes containing "compute"
 ```
 
 ### Operators
 
-s9s supports various comparison operators:
+s9s supports the following comparison operators in the advanced filter:
 
 | Operator | Description | Example |
 |----------|-------------|---------|
-| `:` | Equals | `/state:RUNNING` |
-| `!` | Not equals | `/state:!FAILED` |
-| `>` | Greater than | `/nodes:>4` |
-| `<` | Less than | `/runtime:<1h` |
-| `>=` | Greater or equal | `/priority:>=1000` |
-| `<=` | Less or equal | `/memory:<=64GB` |
-| `~` | Regex match | `/name:~"test.*2023"` |
-| `*` | Wildcard | `/name:analysis*` |
-| `..` | Range | `/nodes:2..8` |
+| `=` | Equals | `state=RUNNING` |
+| `!=` | Not equals | `state!=FAILED` |
+| `>` | Greater than | `cpus>4` |
+| `<` | Less than | `priority<1000` |
+| `>=` | Greater or equal | `priority>=1000` |
+| `<=` | Less or equal | `cpus<=64` |
+| `~` | Contains | `name~analysis` |
+| `!~` | Not contains | `name!~test` |
+| `=~` | Regex match | `name=~"test.*2023"` |
+| `in` | In list | `state in (RUNNING,PENDING)` |
+| `not in` | Not in list | `state not in (COMPLETED,FAILED)` |
 
-## Advanced Filtering
+## Compound Filters
 
-### Compound Filters
+### AND Logic
 
-Combine multiple filters with spaces (AND logic):
+Combine multiple expressions with spaces (AND logic) in the advanced filter:
 
 ```bash
 # Jobs by alice in GPU partition
-/user:alice partition:gpu
+user=alice partition=gpu
 
-# Running jobs with more than 4 nodes
-/state:RUNNING nodes:>4
-
-# Failed jobs submitted today
-/state:FAILED submitted:today
+# Running jobs with more than 4 CPUs
+state=RUNNING cpus>4
 ```
 
-### OR Logic
+### OR Logic (in operator)
 
-Use comma-separated values for OR logic:
+Use the `in` operator for matching against multiple values:
 
 ```bash
 # Jobs in RUNNING or PENDING state
-/state:RUNNING,PENDING
+state in (RUNNING,PENDING)
 
 # Jobs in gpu or cpu partition
-/partition:gpu,cpu
-
-# Jobs by alice or bob
-/user:alice,bob
+partition in (gpu,cpu)
 ```
 
-### Complex Queries
+## Numeric and Time Filters
 
-Combine AND and OR logic:
-
-```bash
-# Alice or Bob's GPU jobs
-/user:alice,bob partition:gpu state:RUNNING
-
-# High priority pending jobs in specific partitions
-/state:PENDING priority:>1000 partition:gpu,highmem
-```
-
-## Time-Based Filters
-
-### Relative Time
-
-Use human-readable time expressions:
+The advanced filter supports numeric comparisons and automatic parsing of memory sizes (e.g., `4G`, `1024M`) and durations (e.g., `2:30:00`, `30m`):
 
 ```bash
-# Submitted time
-/submitted:<1h         # Less than 1 hour ago
-/submitted:>1d        # More than 1 day ago
-/submitted:today      # Submitted today
-/submitted:yesterday  # Submitted yesterday
-/submitted:thisweek   # This week
-/submitted:lastweek   # Last week
-
-# Runtime
-/runtime:>30m         # Running more than 30 minutes
-/runtime:<2h         # Running less than 2 hours
-/runtime:1h-3h      # Between 1 and 3 hours
-```
-
-### Absolute Time
-
-Use specific dates and times:
-
-```bash
-# ISO format
-/submitted:>2023-12-01
-/started:<2023-12-25T18:00:00
-
-# Date shortcuts
-/submitted:2023-12-01..2023-12-31
-/ended:yesterday..today
-```
-
-## Numeric Filters
-
-### Resource Filters
-
-Filter by resource usage:
-
-```bash
-# Node count
-/nodes:4              # Exactly 4 nodes
-/nodes:>8            # More than 8 nodes
-/nodes:2..16        # Between 2 and 16 nodes
-
-# Memory (supports units)
-/memory:>32GB        # More than 32GB
-/memory:64GB..128GB  # Between 64GB and 128GB
-/memory:<=1TB       # Up to 1TB
-
-# CPUs
-/cpus:>48           # More than 48 CPUs
-/cpus:24,48,96     # Specific CPU counts
-
-# GPUs
-/gpus:>0           # Has GPUs
-/gpus:8            # Exactly 8 GPUs
-```
-
-### Priority and QoS
-
-```bash
-# Priority
-/priority:>1000      # High priority jobs
-/priority:0..500    # Low to medium priority
+# Resource filters (advanced filter, Ctrl+F)
+cpus>48              # More than 48 CPUs
+cpus>=8              # 8 or more CPUs
+memory>4G            # More than 4GB memory
+priority>=1000       # High priority jobs
 
 # QoS
-/qos:normal         # Normal QoS
-/qos:high,critical  # High or critical QoS
+qos=normal           # Normal QoS
 ```
 
 ## Regular Expressions
 
-Use regex for complex pattern matching:
+Use regex for complex pattern matching with the `=~` operator in the advanced filter:
 
 ```bash
-# Enable regex with ~ operator
-/name:~"analysis_\d{4}"      # analysis_0001, analysis_0002, etc.
-/user:~"(alice|bob)_.*"      # alice_* or bob_* users
-/output:~"error|warning"      # Find errors or warnings
-/script:~"python.*\.py$"     # Python scripts
+# Enable regex with =~ operator (advanced filter, Ctrl+F)
+name=~"analysis_\d{4}"      # analysis_0001, analysis_0002, etc.
+user=~"(alice|bob)_.*"       # alice_* or bob_* users
+name=~"(?i)GPU"              # Case-insensitive match
 
-# Case-insensitive regex
-/name:~"(?i)GPU"             # Matches gpu, GPU, Gpu, etc.
-
-# Negative lookahead
-/name:~"^(?!test).*"         # Not starting with "test"
+# Note: ~ (without =) is the contains operator, not regex
+name~analysis                 # Matches if name contains "analysis"
 ```
 
 ## State Filters
 
-### Job States
+### Job States (Advanced Filter)
 
 ```bash
 # Single state
-/state:RUNNING
-/state:PENDING
-/state:COMPLETED
-/state:FAILED
+state=RUNNING
+state=PENDING
+state=COMPLETED
+state=FAILED
 
-# Multiple states
-/state:RUNNING,PENDING
-/state:!COMPLETED        # Not completed
-
-# State groups (s9s shortcuts)
-/state:active           # RUNNING,PENDING
-/state:ended           # COMPLETED,FAILED,CANCELLED
-/state:problem         # FAILED,TIMEOUT,NODE_FAIL
+# Multiple states using in operator
+state in (RUNNING,PENDING)
+state!=COMPLETED              # Not completed
 ```
 
-### Node States
+### Node States (Advanced Filter)
 
 ```bash
 # Basic states
-/state:idle
-/state:allocated
-/state:down
-/state:drain
-
-# Compound states
-/state:idle+drain      # Idle and draining
-/state:allocated+drain # Allocated but draining
-
-# State shortcuts
-/state:available       # idle,mixed
-/state:unusable       # down,drain,maint
+state=idle
+state=allocated
+state=down
+state=drain
 ```
+
+### State Toggle Shortcuts
+
+In the Jobs view, use keyboard shortcuts to toggle state filters quickly:
+- `p`/`P` -- toggle pending state filter
+- `a`/`A` -- show all states (clear filter)
+
+In the Nodes view:
+- `i`/`I` -- toggle idle state filter
+- `m`/`M` -- toggle mixed state filter
+- `a`/`A` -- show all states (clear filter)
 
 ## Saved Filters and Presets (Planned)
 
@@ -242,103 +161,67 @@ Use regex for complex pattern matching:
 >
 > In the meantime, you can re-enter filters manually using `/` in any view.
 
-## Dynamic Filters
+## Filter Behavior
 
-### Auto-Refresh Filters
+### Auto-Refresh
 
-Filters that update automatically:
+When auto-refresh is enabled (toggle with `m`/`M` in Jobs view), filters remain active as data refreshes. The filtered view updates automatically with each refresh cycle.
 
-```bash
-# Jobs submitted in last hour (updates)
-/submitted:<1h
+### Context-Aware Fields
 
-# Currently running jobs
-/state:RUNNING elapsed:>0
+The available filter fields depend on the current view. The advanced filter supports field aliases for convenience:
 
-# Recently completed
-/state:COMPLETED ended:<10m
-```
-
-### Context-Aware Filters
-
-Filters that adapt to current view:
-
-```bash
-# In Jobs view
-/state:RUNNING        # Running jobs
-
-# In Nodes view
-/state:idle           # Idle nodes
-
-# In Users view
-/user:alice           # Specific user
-```
-
-> **Note**: Advanced context-aware fields like `efficiency`, `load`, and `gpu_util` depend on those fields being available in the data returned by the SLURM REST API. Some advanced filter features are planned. See [#119](https://github.com/jontk/s9s/issues/119).
+| Alias | Canonical Field |
+|-------|----------------|
+| `name` | Name |
+| `user` | User |
+| `state` | State |
+| `partition` | Partition |
+| `node`/`nodes` | NodeList |
+| `cpu`/`cpus` | CPUs |
+| `mem`/`memory` | Memory |
+| `account` | Account |
+| `qos` | QoS |
+| `priority` | Priority |
+| `time` | TimeUsed |
+| `timelimit` | TimeLimit |
 
 ## Filter Examples
 
-### Common Use Cases
+### Common Use Cases (Advanced Filter, Ctrl+F)
 
-#### Find Stuck Jobs
+#### Find Pending Jobs
 ```bash
-/state:PENDING submitted:>1h reason:!Resources
+state=PENDING
 ```
 
 #### GPU Partition Jobs
 ```bash
-/partition:gpu state:RUNNING
+partition=gpu state=RUNNING
 ```
 
-#### Failed Jobs Today
+#### Jobs by User
 ```bash
-/state:FAILED ended:today user:${USER}
+user=alice state!=COMPLETED
 ```
 
-#### High Memory Jobs
+#### High CPU Jobs
 ```bash
-/memory:>500GB state:RUNNING,PENDING
-```
-
-#### Jobs Near Time Limit
-```bash
-/state:RUNNING time_left:<30m
-```
-
-### Power User Filters
-
-#### Complex Resource Query
-```bash
-/nodes:>16 cpus:>512 memory:>1TB partition:large state:PENDING
+cpus>64 state in (RUNNING,PENDING)
 ```
 
 #### Multi-User Team Filter
 ```bash
-/user:~"^(alice|bob|charlie)" project:ml_research state:!COMPLETED
-```
-
-#### Performance Analysis
-```bash
-/state:RUNNING runtime:>2h efficiency:<0.5 partition:!debug
+user=~"^(alice|bob|charlie)"
 ```
 
 ## Performance Tips
 
 ### Efficient Filtering
 
-1. **Use indexed fields**: Filter by indexed fields first (JobID, User, State)
-2. **Narrow scope**: Start with restrictive filters, then broaden
-3. **State first**: Filter by state for best performance
-
-### Filter Optimization
-
-```bash
-# Good: Indexed field first
-/state:RUNNING user:alice partition:gpu
-
-# Less efficient: Unindexed field first
-/name:analysis state:RUNNING user:alice
-```
+1. **Use state toggles**: Keyboard shortcuts like `p` (pending) are fastest
+2. **Quick filter first**: Use `/` for simple text searches
+3. **Advanced filter for precision**: Use `Ctrl+F` when you need field-specific matching (Jobs and Nodes views)
 
 ## Filter Shortcuts
 
@@ -346,14 +229,13 @@ Filters that adapt to current view:
 
 | Key | Action | Description |
 |-----|--------|-------------|
-| `/` | Start filter | Enter filter mode |
-| `Tab` | Autocomplete | Complete filter fields |
-| `↑/↓` | History | Browse filter history |
+| `/` | Quick filter | Enter plain text filter mode |
+| `Ctrl+F` | Advanced filter | Open advanced field-specific filter (Jobs and Nodes views) |
 | `Esc` | Clear | Clear current filter |
 
 ### Using Filters
 
-Use `/` in any view to enter filter mode and type your filter expression. Press `Esc` to clear the filter.
+Use `/` in any view for plain text search across all columns. Use `Ctrl+F` to open the advanced filter for field-specific queries with operators (available in Jobs and Nodes views). Press `Esc` to clear the filter.
 
 ## Troubleshooting Filters
 

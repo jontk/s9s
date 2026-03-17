@@ -22,7 +22,7 @@ Try s9s without a SLURM cluster:
 
 ```bash
 # Launch in mock mode with simulated data
-s9s --mock
+S9S_ENABLE_MOCK=1 s9s --mock
 ```
 
 ![Overview Demo](/assets/demos/overview.gif)
@@ -41,20 +41,26 @@ s9s organizes information into focused views. Switch between them using:
 
 - **Tab** - Cycle forward through views
 - **Shift+Tab** - Cycle backward through views
-- **J** - Jump to Jobs view
-- **N** - Jump to Nodes view
-- **P** - Jump to Partitions view
+- **1** - Jobs view
+- **2** - Nodes view
+- **3** - Partitions view
+- **4** - Reservations view
+- **5-7** - QoS, Accounts, Users
+- **8** - Dashboard view
+- **9** - Health view
+- **0** - Performance view
 
 Common views:
-1. **Dashboard** - Cluster overview with metrics
-2. **Jobs** - Monitor and manage jobs
-3. **Nodes** - View and manage compute nodes
-4. **Partitions** - Monitor partitions and queues
-5. **Users** - View user accounts
+1. **Jobs** - Monitor and manage jobs
+2. **Nodes** - View and manage compute nodes
+3. **Partitions** - Monitor partitions and queues
+4. **Reservations** - Resource reservations
+5. **QoS** - Quality of Service policies
 6. **Accounts** - Account hierarchy
-7. **QoS** - Quality of Service policies
-8. **Reservations** - Resource reservations
+7. **Users** - View user accounts
+8. **Dashboard** - Cluster overview with metrics
 9. **Health** - Cluster health monitoring
+0. **Performance** - Performance metrics
 
 ### Essential Keyboard Shortcuts
 
@@ -63,12 +69,11 @@ Common views:
 | `?` | Help | Show context-sensitive keyboard shortcuts |
 | `q` | Quit | Exit s9s |
 | `/` | Filter | Filter current view |
-| `F3` | Advanced filter | Expression-based filtering |
-| `Ctrl+F` | Global search | Search across all resources |
+| `F3` | Preferences | Open preferences dialog |
 | `Tab` | Next view | Cycle through views |
 | `Enter` | Details | View detailed information |
 | `ESC` | Cancel | Exit dialog/filter/modal |
-| `R` | Refresh | Manual data refresh |
+| `F5` | Refresh | Manual data refresh |
 
 See [Keyboard Shortcuts](../user-guide/keyboard-shortcuts.md) for complete reference.
 
@@ -91,11 +96,11 @@ The Dashboard is your cluster command center:
 
 | Key | Action |
 |-----|--------|
-| `J` | Jump to Jobs view |
-| `N` | Jump to Nodes view |
-| `P` | Jump to Partitions view |
-| `A` | Advanced analytics |
-| `H` | Health check details |
+| `1` | Jobs view |
+| `2` | Nodes view |
+| `3` | Partitions view |
+| `Tab` | Next view |
+| `?` | Help |
 
 ## 📊 Jobs View
 
@@ -106,8 +111,8 @@ The Jobs view is where you'll manage your workload:
 ### View Jobs
 
 ```bash
-# Launch s9s directly to jobs view
-s9s --view jobs
+# Launch s9s and switch to jobs view with keyboard shortcut
+# Press 1 to jump to Jobs view
 ```
 
 ### Common Operations
@@ -132,16 +137,16 @@ Use `/` to filter jobs:
 /RUNNING        # Show only running jobs
 /gpu            # Find jobs with "gpu" in any field
 /p:gpu          # Filter by partition "gpu"
-/user:alice     # Jobs by user alice
+/alice          # Find jobs with "alice" in any field
 ```
 
 Press `ESC` to clear filters.
 
-For complex filtering, press `F3`:
+For complex filtering, press `Ctrl+F` (in Jobs/Nodes views) to open the advanced filter with field-specific syntax:
 ```
-state:RUNNING partition:gpu
-user:alice priority:>500
-nodes:>=8
+state=RUNNING partition=gpu
+user=alice priority>500
+nodes>=8
 ```
 
 ## 💻 Nodes View
@@ -199,7 +204,7 @@ CPU: ████████░░░░░░░░ 8/16 (Load: 7.5)
 
 ### Example 3: SSH to a Node
 
-1. Switch to Nodes view (press `N`)
+1. Switch to Nodes view (press `2`)
 2. Find your node (use `/nodename` to filter)
 3. Press `s` to open SSH menu
 4. Select "Quick Connect"
@@ -221,29 +226,29 @@ CPU: ████████░░░░░░░░ 8/16 (Load: 7.5)
 
 ## 🔍 Advanced Features
 
-### Global Search
+### Quick Filter
 
-Press `Ctrl+F` for cluster-wide search:
+Press `/` to filter the current view:
 
 ```
-# Search finds jobs, nodes, partitions, etc.
-Ctrl+F → type "gpu001"
-# Shows: gpu001 node, jobs on gpu001, etc.
+# Type to filter — matches across all columns
+/ → type "gpu001"
+# Shows matching rows in the current view
 ```
 
 ### Advanced Filtering
 
-Press `F3` for expression-based filtering:
+Press `Ctrl+F` (in Jobs/Nodes views) to open the advanced filter with expression-based filtering:
 
 ```bash
 # Jobs view
-state:RUNNING partition:gpu nodes:>4
+state=RUNNING partition=gpu nodes>4
 
 # Nodes view
-state:IDLE partition:compute cpus:>64
+state=idle partition=compute cpus>64
 
 # Partitions view
-efficiency:>80 qos:high
+efficiency>80 qos=high
 ```
 
 ### Batch Operations
@@ -252,7 +257,7 @@ Select multiple items:
 
 1. Press `v/V` to enter multi-select mode
 2. Press `Space` on items to select
-3. Press `Ctrl+A` to select all
+3. Press `V` to select all visible
 4. Press `b/B` for batch menu
 5. Choose operation (cancel, hold, release, etc.)
 
@@ -291,13 +296,6 @@ See [Commands Reference](../reference/commands.md) for complete command document
 
 ## 🎨 Quick Customization
 
-### Auto-Refresh
-
-In Jobs view:
-```
-Press m/M to toggle auto-refresh on/off
-```
-
 ### Grouping (Nodes)
 
 ```
@@ -330,7 +328,7 @@ Now that you know the basics, explore:
 ## 🆘 Getting Help
 
 - **In-app help**: Press `?` anywhere for context-sensitive help
-- **View documentation**: Press `F1` for action menu
+- **View documentation**: Press `F1` for help
 - **Full docs**: [https://s9s.dev/docs](https://s9s.dev/docs)
 - **Troubleshooting**: [Troubleshooting Guide](../guides/troubleshooting.md)
 - **GitHub Issues**: [Report bugs](https://github.com/jontk/s9s/issues)
@@ -341,7 +339,7 @@ Now that you know the basics, explore:
 A: Press `q` to quit.
 
 **Q: Can I use s9s without SLURM?**
-A: Yes! Use `s9s --mock` for a fully functional demo mode.
+A: Yes! Use `S9S_ENABLE_MOCK=1 s9s --mock` for a fully functional demo mode.
 
 **Q: How do I cancel multiple jobs?**
 A: Use multi-select (`v/V`), select jobs with `Space`, then press `b/B` for batch operations.
@@ -350,7 +348,7 @@ A: Use multi-select (`v/V`), select jobs with `Space`, then press `b/B` for batc
 A: Yes! Press `s/S` in Nodes view for SSH options.
 
 **Q: How do I filter by partition?**
-A: Use `/` and type `p:partitionname` or `partition:name`.
+A: Use `/` and type `p:partitionname` for quick filter, or press `Ctrl+F` and type `partition=name` for advanced filter.
 
 **Q: Is there a way to save my filters?**
 A: Saved filters are a planned feature. For now, use `/` to quickly re-enter filters in any view.

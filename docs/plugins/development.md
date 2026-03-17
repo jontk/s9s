@@ -21,20 +21,29 @@ This guide provides comprehensive instructions for developing plugins for the s9
 
 ## Overview
 
-The s9s plugin system allows you to:
+s9s has two plugin systems:
+
+1. **Compile-time plugins** (`internal/plugin/interface.go`) -- registered at build time, support advanced features like overlays, data providers, hooks, and lifecycle events.
+2. **Shared library plugins** (`internal/plugins/interface.go`) -- loaded as `.so` files at runtime, receive a `dao.SlurmClient` and can provide commands, views, and key bindings.
+
+The compile-time system allows you to:
 - Add custom views to the TUI (via `ViewPlugin`)
 - Overlay additional data on existing views (via `OverlayPlugin`)
-- Provide data to other plugins (via `DataPlugin`)
+- Provide data to other plugins (via `DataPlugin` with `GetDataProviders()`, `Subscribe()`, `Unsubscribe()`, `Query()`)
 - React to lifecycle and configuration events (via `LifecycleAware`)
 - Integrate with external systems through hooks (via `HookablePlugin`)
 
+The shared library system allows you to:
+- Provide CLI commands (`GetCommands()`)
+- Provide TUI views (`GetViews()`)
+- Add key bindings (`GetKeyBindings()`)
+- React to application events (`OnEvent()`)
+
 ## Plugin Architecture
 
-Plugins are implemented as Go shared libraries (`.so` files) that implement the `Plugin` interface. They are loaded dynamically at runtime.
+### Compile-time Plugin Interface
 
-### Plugin Interface
-
-Every plugin must implement the base `Plugin` interface defined in `internal/plugin/interface.go`:
+Every compile-time plugin must implement the base `Plugin` interface defined in `internal/plugin/interface.go`:
 
 ```go
 type Plugin interface {
@@ -59,7 +68,7 @@ Plugins can also implement additional interfaces for extended functionality:
 
 - **`ViewPlugin`** -- provides custom TUI views (`GetViews()`, `CreateView()`)
 - **`OverlayPlugin`** -- adds data overlays to existing views (`GetOverlays()`, `CreateOverlay()`)
-- **`DataPlugin`** -- provides data to other plugins via pub/sub (`Subscribe()`, `Query()`)
+- **`DataPlugin`** -- provides data to other plugins via pub/sub (`GetDataProviders()`, `Subscribe()`, `Unsubscribe()`, `Query()`)
 - **`ConfigurablePlugin`** -- supports runtime configuration changes (`GetConfig()`, `SetConfig()`, `ValidateConfig()`)
 - **`HookablePlugin`** -- provides hooks for event-driven integration (`GetHooks()`, `RegisterHook()`)
 - **`LifecycleAware`** -- receives lifecycle events (`OnEnable()`, `OnDisable()`, `OnConfigChange()`)

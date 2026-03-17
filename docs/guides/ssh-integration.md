@@ -46,41 +46,16 @@ node001  IDLE    16/32 cores  64GB/128GB  ← [s] SSH here
 
 ## SSH Configuration
 
-### Basic Configuration
+S9S uses your system's default SSH configuration (`~/.ssh/config`, SSH agent, etc.). There is no `ssh:` section in the S9S configuration file. SSH connection parameters (username, port, key file) are handled programmatically per-connection based on the node being accessed.
 
-S9S uses your system's SSH configuration by default. Configure SSH settings in `~/.s9s/config.yaml`:
+To customize SSH behavior, configure your system SSH settings in `~/.ssh/config`:
 
-```yaml
-ssh:
-  # Default SSH user
-  defaultUser: ${USER}
-
-  # SSH key file
-  keyFile: ~/.ssh/id_rsa
-
-  # Connection options
-  compression: true
-  forwardAgent: true
-  connectTimeout: 10s
-
-  # Additional SSH arguments
-  extraArgs: "-o StrictHostKeyChecking=ask -o ServerAliveInterval=60"
 ```
-
-### SSH Key Management
-
-S9S leverages your existing SSH infrastructure:
-
-```yaml
-ssh:
-  keys:
-    # Default key
-    default: ~/.ssh/id_rsa
-
-  # Key agent settings
-  agent:
-    useAgent: true
-    addKeysOnConnect: true
+Host node*
+  User your-username
+  IdentityFile ~/.ssh/cluster_key
+  StrictHostKeyChecking no
+  ServerAliveInterval 60
 ```
 
 ## Interactive SSH Sessions
@@ -165,35 +140,22 @@ When initiating SSH from the Nodes View, S9S presents options:
 
 ## SSH Security
 
-### Authentication Methods
+### Authentication
 
-S9S uses SSH key authentication by default:
-
-```yaml
-ssh:
-  auth:
-    method: key
-    keyFile: ~/.ssh/id_rsa
-```
+S9S relies on your system SSH configuration for authentication. SSH key authentication is recommended.
 
 ### Security Best Practices
 
-```yaml
-ssh:
-  security:
-    # Require host key verification (recommended for production)
-    strictHostKeyChecking: true
-    knownHostsFile: ~/.ssh/known_hosts
+Configure security settings in your system SSH config (`~/.ssh/config`):
 
-    # Connection limits
-    connectTimeout: 30s
-
-    # Audit logging
-    logConnections: true
-    logFile: ~/.s9s/ssh.log
+```
+Host node*
+  StrictHostKeyChecking yes
+  UserKnownHostsFile ~/.ssh/known_hosts
+  ConnectTimeout 30
 ```
 
-**Important Security Note**: By default, S9S disables strict host key checking for cluster environments where nodes are frequently rebuilt. For production use, enable strict host key checking in your configuration.
+**Important Security Note**: For production environments, enable strict host key checking in your SSH configuration. In cluster environments where nodes are frequently rebuilt, you may choose to disable it, but be aware of the security implications.
 
 ## SSH Troubleshooting
 
@@ -216,11 +178,10 @@ If SSH connection fails:
    chmod 600 ~/.ssh/id_rsa
    ```
 
-4. **Check S9S SSH configuration**:
-   ```yaml
-   ssh:
-     keyFile: ~/.ssh/id_rsa  # Verify this path is correct
-     defaultUser: ${USER}    # Verify username
+4. **Check system SSH configuration**:
+   ```bash
+   # Verify your SSH config for cluster nodes
+   cat ~/.ssh/config
    ```
 
 ### Common SSH Issues
@@ -336,6 +297,5 @@ SSH access integrates seamlessly with S9S cluster management:
 
 ## Next Steps
 
-- Learn more about [Node Operations](../node-operations.md)
-- Explore [Job Management](../job-management.md) with SSH debugging
-- Review [Troubleshooting Guide](../troubleshooting.md) for common issues
+- Explore [Job Management](job-management.md) with SSH debugging
+- Review [Troubleshooting Guide](troubleshooting.md) for common issues

@@ -150,7 +150,7 @@ Covers:
 
 Covers:
 - Linting philosophy and goals
-- 15 enabled linters with explanations
+- 14 enabled linters with explanations
 - Linter configuration in `.golangci.yml`
 - Running linters (make lint, manual execution)
 - Fixing lint issues by category
@@ -193,7 +193,7 @@ Covers:
 ### Code Quality Requirements
 - 80%+ test coverage for new code
 - All tests must pass before merge
-- Code must pass all 15 linters
+- Code must pass all 14 linters
 - Code must be formatted with gofumpt
 - Imports must be organized with goimports
 - go.mod must be tidy

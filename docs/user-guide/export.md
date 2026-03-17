@@ -19,12 +19,12 @@ Export is available in all main data views:
 | View | Key | Exported Data |
 |------|-----|---------------|
 | Jobs | `e` | ID, Name, User, Account, State, Partition, Nodes, Time Used, Time Limit, Priority, Submit Time |
-| Nodes | `e` | Name, State, Partitions, CPU totals/allocated/idle/load, Memory totals, Features, Reason |
+| Nodes | `e` | Name, State, Partitions, CPUs Total, CPUs Alloc, CPUs Idle, CPU Load, Memory Total (MB), Memory Alloc (MB), Memory Free (MB), Features, Reason |
 | Partitions | `e` | Name, State, Total Nodes, Total CPUs, Default Time, Max Time, QoS, Nodes |
 | Reservations | `e` | Name, State, Start/End Time, Duration, Nodes, Node Count, Core Count, Users, Accounts |
 | QoS | `e` | Name, Priority, Preempt Mode, Flags, all per-user/account limits |
 | Accounts | `e` | Name, Description, Organization, Parent, QoS, Coordinators, resource limits |
-| Users | `e` | Name, UID, Default Account, Accounts, Admin Level, QoS, resource limits |
+| Users | `e` | Name, UID, Default Account, Accounts, Admin Level, Default QoS, QoS List, Max Jobs, Max Nodes, Max CPUs, Max Submit |
 
 ## Supported Formats
 

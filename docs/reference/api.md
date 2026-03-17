@@ -4,7 +4,7 @@
 
 ## What is s9s?
 
-s9s is a client-side TUI application that runs in your terminal to monitor and manage SLURM clusters. It connects directly to SLURM using SLURM's native command-line tools (squeue, scontrol, sacct, etc.) and the SLURM client library.
+s9s is a client-side TUI application that runs in your terminal to monitor and manage SLURM clusters. It connects to SLURM via the SLURM REST API (slurmrestd). The `scontrol` CLI tool is only used for auto-discovery of the slurmrestd endpoint and for JWT token generation.
 
 s9s does NOT:
 - Run as a server or daemon

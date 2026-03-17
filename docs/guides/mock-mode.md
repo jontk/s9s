@@ -8,32 +8,15 @@ s9s includes environment variable gating for mock mode to prevent accidental use
 
 ### Environment Variable Gating
 
-Mock mode requires `S9S_ENABLE_MOCK` environment variable to be set to specific values:
+Mock mode requires the `S9S_ENABLE_MOCK` environment variable to be set. Any non-empty value enables mock mode:
 
 ```bash
-# Allowed values (case insensitive)
-S9S_ENABLE_MOCK=development  # Recommended for development
-S9S_ENABLE_MOCK=testing      # For testing environments
-S9S_ENABLE_MOCK=debug        # For debugging purposes
-S9S_ENABLE_MOCK=dev          # Short form for development
-S9S_ENABLE_MOCK=local        # For local usage
-S9S_ENABLE_MOCK=true         # Generic enablement
+# Any non-empty value works
+export S9S_ENABLE_MOCK=1
+export S9S_ENABLE_MOCK=true
+export S9S_ENABLE_MOCK=yes
+export S9S_ENABLE_MOCK=development
 ```
-
-### Production Environment Detection
-
-The system automatically detects production environments by checking:
-- `ENVIRONMENT=production`
-- `NODE_ENV=production`
-- `GO_ENV=production`
-- `RAILS_ENV=production`
-
-### Production Safety Features
-
-When mock mode is requested in a production environment:
-1. **Warning Display**: Shows prominent warning about mock usage
-2. **Interactive Confirmation**: Requires explicit user confirmation
-3. **Non-Interactive Protection**: Automatically denies in non-interactive terminals
 
 ## Usage Examples
 
@@ -41,7 +24,7 @@ When mock mode is requested in a production environment:
 
 ```bash
 # Set environment variable (permanent)
-echo 'export S9S_ENABLE_MOCK=development' >> ~/.bashrc
+echo 'export S9S_ENABLE_MOCK=1' >> ~/.bashrc
 source ~/.bashrc
 
 # Use mock mode
@@ -52,11 +35,11 @@ s9s --mock
 
 ```bash
 # Set for current session only
-export S9S_ENABLE_MOCK=development
+export S9S_ENABLE_MOCK=1
 s9s --mock
 
 # Or inline
-S9S_ENABLE_MOCK=development s9s --mock
+S9S_ENABLE_MOCK=1 s9s --mock
 ```
 
 ### Check Mock Status
@@ -84,49 +67,34 @@ s9s mock status         # Show mock mode status and configuration
 
 ### Mock Disabled
 
+When mock mode is requested without the environment variable set, the following error is displayed:
+
 ```
-Mock mode disabled
+mock mode disabled
 
-To enable mock mode, set one of these environment variables:
-  S9S_ENABLE_MOCK=development  # For development
-  S9S_ENABLE_MOCK=testing      # For testing
-  S9S_ENABLE_MOCK=debug        # For debugging
-  S9S_ENABLE_MOCK=true         # Generic enable
-
-Example:
-  export S9S_ENABLE_MOCK=development
+To enable mock mode, set the S9S_ENABLE_MOCK environment variable:
+  export S9S_ENABLE_MOCK=1
   s9s --mock
-```
-
-### Production Warning
-
-```
-WARNING: Mock SLURM client enabled in production environment!
-   This should only be used for debugging purposes.
-   Mock mode provides simulated data, not real cluster information.
-
-Are you sure you want to continue with mock mode in production? (yes/no):
 ```
 
 ## Configuration File Behavior
 
 If `useMockClient: true` is set in the config file but `S9S_ENABLE_MOCK` is not set:
-- Mock mode is automatically disabled
-- Real SLURM client mode is used instead
-- Warning message is displayed about the environment override
+- The application exits with an error message
+- The error instructs the user to set the environment variable
+- Setup suggestions are displayed via `SuggestMockSetup()`
 
 ## Implementation Details
 
 ### Mock Validator (`internal/mock/validator.go`)
-- `IsMockEnabled()`: Checks if mock mode is allowed via environment variables
-- `IsProductionEnvironment()`: Detects production environment indicators
-- `ValidateMockUsage()`: Main validation logic with user prompts
-- `GetMockStatusMessage()`: User-friendly status messages
+- `IsMockEnabled()`: Returns true if `S9S_ENABLE_MOCK` environment variable is set to any non-empty value
+- `ValidateMockUsage(useMockClient bool)`: Returns an error if mock is requested but not enabled via the environment variable
+- `SuggestMockSetup()`: Prints setup instructions for enabling mock mode
 
 ### CLI Integration (`internal/cli/root.go`)
 - Environment validation before application startup
-- Graceful fallback from config-enabled mock to real mode
-- Clear error messages and setup suggestions
+- If validation fails, the error is displayed and `SuggestMockSetup()` is called
+- The application returns an error and does not start
 
 ## Testing
 
@@ -138,8 +106,6 @@ bash test_mock_validation.sh
 Tests cover:
 - Mock blocking without environment variable
 - Mock allowance with valid environment variables
-- Production environment detection and warnings
-- Invalid environment variable rejection
 
 ## Benefits
 
@@ -147,10 +113,8 @@ Tests cover:
 2. **Flexibility**: Allows controlled testing/debugging when needed
 3. **Simplicity**: Single binary works across all environments
 4. **Visibility**: Clear status and configuration commands
-5. **Safety**: Multiple layers of protection for production environments
 
 ## Related Guides
 
-- [Configuration Guide](../CONFIGURATION.md)
-- [Getting Started](../getting-started.md)
-- [Development Setup](./development-setup.md)
+- [Configuration Reference](../reference/configuration.md)
+- [Getting Started](../getting-started/quickstart.md)

@@ -12,18 +12,21 @@ Quality of Service (QoS) policies define service tiers with different priorities
 
 ## Table Columns
 
+The QoS table displays 9 columns:
+
 | Column | Description |
 |--------|-------------|
 | **Name** | QoS policy name |
 | **Priority** | Scheduling priority (color-coded) |
 | **Preempt Mode** | Preemption behavior |
-| **Max Jobs (User)** | Max jobs per user |
-| **Max Submit (User)** | Max submitted jobs per user |
-| **Max CPUs (User)** | Max CPUs per user |
-| **Max Nodes (User)** | Max nodes per user |
+| **Max Jobs/User** | Max jobs per user |
+| **Max Submit/User** | Max submitted jobs per user |
+| **Max CPUs/User** | Max CPUs per user |
+| **Max Nodes/User** | Max nodes per user |
 | **Max Wall Time** | Maximum job duration |
 | **Grace Time** | Time before preemption |
-| **Flags** | Special QoS flags |
+
+Note: The **Flags** column is not shown in the table but is available in the QoS details modal (`Enter`).
 
 ## QoS Priority
 
@@ -34,8 +37,8 @@ Priority determines scheduling order when resources are limited.
 | Range | Color | Description | Typical Use |
 |-------|-------|-------------|-------------|
 | **>1000** | Green | High priority | Production, urgent work |
-| **100-1000** | Yellow | Normal priority | Regular research |
-| **<100** | White | Low priority | Background tasks |
+| **>100** | Yellow | Normal priority | Regular research |
+| **<=100** | White | Low priority | Background tasks |
 
 **How priority works:**
 - Higher priority jobs schedule before lower priority
@@ -47,7 +50,7 @@ Priority determines scheduling order when resources are limited.
 ```
 urgent:    10000  (Green)  - Critical production
 high:       5000  (Green)  - Important deadlines
-normal:      100  (Yellow) - Standard work
+normal:      100  (White)  - Standard work
 low:          10  (White)  - Best-effort
 preemptible:   1  (White)  - Scavenger jobs
 ```
@@ -168,27 +171,6 @@ Filter by:
 - Preempt mode
 - Flags
 
-#### Advanced Filter
-**Shortcut**: `F3`
-
-Expression-based filtering:
-
-```
-priority:>1000
-preempt:Suspend
-maxjobs:>100
-walltime:>7-00:00:00
-```
-
-**Supported fields:**
-- `name` - QoS name
-- `priority` - Priority value (supports >, <, >=, <=)
-- `preempt` - Preemption mode
-- `maxjobs` - Max jobs per user (supports comparison)
-- `maxcpus` - Max CPUs per user (supports comparison)
-- `walltime` - Max wall time (supports comparison)
-- `flags` - Flag names
-
 ### Global Search
 **Shortcut**: `Ctrl+F`
 
@@ -216,7 +198,6 @@ Press `S` to open the interactive sort modal.
 | Key | Action |
 |-----|--------|
 | `/` | Simple filter |
-| `F3` | Advanced filter |
 | `Ctrl+F` | Global search |
 | `ESC` | Exit filter mode |
 

@@ -28,8 +28,8 @@ curl -sSL https://get.s9s.dev | bash
 # Launch s9s
 s9s
 
-# Or try mock mode (no SLURM required)
-s9s --mock
+# Or try mock mode (no SLURM required, requires S9S_ENABLE_MOCK env var)
+S9S_ENABLE_MOCK=1 s9s --mock
 ```
 
 ### Documentation Sections

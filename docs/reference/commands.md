@@ -25,16 +25,16 @@ Press `:` to enter command mode (vim-style). Commands support tab completion for
 ### Navigation Commands
 | Command | Description | Shortcut |
 |---------|-------------|----------|
-| `:jobs` | Switch to jobs view | `1` or `j` |
-| `:nodes` | Switch to nodes view | `2` or `n` |
-| `:users` | Switch to users view | `3` |
-| `:partitions` | Switch to partitions view | `4` or `p` |
-| `:dashboard` | Switch to dashboard | `0` |
-| `:reservations` | Switch to reservations view | - |
-| `:qos` | Switch to QoS view | - |
-| `:accounts` | Switch to accounts view | - |
-| `:health` | Switch to health view | - |
-| `:performance` | Switch to performance view | - |
+| `:jobs` | Switch to jobs view | `1` |
+| `:nodes` | Switch to nodes view | `2` |
+| `:partitions` | Switch to partitions view | `3` |
+| `:reservations` | Switch to reservations view | `4` |
+| `:qos` | Switch to QoS view | `5` |
+| `:accounts` | Switch to accounts view | `6` |
+| `:users` | Switch to users view | `7` |
+| `:dashboard` | Switch to dashboard | `8` |
+| `:health` | Switch to health view | `9` |
+| `:performance` | Switch to performance view | `0` |
 | `:help` or `:h` | Show help | `?` |
 | `:quit` or `:q` | Exit S9S | `q` |
 
@@ -90,12 +90,11 @@ My Custom Job          saved     Custom template from user
 
 See [Job Submission Configuration](../getting-started/configuration.md#job-submission-configuration) for details on defining templates in your configuration file.
 
-### Filtering and Search
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/` | Quick filter | `/user:alice` |
-| `:filter` | Advanced filter | `:filter "state:RUNNING nodes:>4"` |
-| `:clear` | Clear all filters | `:clear` |
+### Filtering
+| Key | Action |
+|-----|--------|
+| `/` | Quick filter (type to filter current view) |
+| `Esc` | Clear filter |
 
 ### Interactive Operations
 
@@ -105,7 +104,7 @@ S9S provides interactive keyboard shortcuts for common operations within each vi
 | Key | Action |
 |-----|--------|
 | `c` | Cancel selected job |
-| `h` | Hold selected job |
+| `h` | Hold selected job (view-specific; `h` is also global previous-view) |
 | `r` | Release selected job |
 | `d` | Show job details |
 | `o` | Show job output |
@@ -136,7 +135,7 @@ Export functionality is available through the interactive UI:
 - Text (`.txt`)
 
 **Access Export:**
-- Press `Ctrl+E` in any view to open export dialog
+- Press `e` in any view to open export dialog
 - Select format and destination
 - Configure export options interactively
 
@@ -145,23 +144,29 @@ Export functionality is available through the interactive UI:
 ### Global Shortcuts
 | Key | Action |
 |-----|--------|
-| `q` | Quit |
+| `q` / `Q` | Quit |
 | `?` | Help |
-| `r` | Refresh |
-| `Ctrl+C` | Interrupt/Cancel |
+| `Ctrl+C` | Quit |
+| `Ctrl+K` | Cluster switcher |
 | `Esc` | Clear/Cancel |
+| `F1` | Help |
+| `F5` | Refresh |
 
 ### Navigation Shortcuts
 | Key | Action |
 |-----|--------|
-| `0` | Dashboard view |
 | `1` | Jobs view |
 | `2` | Nodes view |
-| `3` | Users view |
-| `4` | Partitions view |
-| `j` | Jobs view |
-| `n` | Nodes view |
-| `p` | Partitions view |
+| `3` | Partitions view |
+| `4` | Reservations view |
+| `5` | QoS view |
+| `6` | Accounts view |
+| `7` | Users view |
+| `8` | Dashboard view |
+| `9` | Health view |
+| `0` | Performance view |
+| `h` | Previous view |
+| `l` | Next view |
 | `Tab` | Next view |
 | `Shift+Tab` | Previous view |
 
@@ -171,11 +176,11 @@ Export functionality is available through the interactive UI:
 | Key | Action |
 |-----|--------|
 | `c` | Cancel job |
-| `h` | Hold job |
+| `h` | Hold job (note: `h` is also global previous-view; global handler takes priority) |
 | `r` | Release job |
 | `d` | Show details |
 | `o` | Show output |
-| `l` | Show logs |
+| `l` | Show logs (note: `l` is also global next-view; global handler takes priority) |
 
 **Nodes View:**
 | Key | Action |
@@ -188,20 +193,18 @@ Export functionality is available through the interactive UI:
 | Key | Action |
 |-----|--------|
 | `Space` | Toggle selection |
-| `v` | Visual selection mode |
-| `V` | Visual line mode |
-| `Ctrl+A` | Select all |
+| `v` / `V` | Toggle multi-select mode |
 
 ### Filtering Shortcuts
 | Key | Action |
 |-----|--------|
 | `/` | Quick filter |
-| `Ctrl+/` | Clear filter |
+| `Esc` | Clear filter |
 
 ### Export Shortcuts
 | Key | Action |
 |-----|--------|
-| `Ctrl+E` | Export dialog |
+| `e` | Export dialog (Jobs and Nodes views) |
 
 ## Advanced Features
 
@@ -224,23 +227,24 @@ Press r to release selected jobs
 
 ### Filter Syntax
 
-The filter system supports various filter expressions:
+Press `/` for plain text search across all columns. Press `Ctrl+F` (available in Jobs and Nodes views) for the advanced filter with field-specific expressions:
 
 ```bash
+# Advanced filter examples (Ctrl+F)
 # Filter by user
-/user:alice
+user=alice
 
 # Filter by state
-/state:RUNNING
+state=RUNNING
 
 # Filter by partition
-/partition:gpu
+partition=gpu
 
 # Combine filters
-/user:alice state:RUNNING partition:gpu
+user=alice state=RUNNING partition=gpu
 
 # Numeric comparisons
-/nodes:>4 time:>2h
+nodes>4 priority>=1000
 ```
 
 See the [Filtering Guide](../user-guide/filtering.md) for comprehensive filter documentation.
