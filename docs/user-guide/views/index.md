@@ -78,7 +78,7 @@ All views share these standard capabilities:
 - **`R`** - Manual refresh
 - **`F5`** - Manual refresh (global)
 - **`m/M`** - Toggle auto-refresh (Jobs view)
-- Auto-refresh varies by view: Jobs (30s), Health (10s), Performance (5s). Other views (Dashboard, Users, Accounts, QoS, Reservations) do not auto-refresh.
+- Auto-refresh varies by view: Jobs (30s), Health (10s), Performance (5s). Other views (Nodes, Partitions, Dashboard, Users, Accounts, QoS, Reservations) do not auto-refresh.
 
 ### Help
 - **`?`** - Show help and keyboard shortcuts

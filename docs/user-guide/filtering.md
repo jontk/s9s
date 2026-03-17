@@ -31,7 +31,7 @@ The quick filter is a plain text search only. The only special prefix is `p:` fo
 
 ### Field-Specific Filters
 
-Press `Ctrl+F` to open the advanced filter (available in Jobs and Nodes views). Use `field=value` syntax:
+Press `Ctrl+F` to open the advanced filter (available in all data views). Use `field=value` syntax:
 
 ```bash
 # Job filters (advanced filter, Ctrl+F)
@@ -230,7 +230,7 @@ user=~"^(alice|bob|charlie)"
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Quick filter | Enter plain text filter mode |
-| `Ctrl+F` | Advanced filter | Open advanced field-specific filter (Jobs and Nodes views) |
+| `Ctrl+F` | Advanced filter | Open advanced field-specific filter (all data views) |
 | `Esc` | Clear | Clear current filter |
 
 ### Using Filters
@@ -261,7 +261,7 @@ Use `/` in any view for plain text search across all columns. Use `Ctrl+F` to op
 
 ## Next Steps
 
-- Practice filters in [Mock Mode](../MOCK_MODE.md)
+- Practice filters in [Mock Mode](../guides/mock-mode.md)
 - Learn [Batch Operations](../user-guide/job-management.md) with filters
 - Explore filtering in specific views:
   - [Jobs View](../user-guide/views/jobs.md)

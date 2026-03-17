@@ -104,10 +104,11 @@ S9S provides interactive keyboard shortcuts for common operations within each vi
 | Key | Action |
 |-----|--------|
 | `c` | Cancel selected job |
-| `h` | Hold selected job (view-specific; `h` is also global previous-view) |
+| `H` | Hold selected job |
 | `r` | Release selected job |
-| `d` | Show job details |
+| `d` | Show job dependencies |
 | `o` | Show job output |
+| `Enter` | Show job details |
 | `Space` | Toggle selection |
 | `v` | Visual selection mode |
 
@@ -115,9 +116,10 @@ S9S provides interactive keyboard shortcuts for common operations within each vi
 | Key | Action |
 |-----|--------|
 | `s` | SSH to selected node |
-| `d` | Show node details |
-| `i` | Node info |
-| `Space` | Toggle selection |
+| `d` | Drain selected node |
+| `i` | Toggle idle state filter |
+| `Enter` | Show node details |
+| `Space` | Toggle group expansion |
 
 **Batch Operations:**
 - Select multiple items using `Space` or `v` (visual mode)
@@ -176,17 +178,19 @@ Export functionality is available through the interactive UI:
 | Key | Action |
 |-----|--------|
 | `c` | Cancel job |
-| `h` | Hold job (note: `h` is also global previous-view; global handler takes priority) |
+| `H` | Hold job |
 | `r` | Release job |
-| `d` | Show details |
+| `d` | Show dependencies |
 | `o` | Show output |
-| `l` | Show logs (note: `l` is also global next-view; global handler takes priority) |
+| `Enter` | Show details |
 
 **Nodes View:**
 | Key | Action |
 |-----|--------|
 | `s` | SSH to node |
-| `i` | Node info |
+| `d` | Drain node |
+| `i` | Toggle idle filter |
+| `Enter` | Node details |
 | `d` | Show details |
 
 **Selection Shortcuts:**
@@ -204,7 +208,7 @@ Export functionality is available through the interactive UI:
 ### Export Shortcuts
 | Key | Action |
 |-----|--------|
-| `e` | Export dialog (Jobs and Nodes views) |
+| `e` | Export dialog (all data views) |
 
 ## Advanced Features
 

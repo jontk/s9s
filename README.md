@@ -204,7 +204,7 @@ Press `:` to enter vim-style command mode with intelligent Tab completion:
 | `s` | Submit new job |
 | `b` | Batch operations |
 | `m` | Toggle auto-refresh |
-| `q` | Requeue job |
+| `q` | Requeue job (use `:requeue` if `q` quits) |
 | `e` | Export data |
 | `v` | Toggle multi-select mode |
 | `a` | Filter all states |

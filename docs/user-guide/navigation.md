@@ -51,8 +51,8 @@ These shortcuts work across all views:
 |-----|--------|-------------|
 | `j` or `↓` | Down | Move cursor down |
 | `k` or `↑` | Up | Move cursor up |
-| `gg` | Top | Go to first item (vim double-g motion) |
-| `G` | Bottom | Go to last item |
+| `Home` | Top | Go to first item |
+| `End` | Bottom | Go to last item |
 
 ## View-Specific Shortcuts
 
