@@ -9,7 +9,7 @@ S9s offers extensive configuration options to customize your experience. This gu
 - [Environment Variables](#environment-variables)
 - [Command-line Flags](#command-line-flags)
 - [Configuration Schema](#configuration-schema)
-- [Authentication Methods](#authentication-methods)
+- [Authentication](#authentication)
 - [UI and Display Configuration](#ui-and-display-configuration)
 - [Advanced Configuration](#advanced-configuration)
 - [Security Configuration](#security-configuration)
@@ -22,25 +22,26 @@ Create a minimal configuration file at `~/.s9s/config.yaml`:
 
 ```yaml
 clusters:
-  default:
-    url: https://slurm.example.com
-    auth:
-      method: token
-      token: ${SLURM_TOKEN}
+  - name: default
+    cluster:
+      endpoint: https://slurm.example.com:6820
+      token: ${SLURM_JWT}  # or discovered via scontrol token
 ```
 
 Then run s9s:
 
 ```bash
-export SLURM_TOKEN=your-token-here
+export SLURM_JWT=$(scontrol token)
 s9s
 ```
 
-For testing without a real SLURM cluster:
+For testing without a real SLURM cluster, enable mock mode (requires `S9S_ENABLE_MOCK=true` environment variable):
 
 ```bash
-s9s --mock --mock-jobs 200 --mock-nodes 100
+S9S_ENABLE_MOCK=true s9s --mock
 ```
+
+See the [Mock Mode Guide](../guides/mock-mode.md) for details.
 
 ## Configuration Files
 
@@ -58,31 +59,25 @@ Configuration files use YAML format:
 
 ```yaml
 # s9s configuration file
-version: "1.0"
 
 # Default cluster to connect to
-default_cluster: production
+defaultCluster: production
 
 # Cluster configurations
 clusters:
-  production:
-    url: https://slurm.example.com
-    auth:
-      method: token
-      token: ${SLURM_TOKEN}
+  - name: production
+    cluster:
+      endpoint: https://slurm.example.com:6820
+      token: ${SLURM_JWT}  # or discovered via scontrol token / SLURM_JWT env var
 
-  development:
-    url: https://slurm-dev.example.com
-    auth:
-      method: basic
-      username: ${SLURM_USER}
-      password: ${SLURM_PASS}
+  - name: development
+    cluster:
+      endpoint: https://slurm-dev.example.com:6820
+      token: ${DEV_SLURM_JWT}
 
-# User preferences
-preferences:
-  theme: dark
-  refresh_interval: 30s
-  default_view: jobs
+# UI preferences
+ui:
+  skin: default
 ```
 
 ### Project-Specific Configuration
@@ -91,19 +86,13 @@ Create `.s9s.yaml` in your project directory for project-specific settings:
 
 ```yaml
 # Project-specific settings
-default_cluster: project-cluster
+defaultCluster: project-cluster
 
 clusters:
-  project-cluster:
-    url: https://project.slurm.local
-    auth:
-      method: token
-      token_file: ./.slurm-token
-
-preferences:
-  default_view: jobs
-  jobs:
-    default_filter: "user:${USER}"
+  - name: project-cluster
+    cluster:
+      endpoint: https://project.slurm.local:6820
+      token: ${SLURM_JWT}
 ```
 
 ## Environment Variables
@@ -127,14 +116,9 @@ All environment variables are prefixed with `S9S_`.
 
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
-| `SLURM_URL` | SLURM REST API URL | - | `https://slurm.example.com` |
+| `SLURM_URL` | SLURM REST API URL | - | `https://slurm.example.com:6820` |
 | `SLURM_API_VERSION` | API version | auto-detected | `v0.0.43` |
-| `SLURM_TOKEN` | Authentication token | - | `eyJhbGci...` |
-| `SLURM_USER` | Username for basic auth | - | `admin` |
-| `SLURM_PASS` | Password for basic auth | - | `secretpass` |
-| `SLURM_CERT` | Client certificate path | - | `/path/to/cert.pem` |
-| `SLURM_KEY` | Client key path | - | `/path/to/key.pem` |
-| `SLURM_CA` | CA certificate path | - | `/path/to/ca.pem` |
+| `SLURM_JWT` | Authentication token (auto-discovered via `scontrol token` if not set) | - | `eyJhbGci...` |
 | `SLURM_INSECURE` | Skip TLS verification | `false` | `true` |
 
 ### UI Variables
@@ -174,16 +158,11 @@ s9s [flags]
 --cluster NAME          Select cluster from config
 --url URL              SLURM REST API URL
 --token TOKEN          Authentication token
---username USER        Username for basic auth
---password PASS        Password for basic auth
 --api-version VERSION  SLURM API version (default: auto-detected)
 --insecure            Skip TLS certificate verification
 
-# Mock mode
+# Mock mode (requires S9S_ENABLE_MOCK=true)
 --mock                 Run in mock mode (no SLURM required)
---mock-users N         Number of mock users (default: 50)
---mock-jobs N          Number of mock jobs (default: 200)
---mock-nodes N         Number of mock nodes (default: 100)
 ```
 
 ### UI Flags
@@ -215,6 +194,8 @@ s9s [flags]
 
 ### Complete Schema
 
+> **Note:** Some configuration options shown below are planned features. See [#117](https://github.com/jontk/s9s/issues/117) for status. The currently implemented config struct supports: `RefreshRate`, `MaxRetries`, `DefaultCluster`, `Clusters[]` (with `Endpoint`, `Token`, `APIVersion`, `Insecure`, `Timeout`), `UI` (skin, logoless, crumbsless, statusless, headless, noIcons, enableMouse), `Views` (jobs, nodes, partitions), `Features` (streaming, pulseye, xray), `Shortcuts[]`, `Aliases`, `Plugins[]`, `UseMockClient`, `PluginSettings`, and `Discovery`.
+
 ```yaml
 # Configuration file version
 version: string  # Required: "1.0"
@@ -232,57 +213,17 @@ clusters:
     retry_attempts: integer  # Optional: Retry attempts (default: 3)
     retry_delay: duration    # Optional: Retry delay (default: 1s)
 
-    # Authentication
-    auth:
-      method: string         # Required: token|basic|cert|oauth2
+    # Authentication (token-based via SLURM JWT)
+    token: string            # JWT token or env var reference (e.g., ${SLURM_JWT})
+                             # Auto-discovered via scontrol token if not set
+    insecure: boolean        # Skip TLS verification (default: false)
 
-      # Token auth
-      token: string          # Required for token auth
-      token_file: string     # Alternative: read token from file
-
-      # Basic auth
-      username: string       # Required for basic auth
-      password: string       # Required for basic auth
-
-      # Certificate auth
-      cert: string           # Required for cert auth
-      key: string            # Required for cert auth
-      ca: string             # Optional: CA certificate
-
-      # OAuth2 auth
-      clientId: string       # OAuth2 client ID
-      clientSecret: string   # OAuth2 client secret
-      tokenURL: string       # OAuth2 token URL
-      scopes: [string]       # OAuth2 scopes
-      redirectURL: string    # OAuth2 redirect URL
-
-    # TLS settings
-    tls:
-      insecure: boolean      # Skip verification (default: false)
-      server_name: string    # Override server name
-      min_version: string    # Minimum TLS version
-
-# User preferences
+# User preferences (many of these are planned -- see note above)
 preferences:
   # UI settings
   theme: string              # dark|light (default: dark)
   refresh_interval: duration # Auto-refresh (default: 30s)
   default_view: string       # Starting view (default: jobs)
-  show_hints: boolean        # Show keyboard hints (default: true)
-  confirm_actions: boolean   # Confirm destructive actions (default: true)
-
-  # Display settings
-  time_format: string        # Time format (default: "15:04:05")
-  date_format: string        # Date format (default: "2006-01-02")
-  show_relative_time: boolean # Show relative times (default: true)
-  timezone: string           # Timezone (default: "UTC")
-
-  # Table settings
-  table:
-    border: boolean          # Show borders (default: true)
-    header: boolean          # Show headers (default: true)
-    row_lines: boolean       # Show row lines (default: false)
-    column_spacing: integer  # Column spacing (default: 1)
 
   # Job view settings
   jobs:
@@ -338,7 +279,7 @@ filters:
     view: jobs
     filter: "user:${USER}"
 
-# Notification settings
+# Notification settings (planned)
 notifications:
   enabled: boolean
   desktop: boolean
@@ -355,87 +296,42 @@ logging:
   max_backups: integer       # Number of backups
   max_age: integer           # Max age in days
 
-# Performance settings
+# Performance settings (planned)
 performance:
   max_concurrent: integer    # Max concurrent operations
   cache_ttl: duration        # Cache TTL
   batch_size: integer        # Batch operation size
 
-# Security settings
+# Security settings (planned)
 security:
   keyring: boolean           # Use system keyring (default: true)
   encrypt_config: boolean    # Encrypt sensitive config
 ```
 
-## Authentication Methods
+## Authentication
 
-### Token Authentication
+S9s uses token-based authentication with SLURM's JWT tokens. The token is resolved in the following order:
 
-Most secure method using JWT tokens:
+1. **Explicit config** -- the `token` field in your cluster configuration
+2. **Environment variable** -- `SLURM_JWT`
+3. **Auto-discovery** -- runs `scontrol token` to obtain a token automatically
 
 ```yaml
 clusters:
-  production:
-    url: https://slurm.example.com
-    auth:
-      method: token
-      token: ${SLURM_TOKEN}  # From environment
-      # OR
-      token_file: ~/.slurm/token  # From file
+  - name: production
+    cluster:
+      endpoint: https://slurm.example.com:6820
+      token: ${SLURM_JWT}  # or discovered via scontrol token
 ```
 
-Generate a token:
+Generate a token manually:
 
 ```bash
-scontrol token
-export SLURM_TOKEN=<token>
+export SLURM_JWT=$(scontrol token)
+s9s
 ```
 
-### Basic Authentication
-
-Username/password authentication:
-
-```yaml
-clusters:
-  production:
-    url: https://slurm.example.com
-    auth:
-      method: basic
-      username: admin
-      password: ${SLURM_PASS}  # From environment
-```
-
-### Certificate Authentication
-
-Client certificate authentication:
-
-```yaml
-clusters:
-  production:
-    url: https://slurm.example.com
-    auth:
-      method: cert
-      cert: /path/to/client.crt
-      key: /path/to/client.key
-      ca: /path/to/ca.crt  # Optional
-```
-
-### OAuth2 Authentication
-
-OAuth2-based authentication:
-
-```yaml
-clusters:
-  research:
-    url: https://research.example.edu:6820
-    auth:
-      method: oauth2
-      clientId: ${OAUTH_CLIENT_ID}
-      clientSecret: ${OAUTH_CLIENT_SECRET}
-      tokenURL: https://auth.example.edu/token
-      scopes: ["slurm.read", "slurm.write"]
-      redirectURL: http://localhost:8080/callback
-```
+If you are running s9s on a node where `scontrol` is available and your user has permission to generate tokens, no explicit token configuration is needed -- s9s will auto-discover it.
 
 ## UI and Display Configuration
 
@@ -444,7 +340,7 @@ clusters:
 ```yaml
 preferences:
   # Theme settings
-  theme: dark|light|terminal|custom
+  theme: dark|light
 
   # View settings
   default_view: jobs|nodes|dashboard
@@ -627,43 +523,13 @@ keybindings:
     "shift+r": "resume"
 ```
 
-### Built-in Themes
+### UI Skin
 
-- `dark` - Dark background, light text
-- `light` - Light background, dark text
-- `terminal` - Classic terminal green
-- `high-contrast` - Accessibility optimized
-
-### Custom Themes
-
-Create `~/.s9s/themes/custom.yaml`:
+The UI skin can be set via the `ui.skin` configuration key:
 
 ```yaml
-name: "My Theme"
-colors:
-  # Base colors
-  background: "#1a1a1a"
-  foreground: "#e0e0e0"
-  selection: "#3a3a3a"
-  cursor: "#ffffff"
-
-  # UI elements
-  border: "#404040"
-  title: "#ffffff"
-  subtitle: "#b0b0b0"
-
-  # Status colors
-  success: "#50fa7b"
-  warning: "#f1fa8c"
-  error: "#ff5555"
-  info: "#8be9fd"
-
-  # Job states
-  running: "#50fa7b"
-  pending: "#f1fa8c"
-  failed: "#ff5555"
-  completed: "#8be9fd"
-  cancelled: "#ff79c6"
+ui:
+  skin: "default"
 ```
 
 ## Advanced Configuration
@@ -671,27 +537,23 @@ colors:
 ### Multiple Clusters
 
 ```yaml
-default_cluster: production
+defaultCluster: production
 
 clusters:
-  production:
-    url: https://prod-slurm.example.com
-    auth:
-      method: token
-      token: ${PROD_SLURM_TOKEN}
+  - name: production
+    cluster:
+      endpoint: https://prod-slurm.example.com:6820
+      token: ${PROD_SLURM_JWT}
 
-  development:
-    url: https://dev-slurm.example.com
-    auth:
-      method: token
-      token: ${DEV_SLURM_TOKEN}
+  - name: development
+    cluster:
+      endpoint: https://dev-slurm.example.com:6820
+      token: ${DEV_SLURM_JWT}
 
-  testing:
-    url: https://test-slurm.example.com
-    auth:
-      method: basic
-      username: testuser
-      password: ${TEST_PASS}
+  - name: testing
+    cluster:
+      endpoint: https://test-slurm.example.com:6820
+      token: ${TEST_SLURM_JWT}
 ```
 
 Switch clusters:
@@ -815,54 +677,23 @@ preferences:
 
 ## Security Configuration
 
-### Secure Token Storage
-
-Use system keyring (recommended):
-
-```yaml
-clusters:
-  secure:
-    url: https://slurm.example.com
-    auth:
-      method: token
-      token_provider: keyring
-      token_key: s9s-prod-token
-```
-
 ### Best Practices for Sensitive Data
 
 1. **Use environment variables**:
    ```yaml
-   auth:
-     token: ${SLURM_TOKEN}
-     password: ${SLURM_PASS}
+   clusters:
+     - name: production
+       cluster:
+         endpoint: https://slurm.example.com:6820
+         token: ${SLURM_JWT}
    ```
 
-2. **Use file references**:
-   ```yaml
-   auth:
-     token_file: ~/.slurm/token
-     cert: ~/.slurm/cert.pem
-     key: ~/.slurm/key.pem
-   ```
+2. **Use `scontrol token` auto-discovery** -- if running on a node with `scontrol` available, omit the `token` field entirely and s9s will discover it automatically.
 
 3. **Set file permissions**:
    ```bash
    chmod 600 ~/.s9s/config.yaml
    chmod 700 ~/.s9s
-   chmod 600 ~/.slurm/token
-   ```
-
-4. **Certificate validation**:
-   ```yaml
-   clusters:
-     strict:
-       url: https://slurm.example.com
-       tls:
-         insecure: false
-         ca_file: /etc/ssl/certs/ca-bundle.crt
-         verify_hostname: true
-         min_version: "1.2"
    ```
 
 ## Configuration Management
@@ -901,72 +732,36 @@ s9s setup
 
 ```yaml
 clusters:
-  default:
-    url: https://slurm.example.com
-    auth:
-      method: token
-      token: ${SLURM_TOKEN}
+  - name: default
+    cluster:
+      endpoint: https://slurm.example.com:6820
+      token: ${SLURM_JWT}
 ```
 
 ### Full-Featured Configuration
 
 ```yaml
-version: "1.0"
-default_cluster: main
+defaultCluster: main
 
 clusters:
-  main:
-    url: https://slurm.example.com
-    api_version: v0.0.43  # Optional: omit to auto-detect from slurmrestd
-    timeout: 60s
-    retry_attempts: 5
-    auth:
-      method: token
-      token: ${SLURM_TOKEN}
-    tls:
+  - name: main
+    cluster:
+      endpoint: https://slurm.example.com:6820
+      apiVersion: v0.0.43  # Optional: omit to auto-detect from slurmrestd
+      token: ${SLURM_JWT}
+      timeout: 60s
       insecure: false
 
-preferences:
-  theme: dark
-  refresh_interval: 15s
-  default_view: dashboard
-  show_hints: true
+refreshRate: 15s
+maxRetries: 5
 
-  time_format: "15:04:05"
-  date_format: "Jan 02"
+ui:
+  skin: default
+  enableMouse: true
 
-  jobs:
-    show_completed: false
-    columns: ["ID", "Name", "User", "State", "Time"]
-    sort_by: "Submit Time"
-    sort_order: desc
-
-  nodes:
-    show_offline: true
-    group_by: partition
-
-  ssh:
-    user: ${USER}
-    options: ["-o", "StrictHostKeyChecking=no"]
-
-  export:
-    default_format: csv
-    csv_separator: ","
-
-logging:
-  level: info
-  file: ~/.s9s/app.log
-  max_size: 100
-  max_backups: 3
-  max_age: 30
-
-performance:
-  max_concurrent: 10
-  cache_ttl: 5m
-  batch_size: 100
-
-security:
-  keyring: true
+features:
+  streaming: true
+  pulseye: true
 ```
 
 ### Development Configuration
@@ -999,17 +794,16 @@ If migrating from environment-only setup:
 ```bash
 # Old way
 export SLURM_URL=https://slurm.example.com
-export SLURM_TOKEN=abc123
+export SLURM_JWT=abc123
 s9s
 
 # New way - create config
 cat > ~/.s9s/config.yaml <<EOF
 clusters:
-  default:
-    url: ${SLURM_URL}
-    auth:
-      method: token
-      token: ${SLURM_TOKEN}
+  - name: default
+    cluster:
+      endpoint: ${SLURM_URL}
+      token: ${SLURM_JWT}
 EOF
 s9s
 ```
@@ -1039,7 +833,7 @@ Validation errors are reported clearly:
 
 ```
 Error: Invalid configuration
-  - clusters.production.auth.method: must be one of: token, basic, cert, oauth2
+  - clusters[0].cluster.endpoint: required field missing
   - preferences.refresh_interval: invalid duration format
 ```
 
@@ -1063,4 +857,3 @@ Error: Invalid configuration
 - Explore [User Guide](../user-guide/index.md) for feature documentation
 - Learn about [SSH Integration](../guides/ssh-integration.md)
 - Set up [Notifications](../guides/notifications.md)
-- Create [Custom Themes](../guides/theming.md)

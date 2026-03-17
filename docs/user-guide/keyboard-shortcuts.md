@@ -17,26 +17,18 @@ These shortcuts work from any view:
 | `l` | Next view | Move to next view |
 | `F5` | Force refresh | Refresh current view data |
 | `R` | Manual refresh | Refresh view (most views) |
-| `Ctrl+F` | Global search | Search across all cluster resources |
 | `Ctrl+K` | Switch cluster | Switch between configured clusters |
 | `Ctrl+C` | Cancel | Cancel current operation or close modal |
 | `ESC` | Exit/Close | Exit filter mode, close modal, cancel operation |
 
-## Navigation Shortcuts
+## View Switching
 
-| Key | Action | Description |
-|-----|--------|-------------|
-| `J` | Jobs view | Jump to Jobs view |
-| `N` | Nodes view | Jump to Nodes view |
-| `P` | Partitions view | Jump to Partitions view |
+Use number keys `1`-`9` and `0` to switch directly to a view by its position in the tab bar.
 
 ## Dashboard View
 
 | Key | Action | Description |
 |-----|--------|-------------|
-| `J` | Jobs view | Switch to Jobs view |
-| `N` | Nodes view | Switch to Nodes view |
-| `P` | Partitions view | Switch to Partitions view |
 | `A` | Advanced analytics | Open analytics modal |
 | `H` | Health check | Open health check modal |
 | `R` | Refresh dashboard | Manual refresh all panels |
@@ -81,7 +73,6 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
 | `F3` | Advanced filter | Open advanced filter bar |
-| `Ctrl+F` | Global search | Search all cluster resources |
 | `a/A` | Filter all states | Show all job states |
 | `p/P` | Filter pending | Show pending jobs only |
 | `u/U` | Filter by user | Filter jobs by username |
@@ -111,7 +102,6 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
 | `F3` | Advanced filter | Open advanced filter bar |
-| `Ctrl+F` | Global search | Search all cluster resources |
 | `p/P` | Partition filter | Filter by partition |
 | `a/A` | Toggle all states | Toggle "all states" filter |
 | `i/I` | Toggle idle | Toggle idle state filter |
@@ -147,7 +137,6 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
 | `F3` | Advanced filter | Open advanced filter bar |
-| `Ctrl+F` | Global search | Search all cluster resources |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
 ### Data Management
@@ -169,7 +158,6 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
 | `F3` | Advanced filter | Open advanced filter bar |
-| `Ctrl+F` | Global search | Search all cluster resources |
 | `a/A` | Toggle admin filter | Show admins/operators only or all users |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
@@ -193,7 +181,6 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
 | `F3` | Advanced filter | Open advanced filter bar |
-| `Ctrl+F` | Global search | Search all cluster resources |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
 ### Data Management
@@ -215,7 +202,6 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
 | `F3` | Advanced filter | Open advanced filter bar |
-| `Ctrl+F` | Global search | Search all cluster resources |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
 ### Data Management
@@ -237,7 +223,6 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
 | `F3` | Advanced filter | Open advanced filter bar |
-| `Ctrl+F` | Global search | Search all cluster resources |
 | `a/A` | Toggle active | Show active reservations only |
 | `f/F` | Toggle future | Show future reservations only |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
@@ -350,8 +335,7 @@ Works in Jobs and Nodes views.
 
 ### Quick Navigation
 - Press `Tab` repeatedly to cycle through all views
-- Use `J`, `N`, `P` for direct jumps to common views
-- `Ctrl+F` for global search finds resources across all views
+- Use number keys `1`-`9` and `0` to jump directly to a view by position
 
 ### Efficient Filtering
 - Use `/` for quick keyword search

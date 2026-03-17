@@ -1,5 +1,7 @@
 # Configuration Reference
 
+> **Note:** This reference describes both implemented and planned configuration options. Features marked with "(planned)" are not yet available. See [#117](https://github.com/jontk/s9s/issues/117) for details. For the currently implemented configuration, see [config.example.yaml](https://github.com/jontk/s9s/blob/main/config.example.yaml) and the [Getting Started Configuration Guide](../getting-started/configuration.md).
+
 Complete reference for all S9S configuration options, settings, and customization possibilities.
 
 ## Configuration Files
@@ -116,8 +118,8 @@ clusters:
 ```yaml
 preferences:
   # Theme selection
-  theme: "dark"  # dark, light, terminal, high-contrast, custom
-  custom_theme: "/path/to/custom-theme.yaml"
+  theme: "dark"  # dark, light
+  # custom_theme: "/path/to/custom-theme.yaml"  # (planned)
 
   # Default view
   default_view: "jobs"  # jobs, nodes, dashboard, users, partitions
@@ -150,7 +152,7 @@ preferences:
   debounce_delay: 300ms
 ```
 
-### Advanced UI Configuration
+### Advanced UI Configuration (planned)
 ```yaml
 preferences:
   # Color customization
@@ -235,7 +237,7 @@ auth:
   token_command: "vault kv get -field=token secret/slurm"
 ```
 
-### Basic Authentication
+### Basic Authentication (planned)
 ```yaml
 auth:
   method: "basic"
@@ -245,7 +247,7 @@ auth:
   credentials_file: "/path/to/credentials"
 ```
 
-### OAuth 2.0
+### OAuth 2.0 (planned)
 ```yaml
 auth:
   method: "oauth2"
@@ -261,7 +263,7 @@ auth:
   pkce: true
 ```
 
-### Certificate Authentication
+### Certificate Authentication (planned)
 ```yaml
 auth:
   method: "cert"
@@ -355,7 +357,7 @@ filters:
     max_history: 50
 ```
 
-### Search Configuration
+### Search Configuration (planned)
 ```yaml
 search:
   # Search providers
@@ -417,7 +419,7 @@ export:
       include_charts: false
 ```
 
-### Cloud Export Settings
+### Cloud Export Settings (planned)
 ```yaml
 export:
   # Cloud destinations
@@ -658,7 +660,7 @@ notifications:
     min_runtime: "1h"
 ```
 
-### Advanced Notifications
+### Advanced Notifications (planned)
 ```yaml
 notifications:
   providers:

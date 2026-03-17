@@ -22,8 +22,6 @@ Use visual selection mode to choose multiple items:
 | `v` | Visual mode | Enter visual selection mode |
 | `V` | Visual line mode | Select entire rows |
 | `Ctrl+A` | Select all | Select all visible items |
-| `Ctrl+D` | Deselect all | Clear all selections |
-| `Ctrl+I` | Invert selection | Invert current selection |
 
 ### Filter-Based Selection
 
