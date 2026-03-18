@@ -91,7 +91,7 @@ my-plugin/
 ### Step 1: Create the main module
 
 ```go
-// +build plugin
+//go:build plugin
 
 package main
 
@@ -325,16 +325,17 @@ cp my-plugin.so ~/.s9s/plugins/
 Add to your s9s config file:
 
 ```yaml
+pluginSettings:
+  pluginDir: "~/.s9s/plugins"
 plugins:
-  enabled: true
-  directory: ~/.s9s/plugins
-  autoload:
-    - my-plugin
+  - name: my-plugin
+    enabled: true
+    config: {}
 ```
 
 ### Loading at Runtime
 
-Plugins are loaded automatically from the configured directory when s9s starts with `plugins.enabled: true`. There are no CLI flags for loading individual plugins at this time.
+Plugins are loaded automatically from the configured `pluginSettings.pluginDir` directory when s9s starts. There are no CLI flags for loading individual plugins at this time.
 
 > **Note:** See [#119](https://github.com/jontk/s9s/issues/119) for planned plugin CLI commands.
 
@@ -343,7 +344,7 @@ Plugins are loaded automatically from the configured directory when s9s starts w
 ### Unit Testing
 
 ```go
-// +build plugin
+//go:build plugin
 
 func TestMyPlugin(t *testing.T) {
     p := &MyPlugin{}

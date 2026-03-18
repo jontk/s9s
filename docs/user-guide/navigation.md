@@ -49,8 +49,9 @@ These shortcuts work across all views:
 
 | Key | Action | Description |
 |-----|--------|-------------|
-| `j` or `↓` | Down | Move cursor down |
-| `k` or `↑` | Up | Move cursor up |
+| `↓` | Down | Move cursor down |
+| `↑` | Up | Move cursor up |
+| `j`/`k` | Down/Up | Vim-style navigation (Jobs view multi-select table only) |
 | `Home` | Top | Go to first item |
 | `End` | Bottom | Go to last item |
 
@@ -71,7 +72,7 @@ These shortcuts work across all views:
 | `v` | Multi-Select | Toggle multi-select mode |
 | `m` | Auto Refresh | Toggle auto-refresh |
 | `/` | Filter | Filter jobs |
-| `Ctrl+F` | Search | Global search (view-specific) |
+| `Ctrl+F` | Search | Global search across all entity types |
 | `F2` | Templates | Show job templates |
 | `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
@@ -86,7 +87,7 @@ These shortcuts work across all views:
 | `r` | Resume | Resume drained node |
 | `R` | Refresh | Force refresh view |
 | `/` | Filter | Filter nodes |
-| `Ctrl+F` | Search | Global search (view-specific) |
+| `Ctrl+F` | Search | Global search across all entity types |
 | `S` | Sort | Open sort modal |
 | `p` | Partition | Filter by partition |
 | `a` | All States | Show all node states |
@@ -178,23 +179,17 @@ Enter filter mode with `/` in any view:
 
 ### Advanced Filter
 
-The advanced filter bar is available via view-specific key handlers (e.g., `Ctrl+F` in Jobs and Nodes views). Note that the global `F3` key opens Preferences, which takes priority over view-level advanced filter bindings.
-
-The advanced filter supports:
-- Field-specific filtering
-- Operator support (equals, contains, greater than, less than)
-- Multiple filter conditions
-- Save and load filter presets
+The advanced filter bar supports field-specific filtering with operators (equals, contains, greater than, less than) and multiple filter conditions. Note that the global `F3` key opens Preferences, which takes priority over view-level filter bindings.
 
 ### Global Search
 
-Press `Ctrl+F` in supported views (Jobs, Nodes) to search across resources.
+Press `Ctrl+F` in any data view (Jobs, Nodes, Partitions, QoS, Accounts, Users, Reservations) to search across all entity types.
 
 ## Tips & Tricks
 
 ### Efficiency Tips
 
-1. **Use vim keys**: `j`/`k` for up/down, `gg`/`G` for top/bottom
+1. **Use arrow keys**: `↑`/`↓` for up/down, `Home`/`End` for top/bottom
 2. **Quick view switching**: Number keys `1-9` switch directly to views
 3. **Quick filters**: `/` for instant filtering in any view
 4. **Multi-select**: Use `v` in jobs view for batch operations
@@ -244,7 +239,7 @@ See [Commands Reference](../reference/commands.md) for complete command document
 - **Real-time updates** - Data refreshes automatically
 - **Command mode with autocomplete** - Vim-style `:` commands with Tab completion
 - **ASCII visualizations** - Resource usage shown with colored progress bars
-- **Advanced filtering** - Use `/` to filter data in any view, or `Ctrl+F` in Jobs/Nodes for advanced search
+- **Advanced filtering** - Use `/` to filter data in any view, or `Ctrl+F` in data views for global search
 - **Sortable columns** - Press `S` to open the sort modal
 - **Detailed analytics** - Press `A` or `W` in partitions for insights
 - **Node grouping** - Group nodes by partition, state, or features
@@ -277,7 +272,7 @@ Bar colors:
 
 ## Next Steps
 
-- Practice navigation in mock mode: `s9s --mock`
+- Practice navigation in mock mode: `S9S_ENABLE_MOCK=1 s9s --mock`
 - Learn advanced filtering techniques
 - Explore individual view guides:
   - [Jobs View](views/jobs.md)

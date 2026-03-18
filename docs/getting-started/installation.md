@@ -239,7 +239,7 @@ If you cannot connect to SLURM:
 
 1. **Check SLURM API access**:
    ```bash
-   curl https://your-slurm-api.example.com/slurm/v0.0.40/jobs
+   curl https://your-slurm-api.example.com/slurm/v0.0.43/jobs
    ```
 
 2. **Verify authentication**:

@@ -85,7 +85,7 @@ golangci-lint run     # Detailed linting
 ```bash
 # See architecture.md#debugging-and-diagnostics
 s9s --debug           # Enable debug logging
-tail -f ~/.s9s/debug.log
+tail -f ./s9s-debug.log
 ```
 
 ## Document Overview
@@ -223,7 +223,7 @@ pre-commit install        # Install pre-commit hooks
 make fmt                  # Format code
 make lint                 # Run linter
 make build               # Build application
-go run cmd/s9s/main.go --mock  # Run in mock mode
+S9S_ENABLE_MOCK=1 go run cmd/s9s/main.go --mock  # Run in mock mode
 
 # Testing
 make test                # Run unit tests

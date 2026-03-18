@@ -103,24 +103,12 @@ SSH directly to nodes running specific jobs:
 
 ## SSH Features
 
-### Connection Testing
-
-Test SSH connectivity to a node before opening a session:
-
-```bash
-# From the SSH options menu, select "Test Connection"
-# S9S will verify:
-# - SSH connectivity
-# - Authentication
-# - Basic command execution
-```
-
 ### Node Information Retrieval
 
-Gather basic node information via SSH:
+Gather basic node information via SSH from within the SSH Terminal Manager:
 
 ```bash
-# From the SSH options menu, select "Get Node Info"
+# In the SSH Terminal Manager, press 'i' to get node info
 # Retrieves:
 # - Hostname
 # - Uptime
@@ -129,14 +117,9 @@ Gather basic node information via SSH:
 # - Disk usage
 ```
 
-### SSH Options Menu
+### SSH Terminal Manager Access
 
-When initiating SSH from the Nodes View, S9S presents options:
-
-- **SSH Terminal Manager** - Advanced session management interface
-- **Quick Connect** - Direct SSH connection (fastest)
-- **Test Connection** - Verify SSH connectivity
-- **Get Node Info** - Retrieve basic node information
+When you press `s` on a node in the Nodes View, S9S opens the SSH Terminal Manager directly. From there, you use keyboard shortcuts to perform various actions such as connecting to sessions, retrieving node information, and managing terminals. See the [Keyboard Reference](#keyboard-reference) below for available keybindings.
 
 ## SSH Security
 
@@ -245,7 +228,8 @@ user@node001:~$ tail -f /path/to/job/output
 :nodes
 
 # 2. Select a problematic node
-# 3. Press 's' → choose "Get Node Info"
+# 3. Press 's' to open the SSH Terminal Manager
+# 4. Press 'i' to retrieve node info
 
 # S9S retrieves and displays:
 # - Uptime
@@ -253,7 +237,7 @@ user@node001:~$ tail -f /path/to/job/output
 # - Disk space
 # - CPU count
 
-# Or choose "Quick Connect" for full SSH access
+# Or press Enter/t to open a full SSH terminal session
 ```
 
 ### Investigate Failed Job
@@ -293,6 +277,9 @@ SSH access integrates seamlessly with S9S cluster management:
 - `i` - Show node information
 - `t` - Open terminal session
 - `s` - Show system information
+- `m` or `M` - Monitor session status
+- `x` or `X` - Close selected session
+- `r` or `R` - Refresh sessions
 - `Esc` - Close SSH interface
 
 ## Next Steps

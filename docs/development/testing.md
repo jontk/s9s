@@ -57,12 +57,12 @@ Integration tests verify component interactions and full workflows.
 make test-integration
 
 # Or manually
-go test -tags=integration ./test/integration
+go test -timeout 300s -v ./test/integration/...
 
 # With specific SLURM cluster
 SLURM_URL=https://test.example.com \
 SLURM_JWT=token123 \
-go test -tags=integration ./test/integration
+go test -timeout 300s -v ./test/integration/...
 ```
 
 ## Benchmarks
@@ -264,12 +264,10 @@ go test -short ./...
 
 ### CPU Profiling
 
-```bash
-# Run with CPU profiling
-go run cmd/s9s/main.go -cpuprofile=cpu.prof --mock
-go tool pprof cpu.prof
+Profiling is done via Go's standard `go test -bench` and `pprof` tools. The `-cpuprofile` and `-memprofile` flags are `go test` flags, not `go run` flags.
 
-# Or from tests
+```bash
+# CPU profiling from benchmarks
 go test -cpuprofile=cpu.prof -bench=. ./test/performance
 go tool pprof -http=:8080 cpu.prof
 ```
@@ -277,11 +275,7 @@ go tool pprof -http=:8080 cpu.prof
 ### Memory Profiling
 
 ```bash
-# Run with memory profiling
-go run cmd/s9s/main.go -memprofile=mem.prof --mock
-go tool pprof mem.prof
-
-# Or from tests
+# Memory profiling from benchmarks
 go test -memprofile=mem.prof -bench=. ./test/performance
 go tool pprof -http=:8080 mem.prof
 ```

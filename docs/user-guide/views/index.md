@@ -59,26 +59,21 @@ Note: The `J`, `N`, and `P` letter shortcuts only work from the Dashboard view, 
 
 ## Common Features
 
-All views share these standard capabilities:
+The following capabilities are available in all table-based data views (Jobs, Nodes, Partitions, Reservations, QoS, Accounts, Users). Dashboard, Health, and Performance views have their own specialized controls.
 
-### Filtering
+### Filtering & Search
 - **`/`** - Simple text filter (searches all columns)
-- **`Ctrl+F`** - Advanced filter with expression syntax (Jobs and Nodes views)
+- **`Ctrl+F`** - Global search across all entity types
 - **`ESC`** - Exit filter mode
-
-### Search
-- **`Ctrl+F`** - Global search across all views
-- Search by resource type (jobs, nodes, partitions, etc.)
 
 ### Sorting
 - **`S`** - Open sort modal
-- Click column headers to toggle sort direction
 
 ### Refresh
 - **`R`** - Manual refresh
 - **`F5`** - Manual refresh (global)
 - **`m/M`** - Toggle auto-refresh (Jobs view)
-- Auto-refresh varies by view: Jobs (30s), Health (10s), Performance (5s). Other views (Nodes, Partitions, Dashboard, Users, Accounts, QoS, Reservations) do not auto-refresh.
+- Auto-refresh varies by view: Jobs (30s), Dashboard (10s), Health (10s), Performance (5s). Other views do not auto-refresh.
 
 ### Help
 - **`?`** - Show help and keyboard shortcuts

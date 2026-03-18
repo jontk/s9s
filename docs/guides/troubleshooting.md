@@ -229,8 +229,9 @@ echo $SLURM_JWT
    ```yaml
    # Update API version
    clusters:
-     default:
-       apiVersion: v0.0.43  # or latest
+     - name: "default"
+       cluster:
+         apiVersion: v0.0.43  # or latest
    ```
 
 3. **Partition visibility**:
@@ -283,7 +284,10 @@ echo $SLURM_JWT
    # Enable debug logging
    s9s --debug
 
-   # Check debug log (written to ~/.s9s/s9s.log)
+   # Check debug log (written to ./s9s-debug.log in current directory)
+   tail -f ./s9s-debug.log
+
+   # Check app log (general application log)
    tail -f ~/.s9s/s9s.log
    ```
 
@@ -363,17 +367,20 @@ curl -k -H "X-Auth-Token: $SLURM_JWT" \
 
 ### Log Analysis
 
-Check S9S logs (debug logging must be enabled with `--debug`):
+The `--debug` flag writes a debug log to `./s9s-debug.log` in the current working directory. The general app log is at `~/.s9s/s9s.log`.
 
 ```bash
-# View recent logs
+# View recent debug log (created by --debug flag)
+tail -n 100 ./s9s-debug.log
+
+# Search for errors in debug log
+grep ERROR ./s9s-debug.log
+
+# Monitor debug log in real time
+tail -f ./s9s-debug.log
+
+# View general app log
 tail -n 100 ~/.s9s/s9s.log
-
-# Search for errors
-grep ERROR ~/.s9s/s9s.log
-
-# Monitor logs in real time
-tail -f ~/.s9s/s9s.log
 ```
 
 ## Diagnostic Information
@@ -409,8 +416,8 @@ s9s --version
 # Run with debug logging
 s9s --debug 2>&1 | tee debug.log
 
-# Collect log file if available
-tar czf s9s-debug.tar.gz ~/.s9s/s9s.log
+# Collect debug log if available
+tar czf s9s-debug.tar.gz ./s9s-debug.log ~/.s9s/s9s.log
 ```
 
 ### Community Support

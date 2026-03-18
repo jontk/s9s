@@ -78,12 +78,13 @@ Release held jobs:
 Requeue selected jobs:
 
 ```bash
-# Select jobs and press 'q' or choose "Requeue Jobs" from the menu
+# Choose "Requeue Jobs" from the batch operations menu
 # Jobs will be requeued for execution
 ```
 
 **Operation**: Calls `scontrol requeue` for each selected job
 **Use Case**: Restart failed jobs or re-run completed jobs
+**Note**: Use the batch operations menu (`b`) to access requeue, since the `q` key is reserved for the global quit shortcut.
 
 ### Delete Jobs
 
@@ -135,14 +136,14 @@ Export job output for all selected jobs:
 
 1. **Select Jobs**: Use visual selection (`Space` key) or filters to select multiple jobs
 2. **Open Batch Menu**: Press `b` (or configured batch key) to open the batch operations menu
-3. **Choose Operation**: Navigate the menu or use keyboard shortcuts:
-   - `c` - Cancel Jobs
-   - `H` - Hold Jobs
-   - `r` - Release Jobs
-   - `q` - Requeue Jobs
-   - `d` - Delete Jobs
-   - `p` - Set Priority
-   - `e` - Export Output
+3. **Choose Operation**: Navigate the menu and select an operation:
+   - Cancel Jobs
+   - Hold Jobs
+   - Release Jobs
+   - Requeue Jobs
+   - Delete Jobs
+   - Set Priority
+   - Export Output
 4. **Confirm**: Review the confirmation dialog showing affected jobs
 5. **Execute**: Confirm to execute the batch operation
 6. **Monitor Progress**: Watch the progress bar as operations are applied to each job
@@ -185,7 +186,7 @@ The batch operations interface shows:
 # Step 1: Filter failed jobs
 /FAILED
 
-# Step 2: Select jobs, open batch menu with 'b', press 'q' to requeue
+# Step 2: Select jobs, open batch menu with 'b', choose "Requeue Jobs"
 # Step 3: Jobs will be requeued and eligible to run again
 ```
 
@@ -225,20 +226,9 @@ If a batch operation fails on individual jobs:
 - Errors are counted and reported
 - Final summary shows successful vs. failed operations
 
-## Configuration
+## Export Defaults
 
-### Export Settings
-
-Configure default export behavior:
-
-```yaml
-# Default export path (defaults to ~/slurm_exports)
-export:
-  defaultPath: ~/my_job_exports
-
-# Default export format
-  defaultFormat: json
-```
+Export files are saved to `~/slurm_exports/` by default. The directory is created automatically on first export. Export path and format are selected interactively in the export dialog.
 
 ## Troubleshooting
 
@@ -267,7 +257,7 @@ export:
 | `c` | Cancel jobs | Cancel all selected jobs |
 | `H` | Hold jobs | Put selected jobs on hold |
 | `r` | Release jobs | Release held jobs |
-| `q` | Requeue jobs | Requeue selected jobs |
+| (menu) | Requeue jobs | Requeue selected jobs (via batch menu) |
 | `d` | Delete jobs | Delete all selected jobs |
 | `p` | Set priority | Set priority for selected jobs |
 | `e` | Export output | Export job output |

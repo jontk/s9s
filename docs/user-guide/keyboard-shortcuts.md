@@ -44,6 +44,9 @@ These shortcuts work from any view:
 
 | Key | Action | Description |
 |-----|--------|-------------|
+| `J` | Jobs view | Switch to Jobs view |
+| `N` | Nodes view | Switch to Nodes view |
+| `P` | Partitions view | Switch to Partitions view |
 | `A` | Advanced analytics | Open analytics modal |
 | `H` | Health check | Open health check modal |
 | `R` | Refresh dashboard | Manual refresh all panels |
@@ -86,7 +89,7 @@ These shortcuts work from any view:
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
-| `Ctrl+F` | Global search | Search across resources (view-specific) |
+| `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `a/A` | Filter all states | Show all job states |
 | `p/P` | Filter pending | Show pending jobs only |
 | `u/U` | Filter by user | Filter jobs by username |
@@ -114,7 +117,7 @@ These shortcuts work from any view:
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
-| `Ctrl+F` | Global search | Search across resources (view-specific) |
+| `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `p/P` | Partition filter | Filter by partition |
 | `a/A` | Toggle all states | Toggle "all states" filter |
 | `i/I` | Toggle idle | Toggle idle state filter |
@@ -347,7 +350,7 @@ Works in Jobs and Nodes views.
 
 ### Efficient Filtering
 - Use `/` for quick keyword search
-- Use `Ctrl+F` in Jobs/Nodes views for cross-resource search
+- Use `Ctrl+F` in any data view for cross-resource search
 - Press `ESC` to quickly clear filters
 - Special syntax like `p:gpu` saves time in simple filter mode
 
@@ -363,7 +366,7 @@ Works in Jobs and Nodes views.
 3. Makes large node lists easier to navigate
 
 ### Refresh Strategies
-- Three views auto-refresh: Jobs (30s), Health (10s), Performance (5s)
+- Four views auto-refresh: Jobs (30s), Dashboard (10s), Health (10s), Performance (5s)
 - Use `R` for immediate manual refresh
 - Jobs view: `m/M` toggles auto-refresh on/off
 
@@ -413,4 +416,4 @@ Press `:` to enter vim-style command mode with tab completion support:
 
 **How it works:** Completions are context-aware and use data from the currently loaded views, so you'll see real job IDs and node names from your cluster.
 
-See [Commands Reference](../../reference/commands.md) for full command list.
+See [Commands Reference](../reference/commands.md) for full command list.

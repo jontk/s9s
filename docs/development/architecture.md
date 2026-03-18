@@ -75,9 +75,11 @@ The entry point of the application that:
 ```go
 // cmd/s9s/main.go
 func main() {
-    app := app.New()
-    if err := app.Run(); err != nil {
-        log.Fatal(err)
+    logging.Init(logging.DefaultConfig())
+    logger := logging.GetLogger()
+    if err := cli.Execute(); err != nil {
+        logger.Error().Err(err).Msg("Failed to execute command")
+        os.Exit(1)
     }
 }
 ```
@@ -223,17 +225,22 @@ Error Occurs -> Log Error -> User-Friendly Message -> Status Bar Display -> Opti
 
 ```go
 type Config struct {
-    Clusters      map[string]*ClusterConfig
-    Preferences   *UserPreferences
-    Debug         bool
-    LogFile       string
+    RefreshRate    string
+    MaxRetries     int
+    DefaultCluster string
+    Clusters       []ClusterContext
+    UI             UIConfig
+    Views          ViewsConfig
+    Features       FeaturesConfig
+    UseMockClient  bool
 }
 
-type ClusterConfig struct {
-    URL           string
-    Auth          AuthConfig
-    Timeout       time.Duration
-    RetryAttempts int
+type ClusterContext struct {
+    Endpoint   string
+    Token      string
+    APIVersion string
+    Insecure   bool
+    Timeout    string
 }
 ```
 
@@ -411,14 +418,7 @@ Developers can add custom views by:
 
 ### Export Formats
 
-New export formats can be added by implementing:
-```go
-type Exporter interface {
-    Export(data interface{}, writer io.Writer) error
-    FileExtension() string
-    MimeType() string
-}
-```
+The export package uses concrete types rather than a shared interface. The main exporters are `TableExporter`, `PerformanceExporter`, and `JobOutputExporter`. New export formats can be added by creating a new concrete exporter type in the export package following the patterns established by these existing types.
 
 ## Future Architectural Considerations
 

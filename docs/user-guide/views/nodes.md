@@ -181,7 +181,6 @@ Filters nodes by any column value:
 - `p:partition` or `partition:name` - Filter by partition
 
 ### Advanced Filter
-**Shortcut**: `Ctrl+F`
 
 Expression-based filtering with field matching:
 
@@ -268,7 +267,7 @@ Press `S` to open the interactive sort modal.
 | Key | Action |
 |-----|--------|
 | `/` | Simple filter |
-| `Ctrl+F` | Advanced filter / Global search |
+| `Ctrl+F` | Global search |
 | `p/P` | Filter by partition |
 | `a/A` | Toggle all states |
 | `i/I` | Toggle idle filter |

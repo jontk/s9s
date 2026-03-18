@@ -21,13 +21,13 @@ S9S displays nodes in various states:
 | State | Description | Color |
 |-------|-------------|-------|
 | **IDLE** | Available for new jobs | Green |
-| **MIXED** | Some CPUs allocated, some free | Yellow |
+| **MIXED** | Some CPUs allocated, some free | Blue |
 | **ALLOCATED** | Fully utilized by jobs | Blue |
 | **DOWN** | Node is offline | Red |
-| **DRAIN** | Being drained for maintenance | Orange |
-| **DRAINING** | Actively draining jobs | Orange |
-| **FAIL** | Node has failed | Red |
-| **MAINT** | In maintenance mode | Gray |
+| **DRAIN** | Being drained for maintenance | Red |
+| **DRAINING** | Actively draining jobs | Red |
+| **RESERVED** | Reserved for specific use | Yellow |
+| **MAINTENANCE** | In maintenance mode | Orange |
 
 ### Node Details
 
@@ -231,7 +231,7 @@ View node details by selecting a node and pressing `Enter` in the Nodes view. Fo
 
 ### Node Management
 
-1. **Plan maintenance windows** - Use drain with timeout
+1. **Plan maintenance windows** - Use drain with descriptive reasons
 2. **Monitor during drainage** - Ensure jobs complete cleanly
 3. **Verify after maintenance** - Test functionality before resuming
 4. **Document changes** - Use descriptive drain reasons

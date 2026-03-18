@@ -135,6 +135,7 @@ Export functionality is available through the interactive UI:
 - JSON (`.json`)
 - Markdown (`.md`)
 - Text (`.txt`)
+- HTML (`.html`)
 
 **Access Export:**
 - Press `e` in any view to open export dialog
@@ -191,7 +192,6 @@ Export functionality is available through the interactive UI:
 | `d` | Drain node |
 | `i` | Toggle idle filter |
 | `Enter` | Node details |
-| `d` | Show details |
 
 **Selection Shortcuts:**
 | Key | Action |
@@ -231,7 +231,7 @@ Press r to release selected jobs
 
 ### Filter Syntax
 
-Press `/` for plain text search across all columns. Press `Ctrl+F` (available in Jobs and Nodes views) for the advanced filter with field-specific expressions:
+Press `/` for plain text search across all columns. Press `Ctrl+F` in any data view to open global search across all entity types. The advanced filter bar supports field-specific expressions:
 
 ```bash
 # Advanced filter examples (Ctrl+F)

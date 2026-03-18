@@ -8,9 +8,10 @@ S9S uses a hierarchical configuration system with the following precedence (high
 
 1. Command-line flags
 2. Environment variables
-3. User config: `~/.s9s/config.yaml`
-4. System config: `/etc/s9s/config.yaml`
-5. Default values
+3. Current directory: `./config.yaml`
+4. User config: `~/.s9s/config.yaml`
+5. System config: `/etc/s9s/config.yaml`
+6. Default values
 
 ## Basic Structure
 
@@ -414,5 +415,5 @@ s9s config edit
 
 - Review [command reference](./commands.md)
 - Explore [API integration](./api.md)
-- Start with a minimal configuration in [getting started guide](../guides/quickstart.md)
-- Configure [plugins](../guides/plugins.md)
+- Start with a minimal configuration in [getting started guide](../getting-started/quickstart.md)
+- Configure [plugins](../plugins/overview.md)

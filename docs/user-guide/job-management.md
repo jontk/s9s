@@ -20,10 +20,8 @@ S9S provides a powerful interface for managing SLURM jobs with features that go 
 Press `s` in Jobs view to open the submission wizard:
 
 1. **Choose Method**:
-   - New job from scratch
-   - From template
-   - Copy existing job
-   - Import script file
+   - New job from scratch (Custom Job)
+   - From template (select a pre-configured template)
 
 2. **Configure Resources**:
    ```yaml
@@ -288,11 +286,11 @@ S9S color-codes job states for quick identification:
 |-------|-------|-------------|
 | PENDING | Yellow | Waiting for resources |
 | RUNNING | Green | Currently executing |
-| COMPLETED | Blue | Finished successfully |
+| COMPLETED | Cyan | Finished successfully |
 | FAILED | Red | Exited with error |
-| CANCELLED | Gray | Cancelled by user/admin |
-| TIMEOUT | Orange | Exceeded time limit |
-| SUSPENDED | Purple | Temporarily suspended |
+| CANCELLED | Gray | Cancelled by user/admin (SLURM uses British spelling) |
+| TIMEOUT | White | Exceeded time limit |
+| SUSPENDED | Orange | Temporarily suspended |
 
 ### Job Details
 
@@ -313,13 +311,11 @@ View job output in real-time:
 
 1. Select job and press `o`
 2. Choose output type:
-   - Standard output
-   - Error output
-   - Both (split view)
+   - Standard output (stdout)
+   - Standard error (stderr)
 3. Options:
    - `f` - Follow/tail output
-   - `/` - Search in output
-   - `s` - Save to file
+   - `s` - Switch between stdout/stderr
    - `Esc` - Exit viewer
 
 For more details, see the [Jobs View Guide](./views/jobs.md).
@@ -334,7 +330,7 @@ For more details, see the [Jobs View Guide](./views/jobs.md).
 | `H` | Hold | Prevent job from starting |
 | `r` | Release | Release held job |
 | `R` | Refresh | Refresh the jobs list |
-| `q`/`Q` | Requeue | Resubmit failed job |
+| `:requeue JOBID` | Requeue | Resubmit failed job (use command mode) |
 | `d`/`D` | Dependencies | View job dependencies |
 | `p`/`P` | Toggle Pending | Toggle pending state filter |
 | `e`/`E` | Export | Open export dialog |
@@ -377,10 +373,10 @@ S9S supports two filtering modes:
 
 **Quick Filter (`/`)** -- plain text search across all visible columns. Type `/gpu` to find items containing "gpu". The only special prefix is `p:` for partition filtering.
 
-**Advanced Filter (`Ctrl+F`)** -- field-specific filtering using `field=value` syntax with operators (available in Jobs and Nodes views):
+**Global Search (`Ctrl+F`)** -- opens cross-resource search (available in all data views). The advanced filter bar supports field-specific `field=value` syntax with operators:
 
 ```bash
-# Advanced filter examples (opened with Ctrl+F)
+# Advanced filter examples
 state=RUNNING                           # Running jobs
 user=alice                              # Alice's jobs
 state=PENDING user=bob                  # Bob's pending jobs (AND logic)
@@ -607,7 +603,7 @@ Export the current view by pressing `e` (depending on the view). This exports th
 /FAILED                # Quick filter for failed jobs
 Enter                  # View job details
 o                      # Check output/errors
-q                      # Requeue if needed
+:requeue JOBID         # Requeue if needed (command mode)
 ```
 
 #### Monitor GPU Jobs

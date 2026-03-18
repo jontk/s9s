@@ -328,6 +328,8 @@ cmd := exec.CommandContext(ctx, "ssh-keygen", args...)
 
 ## Pre-commit Hooks
 
+> **Note:** The `.pre-commit-config.yaml` file is not currently included in the repository. This section describes planned configuration. You can set up pre-commit hooks manually or wait until the configuration file is added to the project.
+
 ### Installation
 
 Pre-commit hooks automatically run linting before each commit, preventing bad code from being committed:

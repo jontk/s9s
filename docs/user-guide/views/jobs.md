@@ -32,11 +32,11 @@ The jobs table displays 11 columns:
 - **State column**: Color varies by job state
   - Green: RUNNING
   - Cyan: COMPLETED
-  - Yellow: PENDING, CONFIGURING
-  - Red: FAILED, TIMEOUT
-  - Gray: CANCELED
-  - Orange: SUSPENDED, PREEMPTED
-  - Blue: COMPLETING
+  - Yellow: PENDING
+  - Red: FAILED
+  - Gray: CANCELLED
+  - Orange: SUSPENDED
+  - White: TIMEOUT, PREEMPTED, COMPLETING, CONFIGURING (default)
 - **Table header**: Teal
 - **Selected rows**: Yellow highlight
 
@@ -89,11 +89,9 @@ Available for:
 - PENDING jobs (that were held)
 
 ### Requeue Job
-**Shortcut**: `q/Q`
+**Command**: `:requeue JOBID`
 
-Requeues a completed, failed, or cancelled job for re-execution.
-
-Note: Since `q/Q` is also the global quit shortcut, the requeue action is intercepted by the global quit handler before reaching the Jobs view, making requeue via `q/Q` unreachable.
+Requeues a completed, failed, or cancelled job for re-execution. Use command mode (`:requeue`) since the `q` key is reserved for the global quit shortcut.
 
 ### View Job Output
 **Shortcut**: `o/O`
@@ -164,10 +162,14 @@ Activates the filter input box. Filters jobs by:
 
 **Example**: `/` then type "gpu" to find all jobs with "gpu" in any field.
 
-### Advanced Filter
+### Global Search
 **Shortcut**: `Ctrl+F`
 
-Opens the advanced filter bar with expression-based filtering.
+Opens global search across all entity types (jobs, nodes, partitions, users, accounts, QoS, reservations).
+
+### Advanced Filter
+
+The advanced filter bar supports expression-based filtering.
 
 **Filter expressions:**
 ```
@@ -221,11 +223,6 @@ Press `ESC` to exit advanced filter mode.
 
 Opens dialog to filter jobs by specific username.
 
-### Global Search
-**Shortcut**: `Ctrl+F`
-
-Opens global search across all views (jobs, nodes, partitions, users, accounts, QoS, reservations).
-
 ## Sorting
 
 Sort jobs by clicking column headers or using keyboard shortcuts.
@@ -245,12 +242,6 @@ Jobs view auto-refreshes every **30 seconds** by default.
 
 When disabled, use `R` for manual refresh.
 
-## Action Menu
-
-**Shortcut**: `F1`
-
-Shows context-sensitive action menu with all available actions for the selected job.
-
 ## Keyboard Shortcuts Reference
 
 ### Job Operations
@@ -262,7 +253,7 @@ Shows context-sensitive action menu with all available actions for the selected 
 | `c/C` | Cancel job |
 | `H` | Hold job |
 | `r` | Release job |
-| `q/Q` | Requeue job |
+| `:requeue JOBID` | Requeue job (command mode) |
 | `o/O` | View output |
 | `d/D` | View dependencies |
 
@@ -278,7 +269,7 @@ Shows context-sensitive action menu with all available actions for the selected 
 | Key | Action |
 |-----|--------|
 | `/` | Simple filter |
-| `Ctrl+F` | Advanced filter / Global search |
+| `Ctrl+F` | Global search |
 | `a/A` | Filter all states |
 | `p/P` | Filter pending |
 | `u/U` | Filter by user |
@@ -289,7 +280,7 @@ Shows context-sensitive action menu with all available actions for the selected 
 |-----|--------|
 | `R` | Manual refresh |
 | `m/M` | Toggle auto-refresh |
-| `F1` | Action menu |
+| `F1` | Help (global) |
 | `S` | Sort modal |
 
 ## Job Submission
@@ -328,9 +319,9 @@ See [Job Management](../job-management.md) for detailed submission guide.
 
 - Use `v/V` for multi-select when you need to operate on specific jobs
 - Use batch operations by state when you want to affect all jobs in a state
-- Press `Ctrl+F` for powerful filtering with expressions
+- Press `Ctrl+F` for global search across all entity types
 - Use `p:name` syntax in simple filter for quick partition filtering
 - Check job output with `o/O` to debug issues
 - Use `d/D` to understand job dependencies before canceling
 - Enable auto-refresh (`m/M`) for monitoring active jobs
-- Press `F1` when unsure what actions are available for a job
+- Press `?` when unsure what actions are available for a job

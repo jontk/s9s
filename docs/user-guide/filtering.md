@@ -31,7 +31,7 @@ The quick filter is a plain text search only. The only special prefix is `p:` fo
 
 ### Field-Specific Filters
 
-Press `Ctrl+F` to open the advanced filter (available in all data views). Use `field=value` syntax:
+Press `Ctrl+F` to open global search (available in all data views). The advanced filter bar uses `field=value` syntax:
 
 ```bash
 # Job filters (advanced filter, Ctrl+F)
@@ -221,7 +221,7 @@ user=~"^(alice|bob|charlie)"
 
 1. **Use state toggles**: Keyboard shortcuts like `p` (pending) are fastest
 2. **Quick filter first**: Use `/` for simple text searches
-3. **Advanced filter for precision**: Use `Ctrl+F` when you need field-specific matching (Jobs and Nodes views)
+3. **Global search for cross-resource matching**: Use `Ctrl+F` in any data view
 
 ## Filter Shortcuts
 
@@ -230,12 +230,12 @@ user=~"^(alice|bob|charlie)"
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Quick filter | Enter plain text filter mode |
-| `Ctrl+F` | Advanced filter | Open advanced field-specific filter (all data views) |
+| `Ctrl+F` | Global search | Open global search across all entity types (all data views) |
 | `Esc` | Clear | Clear current filter |
 
 ### Using Filters
 
-Use `/` in any view for plain text search across all columns. Use `Ctrl+F` to open the advanced filter for field-specific queries with operators (available in Jobs and Nodes views). Press `Esc` to clear the filter.
+Use `/` in any view for plain text search across all columns. Use `Ctrl+F` to open global search across all entity types (available in all data views). Press `Esc` to clear the filter.
 
 ## Troubleshooting Filters
 

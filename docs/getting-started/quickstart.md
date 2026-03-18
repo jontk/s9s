@@ -120,7 +120,7 @@ The Jobs view is where you'll manage your workload:
 | Key | Action | Use Case |
 |-----|--------|----------|
 | `Enter` | View details | See full job information |
-| `s/S` | Submit job | Launch job submission wizard |
+| `s` | Submit job | Launch job submission wizard |
 | `c/C` | Cancel job | Cancel a running/pending job |
 | `H` | Hold job | Prevent job from starting |
 | `r` | Release job | Release a held job |
@@ -142,7 +142,7 @@ Use `/` to filter jobs:
 
 Press `ESC` to clear filters.
 
-For complex filtering, press `Ctrl+F` (in Jobs/Nodes views) to open the advanced filter with field-specific syntax:
+For complex filtering, press `Ctrl+F` to open global search across all entity types (available in all data views). In data views, you can also use field-specific syntax in the filter bar:
 ```
 state=RUNNING partition=gpu
 user=alice priority>500
@@ -162,15 +162,15 @@ Monitor and manage compute nodes:
 | `Enter` | Details | Node information and metrics |
 | `d/D` | Drain | Mark node for maintenance |
 | `r` | Resume | Return drained node to service |
-| `s/S` | SSH | Connect to node via SSH |
+| `s` | SSH | Connect to node via SSH |
 | `g/G` | Group by | Group nodes (partition/state/features) |
 
 ### Node States
 
 - **IDLE** (Green) - Available for jobs
-- **ALLOCATED** (Cyan) - Running jobs
-- **MIXED** (Yellow) - Partially allocated
-- **DRAIN** (Orange) - Scheduled for maintenance
+- **ALLOCATED** (Blue) - Running jobs
+- **MIXED** (Blue) - Partially allocated
+- **DRAIN** (Red) - Scheduled for maintenance
 - **DOWN** (Red) - Offline/unavailable
 
 ### Resource Usage
@@ -236,20 +236,9 @@ Press `/` to filter the current view:
 # Shows matching rows in the current view
 ```
 
-### Advanced Filtering
+### Global Search
 
-Press `Ctrl+F` (in Jobs/Nodes views) to open the advanced filter with expression-based filtering:
-
-```bash
-# Jobs view
-state=RUNNING partition=gpu nodes>4
-
-# Nodes view
-state=idle partition=compute cpus>64
-
-# Partitions view
-efficiency>80 qos=high
-```
+Press `Ctrl+F` in any data view to open global search, which searches across all entity types (jobs, nodes, partitions, users, accounts, QoS, reservations).
 
 ### Batch Operations
 
@@ -257,7 +246,7 @@ Select multiple items:
 
 1. Press `v/V` to enter multi-select mode
 2. Press `Space` on items to select
-3. Press `V` to select all visible
+3. Press `Ctrl+A` to select all visible
 4. Press `b/B` for batch menu
 5. Choose operation (cancel, hold, release, etc.)
 
@@ -316,7 +305,7 @@ Now that you know the basics, explore:
 
 ## 💡 Pro Tips
 
-1. **Practice with mock mode** - `s9s --mock` is risk-free
+1. **Practice with mock mode** - `S9S_ENABLE_MOCK=1 s9s --mock` is risk-free
 2. **Use keyboard shortcuts** - Faster than mouse for everything
 3. **Multi-select is powerful** - Batch operations save time
 4. **Use quick filters** - Press `/` to filter any view instantly
@@ -328,7 +317,7 @@ Now that you know the basics, explore:
 ## 🆘 Getting Help
 
 - **In-app help**: Press `?` anywhere for context-sensitive help
-- **View documentation**: Press `F1` for help
+- **Help modal**: Press `F1` for help
 - **Full docs**: [https://s9s.dev/docs](https://s9s.dev/docs)
 - **Troubleshooting**: [Troubleshooting Guide](../guides/troubleshooting.md)
 - **GitHub Issues**: [Report bugs](https://github.com/jontk/s9s/issues)

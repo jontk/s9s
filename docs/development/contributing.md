@@ -222,6 +222,8 @@ make lint
 make fmt
 
 # Install pre-commit hooks (recommended)
+# Note: .pre-commit-config.yaml is not currently included in the repository.
+# This step will work once the configuration file is added to the project.
 pre-commit install
 ```
 
