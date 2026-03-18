@@ -182,14 +182,15 @@ Press `S` to open the interactive sort modal.
 |-----|--------|
 | `/` | Simple filter |
 | `Ctrl+F` | Global search |
-| `a` | Toggle active filter (show active reservations only) |
-| `f` | Toggle future filter (show future reservations only) |
+| `a/A` | Toggle active filter (show active reservations only) |
+| `f/F` | Toggle future filter (show future reservations only) |
 | `ESC` | Exit filter mode |
 
 ### Data Management
 | Key | Action |
 |-----|--------|
 | `R` | Manual refresh |
+| `e/E` | Export view data |
 | `S` | Sort modal |
 
 ## Reservation Details Example

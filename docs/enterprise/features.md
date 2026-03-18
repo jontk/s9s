@@ -145,16 +145,9 @@ ENTRYPOINT ["/usr/local/bin/s9s"]
 
 ### SSH Integration
 
-For direct node access in enterprise environments:
+For direct node access in enterprise environments, s9s uses your system's default SSH configuration automatically. There is no `ssh:` section in the s9s configuration file.
 
-```yaml
-ssh:
-  enabled: true
-  multiplexing: true
-  control_path: "/tmp/s9s-ssh-%r@%h:%p"
-```
-
-See [SSH Integration Guide](../guides/ssh-integration.md) for details.
+See the [SSH Integration Guide](../guides/ssh-integration.md) for details on how SSH connections are handled.
 
 ## Future Development
 

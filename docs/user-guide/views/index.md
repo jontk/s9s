@@ -73,7 +73,7 @@ The following capabilities are available in all table-based data views (Jobs, No
 - **`R`** - Manual refresh
 - **`F5`** - Manual refresh (global)
 - **`m/M`** - Toggle auto-refresh (Jobs view)
-- Auto-refresh varies by view: Jobs (30s), Dashboard (10s), Health (10s), Performance (5s). Other views do not auto-refresh.
+- Auto-refresh varies by view: Jobs (30s), Health (10s), Performance (5s). Other views (including Dashboard) use manual refresh with `R`.
 
 ### Help
 - **`?`** - Show help and keyboard shortcuts

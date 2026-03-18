@@ -318,7 +318,7 @@ export SLURM_TIMEOUT="30s"
 export S9S_ENABLE_MOCK=1
 ```
 
-Environment variables override configuration file settings. The `S9S_` prefixed versions take precedence over unprefixed versions.
+Environment variables override configuration file settings. Only `SLURM_REST_URL` and `SLURM_JWT` have `S9S_` prefixed variants (`S9S_SLURM_REST_URL` and `S9S_SLURM_JWT`), and the prefixed versions take precedence over the unprefixed versions. The `SLURM_API_VERSION` and `SLURM_TIMEOUT` environment variables do not have `S9S_` prefixed variants.
 
 ## Configuration Examples
 

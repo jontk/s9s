@@ -84,7 +84,6 @@ Requeue selected jobs:
 
 **Operation**: Calls `scontrol requeue` for each selected job
 **Use Case**: Restart failed jobs or re-run completed jobs
-**Note**: Use the batch operations menu (`b`) to access requeue, since the `q` key is reserved for the global quit shortcut.
 
 ### Delete Jobs
 
@@ -257,7 +256,7 @@ Export files are saved to `~/slurm_exports/` by default. The directory is create
 | `c` | Cancel jobs | Cancel all selected jobs |
 | `H` | Hold jobs | Put selected jobs on hold |
 | `r` | Release jobs | Release held jobs |
-| (menu) | Requeue jobs | Requeue selected jobs (via batch menu) |
+| `q` | Requeue jobs | Requeue selected jobs |
 | `d` | Delete jobs | Delete all selected jobs |
 | `p` | Set priority | Set priority for selected jobs |
 | `e` | Export output | Export job output |

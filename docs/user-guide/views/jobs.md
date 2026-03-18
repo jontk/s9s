@@ -280,6 +280,7 @@ When disabled, use `R` for manual refresh.
 |-----|--------|
 | `R` | Manual refresh |
 | `m/M` | Toggle auto-refresh |
+| `e/E` | Export view data |
 | `F1` | Help (global) |
 | `S` | Sort modal |
 

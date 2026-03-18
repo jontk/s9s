@@ -117,6 +117,7 @@ S9S provides interactive keyboard shortcuts for common operations within each vi
 |-----|--------|
 | `s` | SSH to selected node |
 | `d` | Drain selected node |
+| `r` | Resume drained node |
 | `i` | Toggle idle state filter |
 | `Enter` | Show node details |
 | `Space` | Toggle group expansion |

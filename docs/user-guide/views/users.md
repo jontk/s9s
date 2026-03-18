@@ -181,6 +181,7 @@ Press `S` to open the interactive sort modal.
 | Key | Action |
 |-----|--------|
 | `R` | Manual refresh |
+| `e/E` | Export view data |
 | `S` | Sort modal |
 
 ## User Details Example

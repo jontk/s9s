@@ -269,7 +269,7 @@ pre-commit install
 # - golangci-lint (full linting)
 ```
 
-See `.pre-commit-config.yaml` in the repository root for detailed setup guide.
+Note: A `.pre-commit-config.yaml` file is not currently included in the repository. The pre-commit hooks above should be set up manually using the commands shown.
 
 ### Manual Testing
 

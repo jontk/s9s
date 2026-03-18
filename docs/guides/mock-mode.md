@@ -100,7 +100,7 @@ If `useMockClient: true` is set in the config file but `S9S_ENABLE_MOCK` is not 
 
 Run the included test suite:
 ```bash
-bash test_mock_validation.sh
+go test -v ./internal/mock/...
 ```
 
 Tests cover:

@@ -366,7 +366,7 @@ Works in Jobs and Nodes views.
 3. Makes large node lists easier to navigate
 
 ### Refresh Strategies
-- Four views auto-refresh: Jobs (30s), Dashboard (10s), Health (10s), Performance (5s)
+- Three views auto-refresh: Jobs (30s), Health (10s), Performance (5s)
 - Use `R` for immediate manual refresh
 - Jobs view: `m/M` toggles auto-refresh on/off
 

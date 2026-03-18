@@ -186,7 +186,7 @@ CPU: ████████░░░░░░░░ 8/16 (Load: 7.5)
 
 ### Example 1: Submit a New Job
 
-1. Press `s/S` in Jobs view
+1. Press `s` in Jobs view
 2. Fill in job submission wizard:
    - Job name
    - Partition
@@ -334,10 +334,10 @@ A: Yes! Use `S9S_ENABLE_MOCK=1 s9s --mock` for a fully functional demo mode.
 A: Use multi-select (`v/V`), select jobs with `Space`, then press `b/B` for batch operations.
 
 **Q: Can I SSH to nodes from s9s?**
-A: Yes! Press `s/S` in Nodes view for SSH options.
+A: Yes! Press `s` in Nodes view for SSH options.
 
 **Q: How do I filter by partition?**
-A: Use `/` and type `p:partitionname` for quick filter, or press `Ctrl+F` and type `partition=name` for advanced filter.
+A: Use `/` and type `p:partitionname` for quick filter, or press `Ctrl+F` for global search across all resources.
 
 **Q: Is there a way to save my filters?**
 A: Saved filters are a planned feature. For now, use `/` to quickly re-enter filters in any view.

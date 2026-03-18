@@ -189,14 +189,14 @@ The `/` quick filter performs plain text search across all visible columns:
 /node001              # Specific node
 ```
 
-For field-specific filtering, use the advanced filter (`Ctrl+F`):
+Press `Ctrl+F` for global search across all entity types, or use keyboard shortcuts for specific state filters:
 
 ```bash
-# Advanced filter examples (Ctrl+F)
-state=idle                              # Idle nodes
-state=mixed                             # Mixed-state nodes
-name~compute                            # Nodes containing "compute"
-memory>64000                            # Nodes with >64GB RAM (in MB)
+# State filter shortcuts
+i/I                                     # Toggle idle filter
+m/M                                     # Toggle mixed filter
+a/A                                     # Show all states
+p/P                                     # Filter by partition
 ```
 
 ## Troubleshooting Node Issues

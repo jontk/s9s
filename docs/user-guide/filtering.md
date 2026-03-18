@@ -27,11 +27,15 @@ The quick filter is a plain text search only. The only special prefix is `p:` fo
 
 - `Esc` - Clear current filter and exit search mode
 
+## Global Search
+
+Press `Ctrl+F` in any data view to open global search, which performs plain-text matching across all entity types (jobs, nodes, partitions, users, accounts, QoS, reservations).
+
 ## Advanced Filter
 
 ### Field-Specific Filters
 
-Press `Ctrl+F` to open global search (available in all data views). The advanced filter bar uses `field=value` syntax:
+The advanced filter bar supports `field=value` syntax for precise filtering:
 
 ```bash
 # Job filters (advanced filter, Ctrl+F)
@@ -230,7 +234,7 @@ user=~"^(alice|bob|charlie)"
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Quick filter | Enter plain text filter mode |
-| `Ctrl+F` | Global search | Open global search across all entity types (all data views) |
+| `Ctrl+F` | Global search | Plain-text search across all entity types (all data views) |
 | `Esc` | Clear | Clear current filter |
 
 ### Using Filters
