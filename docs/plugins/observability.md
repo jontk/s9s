@@ -78,6 +78,8 @@ A comprehensive observability plugin for the s9s SLURM management interface that
 
 ### Basic Configuration
 
+> **Note:** The configuration below uses `observability:` as a top-level key for illustration purposes. In practice, these settings are passed via the `plugins[].config` section of the main s9s configuration file (see [Installation](#installation) above for the correct structure).
+
 ```yaml
 observability:
   # Prometheus connection settings
@@ -166,7 +168,7 @@ observability:
 
 ### Web Interface
 
-1. **Observability View**: Access the main observability dashboard by pressing 'o' in the s9s interface
+1. **Observability View**: Access the main observability dashboard via the plugin's registered view
 2. **Metric Overlays**: View real-time metrics overlaid on jobs and nodes views
 3. **Historical Charts**: Access time-series charts and trend analysis
 4. **Efficiency Dashboard**: Review resource efficiency scores and recommendations
@@ -394,11 +396,17 @@ The efficiency analyzer uses a multi-factor scoring system:
 
 ### Debug Mode
 
-Enable debug logging by setting log level to debug:
+Enable debug logging by setting the log level in the plugin's config section of your s9s configuration:
 
-```bash
-export LOG_LEVEL=debug
+```yaml
+plugins:
+  - name: observability
+    enabled: true
+    config:
+      log_level: "debug"
 ```
+
+> **Note:** Debug logging is configured via the `plugins[].config` section, not via environment variable.
 
 ### Health Checks
 

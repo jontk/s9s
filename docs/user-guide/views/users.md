@@ -14,7 +14,7 @@ The Users view provides a comprehensive list of all SLURM users with their permi
 
 | Column | Description |
 |--------|-------------|
-| **User** | Username |
+| **Name** | Username |
 | **UID** | User ID number |
 | **Default Account** | Primary billing account |
 | **Admin Level** | User privilege level (color-coded) |
@@ -111,14 +111,13 @@ Shows comprehensive user information:
 - Maximum jobs (running + pending)
 - Maximum nodes per job
 - Maximum CPUs total
-- Maximum wall time
-- Maximum memory
 
 **Current Usage:**
 - Active jobs count
 - Current CPU usage
 - Current node usage
-- Current memory usage
+
+Note: Current Usage values display "N/A" placeholders and do not show actual usage data.
 
 **Account Associations:**
 - List of accounts user can submit to
@@ -136,28 +135,6 @@ Filter by:
 - Admin level
 - QoS
 - Any displayed field
-
-#### Advanced Filter
-**Shortcut**: `F3`
-
-Expression-based filtering:
-
-```
-admin:Administrator
-account:research
-qos:high
-maxjobs:>50
-```
-
-**Supported fields:**
-- `user` - Username
-- `uid` - User ID
-- `account` - Default account name
-- `admin` - Admin level (Administrator/Operator/Regular)
-- `qos` - Default QoS
-- `maxjobs` - Max jobs limit (supports >, <, >=, <=)
-- `maxnodes` - Max nodes limit (supports comparison)
-- `maxcpus` - Max CPUs limit (supports comparison)
 
 ### Admin Filter Toggle
 **Shortcut**: `a/A`
@@ -196,7 +173,6 @@ Press `S` to open the interactive sort modal.
 | Key | Action |
 |-----|--------|
 | `/` | Simple filter |
-| `F3` | Advanced filter |
 | `Ctrl+F` | Global search |
 | `a/A` | Toggle admin-only filter |
 | `ESC` | Exit filter mode |
@@ -205,6 +181,7 @@ Press `S` to open the interactive sort modal.
 | Key | Action |
 |-----|--------|
 | `R` | Manual refresh |
+| `e/E` | Export view data |
 | `S` | Sort modal |
 
 ## User Details Example
@@ -223,13 +200,11 @@ Resource Limits:
   Max Jobs: 50
   Max Nodes: 16 per job
   Max CPUs: 1000 total
-  Max Wall Time: 7-00:00:00 (7 days)
-  Max Memory: 2TB
 
 Current Usage:
-  Active Jobs: 8
-  CPUs Used: 384/1000 (38%)
-  Nodes Used: 12/16 (75%)
+  Active Jobs: N/A
+  CPUs Used: N/A
+  Nodes Used: N/A
 
 Associated Accounts:
   ml-team (Default, Priority: 100)
@@ -317,7 +292,7 @@ Press `a/A` to toggle admin-only filtering:
 - **Review account associations**: Users might not realize they have access to other accounts
 - **Monitor admin users**: Regularly review who has elevated access
 - **Compare QoS**: Different QoS levels provide different priorities and limits
-- **Filter by account**: Use `F3` with `account:name` to see all users in a research group
+- **Filter by account**: Use `/` with the account name to see all users in a research group
 - **Sort by usage limits**: Identify power users with high CPU/node limits
 - **Default account matters**: Billing and priority often depend on the default account
 - **Unlimited ≠ infinite**: Still subject to partition and cluster limits

@@ -16,9 +16,9 @@ This document explains the s9s CI/CD pipeline, linting enforcement, and how to c
 
 The s9s project uses GitHub Actions to enforce code quality standards automatically. Every pull request is checked for:
 
-1. **Code Style & Quality** - golangci-lint validates 15+ code quality rules
+1. **Code Style & Quality** - golangci-lint validates 14 code quality rules
 2. **Unit Tests** - Tested on Go 1.23 and 1.24
-3. **Build Verification** - Ensures code compiles for 6 platform combinations
+3. **Build Verification** - Ensures code compiles for 5 platform combinations
 4. **Security** - Trivy and gosec security scanners detect vulnerabilities
 
 All checks must pass before code can be merged to main.
@@ -35,7 +35,7 @@ All checks must pass before code can be merged to main.
        ├─> ┌──────────────────────┐
        │   │  Lint Job (5-8 min)  │ <-- BLOCKS BUILD IF FAILS
        │   │ - golangci-lint      │
-       │   │ - 15 linters         │
+       │   │ - 14 linters         │
        │   └──────────┬───────────┘
        │              │
        ├─> ┌──────────v────────────┐
@@ -74,17 +74,18 @@ jobs:
     - uses: actions/setup-go@v5
       with:
         go-version: '1.24'
-    - name: Install golangci-lint
-      run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.3.0
     - name: Run golangci-lint
-      run: golangci-lint run --timeout 10m
+      uses: golangci/golangci-lint-action@v9
+      with:
+        version: v2.8.0
+        args: --timeout 10m
 ```
 
 **What this does**:
 - Checks out your code
 - Sets up Go 1.24 environment
-- Installs golangci-lint v2.3.0
-- Runs all 15 enabled linters with 10-minute timeout
+- Installs golangci-lint v2.8.0 via GitHub Action
+- Runs all enabled linters with 10-minute timeout
 - Fails the job if ANY linting violation is found
 
 #### Build Job Dependencies
@@ -121,8 +122,8 @@ The CI enforces the same linters as `.golangci.yml`:
 - `revive` - Go idioms enforcement
 
 **Advanced**:
-- `gocognit` - Cognitive complexity (threshold: 50)
-- `dupl` - Code duplication (threshold: 150 lines)
+- `cyclop` - Cyclomatic complexity (max: 10)
+- `noctx` - Context propagation
 
 See `.golangci.yml` and [Linting Standards](linting.md) for complete configuration.
 
@@ -268,7 +269,7 @@ pre-commit install
 # - golangci-lint (full linting)
 ```
 
-See [docs/PRE_COMMIT_SETUP.md](../../docs/PRE_COMMIT_SETUP.md) for detailed setup guide.
+Note: A `.pre-commit-config.yaml` file is not currently included in the repository. The pre-commit hooks above should be set up manually using the commands shown.
 
 ### Manual Testing
 
@@ -409,7 +410,7 @@ return fmt.Errorf("failed operation: %w", err)
 **Problem**: `golangci-lint run` passes locally but fails in CI
 
 **Causes**:
-- Different golangci-lint version (CI uses v2.3.0)
+- Different golangci-lint version (CI uses v2.8.0)
 - Different Go version (CI uses 1.24, you might have 1.23)
 - Incomplete module cache
 
@@ -419,8 +420,8 @@ return fmt.Errorf("failed operation: %w", err)
 # 1. Check your local version
 golangci-lint version
 
-# 2. If different from v2.3.0, install correct version
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.3.0
+# 2. If different from v2.8.0, install correct version
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.8.0
 
 # 3. Update Go modules
 go mod tidy
@@ -538,7 +539,7 @@ See [Linting Standards](linting.md#using-nolint-directives) for complete guideli
 
 - [CONTRIBUTING.md](contributing.md) - Contribution guidelines and setup
 - [LINTING.md](linting.md) - Linting standards and rules
-- [PRE_COMMIT_SETUP.md](../../docs/PRE_COMMIT_SETUP.md) - Pre-commit hook configuration
+- `.pre-commit-config.yaml` - Pre-commit hook configuration
 - [.golangci.yml](../../.golangci.yml) - Linting configuration
 - [.github/workflows/ci.yml](../../.github/workflows/ci.yml) - CI/CD workflow
 

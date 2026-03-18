@@ -12,17 +12,21 @@ The Partitions view displays all SLURM partitions with real-time queue informati
 
 ## Table Columns
 
+The partitions table displays 11 columns:
+
 | Column | Description |
 |--------|-------------|
 | **Name** | Partition name |
 | **State** | Partition status (UP/DOWN/DRAIN/INACTIVE) |
-| **Total Nodes** | Number of nodes in partition |
+| **Nodes** | Number of nodes in partition |
 | **CPUs** | Total CPU count |
 | **Queue Depth** | Visual representation of pending vs. running jobs |
-| **Jobs (Run/Pend)** | Running and pending job counts |
-| **Avg Wait / Max Wait** | Average and maximum wait times |
+| **Running** | Running job count |
+| **Pending** | Pending job count |
+| **Avg Wait** | Average wait time for pending jobs |
+| **Max Wait** | Maximum wait time for pending jobs |
 | **Efficiency** | Cluster efficiency percentage |
-| **QoS** | Associated Quality of Service policies |
+| **QOS** | Associated Quality of Service policies |
 
 ## Queue Depth Visualization
 
@@ -184,30 +188,6 @@ Filters partitions by:
 - QoS policies
 - Any displayed column
 
-### Advanced Filter
-**Shortcut**: `F3`
-
-Expression-based filtering:
-
-```
-state:UP
-nodes:>100
-efficiency:>80
-qos:high
-```
-
-**Supported fields:**
-- `name` - Partition name
-- `state` - Partition state
-- `nodes` - Node count (supports >, <, >=, <=)
-- `cpus` - CPU count (supports comparison)
-- `efficiency` - Efficiency percentage (supports comparison)
-- `jobs` - Running job count
-- `pending` - Pending job count
-- `qos` - QoS name
-
-Press `ESC` to exit advanced filter.
-
 ### Global Search
 **Shortcut**: `Ctrl+F`
 
@@ -240,7 +220,6 @@ Press `S` to open the interactive sort modal.
 | Key | Action |
 |-----|--------|
 | `/` | Simple filter |
-| `F3` | Advanced filter |
 | `Ctrl+F` | Global search |
 | `ESC` | Exit filter mode |
 
@@ -248,6 +227,7 @@ Press `S` to open the interactive sort modal.
 | Key | Action |
 |-----|--------|
 | `R` | Manual refresh |
+| `e/E` | Export view data |
 | `S` | Sort modal |
 
 ## Partition Details Example
@@ -351,7 +331,7 @@ The longest current wait for any pending job.
 - **Navigate to nodes**: Press `N` to check partition node health
 - **Compare partitions**: Sort by efficiency to compare partition utilization
 - **Queue depth visualization**: Use visual bars to quickly spot bottlenecks
-- **Filter by state**: Use `F3` with `state:UP` to focus on active partitions
+- **Filter by state**: Use `/` with `UP` to focus on active partitions
 - **Capacity planning**: Review analytics regularly for growth trends
 
 ## Capacity Planning

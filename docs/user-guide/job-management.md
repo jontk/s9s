@@ -20,10 +20,8 @@ S9S provides a powerful interface for managing SLURM jobs with features that go 
 Press `s` in Jobs view to open the submission wizard:
 
 1. **Choose Method**:
-   - New job from scratch
-   - From template
-   - Copy existing job
-   - Import script file
+   - New job from scratch (Custom Job)
+   - From template (select a pre-configured template)
 
 2. **Configure Resources**:
    ```yaml
@@ -288,15 +286,15 @@ S9S color-codes job states for quick identification:
 |-------|-------|-------------|
 | PENDING | Yellow | Waiting for resources |
 | RUNNING | Green | Currently executing |
-| COMPLETED | Blue | Finished successfully |
+| COMPLETED | Cyan | Finished successfully |
 | FAILED | Red | Exited with error |
-| CANCELLED | Gray | Cancelled by user/admin |
-| TIMEOUT | Orange | Exceeded time limit |
-| SUSPENDED | Purple | Temporarily suspended |
+| CANCELLED | Gray | Cancelled by user/admin (SLURM uses British spelling) |
+| TIMEOUT | White | Exceeded time limit |
+| SUSPENDED | Orange | Temporarily suspended |
 
 ### Job Details
 
-Press `Enter` or `d` on any job to view details:
+Press `Enter` on any job to view details:
 
 - **Summary**: ID, name, user, submission time
 - **Resources**: Nodes, CPUs, memory, GPUs
@@ -305,19 +303,19 @@ Press `Enter` or `d` on any job to view details:
 - **Output**: Stdout/stderr file paths
 - **Dependencies**: Parent/child jobs
 
+Press `d` to view job dependencies (not details).
+
 ### Live Output Monitoring
 
 View job output in real-time:
 
 1. Select job and press `o`
 2. Choose output type:
-   - Standard output
-   - Error output
-   - Both (split view)
+   - Standard output (stdout)
+   - Standard error (stderr)
 3. Options:
    - `f` - Follow/tail output
-   - `/` - Search in output
-   - `s` - Save to file
+   - `s` - Switch between stdout/stderr
    - `Esc` - Exit viewer
 
 For more details, see the [Jobs View Guide](./views/jobs.md).
@@ -328,14 +326,15 @@ For more details, see the [Jobs View Guide](./views/jobs.md).
 
 | Key | Action | Description |
 |-----|--------|-------------|
-| `c` | Cancel | Cancel job (with confirmation) |
-| `C` | Force Cancel | Cancel without confirmation |
-| `h` | Hold | Prevent job from starting |
+| `c`/`C` | Cancel | Cancel job (with confirmation) |
+| `H` | Hold | Prevent job from starting |
 | `r` | Release | Release held job |
-| `R` | Requeue | Resubmit failed job |
-| `p` | Priority | Modify job priority |
-| `e` | Edit | Modify pending job |
-| `m` | Move | Move to different partition |
+| `R` | Refresh | Refresh the jobs list |
+| `:requeue JOBID` | Requeue | Resubmit failed job (use command mode) |
+| `d`/`D` | Dependencies | View job dependencies |
+| `p`/`P` | Toggle Pending | Toggle pending state filter |
+| `e`/`E` | Export | Open export dialog |
+| `m`/`M` | Auto-refresh | Toggle auto-refresh |
 
 ### Batch Operations
 
@@ -343,17 +342,16 @@ Select multiple jobs with `Space`, then press `b`:
 
 1. **Selection Methods**:
    - Manual: `Space` on each job
-   - All visible: `V`
-   - By filter: `/state:PENDING` then `V`
-   - By pattern: `:select pattern "analysis_*"`
+   - Toggle multi-select: `v` or `V`
+   - By filter: `/PENDING` then select visible jobs
 
 2. **Batch Actions**:
    - Cancel selected
    - Hold/Release selected
-   - Change priority
-   - Move partition
-   - Add dependency
-   - Export data
+   - Requeue selected
+   - Delete selected
+   - Set Priority
+   - Export output
 
 ### Advanced Operations
 
@@ -371,33 +369,22 @@ See [#115](https://github.com/jontk/s9s/issues/115) for planned command-mode enh
 
 ### Filter Syntax
 
-S9S supports powerful job filtering:
+S9S supports two filtering modes:
+
+**Quick Filter (`/`)** -- plain text search across all visible columns. Type `/gpu` to find items containing "gpu". The only special prefix is `p:` for partition filtering.
+
+**Global Search (`Ctrl+F`)** -- opens cross-resource search (available in all data views). The advanced filter bar supports field-specific `field=value` syntax with operators:
 
 ```bash
-# Basic filters
-/RUNNING                    # Running jobs
-/gpu                       # Jobs with 'gpu' in name
-/user:alice               # Alice's jobs
-
-# State filters
-/state:PENDING            # Pending jobs
-/state:RUNNING,COMPLETED  # Multiple states
-/state:!FAILED           # Not failed
-
-# Resource filters
-/nodes:>4                # More than 4 nodes
-/memory:>=32GB          # 32GB or more memory
-/gpus:>0                # GPU jobs
-
-# Time filters
-/runtime:>1h            # Running over 1 hour
-/runtime:30m-2h        # Between 30min and 2h
-/submitted:<1d         # Submitted within 1 day
-/started:today         # Started today
-
-# Complex filters
-/user:bob state:RUNNING partition:gpu    # Bob's GPU jobs
-/name:~"analysis.*2023" nodes:>10       # Regex + resource
+# Advanced filter examples
+state=RUNNING                           # Running jobs
+user=alice                              # Alice's jobs
+state=PENDING user=bob                  # Bob's pending jobs (AND logic)
+name~analysis                           # Jobs containing "analysis"
+name=~"analysis.*2023"                  # Regex match
+memory>4G cpus>=8                       # Resource comparisons
+state!=FAILED                           # Not failed
+state in (RUNNING,PENDING)              # In list
 ```
 
 ### Saved Filters
@@ -415,28 +402,7 @@ S9S calculates job efficiency:
 - **GPU Utilization**: GPU usage percentage
 - **I/O Performance**: Read/write statistics
 
-View metrics:
-1. Select job and press `i`
-2. Navigate to "Performance" tab
-3. View graphs and statistics
-
-### Performance Alerts
-
-Set up alerts for inefficient jobs:
-
-```yaml
-# In config.yaml
-alerts:
-  lowEfficiency:
-    threshold: 0.5
-    metric: cpu
-    action: notify
-
-  highMemory:
-    threshold: 90%
-    metric: memory
-    action: email
-```
+View metrics by selecting a job and pressing `Enter` to see the job details view, which includes efficiency information when available.
 
 ## Job Templates
 
@@ -617,7 +583,7 @@ Job chains and recurring job scheduling via command mode are not yet available. 
 
 ### Export Job Data
 
-Export the current view by pressing `Ctrl+E` or `e` (depending on the view). This exports the visible data to a file. Command-mode export and report generation are not yet available. See [#115](https://github.com/jontk/s9s/issues/115) for planned reporting enhancements.
+Export the current view by pressing `e` (depending on the view). This exports the visible data to a file. Command-mode export and report generation are not yet available. See [#115](https://github.com/jontk/s9s/issues/115) for planned reporting enhancements.
 
 ## Tips & Best Practices
 
@@ -633,23 +599,24 @@ Export the current view by pressing `Ctrl+E` or `e` (depending on the view). Thi
 
 #### Debug Failed Jobs
 ```bash
-/state:FAILED          # Filter failed jobs
+# Use p/P to toggle pending filter, or / for text search
+/FAILED                # Quick filter for failed jobs
 Enter                  # View job details
 o                      # Check output/errors
-R                      # Requeue if needed
+:requeue JOBID         # Requeue if needed (command mode)
 ```
 
-#### Monitor GPU Usage
+#### Monitor GPU Jobs
 ```bash
-/partition:gpu state:RUNNING    # Filter GPU jobs
-i                              # View job info
-Tab → Performance             # Check GPU utilization
+/gpu                           # Quick filter for GPU-related jobs
+Enter                          # View job details
 ```
 
 #### Bulk Cancel User Jobs
 ```bash
-/user:username                # Filter by user
-V                            # Select all visible
+/username                     # Filter by user text
+V                            # Toggle multi-select mode
+Space                        # Select individual jobs
 b                           # Batch operations
 c                          # Cancel selected
 ```

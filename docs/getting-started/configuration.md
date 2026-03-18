@@ -13,7 +13,6 @@ S9s offers extensive configuration options to customize your experience. This gu
 - [UI and Display Configuration](#ui-and-display-configuration)
 - [Advanced Configuration](#advanced-configuration)
 - [Security Configuration](#security-configuration)
-- [Configuration Management](#configuration-management)
 - [Best Practices](#best-practices)
 
 ## Quick Start
@@ -45,13 +44,12 @@ See the [Mock Mode Guide](../guides/mock-mode.md) for details.
 
 ## Configuration Files
 
-S9s looks for configuration files in the following order (later files override earlier ones):
+S9s looks for `config.yaml` in the following paths (first match wins):
 
-1. `/etc/s9s/config.yaml` - System-wide configuration
-2. `~/.config/s9s/config.yaml` - User configuration (XDG standard)
-3. `~/.s9s/config.yaml` - User configuration (legacy location)
-4. `./.s9s.yaml` - Project-specific configuration
-5. File specified by `--config` flag
+1. `./config.yaml` - Current directory
+2. `$HOME/.s9s/config.yaml` - User configuration
+3. `/etc/s9s/config.yaml` - System-wide configuration
+4. File specified by `--config` flag (overrides search)
 
 ### File Format
 
@@ -80,70 +78,37 @@ ui:
   skin: default
 ```
 
-### Project-Specific Configuration
-
-Create `.s9s.yaml` in your project directory for project-specific settings:
-
-```yaml
-# Project-specific settings
-defaultCluster: project-cluster
-
-clusters:
-  - name: project-cluster
-    cluster:
-      endpoint: https://project.slurm.local:6820
-      token: ${SLURM_JWT}
-```
-
 ## Environment Variables
 
-All environment variables are prefixed with `S9S_`.
-
-### Core Variables
-
-| Variable | Description | Default | Example |
-|----------|-------------|---------|---------|
-| `S9S_CONFIG` | Configuration file path | `~/.s9s/config.yaml` | `/etc/s9s/config.yaml` |
-| `S9S_DEBUG` | Enable debug mode | `false` | `true` |
-| `S9S_LOG_FILE` | Debug log file path | `~/.s9s/debug.log` | `/var/log/s9s.log` |
-| `S9S_MOCK` | Enable mock mode | `false` | `true` |
-| `S9S_CLUSTER` | Default cluster name | First in config | `production` |
-| `S9S_THEME` | Color theme | `dark` | `light` |
-| `S9S_REFRESH_INTERVAL` | Auto-refresh interval | `30s` | `1m` |
-| `S9S_DEFAULT_VIEW` | Starting view | `jobs` | `nodes` |
+S9s uses the `S9S_` prefix for its own environment variables and also supports unprefixed SLURM variables. Viper's `AutomaticEnv()` maps environment variables to config keys using the `S9S_` prefix with `.` replaced by `_` (e.g., `S9S_UI_SKIN` maps to `ui.skin`).
 
 ### SLURM Connection Variables
 
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
-| `SLURM_URL` | SLURM REST API URL | - | `https://slurm.example.com:6820` |
-| `SLURM_API_VERSION` | API version | auto-detected | `v0.0.43` |
-| `SLURM_JWT` | Authentication token (auto-discovered via `scontrol token` if not set) | - | `eyJhbGci...` |
-| `SLURM_INSECURE` | Skip TLS verification | `false` | `true` |
+| `SLURM_REST_URL` or `S9S_SLURM_REST_URL` | SLURM REST API URL | - | `https://slurm.example.com:6820` |
+| `SLURM_JWT` or `S9S_SLURM_JWT` | Authentication token (auto-discovered via `scontrol token` if not set) | - | `eyJhbGci...` |
+| `SLURM_API_VERSION` | API version | `v0.0.43` | `v0.0.40` |
 
-### UI Variables
+### Mock Mode Variable
 
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
-| `S9S_EDITOR` | External editor | `$EDITOR` or `vi` | `vim` |
-| `S9S_PAGER` | External pager | `$PAGER` or `less` | `more` |
+| `S9S_ENABLE_MOCK` | Enable mock mode (required for `--mock` flag); any non-empty value enables it | unset | `1`, `true`, `dev` |
 
 ### Environment Variable Substitution
 
-Use `${VAR_NAME}` syntax in configuration files:
+Use `${VAR_NAME}` syntax in configuration files to reference environment variables:
 
 ```yaml
 clusters:
-  default:
-    url: ${SLURM_API_URL}
-    auth:
-      token: ${SLURM_TOKEN}
-
-# With defaults
-preferences:
-  theme: ${S9S_THEME:-dark}
-  refreshInterval: ${S9S_REFRESH:-5s}
+  - name: default
+    cluster:
+      endpoint: ${SLURM_REST_URL}
+      token: ${SLURM_JWT}
 ```
+
+> **Note:** The `${VAR:-default}` syntax with fallback values is not supported. Use plain `${VAR}` references only.
 
 ## Command-line Flags
 
@@ -154,158 +119,123 @@ Command-line flags override all other configuration sources.
 ```bash
 s9s [flags]
 
-# Connection
---cluster NAME          Select cluster from config
---url URL              SLURM REST API URL
---token TOKEN          Authentication token
---api-version VERSION  SLURM API version (default: auto-detected)
---insecure            Skip TLS certificate verification
+# Configuration
+--config PATH          Custom config file location
+--cluster NAME         Select cluster from config
+--debug                Enable debug logging
 
-# Mock mode (requires S9S_ENABLE_MOCK=true)
---mock                 Run in mock mode (no SLURM required)
-```
+# Discovery
+--no-discovery         Disable auto-discovery
+--discovery-timeout    Timeout for auto-discovery (e.g., 10s, 30s)
 
-### UI Flags
-
-```bash
-# UI preferences
---theme THEME          Color theme (dark|light)
---refresh INTERVAL     Auto-refresh interval (e.g., 30s, 1m)
---no-refresh          Disable auto-refresh
---view VIEW           Start with specific view
-
-# Output
---export FORMAT       Export data and exit (csv|json|yaml)
---output FILE         Output file for export
---quiet              Suppress non-error output
-```
-
-### Debug Flags
-
-```bash
-# Debugging
---debug               Enable debug mode
---log-file FILE       Debug log file path
---trace              Enable trace logging
---profile            Enable profiling
+# Version
+--version, -v          Show version information
 ```
 
 ## Configuration Schema
 
 ### Complete Schema
 
-> **Note:** Some configuration options shown below are planned features. See [#117](https://github.com/jontk/s9s/issues/117) for status. The currently implemented config struct supports: `RefreshRate`, `MaxRetries`, `DefaultCluster`, `Clusters[]` (with `Endpoint`, `Token`, `APIVersion`, `Insecure`, `Timeout`), `UI` (skin, logoless, crumbsless, statusless, headless, noIcons, enableMouse), `Views` (jobs, nodes, partitions), `Features` (streaming, pulseye, xray), `Shortcuts[]`, `Aliases`, `Plugins[]`, `UseMockClient`, `PluginSettings`, and `Discovery`.
+The following schema reflects the actual `Config` struct in the codebase. All field names use camelCase as defined by the `mapstructure` tags.
 
 ```yaml
-# Configuration file version
-version: string  # Required: "1.0"
+# General settings
+refreshRate: duration        # Auto-refresh interval (default: 2s)
+maxRetries: integer          # Max API retry attempts (default: 3)
+defaultCluster: string       # Active cluster name (default: "default")
+useMockClient: boolean       # Enable mock SLURM client (default: false)
 
-# Default cluster
-default_cluster: string  # Optional
-
-# Cluster configurations
+# Cluster configurations (list format with name field)
 clusters:
-  <cluster_name>:
-    # Connection settings
-    url: string              # Required: SLURM REST API URL
-    api_version: string      # Optional: API version (default: auto-detected)
-    timeout: duration        # Optional: Request timeout (default: 30s)
-    retry_attempts: integer  # Optional: Retry attempts (default: 3)
-    retry_delay: duration    # Optional: Retry delay (default: 1s)
+  - name: string             # Cluster identifier
+    cluster:
+      endpoint: string       # SLURM REST API URL
+      token: string          # JWT token or ${SLURM_JWT} env var reference
+      apiVersion: string     # API version (default: auto-detected, e.g., v0.0.43)
+      insecure: boolean      # Skip TLS verification (default: false)
+      timeout: duration      # Request timeout (default: 30s)
+    namespace: string        # Optional namespace
+    readOnly: boolean        # Prevent write operations (default: false)
 
-    # Authentication (token-based via SLURM JWT)
-    token: string            # JWT token or env var reference (e.g., ${SLURM_JWT})
-                             # Auto-discovered via scontrol token if not set
-    insecure: boolean        # Skip TLS verification (default: false)
+# UI settings
+ui:
+  skin: string               # Theme name (default: "default")
+  logoless: boolean          # Hide logo (default: false)
+  crumbsless: boolean        # Hide breadcrumbs (default: false)
+  statusless: boolean        # Hide status bar (default: false)
+  headless: boolean          # Hide header (default: false)
+  noIcons: boolean           # Disable icons (default: false)
+  enableMouse: boolean       # Enable mouse support (default: true)
 
-# User preferences (many of these are planned -- see note above)
-preferences:
-  # UI settings
-  theme: string              # dark|light (default: dark)
-  refresh_interval: duration # Auto-refresh (default: 30s)
-  default_view: string       # Starting view (default: jobs)
-
-  # Job view settings
+# View-specific settings
+views:
   jobs:
-    default_filter: string   # Default filter
-    show_completed: boolean  # Show completed jobs (default: false)
-    columns: [string]        # Visible columns
-    sort_by: string          # Default sort column
-    sort_order: string       # asc|desc
+    columns: [string]        # Visible columns (default: [id, name, user, state, time, nodes, priority])
+    showOnlyActive: boolean  # Show only active jobs (default: true)
+    defaultSort: string      # Default sort column (default: "time")
+    maxJobs: integer         # Max jobs to display (default: 1000)
+    submission:              # Job submission wizard settings
+      formDefaults: map      # Default form values
+      hiddenFields: [string] # Fields to hide
+      fieldOptions: map      # Restrict dropdown options
+      showBuiltinTemplates: boolean  # Legacy: show built-in templates
+      templateSources: [string]      # Template sources: builtin, config, saved
+      templates:             # Custom job templates
+        - name: string
+          description: string
+          defaults: map
+          hiddenFields: [string]
 
-  # Node view settings
   nodes:
-    show_offline: boolean    # Show offline nodes (default: true)
-    group_by: string         # Group by partition|state|none
-    columns: [string]        # Visible columns
+    groupBy: string          # Group by: partition|state|feature|none (default: "partition")
+    showUtilization: boolean # Show utilization bars (default: true)
+    maxNodes: integer        # Max nodes to display (default: 500)
 
-  # SSH settings
-  ssh:
-    command: string          # SSH command (default: ssh)
-    options: [string]        # Additional SSH options
-    user: string             # Default SSH user
-    key_file: string         # SSH key file path
-    known_hosts_file: string # Known hosts file
+  partitions:
+    showQueueDepth: boolean  # Show queue depth (default: true)
+    showWaitTime: boolean    # Show wait time (default: true)
 
-  # Export settings
-  export:
-    default_format: string   # csv|json|yaml|markdown
-    csv_separator: string    # CSV separator (default: ,)
-    json_indent: integer     # JSON indent (default: 2)
+# Feature flags
+features:
+  streaming: boolean         # Real-time updates via WebSocket (default: true)
+  pulseye: boolean           # Health scanner (default: true)
+  xray: boolean              # Deep inspection mode (default: false)
+  appDiagnostics: boolean    # Application diagnostics (default: false)
 
-# Column configuration
-columns:
-  jobs:
-    - JobID
-    - Name
-    - User
-    - State
-  nodes:
-    - NodeName
-    - State
-    - CPULoad
+# Custom keyboard shortcuts (list of objects)
+shortcuts:
+  - key: string              # Key combination (e.g., "ctrl+j")
+    action: string           # Action to perform (e.g., "view:jobs")
+    description: string      # Human-readable description
 
-# Keyboard bindings
-keybindings:
-  global:
-    "ctrl+q": "quit"
-    "ctrl+s": "save"
-  jobs:
-    "d": "delete"
+# Command aliases
+aliases:
+  string: string             # e.g., ctx: "context", kj: "kill job"
 
-# Filter presets
-filters:
-  my-jobs:
-    view: jobs
-    filter: "user:${USER}"
+# Plugin configuration
+plugins:
+  - name: string             # Plugin name
+    enabled: boolean         # Enable/disable
+    path: string             # Plugin binary path
+    config: map              # Plugin-specific settings
 
-# Notification settings (planned)
-notifications:
-  enabled: boolean
-  desktop: boolean
-  sound: boolean
-  webhook:
-    url: string
-    events: [string]
+# Plugin global settings
+pluginSettings:
+  enableAll: boolean         # Enable all plugins (default: false)
+  pluginDir: string          # Plugin directory (default: "$HOME/.s9s/plugins")
+  autoDiscover: boolean      # Auto-discover plugins (default: true)
+  safeMode: boolean          # Disable external plugins (default: false)
+  maxMemoryMB: integer       # Memory limit per plugin (default: 100)
+  maxCPUPercent: float       # CPU limit per plugin (default: 25.0)
 
-# Logging settings
-logging:
-  level: string              # debug|info|warn|error (default: info)
-  file: string               # Log file path
-  max_size: integer          # Max file size in MB
-  max_backups: integer       # Number of backups
-  max_age: integer           # Max age in days
-
-# Performance settings (planned)
-performance:
-  max_concurrent: integer    # Max concurrent operations
-  cache_ttl: duration        # Cache TTL
-  batch_size: integer        # Batch operation size
-
-# Security settings (planned)
-security:
-  keyring: boolean           # Use system keyring (default: true)
-  encrypt_config: boolean    # Encrypt sensitive config
+# Auto-discovery settings
+discovery:
+  enabled: boolean           # Enable auto-discovery (default: true)
+  enableEndpoint: boolean    # Auto-discover slurmrestd endpoint (default: true)
+  enableToken: boolean       # Auto-discover token via scontrol (default: true)
+  timeout: duration          # Discovery timeout (default: 10s)
+  defaultPort: integer       # Default slurmrestd port (default: 6820)
+  scontrolPath: string       # Path to scontrol binary (default: "scontrol")
 ```
 
 ## Authentication
@@ -338,56 +268,33 @@ If you are running s9s on a node where `scontrol` is available and your user has
 ### Basic UI Settings
 
 ```yaml
-preferences:
-  # Theme settings
-  theme: dark|light
+ui:
+  skin: default              # Theme skin
+  logoless: false            # Hide the logo
+  crumbsless: false          # Hide breadcrumbs
+  statusless: false          # Hide status bar
+  headless: false            # Hide header
+  noIcons: false             # Disable icons
+  enableMouse: true          # Enable mouse support
 
-  # View settings
-  default_view: jobs|nodes|dashboard
-  refresh_interval: 5s|10s|30s|0 (disabled)
-
-  # Display options
-  show_relative_time: true|false
-  use_24hour_time: true|false
-  show_seconds: true|false
-  date_format: "2006-01-02 15:04:05"
-  timezone: "UTC"|"Local"|"America/New_York"
-
-  # Behavior
-  confirm_actions: true|false
-  auto_refresh: true|false
-  show_hints: true|false
+refreshRate: 2s              # Auto-refresh interval
 ```
 
 ### Column Configuration
 
-Customize visible columns per view:
+Customize visible columns in the jobs view:
 
 ```yaml
-columns:
+views:
   jobs:
-    - JobID
-    - Name
-    - User
-    - State
-    - Time
-    - Nodes
-    - Partition
-    - Priority
-    - QoS
-    - Account
-
-  nodes:
-    - NodeName
-    - State
-    - CPULoad
-    - Memory
-    - RealMemory
-    - AllocMemory
-    - FreeMem
-    - GPUs
-    - Jobs
-    - Features
+    columns:
+      - id
+      - name
+      - user
+      - state
+      - time
+      - nodes
+      - priority
 ```
 
 ### Job Submission Configuration
@@ -496,31 +403,27 @@ Values are applied in this order (later overrides earlier):
 
 > `showBuiltinTemplates` (boolean) is the legacy equivalent of `templateSources`. Setting `showBuiltinTemplates: false` is equivalent to `templateSources: ["config", "saved"]`. If both are set, `templateSources` takes precedence. New configurations should use `templateSources`.
 
-### Custom Keybindings
+### Custom Shortcuts
 
-Override default shortcuts:
+Define custom keyboard shortcuts as a list of objects:
 
 ```yaml
-keybindings:
-  # Global shortcuts (work everywhere)
-  global:
-    "ctrl+q": "quit"
-    "ctrl+s": "save"
-    "ctrl+/": "search"
-    "f1": "help"
-    "ctrl+\\": "toggle-sidebar"
+shortcuts:
+  - key: ctrl+j
+    action: "view:jobs"
+    description: "Switch to jobs view"
 
-  # View-specific shortcuts
-  jobs:
-    "d": "delete"
-    "D": "delete --force"
-    "ctrl+c": "cancel"
-    "ctrl+h": "hold"
-    "ctrl+r": "release"
+  - key: ctrl+n
+    action: "view:nodes"
+    description: "Switch to nodes view"
 
-  nodes:
-    "shift+d": "drain --reason='Maintenance'"
-    "shift+r": "resume"
+  - key: ctrl+x
+    action: "xray:toggle"
+    description: "Toggle Xray mode"
+
+  - key: ctrl+h
+    action: "pulseye:scan"
+    description: "Run health scan"
 ```
 
 ### UI Skin
@@ -562,118 +465,10 @@ Switch clusters:
 # Use flag
 s9s --cluster development
 
-# Or environment
-export S9S_CLUSTER=development
-s9s
-
 # Or interactively with Ctrl+K while s9s is running
 ```
 
 When multiple clusters are configured, the active cluster name is shown in the header bar. Press `Ctrl+K` to open the cluster switcher and select a different cluster without restarting.
-
-### Filter Presets
-
-Create commonly used filters:
-
-```yaml
-filters:
-  my-jobs:
-    view: jobs
-    filter: "user:${USER}"
-  gpu-jobs:
-    view: jobs
-    filter: "partition:gpu state:RUNNING"
-  failed-today:
-    view: jobs
-    filter: "state:FAILED time:>today"
-```
-
-### Notification Settings
-
-```yaml
-notifications:
-  enabled: true
-  desktop: true
-  sound: true
-  webhook:
-    url: https://slack.example.com/webhook
-    events:
-      - job_complete
-      - job_failed
-      - node_down
-```
-
-### Logging Configuration
-
-```yaml
-logging:
-  level: debug|info|warn|error
-  file: ~/.s9s/s9s.log
-  max_size: 100MB
-  max_backups: 3
-  max_age: 30d
-  compress: true
-
-  # Separate log levels
-  levels:
-    api: debug
-    ui: info
-    ssh: warn
-```
-
-### Performance Tuning
-
-```yaml
-performance:
-  # Connection pooling
-  max_idle_connections: 100
-  max_connections_per_host: 10
-  idle_connection_timeout: 90s
-
-  # Caching
-  cache:
-    enabled: true
-    size: 100MB
-    ttl: 60s
-    compression: true
-
-  # Request handling
-  request_timeout: 30s
-  response_timeout: 60s
-  keep_alive: 30s
-
-  # UI performance
-  virtual_scrolling: true
-  lazy_loading: true
-  debounce_delay: 300ms
-```
-
-### SSH Configuration
-
-```yaml
-preferences:
-  ssh:
-    command: ssh
-    user: ${USER}
-    key_file: ~/.ssh/id_rsa
-    known_hosts_file: ~/.ssh/known_hosts
-    compression: true
-    forward_agent: true
-    extra_args: "-o StrictHostKeyChecking=ask"
-```
-
-### Export Settings
-
-```yaml
-preferences:
-  export:
-    default_format: csv
-    default_path: ~/Documents/s9s-exports
-    include_headers: true
-    date_format: RFC3339
-    csv_separator: ","
-    json_indent: 2
-```
 
 ## Security Configuration
 
@@ -697,26 +492,6 @@ preferences:
    ```
 
 ## Configuration Management
-
-### Validate Configuration
-
-```bash
-s9s config validate
-s9s config test --cluster production
-```
-
-### Export/Import Configuration
-
-```bash
-# Export current config
-s9s config export > config-backup.yaml
-
-# Import configuration
-s9s config import config-backup.yaml
-
-# Merge configurations
-s9s config merge additional-config.yaml
-```
 
 ### Configuration Wizard
 
@@ -752,7 +527,7 @@ clusters:
       timeout: 60s
       insecure: false
 
-refreshRate: 15s
+refreshRate: 2s
 maxRetries: 5
 
 ui:
@@ -767,22 +542,28 @@ features:
 ### Development Configuration
 
 ```yaml
-version: "1.0"
+defaultCluster: dev
 
-preferences:
-  theme: dark
-  refresh_interval: 5s
-  default_view: jobs
+clusters:
+  - name: dev
+    cluster:
+      endpoint: https://slurm-dev.example.com:6820
+      token: ${SLURM_JWT}
 
-logging:
-  level: debug
-  file: ./s9s-debug.log
+refreshRate: 2s
+
+ui:
+  skin: default
+
+features:
+  streaming: true
+  pulseye: true
 ```
 
 Run with:
 
 ```bash
-s9s --mock --config dev-config.yaml
+s9s --config dev-config.yaml
 ```
 
 ## Migration Guide
@@ -792,32 +573,20 @@ s9s --mock --config dev-config.yaml
 If migrating from environment-only setup:
 
 ```bash
-# Old way
-export SLURM_URL=https://slurm.example.com
+# Environment variables still work
+export SLURM_REST_URL=https://slurm.example.com:6820
 export SLURM_JWT=abc123
 s9s
 
-# New way - create config
+# Or create a config file
 cat > ~/.s9s/config.yaml <<EOF
 clusters:
   - name: default
     cluster:
-      endpoint: ${SLURM_URL}
-      token: ${SLURM_JWT}
+      endpoint: https://slurm.example.com:6820
+      token: \${SLURM_JWT}
 EOF
 s9s
-```
-
-### From Other Tools
-
-Import settings from other SLURM tools:
-
-```bash
-# Import from squeue defaults
-s9s import squeue > ~/.s9s/config.yaml
-
-# Import from existing config
-s9s import --from /etc/slurm/config.yaml
 ```
 
 ## Configuration Validation
@@ -825,30 +594,18 @@ s9s import --from /etc/slurm/config.yaml
 S9s validates configuration on startup:
 
 1. **Syntax validation**: YAML parsing
-2. **Schema validation**: Required fields, types
-3. **Connection validation**: Can connect to cluster
-4. **Permission validation**: Can perform basic operations
-
-Validation errors are reported clearly:
-
-```
-Error: Invalid configuration
-  - clusters[0].cluster.endpoint: required field missing
-  - preferences.refresh_interval: invalid duration format
-```
+2. **Schema validation**: Required fields and types
+3. **Cluster resolution**: The `defaultCluster` must match a cluster name in the `clusters` list (unless auto-discovery is enabled)
 
 ## Best Practices
 
-1. **Use environment variables** for sensitive data
+1. **Use environment variables** for sensitive data (tokens, endpoints)
 2. **Version control** your config (exclude secrets with `.gitignore`)
-3. **Test changes** with `s9s config test`
-4. **Backup** before major changes
-5. **Use keyring** for token storage
-6. **Separate** dev/prod configurations
-7. **Document** custom settings
-8. **Set proper file permissions** on configuration files
-9. **Validate** configuration after changes
-10. **Keep tokens** in files with restricted permissions
+3. **Backup** before major changes
+4. **Separate** dev/prod configurations using multiple cluster entries
+5. **Document** custom settings
+6. **Set proper file permissions** on configuration files (`chmod 600 ~/.s9s/config.yaml`)
+7. **Use auto-discovery** when running on SLURM nodes to avoid hardcoding tokens
 
 ## Next Steps
 
@@ -856,4 +613,3 @@ Error: Invalid configuration
 - Check [Quick Start](./quickstart.md) to get started
 - Explore [User Guide](../user-guide/index.md) for feature documentation
 - Learn about [SSH Integration](../guides/ssh-integration.md)
-- Set up [Notifications](../guides/notifications.md)

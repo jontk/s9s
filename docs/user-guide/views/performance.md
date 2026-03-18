@@ -18,7 +18,7 @@ This view is designed for quick cluster health assessment and capacity planning.
 
 ## Access
 
-Press **`9`** or navigate to "Performance" from the view switcher.
+Press **`0`** or navigate to "Performance" from the view switcher.
 
 ## Display Sections
 
@@ -71,8 +71,6 @@ Shows aggregate cluster utilization:
 |-----|--------|
 | `R` | Toggle auto-refresh on/off |
 | `F5` | Manual refresh |
-| `?` | Show help |
-| `q` | Exit view |
 
 ## Auto-Refresh
 
@@ -145,10 +143,10 @@ Pending: 3      Idle: 0
 
 The Performance view provides a high-level overview. Drill down for details:
 
-- **Jobs view** (`J`): See specific job details and queue analysis
-- **Nodes view** (`N`): Investigate individual node status and down nodes
-- **Partitions view** (`P`): Check partition-specific utilization
-- **Dashboard view** (`D`): See health checks and detailed metrics
+- **Jobs view** (`1`): See specific job details and queue analysis
+- **Nodes view** (`2`): Investigate individual node status and down nodes
+- **Partitions view** (`3`): Check partition-specific utilization
+- **Dashboard view** (`8`): See health checks and detailed metrics
 
 ## Tips
 
@@ -175,7 +173,7 @@ All metrics are pulled from the SLURM cluster via `sinfo`, `squeue`, and cluster
 For s9s developers, there's an **App Diagnostics** view that monitors the s9s CLI application itself (memory, goroutines, internal operations). This is hidden by default and can be enabled with:
 
 ```yaml
-# ~/.config/s9s/config.yaml
+# ~/.s9s/config.yaml
 features:
   appDiagnostics: true
 ```

@@ -59,13 +59,13 @@ ss -tlnp | grep 6820
 
 # Test connection
 s9s --debug
-s9s config test
+s9s config validate
 
 # Check API endpoint
-curl -k https://your-slurm-api.com/slurm/v0.0.40/ping
+curl -k https://your-slurm-api.com/slurm/v0.0.43/ping
 
 # Verify credentials
-echo $SLURM_TOKEN
+echo $SLURM_JWT
 ```
 
 **Solutions**:
@@ -83,14 +83,14 @@ echo $SLURM_TOKEN
    curl http://localhost:6820/slurm/v0.0.43/ping
    ```
 
-2. **Check URL format**:
+2. **Check endpoint format**:
    ```yaml
    # Correct
-   url: https://slurm.example.com:6820
+   endpoint: "https://slurm.example.com:6820"
 
    # Incorrect
-   url: slurm.example.com  # Missing protocol
-   url: https://slurm.example.com:6820/  # Trailing slash
+   endpoint: "slurm.example.com"  # Missing protocol
+   endpoint: "https://slurm.example.com:6820/"  # Trailing slash
    ```
 
 3. **Verify network access**:
@@ -107,14 +107,10 @@ echo $SLURM_TOKEN
    ```yaml
    # For self-signed certificates
    clusters:
-     default:
-       insecureTLS: true
-
-   # Or specify CA certificate
-   clusters:
-     default:
-       tls:
-         caFile: /path/to/ca.crt
+     - name: "default"
+       cluster:
+         endpoint: "https://slurm.example.com:6820"
+         insecure: true
    ```
 
 #### Authentication failures
@@ -126,31 +122,23 @@ echo $SLURM_TOKEN
 1. **Token authentication**:
    ```bash
    # Verify token
-   echo $SLURM_TOKEN
+   echo $SLURM_JWT
 
    # Test token directly
-   curl -H "X-Auth-Token: $SLURM_TOKEN" \
-        https://slurm.example.com/slurm/v0.0.40/jobs
+   curl -H "X-Auth-Token: $SLURM_JWT" \
+        https://slurm.example.com/slurm/v0.0.43/jobs
 
    # Refresh token
    scontrol token
    ```
 
-2. **Basic authentication**:
-   ```yaml
-   auth:
-     method: basic
-     username: ${SLURM_USER}
-     password: ${SLURM_PASS}
-   ```
-
-3. **OAuth2 issues**:
+2. **Generate a new token**:
    ```bash
-   # Test OAuth2 flow
-   s9s auth login --cluster production
+   # Generate a new SLURM JWT token
+   scontrol token
 
-   # Clear cached tokens
-   rm -rf ~/.s9s/tokens/
+   # Set it in your environment
+   export SLURM_JWT="<new-token>"
    ```
 
 ### Display Issues
@@ -182,10 +170,9 @@ echo $SLURM_TOKEN
 
 3. **Adjust S9S settings**:
    ```yaml
-   preferences:
-     unicodeSupport: false
-     colorMode: 16  # Fallback to 16 colors
-     theme: simple  # Basic theme
+   ui:
+     skin: "default"
+     noIcons: true  # Disable icons if they render incorrectly
    ```
 
 #### Screen flickering or slow updates
@@ -197,8 +184,7 @@ echo $SLURM_TOKEN
 1. **Adjust refresh rate**:
    Change the `refreshRate` setting in your configuration file (`~/.s9s/config.yaml`):
    ```yaml
-   preferences:
-     refreshRate: 10s  # Slower refresh (default is 30s)
+   refreshRate: "10s"  # Slower refresh (default is 2s)
    ```
 
 2. **Customize visible columns**:
@@ -206,7 +192,7 @@ echo $SLURM_TOKEN
    ```yaml
    views:
      jobs:
-       columns: [JobID, Name, State, Time]
+       columns: [id, name, state, time]
    ```
 
 3. **Check system resources**:
@@ -226,7 +212,7 @@ echo $SLURM_TOKEN
 
 **Diagnostics**:
 - Press `/` to check if a filter is active, then press `Esc` to clear it
-- Press `R` to force a manual refresh
+- Press `F5` to force a manual refresh
 
 **Solutions**:
 
@@ -243,8 +229,9 @@ echo $SLURM_TOKEN
    ```yaml
    # Update API version
    clusters:
-     default:
-       apiVersion: v0.0.40  # or latest
+     - name: "default"
+       cluster:
+         apiVersion: v0.0.43  # or latest
    ```
 
 3. **Partition visibility**:
@@ -265,7 +252,7 @@ echo $SLURM_TOKEN
 1. **Force refresh**:
    ```bash
    # Manual refresh
-   R       # Press R in any view
+   F5       # Press F5 in any view
    ```
 
 2. **Check time sync**:
@@ -285,29 +272,32 @@ echo $SLURM_TOKEN
 
 **Solutions**:
 
-1. **Optimize queries**:
+1. **Limit displayed jobs**:
    ```yaml
-   performance:
-     maxResults: 100  # Limit results
-     cacheEnabled: true
-     cacheTTL: 60s
+   views:
+     jobs:
+       maxJobs: 100  # Limit results (default 1000)
    ```
 
 2. **Debug mode analysis**:
    ```bash
-   # Enable profiling
-   s9s --profile
+   # Enable debug logging
+   s9s --debug
 
-   # Check debug log
-   tail -f ~/.s9s/debug.log
+   # Check debug log (written to ./s9s-debug.log in current directory)
+   tail -f ./s9s-debug.log
+
+   # Check app log (general application log)
+   tail -f ~/.s9s/s9s.log
    ```
 
-3. **Network optimization**:
+3. **Increase cluster timeout**:
    ```yaml
    clusters:
-     default:
-       timeout: 60s  # Increase timeout
-       compression: true  # Enable compression
+     - name: "default"
+       cluster:
+         endpoint: "https://slurm.example.com:6820"
+         timeout: "60s"  # Increase timeout
    ```
 
 ### SSH Issues
@@ -318,12 +308,12 @@ echo $SLURM_TOKEN
 
 **Solutions**:
 
-1. **Configure SSH settings**:
-   ```yaml
-   ssh:
-     defaultUser: ${USER}
-     keyFile: ~/.ssh/id_rsa
-     extraArgs: "-o StrictHostKeyChecking=no"
+1. **Configure SSH via system settings** (`~/.ssh/config`):
+   ```
+   Host node*
+     User your-username
+     IdentityFile ~/.ssh/id_rsa
+     StrictHostKeyChecking no
    ```
 
 2. **Test SSH manually**:
@@ -367,27 +357,30 @@ Test the SLURM REST API directly to isolate connection issues:
 
 ```bash
 # Test API endpoint
-curl -k -H "X-Auth-Token: $SLURM_TOKEN" \
-     https://slurm.example.com/slurm/v0.0.40/ping
+curl -k -H "X-Auth-Token: $SLURM_JWT" \
+     https://slurm.example.com/slurm/v0.0.43/ping
 
 # List jobs via API
-curl -k -H "X-Auth-Token: $SLURM_TOKEN" \
-     https://slurm.example.com/slurm/v0.0.40/jobs
+curl -k -H "X-Auth-Token: $SLURM_JWT" \
+     https://slurm.example.com/slurm/v0.0.43/jobs
 ```
 
 ### Log Analysis
 
-Check S9S logs:
+The `--debug` flag writes a debug log to `./s9s-debug.log` in the current working directory. The general app log is at `~/.s9s/s9s.log`.
 
 ```bash
-# View recent logs
+# View recent debug log (created by --debug flag)
+tail -n 100 ./s9s-debug.log
+
+# Search for errors in debug log
+grep ERROR ./s9s-debug.log
+
+# Monitor debug log in real time
+tail -f ./s9s-debug.log
+
+# View general app log
 tail -n 100 ~/.s9s/s9s.log
-
-# Search for errors
-grep ERROR ~/.s9s/s9s.log
-
-# Monitor logs in real time
-tail -f ~/.s9s/s9s.log
 ```
 
 ## Diagnostic Information
@@ -423,8 +416,8 @@ s9s --version
 # Run with debug logging
 s9s --debug 2>&1 | tee debug.log
 
-# Collect log files if available
-tar czf s9s-debug.tar.gz ~/.s9s/logs/
+# Collect debug log if available
+tar czf s9s-debug.tar.gz ./s9s-debug.log ~/.s9s/s9s.log
 ```
 
 ### Community Support
@@ -493,7 +486,5 @@ cp ~/s9s-config-backup.yaml ~/.s9s/config.yaml
 
 ## Next Steps
 
-- Review [Configuration Guide](../configuration.md) for optimization
-- Learn [Performance Tuning](../performance.md)
-- Set up [Monitoring](../monitoring.md)
+- Review [Configuration Reference](../reference/configuration.md) for optimization
 - Join our [Community](https://discord.gg/s9s) for help

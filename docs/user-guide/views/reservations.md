@@ -137,13 +137,6 @@ Shows comprehensive reservation information:
 - Full list of authorized accounts
 - Access restrictions
 
-**Flags:**
-- IGNORE_JOBS - Override running jobs
-- DAILY - Repeating daily reservation
-- WEEKLY - Repeating weekly reservation
-- REPLACE - Replace existing allocation
-- STATIC_ALLOC - Fixed node allocation
-
 **Current Usage** (for active):
 - Jobs running in reservation
 - Resources in use vs. reserved
@@ -159,28 +152,6 @@ Filter by:
 - State
 - Authorized users
 - Authorized accounts
-
-#### Advanced Filter
-**Shortcut**: `F3`
-
-Expression-based filtering:
-
-```
-state:ACTIVE
-nodes:>16
-users:alice
-accounts:ml-team
-```
-
-**Supported fields:**
-- `name` - Reservation name
-- `state` - State (ACTIVE/INACTIVE/future)
-- `nodes` - Node count (supports >, <, >=, <=)
-- `cores` - Core count (supports comparison)
-- `users` - Username in authorized list
-- `accounts` - Account in authorized list
-- `start` - Start time (supports comparison)
-- `end` - End time (supports comparison)
 
 ### Global Search
 **Shortcut**: `Ctrl+F`
@@ -210,16 +181,16 @@ Press `S` to open the interactive sort modal.
 | Key | Action |
 |-----|--------|
 | `/` | Simple filter |
-| `F3` | Advanced filter |
 | `Ctrl+F` | Global search |
-| `a` | Toggle active filter (show active reservations only) |
-| `f` | Toggle future filter (show future reservations only) |
+| `a/A` | Toggle active filter (show active reservations only) |
+| `f/F` | Toggle future filter (show future reservations only) |
 | `ESC` | Exit filter mode |
 
 ### Data Management
 | Key | Action |
 |-----|--------|
 | `R` | Manual refresh |
+| `e/E` | Export view data |
 | `S` | Sort modal |
 
 ## Reservation Details Example

@@ -1,6 +1,6 @@
 # Changelog
 
-This page provides an overview of notable changes to the s9s project. For a complete and detailed changelog, please see the [full changelog](../CHANGELOG.md).
+This page provides an overview of notable changes to the s9s project. For a complete and detailed changelog, please see the [full changelog](../../CHANGELOG.md).
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
@@ -12,7 +12,7 @@ Configurable job submission templates and full SLURM field support:
 
 - **Configurable Templates**: Define custom job templates in config YAML with pre-filled defaults, hidden fields, and restricted dropdown options
 - **3-Tier Template Merge**: Built-in, config YAML, and user-saved JSON templates merge with name-based override
-- **86 sbatch Fields**: Job submission wizard supports 86 of 117 SLURM fields (was 12) — fields like QoS, GPUs, array, constraints, dependencies now actually reach slurmrestd
+- **84 sbatch Fields**: Job submission wizard supports 84 of 117 SLURM fields (was 12) -- fields like QoS, GPUs, array, constraints, dependencies now actually reach slurmrestd
 - **Smart Field Visibility**: Advanced fields hidden by default, shown automatically when a template sets them
 - **CLI Template Management**: `s9s templates list` and `s9s templates export` commands for viewing and exporting templates
 - **SubmitRaw Integration**: Bypasses lossy intermediate struct, maps directly to SLURM OpenAPI `JobCreate`
@@ -60,7 +60,7 @@ Key features:
 - **Cluster Switcher**: Show active cluster name in header, press `Ctrl+K` to switch clusters at runtime
 - **`--cluster` Flag**: Select cluster context from the command line; fix `--config` flag being ignored
 - **Table Export**: Press `e` in any view to export data (CSV, JSON, Text, Markdown, HTML)
-- **VHS Integration Tests**: Regression testing against real Slurm clusters (24.05, 24.11, 25.11)
+- **VHS Integration Tests**: Regression testing against real Slurm clusters (24.05, 24.11, 25.05, 25.11)
 - **Breaking**: Config keys renamed `contexts` → `clusters`, `currentContext` → `defaultCluster`
 
 ### Version 0.5.0 (2026-02-18)
@@ -107,19 +107,20 @@ Initial stable release with core features:
 
 ## Viewing the Full Changelog
 
-For a complete list of all changes, features, and fixes across all versions, refer to the [full CHANGELOG.md](../CHANGELOG.md).
+For a complete list of all changes, features, and fixes across all versions, refer to the [full CHANGELOG.md](../../CHANGELOG.md).
 
 ## Version History
 
-- [v0.6.3](../CHANGELOG.md#063---2026-03-14) - Latest release
-- [v0.6.2](../CHANGELOG.md#062---2026-03-10) - Setup wizard fixes
-- [v0.6.1](../CHANGELOG.md#061---2026-03-09) - Node metrics, job times, dashboard fixes
-- [v0.6.0](../CHANGELOG.md#060---2026-03-08) - Cluster switcher, export, config rename
-- [v0.5.0](../CHANGELOG.md#050---2026-02-18) - Auto-discovery, static builds
-- [v0.4.0](../CHANGELOG.md#040---2026-02-08) - Performance view, sorting, command mode
-- [v0.3.0](../CHANGELOG.md#030---2026-01-30) - Vim navigation, search, filters
-- [v0.1.0](../CHANGELOG.md#010---2026-01-21) - Initial release
-- [Unreleased](../CHANGELOG.md#unreleased) - Upcoming changes
+- [v0.7.0](../../CHANGELOG.md#070---2026-03-16) - Latest release
+- [v0.6.3](../../CHANGELOG.md#063---2026-03-14) - Performance and responsiveness
+- [v0.6.2](../../CHANGELOG.md#062---2026-03-10) - Setup wizard fixes
+- [v0.6.1](../../CHANGELOG.md#061---2026-03-09) - Node metrics, job times, dashboard fixes
+- [v0.6.0](../../CHANGELOG.md#060---2026-03-08) - Cluster switcher, export, config rename
+- [v0.5.0](../../CHANGELOG.md#050---2026-02-18) - Auto-discovery, static builds
+- [v0.4.0](../../CHANGELOG.md#040---2026-02-08) - Performance view, sorting, command mode
+- [v0.3.0](../../CHANGELOG.md#030---2026-01-30) - Vim navigation, search, filters
+- [v0.1.0](../../CHANGELOG.md#010---2026-01-21) - Initial release
+- [Unreleased](../../CHANGELOG.md#unreleased) - Upcoming changes
 
 ## Semantic Versioning
 

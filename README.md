@@ -79,10 +79,12 @@ go install github.com/jontk/s9s/cmd/s9s@latest
 ```bash
 git clone https://github.com/jontk/s9s.git
 cd s9s
-go build -o s9s cmd/s9s/main.go
+make build
 mkdir -p ~/.local/bin
-mv s9s ~/.local/bin/
+mv build/s9s ~/.local/bin/
 ```
+
+> **Note:** `go build -o s9s cmd/s9s/main.go` works but will not embed version info. Use `make build` to include version, commit, and build date via `-ldflags`.
 
 ### Basic Usage
 
@@ -90,8 +92,8 @@ mv s9s ~/.local/bin/
 # Connect to your SLURM cluster
 s9s
 
-# Use mock mode for testing (no SLURM required)
-s9s --mock
+# Use mock mode for testing (requires S9S_ENABLE_MOCK env var)
+S9S_ENABLE_MOCK=1 s9s --mock
 
 # Connect to a specific cluster
 s9s --cluster production
@@ -127,10 +129,11 @@ This configures your cluster endpoint and optional JWT token.
 #### Manual Configuration
 
 s9s looks for configuration in the following order:
-1. `~/.s9s/config.yaml`
-2. `~/.config/s9s/config.yaml`
-3. Environment variables
-4. Command-line flags
+1. `.` (current directory)
+2. `~/.s9s/config.yaml`
+3. `/etc/s9s/config.yaml`
+4. Environment variables
+5. Command-line flags
 
 Example configuration:
 
@@ -142,7 +145,7 @@ clusters:
   - name: production
     cluster:
       endpoint: "https://slurm-api.example.com:6820"
-      token: "${SLURM_TOKEN}"
+      token: "${SLURM_JWT}"
       apiVersion: v0.0.44
 
   - name: development
@@ -151,7 +154,7 @@ clusters:
       token: "${SLURM_DEV_TOKEN}"
       apiVersion: v0.0.43
 
-refreshRate: 5s
+refreshRate: 2s
 ```
 
 ## 🎮 Key Bindings
@@ -164,10 +167,9 @@ refreshRate: 5s
 | `q` | Quit |
 | `:` | Command mode |
 | `/` | Search/filter |
-| `e` | Export view data |
 | `Tab` | Switch view |
 | `Ctrl+K` | Switch cluster |
-| `F5` / `R` | Force refresh |
+| `F5` | Force refresh |
 
 #### Command Mode with Autocomplete
 
@@ -194,13 +196,20 @@ Press `:` to enter vim-style command mode with intelligent Tab completion:
 | Key | Action |
 |-----|--------|
 | `c` | Cancel job |
-| `h` | Hold job |
+| `H` | Hold job |
 | `r` | Release job |
-| `d` | Show job details |
+| `d` | Show job dependencies |
+| `Enter` | Show job details |
 | `o` | View job output |
 | `s` | Submit new job |
 | `b` | Batch operations |
 | `m` | Toggle auto-refresh |
+| `q` | Requeue job (use `:requeue` if `q` quits) |
+| `e` | Export data |
+| `v` | Toggle multi-select mode |
+| `a` | Filter all states |
+| `p` | Filter pending jobs |
+| `u` | Filter by user |
 
 ### Nodes View
 
@@ -209,7 +218,12 @@ Press `:` to enter vim-style command mode with intelligent Tab completion:
 | `d` | Drain node |
 | `r` | Resume node |
 | `s` | SSH to node |
-| `i` | Node info |
+| `Enter` | Node details |
+| `i` | Filter idle nodes |
+| `m` | Filter mixed nodes |
+| `g` | Group by |
+| `e` | Export data |
+| `p` | Filter by partition |
 
 ## 🏗️ Architecture
 
@@ -219,15 +233,22 @@ s9s follows a modular architecture with clear separation of concerns:
 cmd/s9s/          # Main application entry point
 internal/
   ├── app/        # Application lifecycle management
-  ├── dao/        # Data Access Objects (SLURM client abstraction)
-  ├── views/      # Terminal UI views
+  ├── cli/        # CLI commands and flags
+  ├── auth/       # Authentication
   ├── config/     # Configuration management
-  ├── ui/         # UI components and utilities
+  ├── dao/        # Data Access Objects (SLURM client abstraction)
+  ├── debug/      # Debug utilities
+  ├── discovery/  # Cluster auto-discovery
+  ├── export/     # Export functionality
   ├── monitoring/ # Health monitoring and alerts
   ├── performance/# Performance profiling and optimization
-  └── plugins/    # Plugin system implementation
+  ├── plugin/     # Plugin interfaces (compile-time registration)
+  ├── plugins/    # Plugin system (.so loading)
+  ├── ssh/        # SSH integration
+  ├── ui/         # UI components and utilities
+  └── views/      # Terminal UI views
 pkg/
-  └── slurm/      # SLURM client and mock implementation
+  └── slurm/      # Mock SLURM implementation
 ```
 
 For more information about the project structure, see the [docs/](docs/) directory.
@@ -247,11 +268,11 @@ go mod download
 # Run tests
 go test ./...
 
-# Run with mock data
-go run cmd/s9s/main.go --mock
+# Run with mock data (requires S9S_ENABLE_MOCK env var)
+S9S_ENABLE_MOCK=1 go run cmd/s9s/main.go --mock
 
-# Build binary
-go build -o s9s cmd/s9s/main.go
+# Build binary (use make build for version info)
+make build
 ```
 
 ### Running Tests
@@ -277,13 +298,9 @@ Enable debug logging to troubleshoot issues:
 
 ```bash
 s9s --debug
-
-# Or set environment variable
-export S9S_DEBUG=true
-s9s
 ```
 
-Debug logs are written to `~/.s9s/debug.log`.
+Debug logs are written to `s9s-debug.log` in the current directory.
 
 ## 🤝 Contributing
 

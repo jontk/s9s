@@ -4,7 +4,7 @@ Master node management in S9S with powerful operations for monitoring, maintenan
 
 ## Node View Overview
 
-Press `2` or `:view nodes` to access the nodes view, where you can:
+Press `2` or `:nodes` to access the nodes view, where you can:
 
 - Monitor all cluster nodes in real-time
 - View detailed node specifications and utilization
@@ -21,17 +21,17 @@ S9S displays nodes in various states:
 | State | Description | Color |
 |-------|-------------|-------|
 | **IDLE** | Available for new jobs | Green |
-| **MIXED** | Some CPUs allocated, some free | Yellow |
+| **MIXED** | Some CPUs allocated, some free | Blue |
 | **ALLOCATED** | Fully utilized by jobs | Blue |
 | **DOWN** | Node is offline | Red |
-| **DRAIN** | Being drained for maintenance | Orange |
-| **DRAINING** | Actively draining jobs | Orange |
-| **FAIL** | Node has failed | Red |
-| **MAINT** | In maintenance mode | Gray |
+| **DRAIN** | Being drained for maintenance | Red |
+| **DRAINING** | Actively draining jobs | Red |
+| **RESERVED** | Reserved for specific use | Yellow |
+| **MAINTENANCE** | In maintenance mode | Orange |
 
 ### Node Details
 
-View detailed information with `Enter` or `d`:
+View detailed information with `Enter`:
 
 ```bash
 Node: node001.cluster.edu
@@ -54,28 +54,22 @@ Last Seen: 2023-12-15 14:23:42 (5s ago)
 
 | Key | Action | Description |
 |-----|--------|-------------|
-| `d` | Show details | View comprehensive node information |
-| `l` | View logs | Show node logs and messages |
-| `j` | View jobs | List all jobs on this node |
+| `Enter` | Show details | View comprehensive node information |
+| `d`/`D` | Drain | Prepare node for maintenance |
+| `r` | Resume | Return node to service |
+| `R` | Refresh | Update node information |
 | `s` | SSH to node | Direct SSH access |
-| `r` | Refresh | Update node information |
 
-### Maintenance Operations
-
-| Key | Action | Description |
-|-----|--------|-------------|
-| `D` | Drain node | Prepare node for maintenance |
-| `R` | Resume node | Return node to service |
-| `U` | Update state | Force state update |
-| `M` | Maintenance mode | Put node in maintenance |
-
-### Advanced Operations
+### State Filter Shortcuts
 
 | Key | Action | Description |
 |-----|--------|-------------|
-| `Ctrl+R` | Reboot node | Restart node (admin only) |
-| `Ctrl+P` | Power cycle | Hard power cycle |
-| `Ctrl+D` | Force drain | Immediate drain with job termination |
+| `a`/`A` | All states | Clear state filter |
+| `i`/`I` | Idle filter | Toggle idle state filter |
+| `m`/`M` | Mixed filter | Toggle mixed state filter |
+| `p`/`P` | Partition filter | Prompt for partition filter |
+| `g`/`G` | Group by | Group nodes by partition, state, or features |
+| `e`/`E` | Export | Open export dialog |
 
 ## Maintenance Workflows
 
@@ -85,7 +79,7 @@ Last Seen: 2023-12-15 14:23:42 (5s ago)
    ```bash
    # In nodes view, select node and press D
    # Or use command mode
-   :drain node001 --reason="Planned maintenance" --timeout=1h
+   :drain node001 Planned maintenance
    ```
 
 2. **Wait for jobs to complete**:
@@ -107,28 +101,32 @@ Last Seen: 2023-12-15 14:23:42 (5s ago)
 
 ### Emergency Maintenance
 
-1. **Force drain immediately**:
+1. **Drain the node with a reason**:
    ```bash
-   :drain node001 --force --reason="Emergency maintenance"
+   :drain node001 Emergency maintenance
    ```
 
-2. **Jobs are immediately terminated**
-3. **Node is ready for maintenance**
+2. **Monitor draining progress** -- jobs will finish naturally
+3. **Perform maintenance once drained**
 
 ### Batch Maintenance
 
-Maintain multiple nodes efficiently:
+Drain individual nodes using the command mode:
 
 ```bash
-# Drain multiple nodes
-:drain node[001-010] --reason="OS update" --timeout=2h
+# Drain nodes one at a time
+:drain node001 OS update
+:drain node002 OS update
 
-# Resume multiple nodes
-:resume node[001-010]
+# Resume nodes after maintenance
+:resume node001
+:resume node002
 
-# Check status of node range
-/node:node[001-010]
+# Filter to see specific nodes
+/node001
 ```
+
+> **Note:** The `:drain` command accepts a single node name and an optional reason string. Node ranges and `--reason`/`--timeout` flags are planned. See [#119](https://github.com/jontk/s9s/issues/119).
 
 ## SSH Integration
 
@@ -141,42 +139,13 @@ Press `s` on any node to SSH directly:
 ssh user@node001.cluster.edu
 ```
 
-### SSH Configuration
-
-Configure SSH in `~/.s9s/config.yaml`:
-
-```yaml
-ssh:
-  defaultUser: ${USER}
-  keyFile: ~/.ssh/id_rsa
-  knownHostsFile: ~/.ssh/known_hosts
-  compression: true
-  forwardAgent: true
-  extraArgs: "-o StrictHostKeyChecking=ask"
-```
-
 ### SSH Operations
 
 | Key | Action | Description |
 |-----|--------|-------------|
-| `s` | SSH to node | Interactive SSH session |
-| `Ctrl+S` | SSH with options | Choose user, key, options |
-| `Alt+S` | Background SSH | SSH in new terminal |
+| `s` | SSH to node | Interactive SSH session to selected node |
 
-### Bulk SSH Operations
-
-Execute commands across multiple nodes:
-
-```bash
-# Run command on all idle nodes
-:ssh --filter="state:idle" "uptime"
-
-# Update all nodes in maintenance
-:ssh --nodes="node[001-010]" "sudo apt update"
-
-# Check disk space on GPU nodes
-:ssh --filter="features:gpu" "df -h"
-```
+Press `s` on a selected node in the Nodes view to open an SSH session. See [SSH Integration Guide](../guides/ssh-integration.md) for configuration.
 
 ## Node Monitoring
 
@@ -196,71 +165,38 @@ GPU 0: ████████████████ 100% (job_12345)
 GPU 1: ░░░░░░░░░░░░░░░░ 0% (idle)
 ```
 
-### Health Monitoring
+### Resource Display
 
-S9S monitors node health indicators:
+S9S displays the following node resource information:
 
-- **Load Average**: System load over 1, 5, 15 minutes
-- **Memory Pressure**: Available vs allocated memory
-- **Disk Space**: Available disk space on filesystems
-- **Network**: Network connectivity and bandwidth
-- **Temperature**: Hardware temperature sensors
-- **Jobs**: Running and pending job counts
-
-### Alerts and Notifications
-
-Configure alerts for node issues:
-
-```yaml
-# In config.yaml
-notifications:
-  nodeAlerts:
-    - condition: "load > 32"
-      severity: warning
-      message: "High load on {node}"
-    - condition: "memory < 10%"
-      severity: critical
-      message: "Low memory on {node}"
-    - condition: "state == DOWN"
-      severity: critical
-      message: "Node {node} is down"
-```
+- **CPU Usage**: Allocated vs total CPUs, CPU load
+- **Memory Usage**: Allocated vs total memory
+- **State**: Current node state with color coding
+- **Partitions**: Which partitions the node belongs to
+- **Features**: Node feature tags
+- **Reason**: Drain/down reason if applicable
 
 ## Node Filtering and Search
 
 ### Find Specific Nodes
 
+The `/` quick filter performs plain text search across all visible columns:
+
 ```bash
-# Find nodes by name pattern
-/node:compute*
-
-# Find nodes by state
-/state:idle
-
-# Find GPU nodes
-/features:gpu
-
-# Find nodes with high memory
-/memory:>64GB
-
-# Find nodes with specific job count
-/jobs:>4
+# Find nodes by name
+/compute              # Nodes containing "compute"
+/gpu                  # Nodes with "gpu" in any column
+/node001              # Specific node
 ```
 
-### Complex Node Queries
+Press `Ctrl+F` for global search across all entity types, or use keyboard shortcuts for specific state filters:
 
 ```bash
-# Idle GPU nodes with >100GB RAM
-/state:idle features:gpu memory:>100GB
-
-# Nodes that haven't been seen recently
-/lastseen:>1h state:!DOWN
-
-# Overutilized nodes
-/load:>16 cpus:<=16
-
-# Nodes ready for maintenance
-/jobs:0 state:idle
+# State filter shortcuts
+i/I                                     # Toggle idle filter
+m/M                                     # Toggle mixed filter
+a/A                                     # Show all states
+p/P                                     # Filter by partition
 ```
 
 ## Troubleshooting Node Issues
@@ -287,25 +223,15 @@ notifications:
 
 ### Node Diagnostics
 
-```bash
-# View detailed node diagnostics
-:diag node001
+View node details by selecting a node and pressing `Enter` in the Nodes view. For deeper diagnostics, SSH to the node with `s`.
 
-# Check node connectivity
-:ping node001
-
-# View system logs
-:logs node001 --system --lines=100
-
-# Check SLURM daemon status
-:slurm-status node001
-```
+> **Note:** Command-mode diagnostic commands (`:diag`, `:ping`, `:logs`, `:slurm-status`) are planned. See [#119](https://github.com/jontk/s9s/issues/119).
 
 ## Best Practices
 
 ### Node Management
 
-1. **Plan maintenance windows** - Use drain with timeout
+1. **Plan maintenance windows** - Use drain with descriptive reasons
 2. **Monitor during drainage** - Ensure jobs complete cleanly
 3. **Verify after maintenance** - Test functionality before resuming
 4. **Document changes** - Use descriptive drain reasons

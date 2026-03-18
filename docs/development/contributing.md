@@ -28,7 +28,7 @@ By participating in this project, you agree to abide by our Code of Conduct:
 
 ### Prerequisites
 
-- Go 1.19 or higher
+- Go 1.24 or higher
 - Git
 - Make (optional but recommended)
 - golangci-lint (for linting)
@@ -64,7 +64,7 @@ By participating in this project, you agree to abide by our Code of Conduct:
 
 5. **Run the application in mock mode**
    ```bash
-   go run cmd/s9s/main.go --mock
+   S9S_ENABLE_MOCK=1 go run cmd/s9s/main.go --mock
    ```
 
 ## Development Process
@@ -210,7 +210,7 @@ refactor: simplify job filtering logic
 
 ## Linting and Code Quality
 
-We use **golangci-lint** with 15 enabled linters to maintain code quality and consistency throughout the project.
+We use **golangci-lint** with 14 enabled linters to maintain code quality and consistency throughout the project.
 
 ### Quick Start
 
@@ -222,6 +222,8 @@ make lint
 make fmt
 
 # Install pre-commit hooks (recommended)
+# Note: .pre-commit-config.yaml is not currently included in the repository.
+# This step will work once the configuration file is added to the project.
 pre-commit install
 ```
 
@@ -248,18 +250,14 @@ The linters are organized by category:
   - Improve code quality and catch common mistakes
   - Ensure HTTP resources are properly closed
 
-- **Security**: gosec (configured with exclusions)
-  - Security-focused static analysis
-  - Detects vulnerabilities and unsafe patterns
-
 - **Style & Patterns**: gocritic, unused, nolintlint, revive
   - Code style and pattern checks
   - Identifies dead code and unused suppressions
   - Enforces Go idioms
 
-- **Advanced**: gocognit, dupl
-  - Cognitive complexity checking
-  - Code duplication detection
+- **Advanced**: cyclop (max-complexity: 10), noctx
+  - Cyclomatic complexity checking
+  - Context propagation verification
 
 See [Linting Standards](linting.md) for complete linting standards and configuration details.
 
@@ -286,7 +284,7 @@ The hooks automatically:
 - Tidy go.mod and go.sum
 - Run golangci-lint to check for violations
 
-See [PRE_COMMIT_SETUP.md](../../docs/PRE_COMMIT_SETUP.md) for detailed pre-commit hook setup.
+Pre-commit hooks are configured in `.pre-commit-config.yaml`. Run `pre-commit install` to set up.
 
 ### CI Requirements
 
@@ -316,7 +314,7 @@ var globalState int
 
 ```
 internal/views/jobs_test.go      # Unit tests for views
-pkg/slurm/mock_test.go          # Mock implementation tests
+pkg/slurm/mock.go               # Mock SLURM implementation
 test/integration/               # Integration tests
 test/performance/              # Performance benchmarks
 ```

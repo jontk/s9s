@@ -15,20 +15,38 @@ These shortcuts work from any view:
 | `Shift+Tab` | Previous view | Cycle backwards through views |
 | `h` | Previous view | Move to previous view |
 | `l` | Next view | Move to next view |
+| `F1` | Help | Show help modal |
+| `F2` | Alerts | Show system alerts (passes through to Jobs view for templates) |
+| `F3` | Preferences | Show preferences dialog |
+| `F4` | Layout | Show layout switcher |
 | `F5` | Force refresh | Refresh current view data |
-| `R` | Manual refresh | Refresh view (most views) |
+| `F10` | Configuration | Show configuration |
 | `Ctrl+K` | Switch cluster | Switch between configured clusters |
-| `Ctrl+C` | Cancel | Cancel current operation or close modal |
+| `Ctrl+C` | Exit application | Exit s9s entirely |
 | `ESC` | Exit/Close | Exit filter mode, close modal, cancel operation |
 
 ## View Switching
 
-Use number keys `1`-`9` and `0` to switch directly to a view by its position in the tab bar.
+| Key | View |
+|-----|------|
+| `1` | Jobs |
+| `2` | Nodes |
+| `3` | Partitions |
+| `4` | Reservations |
+| `5` | QoS |
+| `6` | Accounts |
+| `7` | Users |
+| `8` | Dashboard |
+| `9` | Health |
+| `0` | Performance |
 
 ## Dashboard View
 
 | Key | Action | Description |
 |-----|--------|-------------|
+| `J` | Jobs view | Switch to Jobs view |
+| `N` | Nodes view | Switch to Nodes view |
+| `P` | Partitions view | Switch to Partitions view |
 | `A` | Advanced analytics | Open analytics modal |
 | `H` | Health check | Open health check modal |
 | `R` | Refresh dashboard | Manual refresh all panels |
@@ -51,12 +69,11 @@ Use number keys `1`-`9` and `0` to switch directly to a view by its position in 
 | Key | Action | Description |
 |-----|--------|-------------|
 | `Enter` | View details | Show detailed job information |
-| `s/S` | Submit job | Open job submission wizard |
+| `s` | Submit job | Open job submission wizard |
 | `F2` | Job templates | Open job templates/submission form |
 | `c/C` | Cancel job | Cancel selected job |
 | `H` | Hold job | Place job on hold |
 | `r` | Release job | Release held job |
-| `q/Q` | Requeue job | Requeue completed/failed job |
 | `o/O` | View output | View job output/logs |
 | `d/D` | View dependencies | Show job dependency graph |
 
@@ -72,7 +89,7 @@ Use number keys `1`-`9` and `0` to switch directly to a view by its position in 
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
-| `F3` | Advanced filter | Open advanced filter bar |
+| `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `a/A` | Filter all states | Show all job states |
 | `p/P` | Filter pending | Show pending jobs only |
 | `u/U` | Filter by user | Filter jobs by username |
@@ -83,7 +100,6 @@ Use number keys `1`-`9` and `0` to switch directly to a view by its position in 
 |-----|--------|-------------|
 | `R` | Manual refresh | Refresh jobs data |
 | `m/M` | Toggle auto-refresh | Enable/disable auto-refresh (30s) |
-| `F1` | Action menu | Show context-sensitive actions |
 | `S` | Sort modal | Open interactive sorting dialog |
 | `e/E` | Export | Export job list to CSV/JSON/Text/Markdown/HTML |
 
@@ -95,13 +111,13 @@ Use number keys `1`-`9` and `0` to switch directly to a view by its position in 
 | `Enter` | View details | Show node details and metrics |
 | `d/D` | Drain node | Drain selected node |
 | `r` | Resume node | Resume drained node |
-| `s/S` | SSH to node | Open SSH options menu |
+| `s` | SSH to node | Open SSH connection to node |
 
 ### Filtering & Search
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
-| `F3` | Advanced filter | Open advanced filter bar |
+| `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `p/P` | Partition filter | Filter by partition |
 | `a/A` | Toggle all states | Toggle "all states" filter |
 | `i/I` | Toggle idle | Toggle idle state filter |
@@ -136,7 +152,7 @@ Use number keys `1`-`9` and `0` to switch directly to a view by its position in 
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
-| `F3` | Advanced filter | Open advanced filter bar |
+| `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
 ### Data Management
@@ -157,7 +173,7 @@ Use number keys `1`-`9` and `0` to switch directly to a view by its position in 
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
-| `F3` | Advanced filter | Open advanced filter bar |
+| `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `a/A` | Toggle admin filter | Show admins/operators only or all users |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
@@ -180,7 +196,7 @@ Use number keys `1`-`9` and `0` to switch directly to a view by its position in 
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
-| `F3` | Advanced filter | Open advanced filter bar |
+| `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
 ### Data Management
@@ -201,7 +217,7 @@ Use number keys `1`-`9` and `0` to switch directly to a view by its position in 
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
-| `F3` | Advanced filter | Open advanced filter bar |
+| `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
 ### Data Management
@@ -222,7 +238,7 @@ Use number keys `1`-`9` and `0` to switch directly to a view by its position in 
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
-| `F3` | Advanced filter | Open advanced filter bar |
+| `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `a/A` | Toggle active | Show active reservations only |
 | `f/F` | Toggle future | Show future reservations only |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
@@ -258,65 +274,65 @@ Use number keys `1`-`9` and `0` to switch directly to a view by its position in 
 
 ## Advanced Filter Syntax
 
-When using `F3` for advanced filtering, use these expression patterns:
+When using the advanced filter, use these expression patterns:
 
-### Field Matching
+### Operators
 ```
-field:value          - Contains match
 field=value          - Exact match
-field:>value         - Greater than (numeric)
-field:<value         - Less than (numeric)
-field:>=value        - Greater or equal (numeric)
-field:<=value        - Less or equal (numeric)
+field!=value         - Not equals
+field~value          - Contains match
+field!~value         - Not contains
+field>value          - Greater than (numeric)
+field<value          - Less than (numeric)
+field>=value         - Greater or equal (numeric)
+field<=value         - Less or equal (numeric)
+field=~pattern       - Regex match
+field in (a,b,c)     - In list
+field not in (a,b)   - Not in list
 ```
 
 ### Examples
 
 **Jobs:**
 ```
-state:RUNNING partition:gpu
-user:alice priority:>500
-nodes:>=8 state:PENDING
+state=RUNNING partition=gpu
+user=alice priority>500
+cpus>=8 state=PENDING
+name~test memory>4G
 ```
 
 **Nodes:**
 ```
-state:IDLE partition:gpu
-features:nvlink cpus:>64
-memory:>256GB
+state=idle partition=gpu
+features~nvlink cpus>64
+memory>256G
 ```
 
 **Partitions:**
 ```
-state:UP nodes:>100
-efficiency:>80 qos:high
+state=up nodes>100
+qos~normal
 ```
 
 **Users:**
 ```
-admin:Administrator
-account:research qos:high
-maxjobs:>50
+account=research qos~high
 ```
 
 **Accounts:**
 ```
-organization:research
-parent:root qos:high
-maxcpus:>1000
+name~research
+qos~high
 ```
 
 **QoS:**
 ```
-priority:>1000
-preempt:Suspend
-maxjobs:>100
+priority>1000
 ```
 
 **Reservations:**
 ```
-state:ACTIVE nodes:>16
-users:alice accounts:ml-team
+state=ACTIVE nodes>16
 ```
 
 ## Special Filter Syntax
@@ -339,9 +355,9 @@ Works in Jobs and Nodes views.
 
 ### Efficient Filtering
 - Use `/` for quick keyword search
-- Use `F3` when you need complex multi-field filtering
+- Use `Ctrl+F` in any data view for cross-resource search
 - Press `ESC` to quickly clear filters
-- Special syntax like `p:gpu` saves time
+- Special syntax like `p:gpu` saves time in simple filter mode
 
 ### Batch Operations (Jobs)
 1. Press `v/V` to enter multi-select mode
@@ -355,13 +371,13 @@ Works in Jobs and Nodes views.
 3. Makes large node lists easier to navigate
 
 ### Refresh Strategies
-- Most views auto-refresh every 10-30 seconds
+- Three views auto-refresh: Jobs (30s), Health (10s), Performance (5s)
 - Use `R` for immediate manual refresh
 - Jobs view: `m/M` toggles auto-refresh on/off
 
 ### Help When Stuck
 - Press `?` for context-sensitive help
-- Press `F1` for action menu (shows available operations)
+- Press `F1` for help modal
 - Press `ESC` to cancel most operations
 
 ## Customizing Shortcuts
@@ -405,4 +421,4 @@ Press `:` to enter vim-style command mode with tab completion support:
 
 **How it works:** Completions are context-aware and use data from the currently loaded views, so you'll see real job IDs and node names from your cluster.
 
-See [Commands Reference](../../reference/commands.md) for full command list.
+See [Commands Reference](../reference/commands.md) for full command list.

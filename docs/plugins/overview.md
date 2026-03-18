@@ -13,29 +13,45 @@ The s9s plugin system allows extending the functionality of s9s through modular 
 
 ## Plugin Architecture
 
-Plugins in s9s are implemented as Go shared libraries (`.so` files) that implement specific interfaces. They are loaded dynamically at runtime and managed through a centralized plugin system.
+s9s has two plugin systems:
 
-### Core Components
+### 1. Compile-time Plugin System (`internal/plugin/`)
 
-1. **Plugin Interface** (`internal/plugin/interface.go`)
-   - Base `Plugin` interface that all plugins must implement
-   - Specialized interfaces for different plugin types:
-     - `ViewPlugin` - Provides custom views
-     - `OverlayPlugin` - Overlays data on existing views
-     - `DataPlugin` - Provides data to other plugins
-     - `ConfigurablePlugin` - Runtime configuration support
-     - `HookablePlugin` - Event hooks
+The primary plugin system uses compile-time registration. Plugins implement interfaces from `internal/plugin/interface.go` and are registered at build time.
 
-2. **Plugin Manager** (`internal/plugin/manager.go`)
-   - Manages plugin lifecycle (init, start, stop)
-   - Handles plugin dependencies
-   - Performs health checks
-   - Manages plugin state
+**Base `Plugin` interface** -- all plugins must implement:
+- `GetInfo() Info` -- metadata (name, version, author, dependencies, config schema)
+- `Init(ctx, config)` -- initialize with configuration
+- `Start(ctx)` / `Stop(ctx)` -- lifecycle management
+- `Health() HealthStatus` -- health reporting
 
-3. **Plugin Registry** (`internal/plugin/registry.go`)
-   - Registers and indexes plugins
-   - Resolves dependencies
-   - Manages plugin metadata
+**Specialized interfaces:**
+- `ViewPlugin` -- provides custom TUI views (`GetViews()`, `CreateView()`)
+- `OverlayPlugin` -- overlays data on existing views (`GetOverlays()`, `CreateOverlay()`)
+- `DataPlugin` -- provides data to other plugins (`GetDataProviders()`, `Subscribe()`, `Unsubscribe()`, `Query()`)
+- `ConfigurablePlugin` -- runtime configuration support (`GetConfig()`, `SetConfig()`, `ValidateConfig()`, `GetConfigUI()`)
+- `HookablePlugin` -- event hooks (`GetHooks()`, `RegisterHook()`)
+- `LifecycleAware` -- lifecycle events (`OnEnable()`, `OnDisable()`, `OnConfigChange()`)
+- `Prioritizable` -- controls initialization order (`GetPriority()`)
+
+**Plugin Manager** (`internal/plugin/manager.go`) -- manages plugin lifecycle, dependencies, and health checks.
+
+**Plugin Registry** (`internal/plugin/registry.go`) -- registers and indexes plugins, resolves dependencies.
+
+### 2. Shared Library Plugin System (`internal/plugins/`)
+
+The secondary system loads `.so` shared libraries at runtime. Plugins implement interfaces from `internal/plugins/interface.go`:
+
+**Base `Plugin` interface:**
+- `GetInfo() PluginInfo` -- basic plugin info (name, version, description, author, website)
+- `Initialize(ctx, client dao.SlurmClient)` -- initialize with SLURM client access
+- `GetCommands() []Command` -- provide CLI commands (Name, Description, Usage, Handler)
+- `GetViews() []View` -- provide TUI views (GetName, GetTitle, Render, OnKey, Refresh, Init)
+- `GetKeyBindings() []KeyBinding` -- custom key bindings
+- `OnEvent(event Event)` -- react to application events (ViewChanged, JobSubmitted, etc.)
+- `Cleanup()` -- cleanup on unload
+
+**Plugin Manager** (`internal/plugins/interface.go: PluginManager`) -- loads/unloads `.so` plugins from directories, sends events to all plugins.
 
 ## Creating a Plugin
 
@@ -257,7 +273,6 @@ func TestMyPlugin(t *testing.T) {
 
 ## Future Enhancements
 
-- External plugin loading (shared libraries)
 - Plugin marketplace/registry
 - Plugin sandboxing
 - Inter-plugin communication

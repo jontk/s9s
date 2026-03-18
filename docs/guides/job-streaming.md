@@ -88,6 +88,7 @@ The streaming system uses an internal `EventBus` for pub/sub event delivery. The
 - `NEW_OUTPUT` -- new content available.
 - `JOB_COMPLETE` -- the job has finished.
 - `ERROR` -- a streaming error occurred.
+- `FILE_ROTATED` -- the output file was rotated or truncated.
 - `STREAM_START` / `STREAM_STOP` -- lifecycle events.
 
 ## Export

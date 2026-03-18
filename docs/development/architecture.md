@@ -75,9 +75,11 @@ The entry point of the application that:
 ```go
 // cmd/s9s/main.go
 func main() {
-    app := app.New()
-    if err := app.Run(); err != nil {
-        log.Fatal(err)
+    logging.Init(logging.DefaultConfig())
+    logger := logging.GetLogger()
+    if err := cli.Execute(); err != nil {
+        logger.Error().Err(err).Msg("Failed to execute command")
+        os.Exit(1)
     }
 }
 ```
@@ -93,13 +95,16 @@ Views implement the UI for different resources:
 - **PartitionsView**: Partition information
 - **Additional Views**: Users, QoS, Reservations, etc.
 
-Key interfaces:
+Key interfaces (see `internal/views/base.go` for full definition):
 ```go
 type View interface {
     Name() string
-    Title() string
-    SetupView() tview.Primitive
     Refresh() error
+    OnKey(event *tcell.EventKey) *tcell.EventKey
+    OnFocus() error
+    OnLoseFocus() error
+    Hints() []string
+    // ... and more
 }
 ```
 
@@ -177,22 +182,15 @@ func NewJobsView(client dao.SlurmClient) *JobsView {
 }
 ```
 
-### Observer Pattern
-
-Views can subscribe to refresh events:
-```go
-type RefreshObserver interface {
-    OnRefresh() error
-}
-```
-
 ### Command Pattern
 
-User actions are encapsulated as commands:
+Commands are represented as structs (see `internal/plugins/interface.go`):
 ```go
-type Command interface {
-    Execute() error
-    Undo() error
+type Command struct {
+    Name        string
+    Description string
+    Usage       string
+    Handler     func(args []string) error
 }
 ```
 
@@ -227,17 +225,22 @@ Error Occurs -> Log Error -> User-Friendly Message -> Status Bar Display -> Opti
 
 ```go
 type Config struct {
-    Clusters      map[string]*ClusterConfig
-    Preferences   *UserPreferences
-    Debug         bool
-    LogFile       string
+    RefreshRate    string
+    MaxRetries     int
+    DefaultCluster string
+    Clusters       []ClusterContext
+    UI             UIConfig
+    Views          ViewsConfig
+    Features       FeaturesConfig
+    UseMockClient  bool
 }
 
-type ClusterConfig struct {
-    URL           string
-    Auth          AuthConfig
-    Timeout       time.Duration
-    RetryAttempts int
+type ClusterContext struct {
+    Endpoint   string
+    Token      string
+    APIVersion string
+    Insecure   bool
+    Timeout    string
 }
 ```
 
@@ -377,15 +380,32 @@ type MockTimeProvider struct {
 
 ## Extension Points
 
-### Plugin System (Planned)
+### Plugin System (Implemented)
 
+s9s has two plugin systems:
+
+**Compile-time registration** (`internal/plugin/interface.go`):
 ```go
 type Plugin interface {
-    Name() string
-    Version() string
-    Init(api PluginAPI) error
-    RegisterCommands() []Command
-    RegisterViews() []View
+    GetInfo() Info
+    Init(ctx context.Context, config map[string]interface{}) error
+    Start(ctx context.Context) error
+    Stop(ctx context.Context) error
+    Health() HealthStatus
+}
+```
+With specialized interfaces: `ViewPlugin`, `OverlayPlugin`, `DataPlugin`, `ConfigurablePlugin`, `HookablePlugin`.
+
+**Shared library loading** (`internal/plugins/interface.go`):
+```go
+type Plugin interface {
+    GetInfo() PluginInfo
+    Initialize(ctx context.Context, client dao.SlurmClient) error
+    GetCommands() []Command
+    GetViews() []View
+    GetKeyBindings() []KeyBinding
+    OnEvent(event Event) error
+    Cleanup() error
 }
 ```
 
@@ -398,24 +418,16 @@ Developers can add custom views by:
 
 ### Export Formats
 
-New export formats can be added by implementing:
-```go
-type Exporter interface {
-    Export(data interface{}, writer io.Writer) error
-    FileExtension() string
-    MimeType() string
-}
-```
+The export package uses concrete types rather than a shared interface. The main exporters are `TableExporter`, `PerformanceExporter`, and `JobOutputExporter`. New export formats can be added by creating a new concrete exporter type in the export package following the patterns established by these existing types.
 
 ## Future Architectural Considerations
 
 ### Planned Improvements
 
-1. **Plugin System**: Dynamic loading of extensions
-2. **Event Bus**: Decoupled component communication
-3. **State Store**: Centralized state management
-4. **API Gateway**: Multiple backend support
-5. **Metrics Collection**: Performance monitoring
+1. **Event Bus**: Decoupled component communication
+2. **State Store**: Centralized state management
+3. **API Gateway**: Multiple backend support
+4. **Metrics Collection**: Performance monitoring
 
 ### Scalability
 

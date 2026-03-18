@@ -137,23 +137,17 @@ FROM alpine:latest
 COPY s9s /usr/local/bin/s9s
 RUN chmod +x /usr/local/bin/s9s
 
-# Run in non-interactive mode for monitoring
+# s9s is an interactive TUI application
 ENTRYPOINT ["/usr/local/bin/s9s"]
-CMD ["jobs", "--format", "json"]
 ```
+
+> **Note:** s9s is a terminal UI application and does not have a non-interactive `jobs --format json` mode. For non-interactive SLURM data access, use `scontrol` or `sacct` directly, or the SLURM REST API.
 
 ### SSH Integration
 
-For direct node access in enterprise environments:
+For direct node access in enterprise environments, s9s uses your system's default SSH configuration automatically. There is no `ssh:` section in the s9s configuration file.
 
-```yaml
-ssh:
-  enabled: true
-  multiplexing: true
-  control_path: "/tmp/s9s-ssh-%r@%h:%p"
-```
-
-See [SSH Integration Guide](../guides/ssh-integration.md) for details.
+See the [SSH Integration Guide](../guides/ssh-integration.md) for details on how SSH connections are handled.
 
 ## Future Development
 

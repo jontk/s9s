@@ -12,9 +12,11 @@ The Accounts view shows all SLURM accounts used for billing, resource allocation
 
 ## Table Columns
 
+The accounts table displays 9 columns:
+
 | Column | Description |
 |--------|-------------|
-| **Account** | Account name |
+| **Name** | Account name |
 | **Description** | Account purpose or description |
 | **Organization** | Organizational unit |
 | **Parent** | Parent account in hierarchy |
@@ -22,7 +24,6 @@ The Accounts view shows all SLURM accounts used for billing, resource allocation
 | **Max Jobs** | Maximum concurrent jobs |
 | **Max Nodes** | Maximum nodes per account |
 | **Max CPUs** | Maximum CPUs per account |
-| **Max Wall Time** | Maximum job duration |
 | **Coordinators** | Account administrators |
 
 ## Account Hierarchy
@@ -135,29 +136,6 @@ Filter accounts by:
 - Parent account
 - Coordinator name
 
-#### Advanced Filter
-**Shortcut**: `F3`
-
-Expression-based filtering:
-
-```
-organization:research
-parent:root
-qos:high
-maxcpus:>1000
-```
-
-**Supported fields:**
-- `account` - Account name
-- `description` - Description text
-- `organization` - Organization name
-- `parent` - Parent account name
-- `qos` - Default QoS
-- `maxjobs` - Max jobs (supports >, <, >=, <=)
-- `maxnodes` - Max nodes (supports comparison)
-- `maxcpus` - Max CPUs (supports comparison)
-- `coordinator` - Coordinator name
-
 ### Global Search
 **Shortcut**: `Ctrl+F`
 
@@ -187,7 +165,6 @@ Press `S` to open the interactive sort modal.
 | Key | Action |
 |-----|--------|
 | `/` | Simple filter |
-| `F3` | Advanced filter |
 | `Ctrl+F` | Global search |
 | `ESC` | Exit filter mode |
 
@@ -195,6 +172,7 @@ Press `S` to open the interactive sort modal.
 | Key | Action |
 |-----|--------|
 | `R` | Manual refresh |
+| `e/E` | Export view data |
 | `S` | Sort modal |
 
 ## Account Details Example
@@ -376,7 +354,7 @@ root
 - **Coordinate access**: Contact coordinators to request account access
 - **Billing attribution**: Jobs bill to the specified account
 - **Default account**: Users have a default, but can submit to any associated account
-- **Filter by organization**: Use `F3` with `organization:name` to group by dept
+- **Filter by organization**: Use `/` with the organization name to filter by dept
 - **Wall time inheritance**: Child accounts often inherit parent wall time limits
 - **QoS interaction**: Account limits stack with QoS limits (most restrictive wins)
 

@@ -21,11 +21,11 @@ The Health view monitors cluster status and identifies issues requiring attentio
 
 The top of the Health view shows cluster-wide health:
 
-| Status | Color | Score Range | Description |
-|--------|-------|-------------|-------------|
-| **Healthy** | Green | 90-100 | No issues, optimal performance |
-| **Warning** | Yellow | 60-89 | Minor issues, attention recommended |
-| **Critical** | Red | 0-59 | Serious issues, immediate action needed |
+| Status | Color | Description |
+|--------|-------|-------------|
+| **Healthy** | Green | No issues, optimal performance |
+| **Warning** | Yellow | Minor issues, attention recommended |
+| **Critical** | Red | Serious issues, immediate action needed |
 
 ### Health Score Calculation
 
@@ -237,37 +237,29 @@ Each component shows:
 ### Show Health Statistics
 **Shortcut**: `s/S`
 
-Opens health statistics dashboard:
+Opens health statistics summary:
 
-**Alert Statistics:**
-- Total alerts (all time)
-- Active alerts by severity
-- Average resolution time
-- Alert frequency trends
+**Alert Counts:**
+- Total alerts
+- Critical alerts
+- Warning alerts
+- Info alerts
+- Active alerts
+- Resolved alerts
+- Acknowledged alerts
+- Unacknowledged alerts
 
-**System Uptime:**
-- Cluster uptime
-- Node availability percentage
-- Service disruptions
-
-**Performance Metrics:**
-- Job success rate
-- Average queue wait time
-- Resource utilization trends
-- System throughput
-
-**Historical Trends:**
-- Health score over time (24h, 7d, 30d)
-- Alert frequency patterns
-- Recurring issues
-- Improvement/degradation trends
+**Check Summary:**
+- Total Checks
+- Overall Status
+- Last Updated
 
 ### Refresh Health Data
 **Shortcut**: `R`
 
 Manually refreshes all health checks and alerts.
 
-Auto-refresh occurs every 10-30 seconds.
+Auto-refresh occurs every 10 seconds.
 
 ## Filtering
 
@@ -312,9 +304,7 @@ Auto-refresh occurs every 10-30 seconds.
 
 ## Auto-Refresh
 
-Health view auto-refreshes every **10-30 seconds** to provide real-time monitoring.
-
-More frequent during active incidents.
+Health view auto-refreshes every **10 seconds** to provide real-time monitoring.
 
 ## Alert Example
 
@@ -390,34 +380,20 @@ When viewing statistics (`s/S`):
 ```
 Health Statistics
 
-Alert Summary (Last 7 Days):
+Alert Summary:
   Total Alerts: 47
   Critical: 2
   Warning: 28
   Info: 17
-  Average Resolution Time: 2h 15m
+  Active: 3
+  Resolved: 36
+  Acknowledged: 8
+  Unacknowledged: 3
 
-Current Status:
-  Active Alerts: 3
-  Acknowledged: 1
-  Resolved (24h): 8
-
-System Uptime:
-  Cluster: 99.8%
-  Average Node Availability: 98.5%
-  Last Outage: 3 days ago (15 minutes)
-
-Performance Metrics:
-  Job Success Rate: 94.2%
-  Average Wait Time: 1h 45m
-  Resource Utilization: 78%
-  Throughput: 245 jobs/hour
-
-Health Trend (7 days):
-  Average Score: 87/100
-  Trend: Improving (+3 points)
-  Best Day: Monday (95/100)
-  Worst Day: Wednesday (78/100)
+Check Summary:
+  Total Checks: 5
+  Overall Status: Warning
+  Last Updated: 2024-01-15 14:35:00
 ```
 
 ## Tips
