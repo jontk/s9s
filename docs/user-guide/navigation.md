@@ -104,7 +104,10 @@ These shortcuts work across all views:
 | `A` | Analytics | Show partition analytics |
 | `W` | Wait Times | Show wait time analytics |
 | `/` | Filter | Filter partitions |
+| `Ctrl+F` | Search | Global search across all entity types |
 | `S` | Sort | Open sort modal |
+| `R` | Refresh | Force refresh view |
+| `e` | Export | Export partition data |
 
 ### QoS View
 
@@ -112,7 +115,10 @@ These shortcuts work across all views:
 |-----|--------|-------------|
 | `Enter` | Details | Show QoS details |
 | `/` | Filter | Filter QoS policies |
+| `Ctrl+F` | Search | Global search across all entity types |
 | `S` | Sort | Open sort modal |
+| `R` | Refresh | Force refresh view |
+| `e` | Export | Export QoS data |
 
 ### Accounts View
 
@@ -121,7 +127,10 @@ These shortcuts work across all views:
 | `Enter` | Details | Show account details |
 | `H` | Hierarchy | Show account hierarchy |
 | `/` | Filter | Filter accounts |
+| `Ctrl+F` | Search | Global search across all entity types |
 | `S` | Sort | Open sort modal |
+| `R` | Refresh | Force refresh view |
+| `e` | Export | Export account data |
 
 ### Users View
 
@@ -130,7 +139,10 @@ These shortcuts work across all views:
 | `Enter` | Details | Show user details |
 | `a` | Toggle Filter | Show admin users / all users |
 | `/` | Filter | Filter users |
+| `Ctrl+F` | Search | Global search across all entity types |
 | `S` | Sort | Open sort modal |
+| `R` | Refresh | Force refresh view |
+| `e` | Export | Export user data |
 
 ### Reservations View
 
@@ -140,7 +152,10 @@ These shortcuts work across all views:
 | `a` | Active Only | Filter active reservations |
 | `f` | Future Only | Filter future reservations |
 | `/` | Filter | Filter reservations |
+| `Ctrl+F` | Search | Global search across all entity types |
 | `S` | Sort | Open sort modal |
+| `R` | Refresh | Force refresh view |
+| `e` | Export | Export reservation data |
 
 ### Dashboard View
 

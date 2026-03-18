@@ -23,7 +23,7 @@ Export is available in all main data views:
 | Partitions | `e` | Name, State, Total Nodes, Total CPUs, Default Time, Max Time, QoS, Nodes |
 | Reservations | `e` | Name, State, Start/End Time, Duration, Nodes, Node Count, Core Count, Users, Accounts |
 | QoS | `e` | Name, Priority, Preempt Mode, Flags, all per-user/account limits |
-| Accounts | `e` | Name, Description, Organization, Parent, QoS, Coordinators, resource limits |
+| Accounts | `e` | Name, Description, Organization, Parent, Default QoS, QoS List, Coordinators, Max Jobs, Max Nodes, Max CPUs, Max Submit, Max Wall, Children |
 | Users | `e` | Name, UID, Default Account, Accounts, Admin Level, Default QoS, QoS List, Max Jobs, Max Nodes, Max CPUs, Max Submit |
 
 ## Supported Formats

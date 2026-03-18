@@ -1,6 +1,6 @@
 # Changelog
 
-This page provides an overview of notable changes to the s9s project. For a complete and detailed changelog, please see the [full changelog](../CHANGELOG.md).
+This page provides an overview of notable changes to the s9s project. For a complete and detailed changelog, please see the [full changelog](../../CHANGELOG.md).
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
@@ -107,20 +107,20 @@ Initial stable release with core features:
 
 ## Viewing the Full Changelog
 
-For a complete list of all changes, features, and fixes across all versions, refer to the [full CHANGELOG.md](../CHANGELOG.md).
+For a complete list of all changes, features, and fixes across all versions, refer to the [full CHANGELOG.md](../../CHANGELOG.md).
 
 ## Version History
 
-- [v0.7.0](../CHANGELOG.md#070---2026-03-16) - Latest release
-- [v0.6.3](../CHANGELOG.md#063---2026-03-14) - Performance and responsiveness
-- [v0.6.2](../CHANGELOG.md#062---2026-03-10) - Setup wizard fixes
-- [v0.6.1](../CHANGELOG.md#061---2026-03-09) - Node metrics, job times, dashboard fixes
-- [v0.6.0](../CHANGELOG.md#060---2026-03-08) - Cluster switcher, export, config rename
-- [v0.5.0](../CHANGELOG.md#050---2026-02-18) - Auto-discovery, static builds
-- [v0.4.0](../CHANGELOG.md#040---2026-02-08) - Performance view, sorting, command mode
-- [v0.3.0](../CHANGELOG.md#030---2026-01-30) - Vim navigation, search, filters
-- [v0.1.0](../CHANGELOG.md#010---2026-01-21) - Initial release
-- [Unreleased](../CHANGELOG.md#unreleased) - Upcoming changes
+- [v0.7.0](../../CHANGELOG.md#070---2026-03-16) - Latest release
+- [v0.6.3](../../CHANGELOG.md#063---2026-03-14) - Performance and responsiveness
+- [v0.6.2](../../CHANGELOG.md#062---2026-03-10) - Setup wizard fixes
+- [v0.6.1](../../CHANGELOG.md#061---2026-03-09) - Node metrics, job times, dashboard fixes
+- [v0.6.0](../../CHANGELOG.md#060---2026-03-08) - Cluster switcher, export, config rename
+- [v0.5.0](../../CHANGELOG.md#050---2026-02-18) - Auto-discovery, static builds
+- [v0.4.0](../../CHANGELOG.md#040---2026-02-08) - Performance view, sorting, command mode
+- [v0.3.0](../../CHANGELOG.md#030---2026-01-30) - Vim navigation, search, filters
+- [v0.1.0](../../CHANGELOG.md#010---2026-01-21) - Initial release
+- [Unreleased](../../CHANGELOG.md#unreleased) - Upcoming changes
 
 ## Semantic Versioning
 

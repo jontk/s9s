@@ -69,7 +69,7 @@ Plugins can also implement additional interfaces for extended functionality:
 - **`ViewPlugin`** -- provides custom TUI views (`GetViews()`, `CreateView()`)
 - **`OverlayPlugin`** -- adds data overlays to existing views (`GetOverlays()`, `CreateOverlay()`)
 - **`DataPlugin`** -- provides data to other plugins via pub/sub (`GetDataProviders()`, `Subscribe()`, `Unsubscribe()`, `Query()`)
-- **`ConfigurablePlugin`** -- supports runtime configuration changes (`GetConfig()`, `SetConfig()`, `ValidateConfig()`)
+- **`ConfigurablePlugin`** -- supports runtime configuration changes (`GetConfig()`, `SetConfig()`, `ValidateConfig()`, `GetConfigUI()`)
 - **`HookablePlugin`** -- provides hooks for event-driven integration (`GetHooks()`, `RegisterHook()`)
 - **`LifecycleAware`** -- receives lifecycle events (`OnEnable()`, `OnDisable()`, `OnConfigChange()`)
 - **`Prioritizable`** -- controls initialization order (`GetPriority()`)

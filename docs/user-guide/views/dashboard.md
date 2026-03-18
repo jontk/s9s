@@ -81,8 +81,7 @@ Shows "No issues detected" with green checkmark when system is healthy.
 ### Performance Trends (Bottom)
 
 Displays cluster performance visualizations:
-- Job throughput sparklines
-- Resource efficiency percentages
+- Resource efficiency bar (average of CPU and Memory utilization)
 - System health score with visual bar
 
 These values are computed from real cluster metrics collected during the session.
