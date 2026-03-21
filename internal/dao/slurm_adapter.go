@@ -53,8 +53,11 @@ func NewSlurmAdapter(ctx context.Context, cfg *config.ClusterConfig) (*SlurmAdap
 	// Add authentication if token is provided
 	if cfg.Token != "" {
 		// Resolve username for X-SLURM-USER-NAME header.
-		// Priority: SLURM_USER_NAME env var > OS current user
+		// Priority: SLURM_USER_NAME env > USER env > OS current user
 		username := os.Getenv("SLURM_USER_NAME")
+		if username == "" {
+			username = os.Getenv("USER")
+		}
 		if username == "" {
 			if currentUser, err := osuser.Current(); err == nil && currentUser.Username != "" {
 				username = currentUser.Username

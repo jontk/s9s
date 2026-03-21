@@ -2308,7 +2308,7 @@ func (w *JobSubmissionWizard) getAvailableQoS() []string {
 
 // getCurrentUser fetches the current OS user's SLURM user record
 func (w *JobSubmissionWizard) getCurrentUser() *dao.User {
-	// Use the same resolution as the auth layer: SLURM_USER_NAME > OS user
+	// Same resolution as the auth layer: SLURM_USER_NAME env > USER env > OS user
 	username := os.Getenv("SLURM_USER_NAME")
 	if username == "" {
 		username = os.Getenv("USER")
