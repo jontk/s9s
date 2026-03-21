@@ -197,12 +197,12 @@ func (v *Validator) validateContexts() {
 // validateClusters validates cluster configurations
 func (v *Validator) validateClusters() {
 	for i, entry := range v.config.Clusters {
-		v.validateCluster(entry.Cluster, fmt.Sprintf("clusters[%d].cluster", i))
+		v.validateCluster(&entry.Cluster, fmt.Sprintf("clusters[%d].cluster", i))
 	}
 }
 
 // validateCluster validates a single cluster configuration
-func (v *Validator) validateCluster(cluster ClusterConfig, basePath string) {
+func (v *Validator) validateCluster(cluster *ClusterConfig, basePath string) {
 	// Endpoint validation (main connection method)
 	if cluster.Endpoint == "" {
 		v.addError(fmt.Sprintf("%s.endpoint", basePath),
@@ -234,7 +234,7 @@ func (v *Validator) validateCluster(cluster ClusterConfig, basePath string) {
 
 // validateClusterInContext validates cluster within a cluster entry
 func (v *Validator) validateClusterInContext(entry *ClusterContext, entryPath string) {
-	v.validateCluster(entry.Cluster, fmt.Sprintf("%s.cluster", entryPath))
+	v.validateCluster(&entry.Cluster, fmt.Sprintf("%s.cluster", entryPath))
 }
 
 // validateAuthentication validates authentication settings

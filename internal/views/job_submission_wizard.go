@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
-	osuser "os/user"
 	"regexp"
 	"strconv"
 	"strings"
@@ -27,13 +26,14 @@ type JobSubmissionWizard struct {
 	onSubmit         func(jobID string)
 	onCancel         func()
 	workingDir       string // Current working directory at application start
+	slurmUser        string // Resolved SLURM username for user lookups
 	submissionConfig *config.JobSubmissionConfig
 	selectedTemplate *dao.JobTemplate   // Track currently selected template for hidden fields
 	currentJob       *dao.JobSubmission // Track current job for field visibility
 }
 
 // NewJobSubmissionWizard creates a new job submission wizard
-func NewJobSubmissionWizard(client dao.SlurmClient, app *tview.Application, cfg *config.JobSubmissionConfig) *JobSubmissionWizard {
+func NewJobSubmissionWizard(client dao.SlurmClient, app *tview.Application, cfg *config.JobSubmissionConfig, slurmUser string) *JobSubmissionWizard {
 	// Get current working directory at application start
 	workingDir, err := os.Getwd()
 	if err != nil {
@@ -44,6 +44,7 @@ func NewJobSubmissionWizard(client dao.SlurmClient, app *tview.Application, cfg 
 		client:           client,
 		app:              app,
 		workingDir:       workingDir,
+		slurmUser:        slurmUser,
 		submissionConfig: cfg,
 	}
 	w.templates = w.mergeTemplates()
@@ -2308,19 +2309,9 @@ func (w *JobSubmissionWizard) getAvailableQoS() []string {
 
 // getCurrentUser fetches the current OS user's SLURM user record
 func (w *JobSubmissionWizard) getCurrentUser() *dao.User {
-	// Same resolution as the auth layer: SLURM_USER_NAME env > USER env > OS user
-	username := os.Getenv("SLURM_USER_NAME")
-	if username == "" {
-		username = os.Getenv("USER")
-	}
-	if username == "" {
-		if u, err := osuser.Current(); err == nil {
-			username = u.Username
-		}
-	}
-	if username == "" {
+	if w.slurmUser == "" {
 		return nil
 	}
-	user, _ := w.client.Users().Get(username)
+	user, _ := w.client.Users().Get(w.slurmUser)
 	return user
 }

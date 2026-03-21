@@ -49,6 +49,7 @@ func (s *S9s) registerJobsView() error {
 	view.SetStatusBar(s.statusBar)
 	view.SetPages(s.pages)
 	view.SetSubmissionConfig(&s.config.Views.Jobs.Submission)
+	view.SetSlurmUser(s.config.ResolveSlurmUser())
 	return s.addViewToApp("jobs", view)
 }
 

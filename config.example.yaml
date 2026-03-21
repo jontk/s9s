@@ -19,6 +19,7 @@ clusters:
       apiVersion: v0.0.40
       insecure: false
       timeout: 30s
+      # user: root  # Override SLURM username (default: OS user)
     namespace: default
     readOnly: false
     
