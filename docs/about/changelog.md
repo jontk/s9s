@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 Bug fix release for remote cluster connectivity:
 
-- **Configurable SLURM Username**: New `user` field in cluster config (`cluster.user: root`) overrides the `X-SLURM-USER-NAME` header — fixes job submission and node drain/resume when s9s runs on a different machine than the SLURM cluster
+- **Configurable SLURM Username**: New `user` field in cluster config (`cluster.user: root`) overrides the `X-SLURM-USER-NAME` header — for environments where the local OS user doesn't match a SLURM user (laptops, CI runners, containers, or any host outside the cluster's shared user directory)
 - **`SLURM_USER_NAME` Environment Variable**: Overrides all other username resolution for CI/scripting use cases
 - **No Silent Root Fallback**: Username resolution fails explicitly if no user can be determined, preventing unintended privilege escalation
 
