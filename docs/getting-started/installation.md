@@ -31,31 +31,31 @@ Download pre-built binaries from our [releases page](https://github.com/jontk/s9
 
 ```bash
 # Linux (x86_64)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.0_Linux_x86_64.tar.gz
-tar -xzf s9s_0.7.0_Linux_x86_64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.1_Linux_x86_64.tar.gz
+tar -xzf s9s_0.7.1_Linux_x86_64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 
 # Linux (ARM64)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.0_Linux_arm64.tar.gz
-tar -xzf s9s_0.7.0_Linux_arm64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.1_Linux_arm64.tar.gz
+tar -xzf s9s_0.7.1_Linux_arm64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 
 # macOS (Apple Silicon)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.0_Darwin_arm64.tar.gz
-tar -xzf s9s_0.7.0_Darwin_arm64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.1_Darwin_arm64.tar.gz
+tar -xzf s9s_0.7.1_Darwin_arm64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 
 # macOS (Intel)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.0_Darwin_x86_64.tar.gz
-tar -xzf s9s_0.7.0_Darwin_x86_64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.1_Darwin_x86_64.tar.gz
+tar -xzf s9s_0.7.1_Darwin_x86_64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 ```
 
-> **Note:** Replace `0.7.0` with the latest version from the [releases page](https://github.com/jontk/s9s/releases).
+> **Note:** Replace `0.7.1` with the latest version from the [releases page](https://github.com/jontk/s9s/releases).
 
 ### 3. Using Go Install
 
@@ -102,7 +102,7 @@ s9s --version
 
 You should see output like:
 ```
-S9S - SLURM Terminal UI version 0.7.0
+S9S - SLURM Terminal UI version 0.7.1
 ```
 
 ### 2. Initial Configuration
@@ -262,10 +262,10 @@ On Linux, if you get "cannot execute binary file":
 uname -m
 
 # For x86_64/AMD64
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.0_Linux_x86_64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.1_Linux_x86_64.tar.gz
 
 # For ARM64/aarch64
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.0_Linux_arm64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.1_Linux_arm64.tar.gz
 ```
 
 ## Upgrading
@@ -277,8 +277,8 @@ To upgrade to the latest version:
 curl -sSL https://get.s9s.dev | bash
 
 # If installed via binary download (replace version and arch as needed)
-curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.0_Linux_x86_64.tar.gz
-tar -xzf s9s_0.7.0_Linux_x86_64.tar.gz
+curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.1_Linux_x86_64.tar.gz
+tar -xzf s9s_0.7.1_Linux_x86_64.tar.gz
 mkdir -p ~/.local/bin
 mv s9s ~/.local/bin/
 
