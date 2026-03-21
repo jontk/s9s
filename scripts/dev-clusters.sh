@@ -181,6 +181,7 @@ for ns in "${AVAILABLE_NAMESPACES[@]}"; do
       apiVersion: $api_ver
       insecure: true
       timeout: 30s
+      user: root
 
 EOF
 done
@@ -193,38 +194,18 @@ discovery:
   enabled: false
 EOF
 
-# Write env file for SLURM_USER_NAME (tokens are generated for root)
-ENV_FILE="$CONFIG_DIR/env.sh"
-cat > "$ENV_FILE" <<EOF
-# Source this file or use the s9s-dev wrapper below
-export SLURM_USER_NAME=root
-EOF
-
-# Write convenience wrapper script
-WRAPPER="$CONFIG_DIR/s9s-dev"
-cat > "$WRAPPER" <<WRAPPER_EOF
-#!/usr/bin/env bash
-# Dev cluster wrapper — sets SLURM_USER_NAME and passes all args to s9s
-export SLURM_USER_NAME=root
-exec s9s --config "$CONFIG_FILE" --no-discovery "\$@"
-WRAPPER_EOF
-chmod +x "$WRAPPER"
-
 echo ""
 echo -e "${BOLD}=== Dev Clusters Config Ready ===${NC}"
 echo ""
 echo -e "  Config:   ${GREEN}$CONFIG_FILE${NC}"
-echo -e "  Wrapper:  ${GREEN}$WRAPPER${NC}"
 echo -e "  Clusters: ${AVAILABLE_NAMESPACES[*]}"
 echo -e "  Default:  ${BOLD}$DEFAULT_CLUSTER${NC}"
 echo ""
-echo -e "  ${BOLD}Usage (easiest):${NC}"
-echo -e "    $WRAPPER"
-echo -e "    $WRAPPER --cluster slurm-2511"
-echo ""
-echo -e "  ${BOLD}Or manually:${NC}"
-echo -e "    source $ENV_FILE"
+echo -e "  ${BOLD}Usage:${NC}"
 echo -e "    s9s --config $CONFIG_FILE --no-discovery"
+echo ""
+echo -e "  ${BOLD}Switch cluster:${NC}"
+echo -e "    s9s --config $CONFIG_FILE --cluster slurm-2511 --no-discovery"
 echo ""
 echo -e "  ${BOLD}Re-seed clusters:${NC}"
 echo -e "    $0 --seed-only"

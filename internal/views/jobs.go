@@ -49,11 +49,17 @@ type JobsView struct {
 	selectionStatusText *tview.TextView
 	mainStatusBar       *components.StatusBar // Reference to main app status bar
 	submissionConfig    *config.JobSubmissionConfig
+	slurmUser           string
 }
 
 // SetSubmissionConfig sets the job submission configuration
 func (v *JobsView) SetSubmissionConfig(cfg *config.JobSubmissionConfig) {
 	v.submissionConfig = cfg
+}
+
+// SetSlurmUser sets the resolved SLURM username for the job submission wizard
+func (v *JobsView) SetSlurmUser(user string) {
+	v.slurmUser = user
 }
 
 // SetPages sets the pages reference for modal handling
@@ -1147,7 +1153,7 @@ func (v *JobsView) performRequeueJob(jobID string) {
 
 // showJobSubmissionForm shows job submission form using the wizard
 func (v *JobsView) showJobSubmissionForm() {
-	wizard := NewJobSubmissionWizard(v.client, v.app, v.submissionConfig)
+	wizard := NewJobSubmissionWizard(v.client, v.app, v.submissionConfig, v.slurmUser)
 	wizard.Show(v.pages, func(_ string) {
 		go func() { _ = v.Refresh() }()
 	}, func() {

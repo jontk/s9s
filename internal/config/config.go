@@ -57,6 +57,7 @@ type ClusterConfig struct {
 	APIVersion string `mapstructure:"apiVersion"`
 	Insecure   bool   `mapstructure:"insecure"`
 	Timeout    string `mapstructure:"timeout"`
+	User       string `mapstructure:"user"` // Override X-SLURM-USER-NAME header
 }
 
 // UIConfig holds UI-related settings
@@ -450,6 +451,22 @@ func (c *Config) GetCluster(name string) (*ClusterContext, error) {
 		}
 	}
 	return nil, fmt.Errorf("cluster %q not found", name)
+}
+
+// ResolveSlurmUser returns the effective SLURM username for API requests.
+// Priority: SLURM_USER_NAME env > cluster config user > USER env > OS current user.
+// Returns empty string if no username can be determined.
+func (c *Config) ResolveSlurmUser() string {
+	if u := os.Getenv("SLURM_USER_NAME"); u != "" {
+		return u
+	}
+	if c.Cluster.User != "" {
+		return c.Cluster.User
+	}
+	if u := os.Getenv("USER"); u != "" {
+		return u
+	}
+	return ""
 }
 
 // SaveToFile saves the configuration to a file
