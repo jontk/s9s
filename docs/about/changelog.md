@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Recent Changes
 
+### Version 0.7.1 (2026-03-21)
+
+Bug fix release for remote cluster connectivity:
+
+- **Configurable SLURM Username**: New `user` field in cluster config (`cluster.user: root`) overrides the `X-SLURM-USER-NAME` header — fixes job submission and node drain/resume when s9s runs on a different machine than the SLURM cluster
+- **`SLURM_USER_NAME` Environment Variable**: Overrides all other username resolution for CI/scripting use cases
+- **No Silent Root Fallback**: Username resolution fails explicitly if no user can be determined, preventing unintended privilege escalation
+
 ### Version 0.7.0 (2026-03-16)
 
 Configurable job submission templates and full SLURM field support:

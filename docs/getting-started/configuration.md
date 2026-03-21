@@ -67,11 +67,13 @@ clusters:
     cluster:
       endpoint: https://slurm.example.com:6820
       token: ${SLURM_JWT}  # or discovered via scontrol token / SLURM_JWT env var
+      # user: admin  # Override SLURM username (default: OS user)
 
   - name: development
     cluster:
       endpoint: https://slurm-dev.example.com:6820
       token: ${DEV_SLURM_JWT}
+      user: root  # Use root for dev clusters where tokens are generated for root
 
 # UI preferences
 ui:
@@ -89,6 +91,7 @@ S9s uses the `S9S_` prefix for its own environment variables and also supports u
 | `SLURM_REST_URL` or `S9S_SLURM_REST_URL` | SLURM REST API URL | - | `https://slurm.example.com:6820` |
 | `SLURM_JWT` or `S9S_SLURM_JWT` | Authentication token (auto-discovered via `scontrol token` if not set) | - | `eyJhbGci...` |
 | `SLURM_API_VERSION` | API version | `v0.0.43` | `v0.0.40` |
+| `SLURM_USER_NAME` | Override SLURM username for `X-SLURM-USER-NAME` header (takes precedence over config `cluster.user` and OS user) | OS user | `root` |
 
 ### Mock Mode Variable
 

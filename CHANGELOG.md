@@ -15,6 +15,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.7.1] - 2026-03-21
+
+### Added
+
+- **Configurable SLURM username per cluster** — new `user` field in cluster config overrides the `X-SLURM-USER-NAME` header, fixing job submission and node operations when s9s runs on a different machine than the SLURM cluster (#143, #145)
+- **`SLURM_USER_NAME` environment variable** — overrides all other username resolution methods (#144)
+- **`config.ResolveSlurmUser()`** — shared helper for consistent username resolution across auth and wizard
+
+### Changed
+
+- **Username resolution chain** — `SLURM_USER_NAME` env > config `cluster.user` > `USER` env > OS current user. No silent `root` fallback; fails explicitly if no username can be determined
+- **Dev clusters script** — writes `user: root` directly in config instead of requiring env var wrappers
+
+### Fixed
+
+- **Job submission fails on remote clusters** — `X-SLURM-USER-NAME` header sent local OS username instead of the SLURM user the JWT token was generated for (#143)
+- **Node drain/resume fails on remote clusters** — same username mismatch caused permission errors
+- **Account dropdown empty on remote clusters** — wizard looked up local username in SLURM user database instead of the configured user
+
 ## [0.7.0] - 2026-03-16
 
 ### Added
