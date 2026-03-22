@@ -41,6 +41,16 @@ func TestIsNewer(t *testing.T) {
 	}
 }
 
+// newTestChecker creates a Checker pointed at the given test server.
+func newTestChecker(srv *httptest.Server) *Checker {
+	return &Checker{
+		owner:      "testowner",
+		repo:       "testrepo",
+		baseURL:    srv.URL,
+		httpClient: srv.Client(),
+	}
+}
+
 func TestChecker_LatestRelease_Stable(t *testing.T) {
 	release := ghRelease{
 		TagName:     "v0.8.0",
@@ -68,16 +78,7 @@ func TestChecker_LatestRelease_Stable(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	checker := &Checker{
-		owner:      "testowner",
-		repo:       "testrepo",
-		httpClient: srv.Client(),
-	}
-	// Override the API base for testing.
-	origBase := githubAPIBaseURL
-	defer func() { setGithubAPIBase(origBase) }()
-	setGithubAPIBase(srv.URL)
-
+	checker := newTestChecker(srv)
 	info, err := checker.LatestRelease(context.Background(), false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -116,24 +117,47 @@ func TestChecker_LatestRelease_PreRelease(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	checker := &Checker{
-		owner:      "testowner",
-		repo:       "testrepo",
-		httpClient: srv.Client(),
-	}
-	origBase := githubAPIBaseURL
-	defer func() { setGithubAPIBase(origBase) }()
-	setGithubAPIBase(srv.URL)
-
+	checker := newTestChecker(srv)
 	info, err := checker.LatestRelease(context.Background(), true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// v0.9.0-rc.1 is less than v0.9.0 but greater than v0.8.0
-	// semver sorts pre-releases before their release, so v0.9.0-rc.1 > v0.8.0
 	if info.TagName != "v0.9.0-rc.1" {
 		t.Errorf("TagName = %q, want %q", info.TagName, "v0.9.0-rc.1")
+	}
+}
+
+func TestChecker_LatestRelease_FiltersDrafts(t *testing.T) {
+	releases := []ghRelease{
+		{
+			TagName:    "v0.9.0",
+			Draft:      true,
+			PreRelease: false,
+		},
+		{
+			TagName:    "v0.8.0",
+			Draft:      false,
+			PreRelease: false,
+			HTMLURL:    "https://github.com/jontk/s9s/releases/tag/v0.8.0",
+		},
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(releases)
+	}))
+	defer srv.Close()
+
+	checker := newTestChecker(srv)
+	info, err := checker.LatestRelease(context.Background(), true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Should skip the draft v0.9.0 and return v0.8.0
+	if info.TagName != "v0.8.0" {
+		t.Errorf("TagName = %q, want %q (draft should be filtered)", info.TagName, "v0.8.0")
 	}
 }
 
@@ -143,15 +167,7 @@ func TestChecker_LatestRelease_APIError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	checker := &Checker{
-		owner:      "testowner",
-		repo:       "testrepo",
-		httpClient: srv.Client(),
-	}
-	origBase := githubAPIBaseURL
-	defer func() { setGithubAPIBase(origBase) }()
-	setGithubAPIBase(srv.URL)
-
+	checker := newTestChecker(srv)
 	_, err := checker.LatestRelease(context.Background(), false)
 	if err == nil {
 		t.Fatal("expected error for 500 response")
@@ -164,15 +180,7 @@ func TestChecker_LatestRelease_RateLimit(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	checker := &Checker{
-		owner:      "testowner",
-		repo:       "testrepo",
-		httpClient: srv.Client(),
-	}
-	origBase := githubAPIBaseURL
-	defer func() { setGithubAPIBase(origBase) }()
-	setGithubAPIBase(srv.URL)
-
+	checker := newTestChecker(srv)
 	_, err := checker.LatestRelease(context.Background(), false)
 	if err == nil {
 		t.Fatal("expected error for rate limit")

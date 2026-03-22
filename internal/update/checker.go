@@ -19,12 +19,7 @@ const (
 	defaultRepo  = "s9s"
 )
 
-var githubAPIBaseURL = "https://api.github.com"
-
-// setGithubAPIBase overrides the GitHub API base URL (for testing).
-func setGithubAPIBase(url string) {
-	githubAPIBaseURL = url
-}
+const defaultBaseURL = "https://api.github.com"
 
 // ReleaseInfo holds information about a GitHub release.
 type ReleaseInfo struct {
@@ -47,6 +42,7 @@ type Asset struct {
 type Checker struct {
 	owner      string
 	repo       string
+	baseURL    string
 	httpClient *http.Client
 }
 
@@ -58,8 +54,9 @@ func NewChecker() *Checker {
 // NewCheckerFor creates a Checker for a specific GitHub repository.
 func NewCheckerFor(owner, repo string) *Checker {
 	return &Checker{
-		owner: owner,
-		repo:  repo,
+		owner:   owner,
+		repo:    repo,
+		baseURL: defaultBaseURL,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -76,7 +73,7 @@ func (c *Checker) LatestRelease(ctx context.Context, includePreRelease bool) (*R
 }
 
 func (c *Checker) latestStable(ctx context.Context) (*ReleaseInfo, error) {
-	url := fmt.Sprintf("%s/repos/%s/%s/releases/latest", githubAPIBaseURL, c.owner, c.repo)
+	url := fmt.Sprintf("%s/repos/%s/%s/releases/latest", c.baseURL, c.owner, c.repo)
 
 	var gh ghRelease
 	if err := c.fetchJSON(ctx, url, &gh); err != nil {
@@ -87,7 +84,7 @@ func (c *Checker) latestStable(ctx context.Context) (*ReleaseInfo, error) {
 }
 
 func (c *Checker) latestIncludingPreRelease(ctx context.Context) (*ReleaseInfo, error) {
-	url := fmt.Sprintf("%s/repos/%s/%s/releases?per_page=10", githubAPIBaseURL, c.owner, c.repo)
+	url := fmt.Sprintf("%s/repos/%s/%s/releases?per_page=10", c.baseURL, c.owner, c.repo)
 
 	var releases []ghRelease
 	if err := c.fetchJSON(ctx, url, &releases); err != nil {
@@ -98,10 +95,13 @@ func (c *Checker) latestIncludingPreRelease(ctx context.Context) (*ReleaseInfo, 
 		return nil, fmt.Errorf("no releases found")
 	}
 
-	// Find the newest release by semver.
+	// Find the newest non-draft release by semver.
 	var best *ghRelease
 	for i := range releases {
 		r := &releases[i]
+		if r.Draft {
+			continue
+		}
 		if best == nil {
 			best = r
 			continue

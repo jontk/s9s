@@ -17,7 +17,6 @@ var (
 	updateCheck      bool
 	updateForce      bool
 	updatePreRelease bool
-	updateVersion    string
 )
 
 var updateCmd = &cobra.Command{
@@ -37,7 +36,6 @@ func init() {
 	updateCmd.Flags().BoolVar(&updateCheck, "check", false, "only check for updates, don't install")
 	updateCmd.Flags().BoolVar(&updateForce, "force", false, "skip confirmation prompt")
 	updateCmd.Flags().BoolVar(&updatePreRelease, "pre-release", false, "include pre-release versions")
-	updateCmd.Flags().StringVar(&updateVersion, "version", "", "update to a specific version (e.g., v0.8.0)")
 }
 
 func runUpdate(_ *cobra.Command, _ []string) error {

@@ -72,7 +72,7 @@ func (u *Updater) Update(ctx context.Context, opts UpdateOptions) (*UpdateResult
 		return nil, err
 	}
 
-	source, err := go_selfupdate_source()
+	source, err := goSelfupdateSource()
 	if err != nil {
 		return nil, fmt.Errorf("creating update source: %w", err)
 	}
@@ -117,7 +117,7 @@ func (u *Updater) Update(ctx context.Context, opts UpdateOptions) (*UpdateResult
 	}, nil
 }
 
-func go_selfupdate_source() (selfupdate.Source, error) {
+func goSelfupdateSource() (selfupdate.Source, error) {
 	return selfupdate.NewGitHubSource(selfupdate.GitHubConfig{})
 }
 
