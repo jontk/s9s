@@ -259,6 +259,12 @@ update:
   # Set to false for air-gapped clusters or managed deployments
   enabled: true
 
+  # Automatically download and install updates (default: false)
+  # When true, s9s replaces its own binary on startup and shows
+  # "Updated to X — restart s9s to use the new version"
+  # When false, only a notification is shown
+  autoInstall: false
+
   # How often to check for new versions (default: "24h")
   checkInterval: "24h"
 
@@ -266,7 +272,10 @@ update:
   preRelease: false
 ```
 
-The background check runs in a goroutine with a 3-second timeout and caches results to `~/.s9s/update-state.json`. When a newer version is found, a status bar notification appears: `Update available: 0.7.1 -> 0.8.0 (run 's9s update')`.
+The background check runs in a goroutine with a 3-second timeout and caches results to `~/.s9s/update-state.json`. Behavior depends on `autoInstall`:
+
+- **`autoInstall: false`** (default) — shows a status bar notification: `Update available: 0.7.1 -> 0.8.0 (run 's9s update')`
+- **`autoInstall: true`** — downloads and replaces the binary, then shows: `Updated to 0.8.0 — restart s9s to use the new version`. If the auto-install fails (e.g., permissions), falls back to the notification.
 
 To update manually, use `s9s update`. See the [Installation Guide](../getting-started/installation.md#upgrading) for details.
 

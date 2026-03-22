@@ -239,6 +239,7 @@ pluginSettings:
 # Auto-update settings
 update:
   enabled: boolean           # Enable background update checks (default: true)
+  autoInstall: boolean       # Auto-download and replace binary on startup (default: false)
   checkInterval: duration    # How often to check for updates (default: "24h")
   preRelease: boolean        # Include pre-release versions (default: false)
 

@@ -299,12 +299,15 @@ By default, s9s checks for new versions once every 24 hours on TUI startup and s
 
 ```yaml
 update:
-  enabled: true       # set to false to disable (e.g., air-gapped clusters)
+  enabled: true        # set to false to disable (e.g., air-gapped clusters)
+  autoInstall: false   # set to true to auto-update on startup
   checkInterval: "24h" # how often to check
   preRelease: false    # include pre-release versions
 ```
 
-Or disable via environment variable: `S9S_UPDATE_ENABLED=false`.
+With `autoInstall: true`, s9s will download and replace its own binary on startup when a newer version is available, then prompt you to restart. If the install fails (e.g., permissions), it falls back to a notification.
+
+Or disable checks entirely via environment variable: `S9S_UPDATE_ENABLED=false`.
 
 ### Manual Upgrade Methods
 

@@ -146,6 +146,7 @@ type PluginConfig struct {
 // UpdateConfig holds auto-update check settings
 type UpdateConfig struct {
 	Enabled       bool   `mapstructure:"enabled"`
+	AutoInstall   bool   `mapstructure:"autoInstall"`
 	CheckInterval string `mapstructure:"checkInterval"`
 	PreRelease    bool   `mapstructure:"preRelease"`
 }
@@ -219,6 +220,7 @@ func DefaultConfig() *Config {
 		},
 		Update: UpdateConfig{
 			Enabled:       true,
+			AutoInstall:   false,
 			CheckInterval: "24h",
 			PreRelease:    false,
 		},
@@ -351,6 +353,7 @@ func setDefaults(v *viper.Viper) {
 
 	// Update defaults
 	v.SetDefault("update.enabled", true)
+	v.SetDefault("update.autoInstall", false)
 	v.SetDefault("update.checkInterval", "24h")
 	v.SetDefault("update.preRelease", false)
 
