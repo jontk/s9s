@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/creativeprojects/go-selfupdate"
@@ -42,6 +43,9 @@ func NewUpdater() *Updater {
 }
 
 // CanUpdate checks whether the running binary can be updated.
+// go-selfupdate writes to a temp file then renames over the binary,
+// so we check that the parent directory is writable (not the binary itself,
+// which would fail with ETXTBSY on Linux).
 func CanUpdate() error {
 	if version.Version == "dev" {
 		return fmt.Errorf("cannot update a development build; install a release version first")
@@ -52,17 +56,19 @@ func CanUpdate() error {
 		return fmt.Errorf("cannot determine executable path: %w", err)
 	}
 
-	info, err := os.Stat(exe)
-	if err != nil {
+	if _, err := os.Stat(exe); err != nil {
 		return fmt.Errorf("cannot stat executable: %w", err)
 	}
 
-	// Check if file is writable by trying to open for writing.
-	f, err := os.OpenFile(exe, os.O_WRONLY, info.Mode())
+	// Check that the directory containing the binary is writable,
+	// which is what's needed for the atomic rename.
+	dir := filepath.Dir(exe)
+	tmp, err := os.CreateTemp(dir, ".s9s-update-check-*")
 	if err != nil {
-		return fmt.Errorf("binary at %s is not writable (try sudo): %w", exe, err)
+		return fmt.Errorf("directory %s is not writable (try sudo): %w", dir, err)
 	}
-	f.Close()
+	tmp.Close()
+	os.Remove(tmp.Name())
 
 	return nil
 }
