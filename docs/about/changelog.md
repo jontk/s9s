@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Recent Changes
 
+### Unreleased
+
+Self-update and auto-update checking:
+
+- **`s9s update` Command**: Check for and install new versions directly from the terminal — supports `--check`, `--force`, `--pre-release`, and `--target VERSION` (pin to specific version)
+- **Auto-Update Checks**: Background version check on TUI startup notifies via status bar when a newer release is available; respects configurable interval (default 24h)
+- **Update Configuration**: New `update` config section with `enabled`, `checkInterval`, and `preRelease` options
+- **Self-Update**: Binary replacement with SHA256 checksum verification via GitHub Releases
+
 ### Version 0.7.1 (2026-03-21)
 
 Bug fix release for remote cluster connectivity:

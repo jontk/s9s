@@ -9,7 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`s9s update` command** — check for and install new versions directly from the terminal. Supports `--check` (dry run), `--force` (skip confirmation), `--pre-release` (include pre-release versions), and `--target VERSION` (pin to a specific version, including downgrades with a warning)
+- **Configurable auto-update checks** — background version check on TUI startup notifies via status bar when a newer release is available. Configurable via `update.enabled`, `update.checkInterval` (default 24h), and `update.preRelease` in config YAML
+- **Auto-install mode** — set `update.autoInstall: true` to automatically download and replace the binary on startup when a newer version is available (default: false, notify only)
+- **Update state caching** — last check result persisted to `~/.s9s/update-state.json` to avoid redundant GitHub API calls
+- **Self-update via GitHub Releases** — binary replacement with SHA256 checksum verification, platform-aware asset selection, and atomic file replacement via `go-selfupdate`
+
 ### Changed
+
+- **Go module minimum version** — bumped to Go 1.25.0 (required by `golang.org/x/mod` v0.34.0)
 
 ### Fixed
 

@@ -222,6 +222,11 @@ func (s *S9s) Run() error {
 		s.updateCurrentView()
 	}
 
+	// Background update check
+	if s.config.Update.Enabled {
+		go s.checkForUpdates()
+	}
+
 	// Set the root and run the application
 	s.app.SetRoot(s.pages, true)
 

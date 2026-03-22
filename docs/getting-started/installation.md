@@ -270,7 +270,46 @@ curl -LO https://github.com/jontk/s9s/releases/latest/download/s9s_0.7.1_Linux_a
 
 ## Upgrading
 
-To upgrade to the latest version:
+### Built-in Self-Update (Recommended)
+
+s9s can update itself directly from GitHub Releases:
+
+```bash
+# Check if an update is available
+s9s update --check
+
+# Update to the latest version
+s9s update
+
+# Skip the confirmation prompt
+s9s update --force
+
+# Include pre-release versions
+s9s update --pre-release
+
+# Update to a specific version
+s9s update --target v0.7.0
+```
+
+The self-update verifies the download checksum and replaces the binary atomically. If the binary is in a system directory (e.g., `/usr/local/bin`), you may need `sudo s9s update`.
+
+### Auto-Update Notifications
+
+By default, s9s checks for new versions once every 24 hours on TUI startup and shows a status bar notification if an update is available. Configure this in `~/.s9s/config.yaml`:
+
+```yaml
+update:
+  enabled: true        # set to false to disable (e.g., air-gapped clusters)
+  autoInstall: false   # set to true to auto-update on startup
+  checkInterval: "24h" # how often to check
+  preRelease: false    # include pre-release versions
+```
+
+With `autoInstall: true`, s9s will download and replace its own binary on startup when a newer version is available, then prompt you to restart. If the install fails (e.g., permissions), it falls back to a notification.
+
+Or disable checks entirely via environment variable: `S9S_UPDATE_ENABLED=false`.
+
+### Manual Upgrade Methods
 
 ```bash
 # If installed via script

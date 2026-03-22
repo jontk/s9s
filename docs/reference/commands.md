@@ -68,6 +68,33 @@ Press `:` to enter command mode (vim-style). Commands support tab completion for
 
 **Note:** The reason for draining is optional. If not provided, defaults to "Drained via s9s command".
 
+### Update Commands
+
+Check for and install new versions of s9s directly from the terminal.
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `s9s update` | Check for and install the latest version | `s9s update` |
+| `s9s update --check` | Only check for updates, don't install | `s9s update --check` |
+| `s9s update --force` | Skip confirmation prompt | `s9s update --force` |
+| `s9s update --pre-release` | Include pre-release versions | `s9s update --pre-release` |
+| `s9s update --target VERSION` | Update to a specific version | `s9s update --target v0.7.0` |
+
+**Example output of `s9s update --check`:**
+```
+Current version: 0.7.1
+Latest version:  0.8.0
+Release:         https://github.com/jontk/s9s/releases/tag/v0.8.0
+
+A new version is available: 0.7.1 -> 0.8.0
+```
+
+**Notes:**
+- Development builds (`Version=dev`) cannot be updated; install a release version first
+- If the binary is in a system directory (e.g., `/usr/local/bin`), you may need `sudo s9s update`
+- Using `--target` with an older version will show a downgrade warning before proceeding
+- Auto-update checks can be configured in `~/.s9s/config.yaml` — see [Auto-Update Configuration](configuration.md#auto-update-configuration)
+
 ### Template Management Commands
 
 Manage job submission templates from the command line. Templates can originate from three sources: **builtin** (shipped with s9s), **config** (defined in your configuration file), and **saved** (user-exported templates stored on disk).
