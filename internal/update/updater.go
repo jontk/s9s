@@ -13,8 +13,9 @@ import (
 
 // UpdateOptions configures the self-update behavior.
 type UpdateOptions struct {
-	PreRelease bool
-	Force      bool // skip "already up to date" check
+	PreRelease    bool
+	Force         bool   // skip "already up to date" check
+	TargetVersion string // update to a specific version (e.g. "v0.7.0"); empty = latest
 }
 
 // UpdateResult contains the outcome of an update operation.
@@ -87,12 +88,24 @@ func (u *Updater) Update(ctx context.Context, opts UpdateOptions) (*UpdateResult
 		return nil, fmt.Errorf("creating updater: %w", err)
 	}
 
-	latest, found, err := updater.DetectLatest(ctx, selfupdate.NewRepositorySlug(u.owner, u.repo))
+	repo := selfupdate.NewRepositorySlug(u.owner, u.repo)
+
+	var latest *selfupdate.Release
+	var found bool
+
+	if opts.TargetVersion != "" {
+		latest, found, err = updater.DetectVersion(ctx, repo, opts.TargetVersion)
+	} else {
+		latest, found, err = updater.DetectLatest(ctx, repo)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("detecting latest release: %w", err)
+		return nil, fmt.Errorf("detecting release: %w", err)
 	}
 
 	if !found {
+		if opts.TargetVersion != "" {
+			return nil, fmt.Errorf("release %s not found for %s/%s", opts.TargetVersion, runtime.GOOS, runtime.GOARCH)
+		}
 		return nil, fmt.Errorf("no release found for %s/%s on %s", runtime.GOOS, runtime.GOARCH, u.repo)
 	}
 

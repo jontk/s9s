@@ -17,6 +17,7 @@ var (
 	updateCheck      bool
 	updateForce      bool
 	updatePreRelease bool
+	updateVersion    string
 )
 
 var updateCmd = &cobra.Command{
@@ -36,6 +37,7 @@ func init() {
 	updateCmd.Flags().BoolVar(&updateCheck, "check", false, "only check for updates, don't install")
 	updateCmd.Flags().BoolVar(&updateForce, "force", false, "skip confirmation prompt")
 	updateCmd.Flags().BoolVar(&updatePreRelease, "pre-release", false, "include pre-release versions")
+	updateCmd.Flags().StringVar(&updateVersion, "version", "", "update to a specific version (e.g., v0.8.0)")
 }
 
 func runUpdate(_ *cobra.Command, _ []string) error {
@@ -48,6 +50,11 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// When --version is specified, skip the latest check and go straight to the target.
+	if updateVersion != "" {
+		return runPinnedUpdate(ctx, current, updateVersion)
+	}
 
 	checker := update.NewChecker()
 	release, err := checker.LatestRelease(ctx, updatePreRelease)
@@ -71,15 +78,9 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 		return nil
 	}
 
-	if !updateForce {
-		fmt.Print("\nDo you want to update? [y/N] ")
-		reader := bufio.NewReader(os.Stdin)
-		answer, _ := reader.ReadString('\n')
-		answer = strings.TrimSpace(strings.ToLower(answer))
-		if answer != "y" && answer != "yes" {
-			fmt.Println("Update cancelled.")
-			return nil
-		}
+	if !updateForce && !confirmUpdate() {
+		fmt.Println("Update cancelled.")
+		return nil
 	}
 
 	fmt.Printf("\nUpdating s9s %s -> %s...\n", current.Short(), release.Version)
@@ -95,4 +96,35 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 
 	fmt.Printf("Successfully updated to %s!\n", result.NewVersion)
 	return nil
+}
+
+func runPinnedUpdate(ctx context.Context, current version.Info, targetVersion string) error {
+	fmt.Printf("Target version:  %s\n", targetVersion)
+
+	if !updateForce && !confirmUpdate() {
+		fmt.Println("Update cancelled.")
+		return nil
+	}
+
+	fmt.Printf("\nUpdating s9s %s -> %s...\n", current.Short(), targetVersion)
+
+	updater := update.NewUpdater()
+	result, err := updater.Update(ctx, update.UpdateOptions{
+		TargetVersion: targetVersion,
+		Force:         true, // user explicitly requested this version
+	})
+	if err != nil {
+		return fmt.Errorf("update failed: %w", err)
+	}
+
+	fmt.Printf("Successfully updated to %s!\n", result.NewVersion)
+	return nil
+}
+
+func confirmUpdate() bool {
+	fmt.Print("\nDo you want to update? [y/N] ")
+	reader := bufio.NewReader(os.Stdin)
+	answer, _ := reader.ReadString('\n')
+	answer = strings.TrimSpace(strings.ToLower(answer))
+	return answer == "y" || answer == "yes"
 }
