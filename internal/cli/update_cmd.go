@@ -53,7 +53,7 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 
 	// When --version is specified, skip the latest check and go straight to the target.
 	if updateVersion != "" {
-		return runPinnedUpdate(ctx, current, updateVersion)
+		return runPinnedUpdate(ctx, &current, updateVersion)
 	}
 
 	checker := update.NewChecker()
@@ -79,7 +79,7 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 	}
 
 	if !updateForce && !confirmUpdate() {
-		fmt.Println("Update cancelled.")
+		fmt.Println("Update canceled.")
 		return nil
 	}
 
@@ -98,7 +98,7 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func runPinnedUpdate(ctx context.Context, current version.Info, targetVersion string) error {
+func runPinnedUpdate(ctx context.Context, current *version.Info, targetVersion string) error {
 	fmt.Printf("Target version:  %s\n", targetVersion)
 
 	if update.IsNewer(targetVersion, current.Version) {
@@ -106,7 +106,7 @@ func runPinnedUpdate(ctx context.Context, current version.Info, targetVersion st
 	}
 
 	if !updateForce && !confirmUpdate() {
-		fmt.Println("Update cancelled.")
+		fmt.Println("Update canceled.")
 		return nil
 	}
 

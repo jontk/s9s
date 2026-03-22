@@ -67,8 +67,8 @@ func CanUpdate() error {
 	if err != nil {
 		return fmt.Errorf("directory %s is not writable (try sudo): %w", dir, err)
 	}
-	tmp.Close()
-	os.Remove(tmp.Name())
+	_ = tmp.Close()
+	_ = os.Remove(tmp.Name())
 
 	return nil
 }
@@ -79,20 +79,41 @@ func (u *Updater) Update(ctx context.Context, opts UpdateOptions) (*UpdateResult
 		return nil, err
 	}
 
-	source, err := goSelfupdateSource()
+	latest, err := u.detectRelease(ctx, opts)
 	if err != nil {
-		return nil, fmt.Errorf("creating update source: %w", err)
+		return nil, err
 	}
 
-	updater, err := selfupdate.NewUpdater(selfupdate.Config{
-		Source:     source,
-		Filters:   assetFilters(),
-		OS:        runtime.GOOS,
-		Arch:      runtime.GOARCH,
-		Prerelease: opts.PreRelease,
-	})
+	currentVer := ensureVPrefix(u.current)
+	if !opts.Force && !latest.GreaterThan(currentVer) {
+		return nil, fmt.Errorf("already up to date (%s)", u.current)
+	}
+
+	exe, err := os.Executable()
 	if err != nil {
-		return nil, fmt.Errorf("creating updater: %w", err)
+		return nil, fmt.Errorf("cannot determine executable path: %w", err)
+	}
+
+	updater, err := u.newSelfUpdater(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := updater.UpdateTo(ctx, latest, exe); err != nil {
+		return nil, fmt.Errorf("applying update: %w", err)
+	}
+
+	return &UpdateResult{
+		PreviousVersion: u.current,
+		NewVersion:      latest.Version(),
+		ReleaseURL:      latest.ReleaseNotes,
+	}, nil
+}
+
+func (u *Updater) detectRelease(ctx context.Context, opts UpdateOptions) (*selfupdate.Release, error) {
+	updater, err := u.newSelfUpdater(opts)
+	if err != nil {
+		return nil, err
 	}
 
 	repo := selfupdate.NewRepositorySlug(u.owner, u.repo)
@@ -116,33 +137,25 @@ func (u *Updater) Update(ctx context.Context, opts UpdateOptions) (*UpdateResult
 		return nil, fmt.Errorf("no release found for %s/%s on %s", runtime.GOOS, runtime.GOARCH, u.repo)
 	}
 
-	currentVer := ensureVPrefix(u.current)
-	if !opts.Force && !latest.GreaterThan(currentVer) {
-		return nil, fmt.Errorf("already up to date (%s)", u.current)
-	}
+	return latest, nil
+}
 
-	exe, err := os.Executable()
+func (u *Updater) newSelfUpdater(opts UpdateOptions) (*selfupdate.Updater, error) {
+	source, err := selfupdate.NewGitHubSource(selfupdate.GitHubConfig{})
 	if err != nil {
-		return nil, fmt.Errorf("cannot determine executable path: %w", err)
+		return nil, fmt.Errorf("creating update source: %w", err)
 	}
 
-	if err := updater.UpdateTo(ctx, latest, exe); err != nil {
-		return nil, fmt.Errorf("applying update: %w", err)
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+		Source:     source,
+		Filters:   nil, // go-selfupdate matches goreleaser archive names automatically
+		OS:        runtime.GOOS,
+		Arch:      runtime.GOARCH,
+		Prerelease: opts.PreRelease,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating updater: %w", err)
 	}
 
-	return &UpdateResult{
-		PreviousVersion: u.current,
-		NewVersion:      latest.Version(),
-		ReleaseURL:      latest.ReleaseNotes,
-	}, nil
-}
-
-func goSelfupdateSource() (selfupdate.Source, error) {
-	return selfupdate.NewGitHubSource(selfupdate.GitHubConfig{})
-}
-
-func assetFilters() []string {
-	// go-selfupdate handles OS/arch matching from archive names automatically.
-	// Return nil to use defaults which match the goreleaser naming pattern.
-	return nil
+	return updater, nil
 }

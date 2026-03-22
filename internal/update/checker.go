@@ -119,7 +119,7 @@ func (c *Checker) latestIncludingPreRelease(ctx context.Context) (*ReleaseInfo, 
 }
 
 func (c *Checker) fetchJSON(ctx context.Context, url string, target any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
@@ -131,7 +131,7 @@ func (c *Checker) fetchJSON(ctx context.Context, url string, target any) error {
 	if err != nil {
 		return fmt.Errorf("executing request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusTooManyRequests {
 		return fmt.Errorf("GitHub API rate limit exceeded (status %d)", resp.StatusCode)
