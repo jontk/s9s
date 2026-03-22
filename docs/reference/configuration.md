@@ -251,6 +251,25 @@ defaultCluster: "default"
 useMockClient: false
 ```
 
+## Auto-Update Configuration
+
+```yaml
+update:
+  # Enable background update checks on TUI startup (default: true)
+  # Set to false for air-gapped clusters or managed deployments
+  enabled: true
+
+  # How often to check for new versions (default: "24h")
+  checkInterval: "24h"
+
+  # Include pre-release versions in update checks (default: false)
+  preRelease: false
+```
+
+The background check runs in a goroutine with a 3-second timeout and caches results to `~/.s9s/update-state.json`. When a newer version is found, a status bar notification appears: `Update available: 0.7.1 -> 0.8.0 (run 's9s update')`.
+
+To update manually, use `s9s update`. See the [Installation Guide](../getting-started/installation.md#upgrading) for details.
+
 ## Auto-Discovery Configuration
 
 ```yaml

@@ -133,6 +133,11 @@ s9s [flags]
 
 # Version
 --version, -v          Show version information
+
+# Subcommands
+s9s update             Check for and install updates
+s9s update --check     Only check, don't install
+s9s update --target    Update to a specific version
 ```
 
 ## Configuration Schema
@@ -230,6 +235,12 @@ pluginSettings:
   safeMode: boolean          # Disable external plugins (default: false)
   maxMemoryMB: integer       # Memory limit per plugin (default: 100)
   maxCPUPercent: float       # CPU limit per plugin (default: 25.0)
+
+# Auto-update settings
+update:
+  enabled: boolean           # Enable background update checks (default: true)
+  checkInterval: duration    # How often to check for updates (default: "24h")
+  preRelease: boolean        # Include pre-release versions (default: false)
 
 # Auto-discovery settings
 discovery:
