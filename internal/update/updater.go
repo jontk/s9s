@@ -100,7 +100,7 @@ func (u *Updater) Update(ctx context.Context, opts UpdateOptions) (*UpdateResult
 	var found bool
 
 	if opts.TargetVersion != "" {
-		latest, found, err = updater.DetectVersion(ctx, repo, opts.TargetVersion)
+		latest, found, err = updater.DetectVersion(ctx, repo, ensureVPrefix(opts.TargetVersion))
 	} else {
 		latest, found, err = updater.DetectLatest(ctx, repo)
 	}
