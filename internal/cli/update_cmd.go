@@ -101,6 +101,10 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 func runPinnedUpdate(ctx context.Context, current version.Info, targetVersion string) error {
 	fmt.Printf("Target version:  %s\n", targetVersion)
 
+	if update.IsNewer(targetVersion, current.Version) {
+		fmt.Printf("\nWarning: this will downgrade from %s to %s\n", current.Short(), targetVersion)
+	}
+
 	if !updateForce && !confirmUpdate() {
 		fmt.Println("Update cancelled.")
 		return nil
