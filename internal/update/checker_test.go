@@ -161,6 +161,25 @@ func TestChecker_LatestRelease_FiltersDrafts(t *testing.T) {
 	}
 }
 
+func TestChecker_LatestRelease_AllDrafts(t *testing.T) {
+	releases := []ghRelease{
+		{TagName: "v0.9.0", Draft: true},
+		{TagName: "v0.8.0", Draft: true},
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(releases)
+	}))
+	defer srv.Close()
+
+	checker := newTestChecker(srv)
+	_, err := checker.LatestRelease(context.Background(), true)
+	if err == nil {
+		t.Fatal("expected error when all releases are drafts")
+	}
+}
+
 func TestChecker_LatestRelease_APIError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -29,8 +30,13 @@ func (s *S9s) checkForUpdates() {
 		return
 	}
 
+	// Use a short timeout for the background check so air-gapped clusters
+	// don't waste startup time waiting for a network request to timeout.
+	ctx, cancel := context.WithTimeout(s.ctx, 3*time.Second)
+	defer cancel()
+
 	checker := update.NewChecker()
-	release, err := checker.LatestRelease(s.ctx, s.config.Update.PreRelease)
+	release, err := checker.LatestRelease(ctx, s.config.Update.PreRelease)
 	if err != nil {
 		s.logger.Debug().Err(err).Msg("Background update check failed")
 		return

@@ -111,6 +111,10 @@ func (c *Checker) latestIncludingPreRelease(ctx context.Context) (*ReleaseInfo, 
 		}
 	}
 
+	if best == nil {
+		return nil, fmt.Errorf("no non-draft releases found")
+	}
+
 	return best.toReleaseInfo(), nil
 }
 
