@@ -28,6 +28,7 @@ type Config struct {
 	UseMockClient  bool              `mapstructure:"useMockClient"`
 	PluginSettings PluginSettings    `mapstructure:"pluginSettings"`
 	Discovery      DiscoveryConfig   `mapstructure:"discovery"`
+	Update         UpdateConfig      `mapstructure:"update"`
 
 	// Computed fields
 	Cluster ClusterConfig `mapstructure:"-"`
@@ -142,6 +143,13 @@ type PluginConfig struct {
 	Config  map[string]any `mapstructure:"config"`
 }
 
+// UpdateConfig holds auto-update check settings
+type UpdateConfig struct {
+	Enabled       bool   `mapstructure:"enabled"`
+	CheckInterval string `mapstructure:"checkInterval"`
+	PreRelease    bool   `mapstructure:"preRelease"`
+}
+
 // PluginSettings contains global plugin settings
 type PluginSettings struct {
 	EnableAll     bool    `mapstructure:"enableAll"`
@@ -208,6 +216,11 @@ func DefaultConfig() *Config {
 			SafeMode:      false,
 			MaxMemoryMB:   100,  // Aligned with setDefaults
 			MaxCPUPercent: 25.0, // Aligned with setDefaults
+		},
+		Update: UpdateConfig{
+			Enabled:       true,
+			CheckInterval: "24h",
+			PreRelease:    false,
 		},
 		Discovery: DiscoveryConfig{
 			Enabled:        true,  // Aligned with setDefaults
@@ -335,6 +348,11 @@ func setDefaults(v *viper.Viper) {
 		"dn":  "describe node",
 		"sub": "submit job",
 	})
+
+	// Update defaults
+	v.SetDefault("update.enabled", true)
+	v.SetDefault("update.checkInterval", "24h")
+	v.SetDefault("update.preRelease", false)
 
 	// Discovery defaults
 	v.SetDefault("discovery.enabled", true)
