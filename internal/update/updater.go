@@ -85,10 +85,11 @@ func (u *Updater) Update(ctx context.Context, opts UpdateOptions) (*UpdateResult
 	}
 
 	updater, err := selfupdate.NewUpdater(selfupdate.Config{
-		Source:    source,
-		Filters:  assetFilters(),
-		OS:       runtime.GOOS,
-		Arch:     runtime.GOARCH,
+		Source:     source,
+		Filters:   assetFilters(),
+		OS:        runtime.GOOS,
+		Arch:      runtime.GOARCH,
+		Prerelease: opts.PreRelease,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating updater: %w", err)
