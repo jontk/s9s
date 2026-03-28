@@ -32,6 +32,15 @@ func (s *S9s) showHelp() {
   [yellow]?[white]          Show this help
   [yellow]Ctrl+K[white]     Switch cluster
   [yellow]q, Ctrl+C[white]  Quit
+
+[teal]Commands:[white]
+  [yellow]:jobs, :j[white]      Jobs view       [yellow]:accounts[white]      Accounts view
+  [yellow]:nodes, :n[white]     Nodes view      [yellow]:users[white]         Users view
+  [yellow]:partitions, :p[white] Partitions     [yellow]:dashboard[white]     Dashboard view
+  [yellow]:reservations[white]  Reservations    [yellow]:health[white]        Health view
+  [yellow]:qos[white]           QoS view        [yellow]:performance[white]   Performance view
+  [yellow]:refresh, :r[white]   Refresh         [yellow]:layout[white]        Layout switcher
+  [yellow]:quit, :q[white]      Quit            [yellow]:help, :h[white]      Help
 `
 
 	// Append current view shortcuts
