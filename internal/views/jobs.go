@@ -1155,7 +1155,8 @@ func (v *JobsView) showJobSubmissionForm() {
 }
 
 // showJobActions shows an action menu for the selected job
-func (v *JobsView) showJobActions() {
+// TODO: wire to a uniform key binding across all views
+func (v *JobsView) showJobActions() { //nolint:unused // will be wired in a follow-up PR
 	data := v.table.GetSelectedData()
 	if len(data) == 0 {
 		// Note: Status bar update removed since individual view status bars are no longer used
@@ -1211,7 +1212,7 @@ func (v *JobsView) showJobActions() {
 }
 
 // buildJobActions builds the list of available actions based on job state
-func (v *JobsView) buildJobActions(state string) ([]string, []func()) {
+func (v *JobsView) buildJobActions(state string) ([]string, []func()) { //nolint:unused // used by showJobActions
 	var actions []string
 	var handlers []func()
 
@@ -1693,7 +1694,8 @@ func (v *JobsView) batchReleaseSelected() {
 */
 
 // showAdvancedFilter shows the advanced filter bar
-func (v *JobsView) showAdvancedFilter() {
+// TODO: wire to a uniform key binding across all views
+func (v *JobsView) showAdvancedFilter() { //nolint:unused // will be wired in a follow-up PR
 	if v.filterBar == nil || v.pages == nil {
 		return
 	}
