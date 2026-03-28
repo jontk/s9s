@@ -162,11 +162,11 @@ func (s *StatusBar) updateDisplay() {
 // formatHints formats the keyboard hints for display
 func (s *StatusBar) formatHints(hints []string) string {
 	if len(hints) == 0 {
-		return ""
+		return "[gray]?:All shortcuts[white]"
 	}
 
-	// Join hints with separators
-	return strings.Join(hints, "  ")
+	// Join hints with separators, append help nudge
+	return strings.Join(hints, "  ") + "  [gray]?:All shortcuts[white]"
 }
 
 // getColorName returns the color name for tview markup
