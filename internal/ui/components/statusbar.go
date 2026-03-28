@@ -40,14 +40,10 @@ func NewStatusBar() *StatusBar {
 
 // SetHints sets the keyboard hints to display
 func (s *StatusBar) SetHints(hints []string) {
-	// Only update hints if new hints are provided
-	// This prevents accidental clearing of hints
-	if len(hints) > 0 {
-		s.mu.Lock()
-		s.hints = hints
-		s.mu.Unlock()
-		s.updateDisplay()
-	}
+	s.mu.Lock()
+	s.hints = hints
+	s.mu.Unlock()
+	s.updateDisplay()
 }
 
 // SetMessage sets a temporary message with optional expiry
