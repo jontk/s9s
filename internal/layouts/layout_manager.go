@@ -206,6 +206,12 @@ func (lm *LayoutManager) GetWidget(id string) (Widget, error) {
 	lm.mu.RLock()
 	defer lm.mu.RUnlock()
 
+	return lm.getWidgetLocked(id)
+}
+
+// getWidgetLocked retrieves a widget without acquiring the lock.
+// Caller must hold lm.mu (read or write).
+func (lm *LayoutManager) getWidgetLocked(id string) (Widget, error) {
 	widget, exists := lm.widgets[id]
 	if !exists {
 		return nil, fmt.Errorf("widget %s not found", id)
@@ -348,7 +354,7 @@ func (lm *LayoutManager) applyHorizontalLayout(layout *Layout) error {
 			continue
 		}
 
-		widget, err := lm.GetWidget(placement.WidgetID)
+		widget, err := lm.getWidgetLocked(placement.WidgetID)
 		if err != nil {
 			continue // Skip missing widgets
 		}
@@ -370,7 +376,7 @@ func (lm *LayoutManager) applyVerticalLayout(layout *Layout) error {
 			continue
 		}
 
-		widget, err := lm.GetWidget(placement.WidgetID)
+		widget, err := lm.getWidgetLocked(placement.WidgetID)
 		if err != nil {
 			continue // Skip missing widgets
 		}
@@ -397,7 +403,7 @@ func (lm *LayoutManager) applyGridLayout(layout *Layout) error {
 			continue
 		}
 
-		widget, err := lm.GetWidget(placement.WidgetID)
+		widget, err := lm.getWidgetLocked(placement.WidgetID)
 		if err != nil {
 			continue
 		}
