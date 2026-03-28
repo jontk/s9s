@@ -274,7 +274,7 @@ func (v *PartitionsView) Hints() []string {
 		"[yellow]A[white] Analytics",
 		"[yellow]W[white] Wait Times",
 		"[yellow]/[white] Filter",
-		"[yellow]F3[white] Adv Filter",
+		"[yellow]f[white] Adv Filter",
 		"[yellow]Ctrl+F[white] Search",
 		"[yellow]Click Headers[white] Sort",
 		"[yellow]S[white] Sort",
@@ -344,7 +344,6 @@ func (v *PartitionsView) handlePartitionKey(event *tcell.EventKey) *tcell.EventK
 // partitionsKeyHandlers returns a map of function key handlers
 func (v *PartitionsView) partitionsKeyHandlers() map[tcell.Key]func() {
 	return map[tcell.Key]func(){
-		tcell.KeyF3:    v.showAdvancedFilter,
 		tcell.KeyCtrlF: v.showGlobalSearch,
 		tcell.KeyEnter: v.showPartitionDetails,
 	}
@@ -372,6 +371,9 @@ func (v *PartitionsView) handleRuneCommand(r rune) bool {
 		return true
 	case '/':
 		v.app.SetFocus(v.filterInput)
+		return true
+	case 'f':
+		v.showAdvancedFilter()
 		return true
 	case 'e', 'E':
 		v.showExportDialog()

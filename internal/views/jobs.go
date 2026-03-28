@@ -279,6 +279,8 @@ func (v *JobsView) Hints() []string {
 		"[yellow]/[white] Filter",
 		"[yellow]Ctrl+F[white] Search",
 		"[yellow]v[white] Multi-Select",
+		"[yellow]f[white] Adv Filter",
+		"[yellow]x[white] Actions",
 		"[yellow]S[white] Sort",
 		"[yellow]R[white] Refresh",
 		"[yellow]e[white] Export",
@@ -391,6 +393,9 @@ func (v *JobsView) jobsRuneHandlers() map[rune]func(*JobsView, *tcell.EventKey) 
 		'V': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleMultiSelectMode(); return nil },
 		'e': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showExportDialog(); return nil },
 		'E': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showExportDialog(); return nil },
+		'f': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
+		'x': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobActions(); return nil },
+		'X': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobActions(); return nil },
 	}
 }
 
@@ -1155,8 +1160,7 @@ func (v *JobsView) showJobSubmissionForm() {
 }
 
 // showJobActions shows an action menu for the selected job
-// TODO: wire to a uniform key binding across all views
-func (v *JobsView) showJobActions() { //nolint:unused // will be wired in a follow-up PR
+func (v *JobsView) showJobActions() {
 	data := v.table.GetSelectedData()
 	if len(data) == 0 {
 		// Note: Status bar update removed since individual view status bars are no longer used
@@ -1212,7 +1216,7 @@ func (v *JobsView) showJobActions() { //nolint:unused // will be wired in a foll
 }
 
 // buildJobActions builds the list of available actions based on job state
-func (v *JobsView) buildJobActions(state string) ([]string, []func()) { //nolint:unused // used by showJobActions
+func (v *JobsView) buildJobActions(state string) ([]string, []func()) {
 	var actions []string
 	var handlers []func()
 
@@ -1694,8 +1698,7 @@ func (v *JobsView) batchReleaseSelected() {
 */
 
 // showAdvancedFilter shows the advanced filter bar
-// TODO: wire to a uniform key binding across all views
-func (v *JobsView) showAdvancedFilter() { //nolint:unused // will be wired in a follow-up PR
+func (v *JobsView) showAdvancedFilter() {
 	if v.filterBar == nil || v.pages == nil {
 		return
 	}

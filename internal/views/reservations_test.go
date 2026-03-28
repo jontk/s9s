@@ -263,7 +263,7 @@ func TestHintsShowFilterStatus(t *testing.T) {
 		if hint == "[yellow]a[white] Active Only" {
 			hasActiveHint = true
 		}
-		if hint == "[yellow]f[white] Future Only" {
+		if hint == "[yellow]t[white] Future Only" {
 			hasFutureHint = true
 		}
 	}
@@ -292,7 +292,7 @@ func TestHintsShowFilterStatus(t *testing.T) {
 	hints = v.Hints()
 	hasCheckedFuture := false
 	for _, hint := range hints {
-		if hint == "[yellow]f[green]✓[white] Future Only" {
+		if hint == "[yellow]t[green]✓[white] Future Only" {
 			hasCheckedFuture = true
 		}
 	}
