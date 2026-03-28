@@ -85,10 +85,12 @@ These shortcuts work from any view:
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
+| `f` | Advanced filter | Open advanced filter bar |
 | `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `a/A` | Filter all states | Show all job states |
 | `p/P` | Filter pending | Show pending jobs only |
 | `u/U` | Filter by user | Filter jobs by username |
+| `x` | Actions menu | Open actions menu for selected job |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
 ### Data Management
@@ -113,6 +115,7 @@ These shortcuts work from any view:
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
+| `f` | Advanced filter | Open advanced filter bar |
 | `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `p/P` | Partition filter | Filter by partition |
 | `a/A` | Toggle all states | Toggle "all states" filter |
@@ -148,6 +151,7 @@ These shortcuts work from any view:
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
+| `f` | Advanced filter | Open advanced filter bar |
 | `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
@@ -169,6 +173,7 @@ These shortcuts work from any view:
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
+| `f` | Advanced filter | Open advanced filter bar |
 | `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `a/A` | Toggle admin filter | Show admins/operators only or all users |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
@@ -192,6 +197,7 @@ These shortcuts work from any view:
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
+| `f` | Advanced filter | Open advanced filter bar |
 | `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
@@ -213,6 +219,7 @@ These shortcuts work from any view:
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
+| `f` | Advanced filter | Open advanced filter bar |
 | `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
@@ -234,9 +241,10 @@ These shortcuts work from any view:
 | Key | Action | Description |
 |-----|--------|-------------|
 | `/` | Simple filter | Activate filter input |
+| `f` | Advanced filter | Open advanced filter bar |
 | `Ctrl+F` | Global search | Search across all entity types (all data views) |
 | `a/A` | Toggle active | Show active reservations only |
-| `f/F` | Toggle future | Show future reservations only |
+| `t/T` | Toggle future | Show future reservations only |
 | `ESC` | Exit filter | Clear filter and exit filter mode |
 
 ### Data Management

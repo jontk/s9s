@@ -135,6 +135,8 @@ S9S provides interactive keyboard shortcuts for common operations within each vi
 | `r` | Release selected job |
 | `d` | Show job dependencies |
 | `o` | Show job output |
+| `f` | Advanced filter |
+| `x` | Actions menu |
 | `Enter` | Show job details |
 | `Space` | Toggle selection |
 | `v` | Visual selection mode |
@@ -211,6 +213,8 @@ Export functionality is available through the interactive UI:
 | `r` | Release job |
 | `d` | Show dependencies |
 | `o` | Show output |
+| `f` | Advanced filter |
+| `x` | Actions menu |
 | `Enter` | Show details |
 
 **Nodes View:**
