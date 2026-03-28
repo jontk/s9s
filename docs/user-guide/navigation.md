@@ -25,7 +25,6 @@ These shortcuts work across all views:
 | `F1` | Help | Show help modal |
 | `F2` | Alerts | Show system alerts (passes through to Jobs view for templates) |
 | `F3` | Preferences | Show preferences dialog |
-| `F4` | Layout | Show layout switcher |
 | `F5` | Refresh | Refresh current view |
 | `F10` | Configuration | Show configuration |
 | `Ctrl+K` | Switch Cluster | Switch between configured clusters |
@@ -161,9 +160,7 @@ These shortcuts work across all views:
 
 | Key | Action | Description |
 |-----|--------|-------------|
-| `J` | Jobs View | Jump to jobs view |
-| `N` | Nodes View | Jump to nodes view |
-| `P` | Partitions View | Jump to partitions view |
+| `L` | Switch Layout | Toggle between default dashboard and monitoring layout |
 | `A` | Analytics | Show advanced analytics |
 | `H` | Health Check | Show health check |
 | `R` | Refresh | Refresh all panels |
