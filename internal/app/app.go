@@ -129,6 +129,9 @@ func NewWithScreen(ctx context.Context, cfg *config.Config, screen tcell.Screen)
 		return nil, errs.ViewError("all", "initialization", err)
 	}
 
+	// Register widgets and wire layout system to dashboard
+	s9s.registerLayoutWidgets()
+
 	// Setup keyboard shortcuts
 	s9s.setupKeyboardShortcuts()
 

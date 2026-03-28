@@ -2,6 +2,7 @@ package layouts
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -10,14 +11,15 @@ import (
 
 // LayoutSwitcher provides a UI for switching between layouts
 type LayoutSwitcher struct {
-	manager  *LayoutManager
-	app      *tview.Application
-	pages    *tview.Pages
-	modal    *tview.Flex
-	list     *tview.List
-	preview  *tview.TextView
-	onSwitch func(layoutID string)
-	onCancel func()
+	manager   *LayoutManager
+	app       *tview.Application
+	pages     *tview.Pages
+	modal     *tview.Flex
+	list      *tview.List
+	preview   *tview.TextView
+	layoutIDs []string // ordered IDs matching list indices
+	onSwitch  func(layoutID string)
+	onCancel  func()
 }
 
 // NewLayoutSwitcher creates a new layout switcher
@@ -124,53 +126,69 @@ func (ls *LayoutSwitcher) setupEventHandlers() {
 
 // populateLayouts fills the list with available layouts
 func (ls *LayoutSwitcher) populateLayouts() {
-	layouts := ls.manager.ListLayouts()
+	allLayouts := ls.manager.ListLayouts()
 	current := ls.manager.GetCurrentLayout()
 
-	index := 0
-	for _, layout := range layouts {
-		text := layout.Name
-		description := layout.Description
+	// Start with "Default" option (dashboard's built-in panels)
+	ls.layoutIDs = []string{"default"}
 
-		// Mark current layout
+	// Add actual layouts sorted by name
+	var ids []string
+	for id := range allLayouts {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool {
+		return allLayouts[ids[i]].Name < allLayouts[ids[j]].Name
+	})
+	ls.layoutIDs = append(ls.layoutIDs, ids...)
+
+	for index, id := range ls.layoutIDs {
+		if id == "default" {
+			text := "Default"
+			if current == nil {
+				text = "[green]● " + text + " (Current)[white]"
+			}
+			ls.list.AddItem(text, "Dashboard overview with cluster panels", rune('1'+index), nil)
+			continue
+		}
+
+		layout := allLayouts[id]
+		text := layout.Name
 		if current != nil && layout.ID == current.ID {
 			text = "[green]● " + text + " (Current)[white]"
 		}
-
-		// Add template indicator
-		if layout.Template != "" {
-			text += fmt.Sprintf(" [blue](%s)[white]", layout.Template)
-		}
-
-		ls.list.AddItem(text, description, rune('1'+index), nil)
-		index++
+		ls.list.AddItem(text, layout.Description, rune('1'+index), nil)
 	}
 
 	// Select first item and show preview
 	if ls.list.GetItemCount() > 0 {
 		ls.list.SetCurrentItem(0)
-		layoutID := ls.getLayoutIDFromIndex(0)
-		if layoutID != "" {
-			ls.showPreview(layoutID)
-		}
+		ls.showPreview(ls.layoutIDs[0])
 	}
 }
 
 // getLayoutIDFromIndex gets layout ID from list index
 func (ls *LayoutSwitcher) getLayoutIDFromIndex(index int) string {
-	layouts := ls.manager.ListLayouts()
-	i := 0
-	for id := range layouts {
-		if i == index {
-			return id
-		}
-		i++
+	if index < 0 || index >= len(ls.layoutIDs) {
+		return ""
 	}
-	return ""
+	return ls.layoutIDs[index]
 }
 
 // showPreview displays a preview of the selected layout
 func (ls *LayoutSwitcher) showPreview(layoutID string) {
+	if layoutID == "default" {
+		ls.preview.SetText("[yellow]Default[white]\nDashboard overview with cluster panels\n\n" +
+			"Shows the built-in dashboard with:\n" +
+			"  • Cluster Overview\n" +
+			"  • Jobs Summary\n" +
+			"  • Nodes Summary\n" +
+			"  • Partition Status\n" +
+			"  • Alerts & Issues\n" +
+			"  • Performance Trends\n")
+		return
+	}
+
 	layout, err := ls.manager.GetLayout(layoutID)
 	if err != nil {
 		ls.preview.SetText(fmt.Sprintf("[red]Error: %v[white]", err))
@@ -339,11 +357,12 @@ func (ls *LayoutSwitcher) generateLegend(layout *Layout) string {
 
 // switchToLayout switches to the selected layout
 func (ls *LayoutSwitcher) switchToLayout(layoutID string) {
-	err := ls.manager.SetCurrentLayout(layoutID)
-	if err != nil {
-		// Show error modal
-		ls.showError(fmt.Sprintf("Failed to switch layout: %v", err))
-		return
+	if layoutID != "default" {
+		err := ls.manager.SetCurrentLayout(layoutID)
+		if err != nil {
+			ls.showError(fmt.Sprintf("Failed to switch layout: %v", err))
+			return
+		}
 	}
 
 	// Call callback
