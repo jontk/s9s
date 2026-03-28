@@ -60,8 +60,8 @@ func TestStatusBarHintsAfterViewSwitching(t *testing.T) {
 		t.Error("Status bar is empty after view switching - hints should be displayed")
 	}
 
-	// Verify it contains expected hint keywords from the view
-	if !contains(text, "F1") && !contains(text, "Help") {
+	// Verify it contains expected hint keywords from the jobs view
+	if !contains(text, "Submit Job") && !contains(text, "Details") {
 		t.Error("Status bar should contain hint keywords after view switching")
 	}
 
