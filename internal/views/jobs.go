@@ -277,9 +277,7 @@ func (v *JobsView) Hints() []string {
 		"[yellow]b[white] Batch Ops",
 		"[yellow]m[white] Auto Refresh",
 		"[yellow]/[white] Filter",
-		"[yellow]F3[white] Adv Filter",
 		"[yellow]Ctrl+F[white] Search",
-		"[yellow]F1[white] Actions Menu",
 		"[yellow]v[white] Multi-Select",
 		"[yellow]S[white] Sort",
 		"[yellow]R[white] Refresh",
@@ -349,8 +347,6 @@ func (v *JobsView) handleJobsViewRune(event *tcell.EventKey) *tcell.EventKey {
 // jobsKeyHandlers returns a map of special keys to their handlers
 func (v *JobsView) jobsKeyHandlers() map[tcell.Key]func(*JobsView, *tcell.EventKey) *tcell.EventKey {
 	return map[tcell.Key]func(*JobsView, *tcell.EventKey) *tcell.EventKey{
-		tcell.KeyF1:    func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobActions(); return nil },
-		tcell.KeyF3:    func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
 		tcell.KeyCtrlF: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showGlobalSearch(); return nil },
 		tcell.KeyEnter: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobDetails(); return nil },
 		tcell.KeyCtrlA: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.selectAllJobs(); return nil },
