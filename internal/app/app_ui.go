@@ -1,6 +1,8 @@
 package app
 
 import (
+	"strings"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/notifications"
 	"github.com/jontk/s9s/internal/ui/components"
@@ -56,7 +58,7 @@ func (s *S9s) initUI() error {
 		SetDoneFunc(s.onCommandDone).
 		SetAutocompleteFunc(s.getCompletions)
 
-	// Handle Esc key and Enter to ensure proper command line hiding
+	// Handle Esc key, Enter, and Tab for command line behavior
 	s.cmdLine.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
 			s.hideCommandLine()
@@ -70,6 +72,13 @@ func (s *S9s) initUI() error {
 			}
 			s.hideCommandLine()
 			return nil // Consume the event
+		}
+		// Handle Tab on empty input — show all available commands
+		if event.Key() == tcell.KeyTab && strings.TrimSpace(s.cmdLine.GetText()) == "" {
+			s.cmdShowAllCompletions = true
+			s.cmdLine.Autocomplete()
+			s.cmdShowAllCompletions = false
+			return nil
 		}
 		return event
 	})

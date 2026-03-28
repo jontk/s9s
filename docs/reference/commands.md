@@ -8,12 +8,14 @@ Press `:` to enter command mode (vim-style). Commands support tab completion for
 
 ### Using Tab Completion
 
+- **Browse all commands**: Press `Tab` on an empty prompt to see all available commands
 - **Command completion**: Type `:req` and press `Tab` to complete to `:requeue`
 - **Argument completion**: Type `:cancel ` and press `Tab` to see available job IDs
 - **Smart suggestions**: Completions are context-aware based on cached view data
 
 **Examples:**
 ```
+:<Tab>              → Shows all available commands
 :req<Tab>           → :requeue
 :requeue <Tab>      → Shows: 12345, 12346, 12347...
 :drain nod<Tab>     → Shows: node01, node02, node03...
