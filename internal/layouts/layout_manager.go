@@ -4,6 +4,7 @@ package layouts
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
@@ -80,18 +81,6 @@ const (
 	WidgetTypeView WidgetType = "view"
 	// WidgetTypeMetrics is the widget type for resource usage charts.
 	WidgetTypeMetrics WidgetType = "metrics"
-	// WidgetTypeAlerts is the widget type for system alerts.
-	WidgetTypeAlerts WidgetType = "alerts"
-	// WidgetTypeStatus is the widget type for cluster status.
-	WidgetTypeStatus WidgetType = "status"
-	// WidgetTypeTerminal is the widget type for command terminal.
-	WidgetTypeTerminal WidgetType = "terminal"
-	// WidgetTypeQuickStart is the widget type for quick action buttons.
-	WidgetTypeQuickStart WidgetType = "quickstart"
-	// WidgetTypeClock is the widget type for time display.
-	WidgetTypeClock WidgetType = "clock"
-	// WidgetTypeLogs is the widget type for log viewer.
-	WidgetTypeLogs WidgetType = "logs"
 )
 
 // NewLayoutManager creates a new layout manager
@@ -382,106 +371,154 @@ func (lm *LayoutManager) applyVerticalLayout(layout *Layout) error {
 		}
 
 		// Add widget with proportional height
-		lm.container.AddItem(widget.Render(), placement.Height, 0, false)
+		lm.container.AddItem(widget.Render(), 0, placement.Height, false)
 	}
 
 	return nil
 }
 
-// applyGridLayout creates a complex grid layout
+// applyGridLayout builds a nested flex tree that properly handles row and column spanning.
+//
+// Algorithm:
+//  1. Find "row bands" — groups of consecutive rows linked by row-spanning widgets.
+//  2. For each band, build a horizontal flex. Within each column position, if
+//     multiple widgets are stacked vertically, wrap them in a vertical flex.
+//  3. Stack all bands vertically in the container.
 func (lm *LayoutManager) applyGridLayout(layout *Layout) error {
-	rows, colUsage := lm.initializeGridStructures(layout)
+	lm.container.SetDirection(tview.FlexRow)
 
-	// Place widgets in grid
-	for i := range layout.Widgets {
-		placement := &layout.Widgets[i]
-		if !placement.Visible {
+	// Collect visible, resolvable placements
+	var placements []WidgetPlacement
+	for _, p := range layout.Widgets {
+		if !p.Visible {
 			continue
 		}
-
-		if !lm.canPlaceWidget(layout, placement, colUsage) {
+		if _, err := lm.getWidgetLocked(p.WidgetID); err != nil {
 			continue
 		}
-
-		widget, err := lm.getWidgetLocked(placement.WidgetID)
-		if err != nil {
-			continue
-		}
-
-		lm.markWidgetCells(placement, colUsage)
-		lm.placeWidgetInGrid(rows, placement, widget)
+		placements = append(placements, p)
 	}
 
-	return lm.addRowsToContainer(rows)
+	// Find row bands — connected groups of rows linked by spanning widgets
+	bands := lm.findRowBands(layout.Grid.Rows, placements)
+
+	for _, band := range bands {
+		bandFlex := lm.buildBandFlex(band, placements)
+		if bandFlex != nil {
+			lm.container.AddItem(bandFlex, 0, 1, false)
+		}
+	}
+
+	return nil
 }
 
-// initializeGridStructures creates and initializes grid data structures
-func (lm *LayoutManager) initializeGridStructures(layout *Layout) ([]*tview.Flex, [][]bool) {
-	rows := make([]*tview.Flex, layout.Grid.Rows)
-	for i := 0; i < layout.Grid.Rows; i++ {
-		rows[i] = tview.NewFlex()
-	}
-
-	colUsage := make([][]bool, layout.Grid.Rows)
-	for i := range colUsage {
-		colUsage[i] = make([]bool, layout.Grid.Columns)
-	}
-
-	return rows, colUsage
+// rowBand represents a contiguous group of rows that share spanning widgets.
+type rowBand struct {
+	startRow int
+	endRow   int // exclusive
 }
 
-// canPlaceWidget checks if a widget can be placed at the given location
-func (lm *LayoutManager) canPlaceWidget(layout *Layout, placement *WidgetPlacement, colUsage [][]bool) bool {
-	// Validate bounds
-	if placement.Row >= layout.Grid.Rows || placement.Column >= layout.Grid.Columns {
-		return false
+// findRowBands groups rows into bands connected by row-spanning widgets.
+func (lm *LayoutManager) findRowBands(numRows int, placements []WidgetPlacement) []rowBand {
+	// For each row, find the furthest row any widget starting there reaches
+	reach := make([]int, numRows)
+	for i := range reach {
+		reach[i] = i + 1
+	}
+	for _, p := range placements {
+		end := p.Row + p.RowSpan
+		if end > reach[p.Row] {
+			reach[p.Row] = end
+		}
 	}
 
-	// Check for overlaps
-	for r := placement.Row; r < placement.Row+placement.RowSpan && r < layout.Grid.Rows; r++ {
-		for c := placement.Column; c < placement.Column+placement.ColSpan && c < layout.Grid.Columns; c++ {
-			if colUsage[r][c] {
-				return false
+	// Merge overlapping reaches into bands
+	var bands []rowBand
+	i := 0
+	for i < numRows {
+		start := i
+		end := reach[i]
+		// Extend band while rows overlap
+		for j := start + 1; j < end && j < numRows; j++ {
+			if reach[j] > end {
+				end = reach[j]
 			}
 		}
+		bands = append(bands, rowBand{startRow: start, endRow: end})
+		i = end
 	}
-
-	return true
+	return bands
 }
 
-// markWidgetCells marks grid cells as used by a widget
-func (lm *LayoutManager) markWidgetCells(placement *WidgetPlacement, colUsage [][]bool) {
-	for r := placement.Row; r < placement.Row+placement.RowSpan && r < len(colUsage); r++ {
-		for c := placement.Column; c < placement.Column+placement.ColSpan && c < len(colUsage[r]); c++ {
-			colUsage[r][c] = true
+// buildBandFlex creates a horizontal flex for a row band. Widgets that span the
+// full band height sit alongside vertical stacks of smaller widgets.
+func (lm *LayoutManager) buildBandFlex(band rowBand, placements []WidgetPlacement) *tview.Flex {
+	// Collect placements that start within this band
+	var bandPlacements []WidgetPlacement
+	for _, p := range placements {
+		if p.Row >= band.startRow && p.Row < band.endRow {
+			bandPlacements = append(bandPlacements, p)
 		}
 	}
-}
-
-// placeWidgetInGrid adds a widget to the grid at the appropriate row
-func (lm *LayoutManager) placeWidgetInGrid(rows []*tview.Flex, placement *WidgetPlacement, widget Widget) {
-	if placement.Row >= len(rows) {
-		return
+	if len(bandPlacements) == 0 {
+		return nil
 	}
 
-	if placement.ColSpan == 1 {
-		rows[placement.Row].AddItem(widget.Render(), 0, placement.Width, false)
-	} else {
-		wrapper := tview.NewFlex()
-		wrapper.AddItem(widget.Render(), 0, 1, false)
-		rows[placement.Row].AddItem(wrapper, 0, placement.Width, false)
+	colGroups, cols := lm.groupByColumn(bandPlacements)
+
+	hFlex := tview.NewFlex()
+	for _, col := range cols {
+		group := colGroups[col]
+		width := group[0].Width
+		hFlex.AddItem(lm.buildColumnItem(group), 0, width, false)
 	}
+
+	return hFlex
 }
 
-// addRowsToContainer adds non-empty rows to the main container
-func (lm *LayoutManager) addRowsToContainer(rows []*tview.Flex) error {
-	lm.container.SetDirection(tview.FlexRow)
-	for _, row := range rows {
-		if row.GetItemCount() > 0 {
-			lm.container.AddItem(row, 0, 1, false)
+// groupByColumn groups placements by starting column and returns sorted unique columns.
+func (lm *LayoutManager) groupByColumn(placements []WidgetPlacement) (map[int][]WidgetPlacement, []int) {
+	colGroups := make(map[int][]WidgetPlacement)
+	var cols []int
+	seen := make(map[int]bool)
+
+	for _, p := range placements {
+		colGroups[p.Column] = append(colGroups[p.Column], p)
+		if !seen[p.Column] {
+			seen[p.Column] = true
+			cols = append(cols, p.Column)
 		}
 	}
-	return nil
+
+	sort.Ints(cols)
+
+	return colGroups, cols
+}
+
+// buildColumnItem builds a primitive for a column group — a single widget or
+// a vertical stack if multiple widgets share the column.
+func (lm *LayoutManager) buildColumnItem(group []WidgetPlacement) tview.Primitive {
+	if len(group) == 1 {
+		// Error can be safely ignored: the caller (applyGridLayout) already
+		// verified that every widget ID in group resolves successfully, and
+		// we still hold lm.mu so the map cannot change.
+		w, _ := lm.getWidgetLocked(group[0].WidgetID)
+		return w.Render()
+	}
+
+	// Sort by row within the column
+	sort.Slice(group, func(i, j int) bool {
+		return group[i].Row < group[j].Row
+	})
+
+	vFlex := tview.NewFlex().SetDirection(tview.FlexRow)
+	for _, p := range group {
+		// Error ignored for the same reason as above: widgets were pre-validated
+		// in applyGridLayout and the lock is still held.
+		w, _ := lm.getWidgetLocked(p.WidgetID)
+		vFlex.AddItem(w.Render(), 0, 1, false)
+	}
+	return vFlex
 }
 
 // applyResponsiveLayout applies responsive behavior
@@ -537,107 +574,29 @@ func (lm *LayoutManager) applyWideLayout(layout *Layout) error {
 	return lm.applyGridLayout(&wideLayout)
 }
 
-// initializeDefaultLayouts creates built-in layout templates
+// initializeDefaultLayouts creates built-in layout templates.
+// The dashboard's own 6-panel view is the default (no layout applied).
+// Layouts offer alternative arrangements of standalone widgets.
 func (lm *LayoutManager) initializeDefaultLayouts() {
-	// Standard Layout
-	standard := &Layout{
-		ID:          "standard",
-		Name:        "Standard",
-		Description: "Default layout with main view and side panels",
-		Template:    "standard",
-		Grid: GridConfig{
-			Rows:        3,
-			Columns:     3,
-			GapSize:     1,
-			Orientation: "grid",
-		},
-		Widgets: []WidgetPlacement{
-			{WidgetID: "main-view", Row: 0, Column: 0, RowSpan: 2, ColSpan: 2, Width: 70, Height: 80, Visible: true, Priority: 10},
-			{WidgetID: "metrics", Row: 0, Column: 2, RowSpan: 1, ColSpan: 1, Width: 30, Height: 40, Visible: true, Priority: 8},
-			{WidgetID: "alerts", Row: 1, Column: 2, RowSpan: 1, ColSpan: 1, Width: 30, Height: 40, Visible: true, Priority: 7},
-			{WidgetID: "status", Row: 2, Column: 0, RowSpan: 1, ColSpan: 3, Width: 100, Height: 20, Visible: true, Priority: 9},
-		},
-		Responsive: true,
-		Created:    0,
-		Modified:   0,
-	}
-
-	// Compact Layout
-	compact := &Layout{
-		ID:          "compact",
-		Name:        "Compact",
-		Description: "Minimal layout for small terminals",
-		Template:    "compact",
-		Grid: GridConfig{
-			Rows:        2,
-			Columns:     1,
-			GapSize:     0,
-			Orientation: "vertical",
-		},
-		Widgets: []WidgetPlacement{
-			{WidgetID: "main-view", Row: 0, Column: 0, RowSpan: 1, ColSpan: 1, Width: 100, Height: 85, Visible: true, Priority: 10},
-			{WidgetID: "status", Row: 1, Column: 0, RowSpan: 1, ColSpan: 1, Width: 100, Height: 15, Visible: true, Priority: 9},
-		},
-		Responsive: true,
-		Created:    0,
-		Modified:   0,
-	}
-
-	// Monitoring Layout
+	// Monitoring Layout — metrics and health side by side, full height
 	monitoring := &Layout{
 		ID:          "monitoring",
 		Name:        "Monitoring",
-		Description: "Focus on metrics and system health",
+		Description: "Live metrics and health checks side by side",
 		Template:    "monitoring",
 		Grid: GridConfig{
-			Rows:        2,
+			Rows:        1,
 			Columns:     2,
 			GapSize:     1,
 			Orientation: "grid",
 		},
 		Widgets: []WidgetPlacement{
-			{WidgetID: "metrics", Row: 0, Column: 0, RowSpan: 1, ColSpan: 1, Width: 50, Height: 50, Visible: true, Priority: 10},
-			{WidgetID: "health", Row: 0, Column: 1, RowSpan: 1, ColSpan: 1, Width: 50, Height: 50, Visible: true, Priority: 10},
-			{WidgetID: "alerts", Row: 1, Column: 0, RowSpan: 1, ColSpan: 1, Width: 50, Height: 50, Visible: true, Priority: 9},
-			{WidgetID: "logs", Row: 1, Column: 1, RowSpan: 1, ColSpan: 1, Width: 50, Height: 50, Visible: true, Priority: 8},
+			{WidgetID: "metrics", Row: 0, Column: 0, RowSpan: 1, ColSpan: 1, Width: 40, Height: 100, Visible: true, Priority: 10},
+			{WidgetID: "health", Row: 0, Column: 1, RowSpan: 1, ColSpan: 1, Width: 60, Height: 100, Visible: true, Priority: 10},
 		},
 		Responsive: true,
-		Created:    0,
-		Modified:   0,
 	}
 
-	// Admin Layout
-	admin := &Layout{
-		ID:          "admin",
-		Name:        "Administrator",
-		Description: "Comprehensive view for system administrators",
-		Template:    "admin",
-		Grid: GridConfig{
-			Rows:        3,
-			Columns:     4,
-			GapSize:     1,
-			Orientation: "grid",
-		},
-		Widgets: []WidgetPlacement{
-			{WidgetID: "main-view", Row: 0, Column: 0, RowSpan: 2, ColSpan: 2, Width: 50, Height: 70, Visible: true, Priority: 10},
-			{WidgetID: "metrics", Row: 0, Column: 2, RowSpan: 1, ColSpan: 1, Width: 25, Height: 35, Visible: true, Priority: 9},
-			{WidgetID: "health", Row: 0, Column: 3, RowSpan: 1, ColSpan: 1, Width: 25, Height: 35, Visible: true, Priority: 9},
-			{WidgetID: "alerts", Row: 1, Column: 2, RowSpan: 1, ColSpan: 1, Width: 25, Height: 35, Visible: true, Priority: 8},
-			{WidgetID: "quickstart", Row: 1, Column: 3, RowSpan: 1, ColSpan: 1, Width: 25, Height: 35, Visible: true, Priority: 7},
-			{WidgetID: "status", Row: 2, Column: 0, RowSpan: 1, ColSpan: 2, Width: 50, Height: 30, Visible: true, Priority: 9},
-			{WidgetID: "terminal", Row: 2, Column: 2, RowSpan: 1, ColSpan: 2, Width: 50, Height: 30, Visible: true, Priority: 6},
-		},
-		Responsive: true,
-		Created:    0,
-		Modified:   0,
-	}
-
-	// Add layouts
-	lm.layouts["standard"] = standard
-	lm.layouts["compact"] = compact
 	lm.layouts["monitoring"] = monitoring
-	lm.layouts["admin"] = admin
-
-	// Set default layout
-	lm.currentLayout = standard
+	// No default layout — dashboard shows its built-in panels
 }
