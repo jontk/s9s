@@ -31,6 +31,10 @@ type DashboardView struct {
 	alertsPanel     *tview.TextView
 	trendsPanel     *tview.TextView
 
+	// Layout integration
+	layoutContainer    *tview.Flex
+	showLayoutSwitcher func()
+
 	// Data cache
 	clusterInfo    *dao.ClusterInfo
 	clusterMetrics *dao.ClusterMetrics
@@ -107,8 +111,26 @@ func (v *DashboardView) Init(ctx context.Context) error {
 	return nil
 }
 
+// SetLayoutContainer sets a layout-managed container to use instead of the hardcoded one.
+func (v *DashboardView) SetLayoutContainer(container *tview.Flex) {
+	v.layoutContainer = container
+}
+
+// HasLayoutContainer returns true if a layout container is currently set.
+func (v *DashboardView) HasLayoutContainer() bool {
+	return v.layoutContainer != nil
+}
+
+// SetLayoutSwitcherFunc sets the callback to open the layout switcher.
+func (v *DashboardView) SetLayoutSwitcherFunc(fn func()) {
+	v.showLayoutSwitcher = fn
+}
+
 // Render returns the view's main component
 func (v *DashboardView) Render() tview.Primitive {
+	if v.layoutContainer != nil {
+		return v.layoutContainer
+	}
 	return v.container
 }
 
@@ -234,9 +256,7 @@ func (v *DashboardView) Stop() error {
 // Hints returns keyboard hints
 func (v *DashboardView) Hints() []string {
 	return []string{
-		"[yellow]J[white] Jobs View",
-		"[yellow]N[white] Nodes View",
-		"[yellow]P[white] Partitions View",
+		"[yellow]L[white] Switch Layout",
 		"[yellow]A[white] Analytics",
 		"[yellow]R[white] Refresh",
 		"[yellow]H[white] Health Check",
@@ -250,14 +270,10 @@ func (v *DashboardView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		case 'R':
 			go func() { _ = v.Refresh() }()
 			return nil
-		case 'J':
-			v.SwitchToView("jobs")
-			return nil
-		case 'N':
-			v.SwitchToView("nodes")
-			return nil
-		case 'P':
-			v.SwitchToView("partitions")
+		case 'L':
+			if v.showLayoutSwitcher != nil {
+				v.showLayoutSwitcher()
+			}
 			return nil
 		case 'A':
 			v.showAdvancedAnalytics()

@@ -242,7 +242,23 @@ func (s *S9s) showLayoutSwitcher() {
 				p.Layouts.CurrentLayout = layoutID
 				return nil
 			})
-			s.statusBar.Success(fmt.Sprintf("Switched to %s layout", layoutID))
+
+			if layoutID == "default" {
+				s.restoreDashboardDefault()
+				s.statusBar.Success("Restored default dashboard")
+			} else {
+				// Re-wire layout container only if coming from default (no container set)
+				if dashView, err := s.viewMgr.GetView("dashboard"); err == nil {
+					if dv, ok := dashView.(*views.DashboardView); ok && !dv.HasLayoutContainer() {
+						dv.SetLayoutContainer(s.layoutManager.GetContainer())
+					}
+				}
+				s.applyDashboardLayout()
+				s.statusBar.Success(fmt.Sprintf("Switched to %s layout", layoutID))
+			}
+
+			// Force redraw so the new layout is visible immediately
+			s.app.ForceDraw()
 			// Restore hints after success message expires
 			go func() {
 				time.Sleep(3500 * time.Millisecond) // Wait slightly longer than success message
