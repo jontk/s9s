@@ -27,7 +27,7 @@ type Layout struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
-	Template    string            `json:"template"` // "standard", "compact", "monitoring", "admin"
+	Template    string            `json:"template"` // "monitoring" (or custom)
 	Grid        GridConfig        `json:"grid"`
 	Widgets     []WidgetPlacement `json:"widgets"`
 	Responsive  bool              `json:"responsive"`
