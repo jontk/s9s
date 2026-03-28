@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -20,39 +21,38 @@ func (s *S9s) showHelp() {
 	helpText := `[yellow]S9S - SLURM Terminal UI Help[white]
 
 [teal]Global Keys:[white]
-  [yellow]1-0[white]         Switch to Jobs/Nodes/Partitions/Reservations/QoS/Accounts/Users/Dashboard/Health/Performance view
-  [yellow]Tab/Shift+Tab[white] Switch between views
+  [yellow]1-0[white]         Switch views (Jobs/Nodes/Partitions/Reservations/QoS/Accounts/Users/Dashboard/Health/Performance)
+  [yellow]Tab/Shift+Tab[white] Cycle between views
   [yellow]F1[white]         Show help
   [yellow]F2[white]         Show system alerts
+  [yellow]F3[white]         Preferences
   [yellow]F5[white]         Refresh current view
   [yellow]F10[white]        Configuration settings
-  [yellow]:[white]          Enter command mode
+  [yellow]:[white]          Command mode (Tab to browse commands)
   [yellow]?[white]          Show this help
-  [yellow]Ctrl+K[white]     Switch cluster (when multiple configured)
-  [yellow]q, Ctrl+C[white]  Quit application
+  [yellow]Ctrl+K[white]     Switch cluster
+  [yellow]q, Ctrl+C[white]  Quit
+`
 
-[teal]Commands:[white]
-  [yellow]:jobs, :j[white]      Switch to Jobs view
-  [yellow]:nodes, :n[white]     Switch to Nodes view
-  [yellow]:partitions, :p[white] Switch to Partitions view
-  [yellow]:reservations[white]  Switch to Reservations view
-  [yellow]:qos[white]           Switch to QoS view
-  [yellow]:accounts[white]      Switch to Accounts view
-  [yellow]:users[white]         Switch to Users view
-  [yellow]:dashboard[white]     Switch to Dashboard view
-  [yellow]:health[white]        Switch to Health Monitor view
-  [yellow]:performance[white]   Switch to Performance Monitor view
-  [yellow]:refresh, :r[white]   Refresh current view
-  [yellow]:quit, :q[white]      Quit application
-  [yellow]:help, :h[white]      Show this help
+	// Append current view shortcuts
+	if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
+		viewName := currentView.Name()
+		hints := currentView.Hints()
+		if len(hints) > 0 {
+			helpText += fmt.Sprintf("\n[teal]%s View:[white]\n", s.formatViewName(viewName))
+			for _, hint := range hints {
+				helpText += fmt.Sprintf("  %s\n", hint)
+			}
+		}
+	}
 
-[teal]View-specific keys vary by view.[white]
-Press [yellow]ESC[white] to close this help.`
+	helpText += "\nPress [yellow]ESC[white] to close this help."
 
 	modal := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(helpText).
-		SetTextAlign(tview.AlignLeft)
+		SetTextAlign(tview.AlignLeft).
+		SetScrollable(true)
 
 	modal.SetBorder(true).
 		SetTitle(" Help ").
@@ -68,6 +68,14 @@ Press [yellow]ESC[white] to close this help.`
 	})
 
 	s.pages.AddPage("help", modal, true, true)
+}
+
+// formatViewName capitalizes a view name for display
+func (s *S9s) formatViewName(name string) string {
+	if name == "" {
+		return ""
+	}
+	return strings.ToUpper(name[:1]) + name[1:]
 }
 
 // showAlertsModal displays the alerts modal

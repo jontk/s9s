@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/jontk/s9s/internal/views"
 	"github.com/rivo/tview"
 )
 
@@ -165,7 +164,7 @@ func (s *S9s) handleClusterSwitch(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 }
 
 func (s *S9s) handleF1Help(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
-	views.ShowHelpModal(s.pages)
+	s.showHelp()
 	return nil
 }
 
