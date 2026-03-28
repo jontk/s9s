@@ -16,7 +16,7 @@ These shortcuts work from any view:
 | `h` | Previous view | Move to previous view |
 | `l` | Next view | Move to next view |
 | `F1` | Help | Show help modal |
-| `F2` | Alerts | Show system alerts (passes through to Jobs view for templates) |
+| `F2` | Alerts | Show system alerts |
 | `F3` | Preferences | Show preferences dialog |
 | `F5` | Force refresh | Refresh current view data |
 | `F10` | Configuration | Show configuration |
@@ -67,7 +67,6 @@ These shortcuts work from any view:
 |-----|--------|-------------|
 | `Enter` | View details | Show detailed job information |
 | `s` | Submit job | Open job submission wizard |
-| `F2` | Job templates | Open job templates/submission form |
 | `c/C` | Cancel job | Cancel selected job |
 | `H` | Hold job | Place job on hold |
 | `r` | Release job | Release held job |

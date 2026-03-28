@@ -56,11 +56,9 @@ Shows detailed information about the selected job:
 - Standard output/error paths
 
 ### Submit New Job
-**Shortcuts**: `s` (wizard), `F2` (templates)
+**Shortcut**: `s`
 
-Two submission methods:
-1. **Job Submission Wizard** (`s`): Step-by-step guided submission
-2. **Job Templates** (`F2`): Pre-configured job templates
+Opens the job submission wizard with step-by-step guided submission and pre-configured templates.
 
 See [Job Management](../job-management.md) for detailed submission guide.
 
@@ -248,8 +246,7 @@ When disabled, use `R` for manual refresh.
 | Key | Action |
 |-----|--------|
 | `Enter` | View job details |
-| `s` | Submit job (wizard) |
-| `F2` | Job templates |
+| `s` | Submit job |
 | `c/C` | Cancel job |
 | `H` | Hold job |
 | `r` | Release job |

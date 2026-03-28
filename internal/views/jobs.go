@@ -268,7 +268,6 @@ func (v *JobsView) Hints() []string {
 	hints := []string{
 		"[yellow]Enter[white] Details",
 		"[yellow]s[white] Submit Job",
-		"[yellow]F2[white] Templates",
 		"[yellow]c[white] Cancel",
 		"[yellow]H[white] Hold",
 		"[yellow]r[white] Release",
@@ -278,9 +277,7 @@ func (v *JobsView) Hints() []string {
 		"[yellow]b[white] Batch Ops",
 		"[yellow]m[white] Auto Refresh",
 		"[yellow]/[white] Filter",
-		"[yellow]F3[white] Adv Filter",
 		"[yellow]Ctrl+F[white] Search",
-		"[yellow]F1[white] Actions Menu",
 		"[yellow]v[white] Multi-Select",
 		"[yellow]S[white] Sort",
 		"[yellow]R[white] Refresh",
@@ -350,9 +347,6 @@ func (v *JobsView) handleJobsViewRune(event *tcell.EventKey) *tcell.EventKey {
 // jobsKeyHandlers returns a map of special keys to their handlers
 func (v *JobsView) jobsKeyHandlers() map[tcell.Key]func(*JobsView, *tcell.EventKey) *tcell.EventKey {
 	return map[tcell.Key]func(*JobsView, *tcell.EventKey) *tcell.EventKey{
-		tcell.KeyF1:    func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobActions(); return nil },
-		tcell.KeyF2:    func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobTemplateSelector(); return nil },
-		tcell.KeyF3:    func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
 		tcell.KeyCtrlF: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showGlobalSearch(); return nil },
 		tcell.KeyEnter: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobDetails(); return nil },
 		tcell.KeyCtrlA: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.selectAllJobs(); return nil },
@@ -1160,13 +1154,9 @@ func (v *JobsView) showJobSubmissionForm() {
 	})
 }
 
-// showJobTemplateSelector shows the job template selector (alias for submission form)
-func (v *JobsView) showJobTemplateSelector() {
-	v.showJobSubmissionForm()
-}
-
 // showJobActions shows an action menu for the selected job
-func (v *JobsView) showJobActions() {
+// TODO: wire to a uniform key binding across all views
+func (v *JobsView) showJobActions() { //nolint:unused // will be wired in a follow-up PR
 	data := v.table.GetSelectedData()
 	if len(data) == 0 {
 		// Note: Status bar update removed since individual view status bars are no longer used
@@ -1222,7 +1212,7 @@ func (v *JobsView) showJobActions() {
 }
 
 // buildJobActions builds the list of available actions based on job state
-func (v *JobsView) buildJobActions(state string) ([]string, []func()) {
+func (v *JobsView) buildJobActions(state string) ([]string, []func()) { //nolint:unused // used by showJobActions
 	var actions []string
 	var handlers []func()
 
@@ -1704,7 +1694,8 @@ func (v *JobsView) batchReleaseSelected() {
 */
 
 // showAdvancedFilter shows the advanced filter bar
-func (v *JobsView) showAdvancedFilter() {
+// TODO: wire to a uniform key binding across all views
+func (v *JobsView) showAdvancedFilter() { //nolint:unused // will be wired in a follow-up PR
 	if v.filterBar == nil || v.pages == nil {
 		return
 	}
