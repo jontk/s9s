@@ -402,6 +402,7 @@ Press `:` to enter vim-style command mode with tab completion support:
 
 ### Command Completion
 ```
+:<Tab>             - Shows all available commands
 :q<Tab>            - Shows: q, qos, quit
 :req<Tab>          - Completes to: requeue
 :dr<Tab>           - Completes to: drain

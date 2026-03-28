@@ -245,6 +245,7 @@ Press `:` to enter vim-style command mode with intelligent tab completion:
 ```
 
 ### Tab Completion
+- Press `Tab` on an empty prompt → shows all available commands
 - Type `:req` and press `Tab` → completes to `:requeue`
 - Type `:cancel ` and press `Tab` → shows available job IDs
 - Type `:drain ` and press `Tab` → shows available node names

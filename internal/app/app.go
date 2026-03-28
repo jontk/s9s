@@ -62,8 +62,9 @@ type S9s struct {
 	contentPages *tview.Pages // Pages widget for stable view switching
 
 	// Command line
-	cmdLine    *tview.InputField
-	cmdVisible bool
+	cmdLine               *tview.InputField
+	cmdVisible            bool
+	cmdShowAllCompletions bool
 
 	// State
 	refreshTicker *time.Ticker
