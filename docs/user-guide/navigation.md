@@ -23,7 +23,7 @@ These shortcuts work across all views:
 | `h` | Previous View | Move to previous view |
 | `l` | Next View | Move to next view |
 | `F1` | Help | Show help modal |
-| `F2` | Alerts | Show system alerts (passes through to Jobs view for templates) |
+| `F2` | Alerts | Show system alerts |
 | `F3` | Preferences | Show preferences dialog |
 | `F4` | Layout | Show layout switcher |
 | `F5` | Refresh | Refresh current view |
@@ -73,7 +73,6 @@ These shortcuts work across all views:
 | `m` | Auto Refresh | Toggle auto-refresh |
 | `/` | Filter | Filter jobs |
 | `Ctrl+F` | Search | Global search across all entity types |
-| `F2` | Templates | Show job templates |
 | `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
 
