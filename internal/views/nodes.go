@@ -210,20 +210,13 @@ func (v *NodesView) Stop() error {
 // Hints returns keyboard hints
 func (v *NodesView) Hints() []string {
 	hints := []string{
-		"[yellow]Enter[white] Details",
 		"[yellow]d[white] Drain",
 		"[yellow]r[white] Resume",
 		"[yellow]s[white] SSH",
-		"[yellow]/[white] Filter",
-		"[yellow]f[white] Adv Filter",
-		"[yellow]Ctrl+F[white] Search",
-		"[yellow]S[white] Sort",
-		"[yellow]R[white] Refresh",
 		"[yellow]p[white] Partition",
 		"[yellow]a[white] All States",
 		"[yellow]g[white] Group By",
 		"[yellow]Space[white] Toggle Group",
-		"[yellow]e[white] Export",
 		"Bar: █=Used ▒=Alloc ▱=Free",
 	}
 

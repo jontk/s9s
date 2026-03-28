@@ -188,15 +188,7 @@ func (v *UsersView) Hints() []string {
 	}
 
 	hints := []string{
-		"[yellow]Enter[white] Details",
-		"[yellow]/[white] Filter",
-		"[yellow]f[white] Adv Filter",
-		"[yellow]Ctrl+F[white] Search",
-		"[yellow]Click Headers[white] Sort",
-		"[yellow]S[white] Sort",
-		"[yellow]R[white] Refresh",
 		adminHint,
-		"[yellow]e[white] Export",
 	}
 
 	if v.isAdvancedMode {

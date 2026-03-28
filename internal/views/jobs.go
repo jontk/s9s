@@ -266,7 +266,6 @@ func (v *JobsView) Stop() error {
 // Hints returns keyboard hints
 func (v *JobsView) Hints() []string {
 	hints := []string{
-		"[yellow]Enter[white] Details",
 		"[yellow]s[white] Submit Job",
 		"[yellow]c[white] Cancel",
 		"[yellow]H[white] Hold",
@@ -274,16 +273,10 @@ func (v *JobsView) Hints() []string {
 		"[yellow]o[white] Output",
 		"[yellow]d[white] Dependencies",
 		"[yellow]q[white] Requeue",
-		"[yellow]b[white] Batch Ops",
-		"[yellow]m[white] Auto Refresh",
-		"[yellow]/[white] Filter",
-		"[yellow]Ctrl+F[white] Search",
-		"[yellow]v[white] Multi-Select",
-		"[yellow]f[white] Adv Filter",
 		"[yellow]x[white] Actions",
-		"[yellow]S[white] Sort",
-		"[yellow]R[white] Refresh",
-		"[yellow]e[white] Export",
+		"[yellow]b[white] Batch Ops",
+		"[yellow]v[white] Multi-Select",
+		"[yellow]m[white] Auto Refresh",
 	}
 
 	if v.isAdvancedMode {

@@ -177,16 +177,7 @@ func (v *ReservationsView) Stop() error {
 
 // Hints returns keyboard hints
 func (v *ReservationsView) Hints() []string {
-	hints := []string{
-		"[yellow]Enter[white] Details",
-		"[yellow]/[white] Filter",
-		"[yellow]f[white] Adv Filter",
-		"[yellow]Ctrl+F[white] Search",
-		"[yellow]Click Headers[white] Sort",
-		"[yellow]S[white] Sort",
-		"[yellow]R[white] Refresh",
-		"[yellow]e[white] Export",
-	}
+	hints := []string{}
 
 	// Show active filter status
 	if v.activeFilterEnabled {

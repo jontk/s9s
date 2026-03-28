@@ -175,16 +175,7 @@ func (v *QoSView) Stop() error {
 
 // Hints returns keyboard hints
 func (v *QoSView) Hints() []string {
-	hints := []string{
-		"[yellow]Enter[white] Details",
-		"[yellow]/[white] Filter",
-		"[yellow]f[white] Adv Filter",
-		"[yellow]Ctrl+F[white] Search",
-		"[yellow]Click Headers[white] Sort",
-		"[yellow]S[white] Sort",
-		"[yellow]R[white] Refresh",
-		"[yellow]e[white] Export",
-	}
+	hints := []string{}
 
 	if v.isAdvancedMode {
 		hints = append([]string{"[yellow]ESC[white] Exit Adv Filter"}, hints...)

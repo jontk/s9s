@@ -40,14 +40,10 @@ func NewStatusBar() *StatusBar {
 
 // SetHints sets the keyboard hints to display
 func (s *StatusBar) SetHints(hints []string) {
-	// Only update hints if new hints are provided
-	// This prevents accidental clearing of hints
-	if len(hints) > 0 {
-		s.mu.Lock()
-		s.hints = hints
-		s.mu.Unlock()
-		s.updateDisplay()
-	}
+	s.mu.Lock()
+	s.hints = hints
+	s.mu.Unlock()
+	s.updateDisplay()
 }
 
 // SetMessage sets a temporary message with optional expiry
@@ -162,11 +158,11 @@ func (s *StatusBar) updateDisplay() {
 // formatHints formats the keyboard hints for display
 func (s *StatusBar) formatHints(hints []string) string {
 	if len(hints) == 0 {
-		return ""
+		return "[gray]?:All shortcuts[white]"
 	}
 
-	// Join hints with separators
-	return strings.Join(hints, "  ")
+	// Join hints with separators, append help nudge
+	return strings.Join(hints, "  ") + "  [gray]?:All shortcuts[white]"
 }
 
 // getColorName returns the color name for tview markup

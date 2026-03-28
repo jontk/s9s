@@ -501,7 +501,7 @@ func TestHealthViewHints(t *testing.T) {
 	assert.NotEmpty(t, hints, "View should have keyboard hints")
 
 	// Verify essential hints are present
-	essentialHints := []string{"Enter", "Refresh"}
+	essentialHints := []string{"Acknowledge", "Resolve"}
 	for _, essential := range essentialHints {
 		found := false
 		for _, hint := range hints {
