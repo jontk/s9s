@@ -320,10 +320,14 @@ func (v *PartitionsView) isModalOpen() bool {
 // handlePartitionKey handles non-filter keyboard events
 // Returns nil if the key was handled (consumed), or the event if not handled
 func (v *PartitionsView) handlePartitionKey(event *tcell.EventKey) *tcell.EventKey {
-	// Handle advanced filter mode ESC
-	if v.isAdvancedMode && event.Key() == tcell.KeyEsc {
-		v.closeAdvancedFilter()
-		return nil
+	// Handle advanced filter mode — only intercept ESC, let everything
+	// else pass through to the filter bar's input field
+	if v.isAdvancedMode {
+		if event.Key() == tcell.KeyEsc {
+			v.closeAdvancedFilter()
+			return nil
+		}
+		return event
 	}
 
 	// Handle mapped key handlers

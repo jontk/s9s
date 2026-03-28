@@ -213,10 +213,14 @@ func (v *AccountsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return event
 	}
 
-	// Handle advanced filter mode
-	if v.isAdvancedMode && event.Key() == tcell.KeyEsc {
-		v.closeAdvancedFilter()
-		return nil
+	// Handle advanced filter mode — only intercept ESC, let everything
+	// else pass through to the filter bar's input field
+	if v.isAdvancedMode {
+		if event.Key() == tcell.KeyEsc {
+			v.closeAdvancedFilter()
+			return nil
+		}
+		return event
 	}
 
 	if handler, ok := v.accountsKeyHandlers()[event.Key()]; ok {
