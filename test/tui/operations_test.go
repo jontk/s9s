@@ -251,7 +251,7 @@ func TestOperationWithoutSelection(t *testing.T) {
 	}
 }
 
-// TestLayoutSwitcher verifies that F4 opens layout switcher
+// TestLayoutSwitcher verifies that L opens layout switcher in dashboard view
 func TestLayoutSwitcher(t *testing.T) {
 	h := NewTUITestHarness(t)
 	defer h.Cleanup()
@@ -259,13 +259,15 @@ func TestLayoutSwitcher(t *testing.T) {
 	h.Start()
 	time.Sleep(100 * time.Millisecond)
 
-	// Press F4 to open layout switcher
-	h.SendKey(tcell.KeyF4, 0, tcell.ModNone)
+	// Switch to dashboard view (key 8)
+	h.SendRune('8')
+	time.Sleep(100 * time.Millisecond)
+
+	// Press L to open layout switcher
+	h.SendRune('L')
 	time.Sleep(100 * time.Millisecond)
 
 	// Modal should be open
-	// Note: F4 may not always open a modal depending on implementation
-	// Just verify the app is still functional
 	if h.IsModalOpen() {
 		// If modal opened, close it
 		h.SendEsc()
@@ -274,7 +276,7 @@ func TestLayoutSwitcher(t *testing.T) {
 	}
 
 	// App should still be functional
-	h.AssertCurrentView("jobs")
+	h.AssertCurrentView("dashboard")
 }
 
 // TestSequentialOperations verifies that multiple operations can be performed in sequence

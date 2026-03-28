@@ -88,12 +88,10 @@ These values are computed from real cluster metrics collected during the session
 
 ## Actions & Shortcuts
 
-### Navigation
+### Layout
 | Key | Action |
 |-----|--------|
-| `J` | Switch to Jobs View |
-| `N` | Switch to Nodes View |
-| `P` | Switch to Partitions View |
+| `L` | Switch layout (Default / Monitoring) |
 
 ### Analytics
 | Key | Action |
@@ -213,5 +211,5 @@ The Dashboard uses flexible layout proportions to adapt to different terminal si
 - Use the Dashboard as your cluster monitoring hub
 - Press `A` regularly to review recommendations
 - Check `H` for detailed health diagnostics
-- Navigate directly to specific views using `J`, `N`, or `P`
+- Press `L` to switch between the default dashboard and the monitoring layout
 - Press `R` to manually refresh the dashboard data when you want the latest metrics

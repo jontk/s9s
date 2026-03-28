@@ -283,7 +283,7 @@ func (up *UserPreferences) setDefaults() {
 		"mark":            "m",
 		"mark_all":        "Ctrl+a",
 		"clear_marks":     "Ctrl+u",
-		"layout_switcher": "F4",
+		"layout_switcher": "L",
 		"layout_edit":     "Ctrl+l",
 	}
 }
