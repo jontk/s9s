@@ -268,7 +268,6 @@ func (v *JobsView) Hints() []string {
 	hints := []string{
 		"[yellow]Enter[white] Details",
 		"[yellow]s[white] Submit Job",
-		"[yellow]F2[white] Templates",
 		"[yellow]c[white] Cancel",
 		"[yellow]H[white] Hold",
 		"[yellow]r[white] Release",
@@ -351,7 +350,6 @@ func (v *JobsView) handleJobsViewRune(event *tcell.EventKey) *tcell.EventKey {
 func (v *JobsView) jobsKeyHandlers() map[tcell.Key]func(*JobsView, *tcell.EventKey) *tcell.EventKey {
 	return map[tcell.Key]func(*JobsView, *tcell.EventKey) *tcell.EventKey{
 		tcell.KeyF1:    func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobActions(); return nil },
-		tcell.KeyF2:    func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobTemplateSelector(); return nil },
 		tcell.KeyF3:    func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
 		tcell.KeyCtrlF: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showGlobalSearch(); return nil },
 		tcell.KeyEnter: func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobDetails(); return nil },
@@ -1158,11 +1156,6 @@ func (v *JobsView) showJobSubmissionForm() {
 		go func() { _ = v.Refresh() }()
 	}, func() {
 	})
-}
-
-// showJobTemplateSelector shows the job template selector (alias for submission form)
-func (v *JobsView) showJobTemplateSelector() {
-	v.showJobSubmissionForm()
 }
 
 // showJobActions shows an action menu for the selected job
