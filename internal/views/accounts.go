@@ -179,7 +179,7 @@ func (v *AccountsView) Hints() []string {
 	hints := []string{
 		"[yellow]Enter[white] Details",
 		"[yellow]/[white] Filter",
-		"[yellow]F3[white] Adv Filter",
+		"[yellow]f[white] Adv Filter",
 		"[yellow]Ctrl+F[white] Search",
 		"[yellow]Click Headers[white] Sort",
 		"[yellow]S[white] Sort",
@@ -213,10 +213,14 @@ func (v *AccountsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return event
 	}
 
-	// Handle advanced filter mode
-	if v.isAdvancedMode && event.Key() == tcell.KeyEsc {
-		v.closeAdvancedFilter()
-		return nil
+	// Handle advanced filter mode — only intercept ESC, let everything
+	// else pass through to the filter bar's input field
+	if v.isAdvancedMode {
+		if event.Key() == tcell.KeyEsc {
+			v.closeAdvancedFilter()
+			return nil
+		}
+		return event
 	}
 
 	if handler, ok := v.accountsKeyHandlers()[event.Key()]; ok {
@@ -237,7 +241,6 @@ func (v *AccountsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 // accountsKeyHandlers returns a map of function key handlers
 func (v *AccountsView) accountsKeyHandlers() map[tcell.Key]func() {
 	return map[tcell.Key]func(){
-		tcell.KeyF3:    v.showAdvancedFilter,
 		tcell.KeyCtrlF: v.showGlobalSearch,
 		tcell.KeyEnter: v.showAccountDetails,
 	}
@@ -248,6 +251,7 @@ func (v *AccountsView) accountsRuneHandlers() map[rune]func() {
 	return map[rune]func(){
 		'R': func() { go func() { _ = v.Refresh() }() },
 		'/': func() { v.app.SetFocus(v.filterInput) },
+		'f': v.showAdvancedFilter,
 		'H': v.showAccountHierarchy,
 		'S': func() { v.promptSortBy() },
 		'e': func() { v.showExportDialog() },

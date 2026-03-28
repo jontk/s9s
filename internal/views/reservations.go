@@ -180,7 +180,7 @@ func (v *ReservationsView) Hints() []string {
 	hints := []string{
 		"[yellow]Enter[white] Details",
 		"[yellow]/[white] Filter",
-		"[yellow]F3[white] Adv Filter",
+		"[yellow]f[white] Adv Filter",
 		"[yellow]Ctrl+F[white] Search",
 		"[yellow]Click Headers[white] Sort",
 		"[yellow]S[white] Sort",
@@ -197,9 +197,9 @@ func (v *ReservationsView) Hints() []string {
 
 	// Show future filter status
 	if v.futureFilterEnabled {
-		hints = append(hints, "[yellow]f[green]✓[white] Future Only")
+		hints = append(hints, "[yellow]t[green]✓[white] Future Only")
 	} else {
-		hints = append(hints, "[yellow]f[white] Future Only")
+		hints = append(hints, "[yellow]t[white] Future Only")
 	}
 
 	if v.isAdvancedMode {
@@ -227,10 +227,14 @@ func (v *ReservationsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return event // Let modal handle it
 	}
 
-	// Handle advanced filter mode
-	if v.isAdvancedMode && event.Key() == tcell.KeyEsc {
-		v.closeAdvancedFilter()
-		return nil
+	// Handle advanced filter mode — only intercept ESC, let everything
+	// else pass through to the filter bar's input field
+	if v.isAdvancedMode {
+		if event.Key() == tcell.KeyEsc {
+			v.closeAdvancedFilter()
+			return nil
+		}
+		return event
 	}
 
 	if handler, ok := v.reservationsKeyHandlers()[event.Key()]; ok {
@@ -251,7 +255,6 @@ func (v *ReservationsView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 // reservationsKeyHandlers returns a map of function key handlers
 func (v *ReservationsView) reservationsKeyHandlers() map[tcell.Key]func() {
 	return map[tcell.Key]func(){
-		tcell.KeyF3:    v.showAdvancedFilter,
 		tcell.KeyCtrlF: v.showGlobalSearch,
 		tcell.KeyEnter: v.showReservationDetails,
 	}
@@ -264,8 +267,9 @@ func (v *ReservationsView) reservationsRuneHandlers() map[rune]func() {
 		'/': func() { v.app.SetFocus(v.filterInput) },
 		'a': v.toggleActiveFilter,
 		'A': v.toggleActiveFilter,
-		'f': v.toggleFutureFilter,
-		'F': v.toggleFutureFilter,
+		'f': v.showAdvancedFilter,
+		't': v.toggleFutureFilter,
+		'T': v.toggleFutureFilter,
 		'S': func() { v.promptSortBy() },
 		'e': func() { v.showExportDialog() },
 		'E': func() { v.showExportDialog() },

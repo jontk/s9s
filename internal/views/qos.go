@@ -178,7 +178,7 @@ func (v *QoSView) Hints() []string {
 	hints := []string{
 		"[yellow]Enter[white] Details",
 		"[yellow]/[white] Filter",
-		"[yellow]F3[white] Adv Filter",
+		"[yellow]f[white] Adv Filter",
 		"[yellow]Ctrl+F[white] Search",
 		"[yellow]Click Headers[white] Sort",
 		"[yellow]S[white] Sort",
@@ -211,10 +211,14 @@ func (v *QoSView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return event // Let modal handle it
 	}
 
-	// Handle advanced filter mode
-	if v.isAdvancedMode && event.Key() == tcell.KeyEsc {
-		v.closeAdvancedFilter()
-		return nil
+	// Handle advanced filter mode — only intercept ESC, let everything
+	// else pass through to the filter bar's input field
+	if v.isAdvancedMode {
+		if event.Key() == tcell.KeyEsc {
+			v.closeAdvancedFilter()
+			return nil
+		}
+		return event
 	}
 
 	if handler, ok := v.qosKeyHandlers()[event.Key()]; ok {
@@ -235,7 +239,6 @@ func (v *QoSView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 // qosKeyHandlers returns a map of function key handlers
 func (v *QoSView) qosKeyHandlers() map[tcell.Key]func() {
 	return map[tcell.Key]func(){
-		tcell.KeyF3:    v.showAdvancedFilter,
 		tcell.KeyCtrlF: v.showGlobalSearch,
 		tcell.KeyEnter: v.showQoSDetails,
 	}
@@ -246,6 +249,7 @@ func (v *QoSView) qosRuneHandlers() map[rune]func() {
 	return map[rune]func(){
 		'R': func() { go func() { _ = v.Refresh() }() },
 		'/': func() { v.app.SetFocus(v.filterInput) },
+		'f': v.showAdvancedFilter,
 		'S': func() { v.promptSortBy() },
 		'e': func() { v.showExportDialog() },
 		'E': func() { v.showExportDialog() },

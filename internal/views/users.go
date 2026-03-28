@@ -190,7 +190,7 @@ func (v *UsersView) Hints() []string {
 	hints := []string{
 		"[yellow]Enter[white] Details",
 		"[yellow]/[white] Filter",
-		"[yellow]F3[white] Adv Filter",
+		"[yellow]f[white] Adv Filter",
 		"[yellow]Ctrl+F[white] Search",
 		"[yellow]Click Headers[white] Sort",
 		"[yellow]S[white] Sort",
@@ -224,10 +224,14 @@ func (v *UsersView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return event // Let modal handle it
 	}
 
-	// Handle advanced filter mode
-	if v.isAdvancedMode && event.Key() == tcell.KeyEsc {
-		v.closeAdvancedFilter()
-		return nil
+	// Handle advanced filter mode — only intercept ESC, let everything
+	// else pass through to the filter bar's input field
+	if v.isAdvancedMode {
+		if event.Key() == tcell.KeyEsc {
+			v.closeAdvancedFilter()
+			return nil
+		}
+		return event
 	}
 
 	if handler, ok := v.usersKeyHandlers()[event.Key()]; ok {
@@ -248,7 +252,6 @@ func (v *UsersView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 // usersKeyHandlers returns a map of function key handlers
 func (v *UsersView) usersKeyHandlers() map[tcell.Key]func() {
 	return map[tcell.Key]func(){
-		tcell.KeyF3:    v.showAdvancedFilter,
 		tcell.KeyCtrlF: v.showGlobalSearch,
 		tcell.KeyEnter: v.showUserDetails,
 	}
@@ -259,6 +262,7 @@ func (v *UsersView) usersRuneHandlers() map[rune]func() {
 	return map[rune]func(){
 		'R': func() { go func() { _ = v.Refresh() }() },
 		'/': func() { v.app.SetFocus(v.filterInput) },
+		'f': v.showAdvancedFilter,
 		'a': v.toggleAdminFilter,
 		'A': v.toggleAdminFilter,
 		'S': func() { v.promptSortBy() },

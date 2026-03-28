@@ -71,7 +71,9 @@ These shortcuts work across all views:
 | `v` | Multi-Select | Toggle multi-select mode |
 | `m` | Auto Refresh | Toggle auto-refresh |
 | `/` | Filter | Filter jobs |
+| `f` | Advanced Filter | Open advanced filter bar |
 | `Ctrl+F` | Search | Global search across all entity types |
+| `x` | Actions Menu | Open actions menu for selected job |
 | `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
 
@@ -85,6 +87,7 @@ These shortcuts work across all views:
 | `r` | Resume | Resume drained node |
 | `R` | Refresh | Force refresh view |
 | `/` | Filter | Filter nodes |
+| `f` | Advanced Filter | Open advanced filter bar |
 | `Ctrl+F` | Search | Global search across all entity types |
 | `S` | Sort | Open sort modal |
 | `p` | Partition | Filter by partition |
@@ -102,6 +105,7 @@ These shortcuts work across all views:
 | `A` | Analytics | Show partition analytics |
 | `W` | Wait Times | Show wait time analytics |
 | `/` | Filter | Filter partitions |
+| `f` | Advanced Filter | Open advanced filter bar |
 | `Ctrl+F` | Search | Global search across all entity types |
 | `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
@@ -113,6 +117,7 @@ These shortcuts work across all views:
 |-----|--------|-------------|
 | `Enter` | Details | Show QoS details |
 | `/` | Filter | Filter QoS policies |
+| `f` | Advanced Filter | Open advanced filter bar |
 | `Ctrl+F` | Search | Global search across all entity types |
 | `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
@@ -125,6 +130,7 @@ These shortcuts work across all views:
 | `Enter` | Details | Show account details |
 | `H` | Hierarchy | Show account hierarchy |
 | `/` | Filter | Filter accounts |
+| `f` | Advanced Filter | Open advanced filter bar |
 | `Ctrl+F` | Search | Global search across all entity types |
 | `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
@@ -137,6 +143,7 @@ These shortcuts work across all views:
 | `Enter` | Details | Show user details |
 | `a` | Toggle Filter | Show admin users / all users |
 | `/` | Filter | Filter users |
+| `f` | Advanced Filter | Open advanced filter bar |
 | `Ctrl+F` | Search | Global search across all entity types |
 | `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
@@ -148,8 +155,9 @@ These shortcuts work across all views:
 |-----|--------|-------------|
 | `Enter` | Details | Show reservation details |
 | `a` | Active Only | Filter active reservations |
-| `f` | Future Only | Filter future reservations |
+| `t` | Future Only | Filter future reservations |
 | `/` | Filter | Filter reservations |
+| `f` | Advanced Filter | Open advanced filter bar |
 | `Ctrl+F` | Search | Global search across all entity types |
 | `S` | Sort | Open sort modal |
 | `R` | Refresh | Force refresh view |
@@ -190,7 +198,7 @@ Enter filter mode with `/` in any view:
 
 ### Advanced Filter
 
-The advanced filter bar supports field-specific filtering with operators (equals, contains, greater than, less than) and multiple filter conditions. Note that the global `F3` key opens Preferences, which takes priority over view-level filter bindings.
+The advanced filter bar supports field-specific filtering with operators (equals, contains, greater than, less than) and multiple filter conditions. Press `f` in any data view to open the advanced filter bar.
 
 ### Global Search
 

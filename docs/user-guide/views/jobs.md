@@ -266,10 +266,12 @@ When disabled, use `R` for manual refresh.
 | Key | Action |
 |-----|--------|
 | `/` | Simple filter |
+| `f` | Advanced filter |
 | `Ctrl+F` | Global search |
 | `a/A` | Filter all states |
 | `p/P` | Filter pending |
 | `u/U` | Filter by user |
+| `x` | Actions menu |
 | `ESC` | Exit filter mode |
 
 ### Data Management

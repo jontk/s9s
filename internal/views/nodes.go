@@ -215,7 +215,7 @@ func (v *NodesView) Hints() []string {
 		"[yellow]r[white] Resume",
 		"[yellow]s[white] SSH",
 		"[yellow]/[white] Filter",
-		"[yellow]F3[white] Adv Filter",
+		"[yellow]f[white] Adv Filter",
 		"[yellow]Ctrl+F[white] Search",
 		"[yellow]S[white] Sort",
 		"[yellow]R[white] Refresh",
@@ -252,10 +252,14 @@ func (v *NodesView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 		return event // Let modal handle it
 	}
 
-	// Handle advanced filter mode
-	if v.isAdvancedMode && event.Key() == tcell.KeyEsc {
-		v.closeAdvancedFilter()
-		return nil
+	// Handle advanced filter mode — only intercept ESC, let everything
+	// else pass through to the filter bar's input field
+	if v.isAdvancedMode {
+		if event.Key() == tcell.KeyEsc {
+			v.closeAdvancedFilter()
+			return nil
+		}
+		return event
 	}
 
 	// Handle by special key first
@@ -283,7 +287,6 @@ func (v *NodesView) handleNodesViewRune(event *tcell.EventKey) *tcell.EventKey {
 // nodesKeyHandlers returns a map of special keys to their handlers
 func (v *NodesView) nodesKeyHandlers() map[tcell.Key]func(*NodesView, *tcell.EventKey) *tcell.EventKey {
 	return map[tcell.Key]func(*NodesView, *tcell.EventKey) *tcell.EventKey{
-		tcell.KeyF3:    func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
 		tcell.KeyCtrlF: func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showGlobalSearch(); return nil },
 		tcell.KeyEnter: func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showNodeDetails(); return nil },
 	}
@@ -292,6 +295,7 @@ func (v *NodesView) nodesKeyHandlers() map[tcell.Key]func(*NodesView, *tcell.Eve
 // nodesRuneHandlers returns a map of rune keys to their handlers
 func (v *NodesView) nodesRuneHandlers() map[rune]func(*NodesView, *tcell.EventKey) *tcell.EventKey {
 	return map[rune]func(*NodesView, *tcell.EventKey) *tcell.EventKey{
+		'f': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.showAdvancedFilter(); return nil },
 		'd': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.drainSelectedNode(); return nil },
 		'D': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.drainSelectedNode(); return nil },
 		'r': func(v *NodesView, _ *tcell.EventKey) *tcell.EventKey { v.resumeSelectedNode(); return nil },
