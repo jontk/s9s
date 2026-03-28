@@ -25,9 +25,12 @@ func (s *S9s) hideCommandLine() {
 	s.cmdVisible = false
 	s.mainLayout.ResizeItem(s.cmdLine, 0, 0)
 
-	// Return focus to current view
-	if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
-		s.app.SetFocus(currentView.Render())
+	// Only restore focus to the current view if no modal is open.
+	// Commands like :layout open modals that set their own focus.
+	if !s.IsModalOpen() {
+		if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
+			s.app.SetFocus(currentView.Render())
+		}
 	}
 }
 
