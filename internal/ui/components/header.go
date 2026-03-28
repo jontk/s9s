@@ -138,7 +138,7 @@ func (h *Header) appendTitleLine(content *strings.Builder) {
 	h.appendAlertsBadge(content)
 
 	// Navigation hints
-	content.WriteString(" | [white]Tab[gray]:Switch Views  [white]Enter[gray]:Details  [white]?[gray]:Help[white]")
+	content.WriteString(" | [white]Tab[gray]:Switch Views  [white]Enter[gray]:Details  [white]/[gray]:Filter  [white]R[gray]:Refresh  [white]?[gray]:Help[white]")
 	content.WriteString("\n")
 }
 

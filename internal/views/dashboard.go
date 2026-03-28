@@ -258,7 +258,6 @@ func (v *DashboardView) Hints() []string {
 	return []string{
 		"[yellow]L[white] Switch Layout",
 		"[yellow]A[white] Analytics",
-		"[yellow]R[white] Refresh",
 		"[yellow]H[white] Health Check",
 	}
 }

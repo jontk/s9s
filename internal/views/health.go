@@ -142,11 +142,9 @@ func (v *HealthView) Stop() error {
 // Hints returns keyboard hints
 func (v *HealthView) Hints() []string {
 	return []string{
-		"[yellow]Enter[white] Alert Details",
 		"[yellow]a[white] Acknowledge Alert",
 		"[yellow]r[white] Resolve Alert",
 		"[yellow]c[white] Clear Resolved",
-		"[yellow]R[white] Refresh",
 		"[yellow]H[white] Health Details",
 		"[yellow]s[white] Health Stats",
 	}

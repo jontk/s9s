@@ -41,6 +41,9 @@ func (s *S9s) showHelp() {
   [yellow]:qos[white]           QoS view        [yellow]:performance[white]   Performance view
   [yellow]:refresh, :r[white]   Refresh         [yellow]:layout[white]        Layout switcher
   [yellow]:quit, :q[white]      Quit            [yellow]:help, :h[white]      Help
+
+[teal]Common View Keys:[white] [gray](available in all data views)[white]
+  [yellow]/[white] Filter    [yellow]f[white] Adv Filter    [yellow]Ctrl+F[white] Search    [yellow]S[white] Sort    [yellow]R[white] Refresh    [yellow]e[white] Export
 `
 
 	// Append current view shortcuts
