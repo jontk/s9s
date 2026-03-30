@@ -518,50 +518,20 @@ func (c *Config) SaveToFile(path string) error {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
-	// Marshal the current config
 	fullData, err := yaml.Marshal(c)
 	if err != nil {
 		return fmt.Errorf("marshaling config: %w", err)
 	}
 
-	// If the file already exists, only write back keys that were in the
-	// original file (plus core fields). This prevents viper-injected
-	// defaults from polluting the file.
-	existing, readErr := os.ReadFile(path)
-	if readErr != nil {
-		// New file — write the full config
+	// If the file already exists, merge to preserve its structure and
+	// prevent viper-injected defaults from polluting the file.
+	// For new or malformed files, write the full config.
+	merged, err := c.mergeWithExisting(path, fullData)
+	if err != nil {
 		return os.WriteFile(path, fullData, 0o600)
 	}
-
-	original := make(map[string]any)
-	if err := yaml.Unmarshal(existing, &original); err != nil {
-		// Existing file is malformed — write the full config rather than
-		// silently losing keys from a file we can't parse
+	if merged == nil {
 		return os.WriteFile(path, fullData, 0o600)
-	}
-
-	full := make(map[string]any)
-	if err := yaml.Unmarshal(fullData, &full); err != nil {
-		return fmt.Errorf("parsing marshaled config: %w", err)
-	}
-
-	// Core fields always written
-	coreFields := map[string]bool{
-		"refreshRate": true, "maxRetries": true,
-		"defaultCluster": true, "clusters": true,
-	}
-
-	// Merge: keep original keys + core fields, update values from full config
-	merged := make(map[string]any)
-	for key := range original {
-		if val, ok := full[key]; ok {
-			merged[key] = val
-		}
-	}
-	for key := range coreFields {
-		if val, ok := full[key]; ok {
-			merged[key] = val
-		}
 	}
 
 	out, err := yaml.Marshal(merged)
@@ -570,6 +540,42 @@ func (c *Config) SaveToFile(path string) error {
 	}
 
 	return os.WriteFile(path, out, 0o600)
+}
+
+// mergeWithExisting reads an existing config file and returns a merged map
+// containing only the original keys plus core fields, with updated values.
+// Returns nil if the file doesn't exist or can't be parsed.
+func (c *Config) mergeWithExisting(path string, fullData []byte) (map[string]any, error) {
+	existing, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	original := make(map[string]any)
+	if err := yaml.Unmarshal(existing, &original); err != nil {
+		return nil, err
+	}
+
+	full := make(map[string]any)
+	if err := yaml.Unmarshal(fullData, &full); err != nil {
+		return nil, err
+	}
+
+	coreFields := []string{"refreshRate", "maxRetries", "defaultCluster", "clusters"}
+
+	merged := make(map[string]any)
+	for key := range original {
+		if val, ok := full[key]; ok {
+			merged[key] = val
+		}
+	}
+	for _, key := range coreFields {
+		if val, ok := full[key]; ok {
+			merged[key] = val
+		}
+	}
+
+	return merged, nil
 }
 
 // getEnvOrDefault returns environment variable value or default
