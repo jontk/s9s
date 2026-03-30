@@ -133,7 +133,7 @@ func (cv *ConfigView) showExitConfirmation() {
 
 		switch buttonIndex {
 		case 0: // Save & Exit
-			cv.configManager.GetCurrentConfig()
+			cv.configManager.Save()
 			cv.pages.RemovePage("config")
 		case 1: // Discard & Exit
 			cv.pages.RemovePage("config")

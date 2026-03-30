@@ -860,6 +860,11 @@ func (cm *ConfigManager) GetCurrentConfig() *config.Config {
 	return cm.currentConfig
 }
 
+// Save saves the current configuration to file
+func (cm *ConfigManager) Save() {
+	cm.saveConfiguration()
+}
+
 // HasChanges returns whether there are unsaved changes
 func (cm *ConfigManager) HasChanges() bool {
 	return cm.hasChanges
