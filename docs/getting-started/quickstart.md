@@ -69,7 +69,7 @@ Common views:
 | `?` | Help | Show context-sensitive keyboard shortcuts |
 | `q` | Quit | Exit s9s |
 | `/` | Filter | Filter current view |
-| `F3` | Preferences | Open preferences dialog |
+| `F10` | Configuration | Open configuration settings |
 | `Tab` | Next view | Cycle through views |
 | `Enter` | Details | View detailed information |
 | `ESC` | Cancel | Exit dialog/filter/modal |

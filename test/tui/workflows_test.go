@@ -338,7 +338,10 @@ func TestConfigurationChangeWorkflow(t *testing.T) {
 	if h.IsModalOpen() {
 		// Configuration modal opened successfully
 		// User looks around then closes without changing
+		// Esc twice: form→sidebar→close
 		time.Sleep(100 * time.Millisecond)
+		h.SendEsc()
+		time.Sleep(50 * time.Millisecond)
 		h.SendEsc()
 		time.Sleep(50 * time.Millisecond)
 

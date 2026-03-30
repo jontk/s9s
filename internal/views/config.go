@@ -50,6 +50,7 @@ func (cv *ConfigView) setupView() {
 		cv.onApply,
 		cv.onCancel,
 	)
+	cv.configManager.SetOnClose(cv.exitView)
 
 	// Track changes for title updates
 	cv.originalTitle = "Configuration"
@@ -102,17 +103,12 @@ func (cv *ConfigView) updateTitle() {
 // handleInput processes keyboard shortcuts
 func (cv *ConfigView) handleInput(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Key() {
-	case tcell.KeyEscape:
-		// Exit configuration view
-		cv.exitView()
-		return nil
 	case tcell.KeyF1:
-		// Show help
 		cv.showHelp()
 		return nil
 	}
 
-	// Pass through to config manager
+	// All other keys (including Escape) pass through to config manager
 	return event
 }
 
@@ -137,7 +133,7 @@ func (cv *ConfigView) showExitConfirmation() {
 
 		switch buttonIndex {
 		case 0: // Save & Exit
-			cv.configManager.GetCurrentConfig()
+			cv.configManager.Save()
 			cv.pages.RemovePage("config")
 		case 1: // Discard & Exit
 			cv.pages.RemovePage("config")
@@ -154,10 +150,11 @@ func (cv *ConfigView) showHelp() {
 	helpText := `Configuration Help
 
 Navigation:
-  Tab          - Navigate between sidebar and form
+  Tab          - Sidebar to form / next field
+  Shift+Tab    - Previous field
+  Esc          - Form to sidebar / close
   Enter        - Select/modify field
   Space        - Toggle checkboxes
-  Esc          - Exit configuration
 
 Shortcuts:
   Ctrl+S       - Save configuration
@@ -166,22 +163,13 @@ Shortcuts:
   F1           - Show this help
 
 Configuration Groups:
-  General      - Basic application settings
-  UI           - Interface appearance
-  Cluster      - Connection contexts
-  Views        - Table display options
-  Features     - Advanced features
-  Shortcuts    - Keyboard shortcuts
-  Aliases      - Command aliases
-  Plugins      - External plugins
-
-File Location:
-  ~/.s9s/config.yaml
+  General      - Refresh rate, retries, cluster
+  Views        - Job and node display settings
+  Features     - Streaming, health scanner, X-ray
 
 Environment Variables:
   S9S_REFRESH_RATE     - Override refresh rate
   S9S_MAX_RETRIES      - Override max retries
-  S9S_CURRENT_CONTEXT  - Override current context
   SLURM_REST_URL       - Cluster endpoint
   SLURM_JWT           - Authentication token`
 

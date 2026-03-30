@@ -13,6 +13,26 @@ S9S uses a hierarchical configuration system with the following precedence (high
 5. System config: `/etc/s9s/config.yaml`
 6. Default values
 
+## Configuration Modal (F10)
+
+The in-app Configuration modal is opened with `F10` or the `:config` command. It contains two setting groups:
+
+### General
+- **Refresh Rate** (`refreshRate`) -- auto-refresh interval
+- **Default Cluster** (`defaultCluster`) -- which cluster to connect to on startup
+
+### View Settings
+The following settings take effect immediately when changed:
+- **Max Jobs** (`maxJobs`) -- maximum number of jobs to display
+- **Show Only Active** (`showOnlyActive`) -- show only active jobs
+- **Group Nodes By** (`groupBy`) -- group nodes by partition, state, features, or none
+
+The following settings are saved to the config file but only take effect on the next startup:
+- **Job Columns** (`columns`) -- visible columns in the jobs view
+- **Default Sort** (`defaultSort`) -- default sort column for jobs
+
+All other configuration options (UI settings, feature flags, keyboard shortcuts, command aliases, plugins, and cluster contexts) are only configurable by editing the config file directly.
+
 ## Basic Structure
 
 ```yaml
@@ -26,25 +46,25 @@ defaultCluster: "default"
 # Cluster connections
 clusters: []
 
-# UI settings
+# UI settings (config file only, not editable from UI)
 ui: {}
 
 # View settings
 views: {}
 
-# Feature flags
+# Feature flags (config file only, not editable from UI)
 features: {}
 
-# Custom keyboard shortcuts
+# Custom keyboard shortcuts (config file only, not editable from UI)
 shortcuts: []
 
-# Command aliases
+# Command aliases (config file only, not editable from UI)
 aliases: {}
 
-# Plugin configuration
+# Plugin configuration (config file only, not editable from UI)
 plugins: []
 
-# Plugin global settings
+# Plugin global settings (config file only, not editable from UI)
 pluginSettings: {}
 
 # Auto-discovery settings
@@ -100,6 +120,8 @@ defaultCluster: "production"
 
 ## UI Configuration
 
+> **Note:** UI settings are only configurable via the config file. They are not available in the Configuration modal (F10).
+
 ```yaml
 ui:
   # Theme/skin selection
@@ -126,20 +148,33 @@ ui:
 
 ## View Configuration
 
+The Configuration modal (F10) provides a **View Settings** group where some of these settings can be changed at runtime. The following settings take effect immediately when changed in the modal:
+
+- **Max Jobs** (`maxJobs`) -- limits the number of jobs displayed
+- **Show Only Active** (`showOnlyActive`) -- filters to active jobs only
+- **Group Nodes By** (`groupBy`) -- changes node grouping in the nodes view
+
+The following settings can be edited in the modal and are saved to the config file, but are **not applied at runtime** (they take effect on the next startup):
+
+- **Job Columns** (`columns`) -- visible columns in the jobs view
+- **Default Sort** (`defaultSort`) -- default sort column for jobs
+
+All other view settings below are configurable only via the config file.
+
 ### Jobs View
 ```yaml
 views:
   jobs:
-    # Visible columns
+    # Visible columns (saved via UI but applied on next startup)
     columns: ["id", "name", "user", "state", "time", "nodes", "priority"]
 
-    # Show only active jobs
+    # Show only active jobs (editable and applied at runtime via F10)
     showOnlyActive: true
 
-    # Default sort column
+    # Default sort column (saved via UI but applied on next startup)
     defaultSort: "time"
 
-    # Maximum number of jobs to display
+    # Maximum number of jobs to display (editable and applied at runtime via F10)
     maxJobs: 1000
 
     # Job submission configuration
@@ -171,7 +206,7 @@ views:
 ```yaml
 views:
   nodes:
-    # Group nodes by field
+    # Group nodes by field (editable and applied at runtime via F10)
     groupBy: "partition"
 
     # Show utilization metrics
@@ -194,6 +229,8 @@ views:
 
 ## Feature Flags
 
+> **Note:** Feature flags are only configurable via the config file. They are not available in the Configuration modal (F10).
+
 ```yaml
 features:
   # Enable job streaming
@@ -211,6 +248,8 @@ features:
 
 ## Keyboard Shortcuts
 
+> **Note:** Custom keyboard shortcuts are only configurable via the config file. They are not available in the Configuration modal (F10).
+
 Custom keyboard shortcuts use the `shortcuts` array with `key`, `action`, and `description` fields:
 
 ```yaml
@@ -225,6 +264,8 @@ shortcuts:
 ```
 
 ## Command Aliases
+
+> **Note:** Command aliases are only configurable via the config file. They are not available in the Configuration modal (F10).
 
 ```yaml
 aliases:
@@ -303,6 +344,8 @@ discovery:
 ```
 
 ## Plugin Configuration
+
+> **Note:** Plugin settings are only configurable via the config file. They are not available in the Configuration modal (F10).
 
 ```yaml
 # Individual plugin entries

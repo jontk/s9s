@@ -2,8 +2,6 @@ package app
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -25,7 +23,6 @@ func (s *S9s) showHelp() {
   [yellow]Tab/Shift+Tab[white] Cycle between views
   [yellow]F1[white]         Show help
   [yellow]F2[white]         Show system alerts
-  [yellow]F3[white]         Preferences
   [yellow]F5[white]         Refresh current view
   [yellow]F10[white]        Configuration settings
   [yellow]:[white]          Command mode (Tab to browse commands)
@@ -135,22 +132,10 @@ func (s *S9s) showAlertsModal() {
 	s.pages.AddPage("alerts", modal, true, true)
 }
 
-// showPreferences displays the preferences modal
-func (s *S9s) showPreferences() {
-	settings.ShowPreferences(s.pages, s.app, s.userPrefs)
-}
-
 // showConfiguration displays the configuration management interface
 func (s *S9s) showConfiguration() {
-	configPath := ""
-
-	// Try to determine the configuration file path
-	if homeDir, err := os.UserHomeDir(); err == nil {
-		configPath = filepath.Join(homeDir, ".s9s", "config.yaml")
-	}
-
-	// Create configuration view
-	configView := views.NewConfigView(s.app, s.pages, configPath)
+	// Create configuration view using the path the config was loaded from
+	configView := views.NewConfigView(s.app, s.pages, s.config.ConfigPath)
 
 	// Set callback for configuration changes
 	configView.SetConfigChangedCallback(func(newConfig *config.Config) {

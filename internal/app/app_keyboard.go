@@ -22,19 +22,10 @@ func (s *S9s) setupKeyboardShortcuts() {
 		// Check if a modal is open
 		isModalOpen := s.pages.GetPageCount() > 1
 
-		// If a modal is open, only handle ESC to close it, let the modal handle other keys
+		// If a modal is open, let it handle its own keys.
+		// Pages that manage their own Escape (like config) handle
+		// closing internally via their input capture.
 		if isModalOpen {
-			if event.Key() == tcell.KeyEsc {
-				// Try to close the topmost modal page
-				if s.pages.GetPageCount() > 1 {
-					pageName, _ := s.pages.GetFrontPage()
-					if pageName != "" {
-						s.pages.RemovePage(pageName)
-						return nil
-					}
-				}
-			}
-			// Modal is open, let it handle all other keys
 			return event
 		}
 
@@ -122,7 +113,6 @@ func (s *S9s) globalKeyHandlers() map[tcell.Key]KeyHandler {
 		tcell.KeyCtrlK:   s.handleClusterSwitch,
 		tcell.KeyF1:      s.handleF1Help,
 		tcell.KeyF2:      s.handleF2Alerts,
-		tcell.KeyF3:      s.handleF3Preferences,
 		tcell.KeyF5:      s.handleF5Refresh,
 		tcell.KeyF10:     s.handleF10Configuration,
 		tcell.KeyTab:     s.handleTabNavigation,
@@ -170,11 +160,6 @@ func (s *S9s) handleF1Help(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 
 func (s *S9s) handleF2Alerts(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	s.showAlertsModal()
-	return nil
-}
-
-func (s *S9s) handleF3Preferences(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
-	s.showPreferences()
 	return nil
 }
 

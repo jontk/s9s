@@ -39,6 +39,7 @@ type ConfigManager struct {
 	onSave   func(*config.Config) error
 	onCancel func()
 	onApply  func(*config.Config) error
+	onClose  func()
 }
 
 // NewConfigManager creates a new configuration manager
@@ -51,8 +52,8 @@ func NewConfigManager(app *tview.Application, configPath string) *ConfigManager 
 		validationErrors: make(map[string]config.FieldValidationResult),
 	}
 
-	cm.initializeUI()
 	cm.loadConfiguration()
+	cm.initializeUI()
 
 	return cm
 }
@@ -144,8 +145,7 @@ func (cm *ConfigManager) loadConfiguration() {
 	}
 
 	if err != nil {
-		cm.updateStatusBar(fmt.Sprintf("[red]Error loading configuration: %v[white]", err))
-		// Create a default configuration with proper initialization
+		// Fall back to defaults — status bar may not exist yet during init
 		cm.currentConfig = config.DefaultConfig()
 	}
 
@@ -176,7 +176,7 @@ func (cm *ConfigManager) buildForm() {
 	fields := cm.schema.GetFieldsByGroup(cm.selectedGroup)
 
 	if len(fields) == 0 {
-		cm.form.AddTextView("No Settings", "No configurable settings in this group.", 0, 1, false, false)
+		cm.form.AddTextView("No Settings", "[gray]No configurable settings in this group.[white]", 0, 1, true, false)
 		cm.addActionButtons()
 		return
 	}
@@ -197,6 +197,11 @@ func (cm *ConfigManager) buildForm() {
 
 	cm.addActionButtons()
 	cm.validateAllFields()
+
+	// Restore focus to the form after rebuilding
+	if cm.app != nil {
+		cm.app.SetFocus(cm.form)
+	}
 }
 
 // addFormField adds a single field to the form
@@ -213,10 +218,6 @@ func (cm *ConfigManager) addFormField(field *config.ConfigField) {
 		config.FieldTypeSelect:   func() { cm.addSelectField(label, field) },
 		config.FieldTypeArray:    func() { cm.addArrayField(label, field) },
 		config.FieldTypeDuration: func() { cm.addDurationField(label, field) },
-		config.FieldTypeContext:  func() { cm.addContextField(field) },
-		config.FieldTypeShortcut: func() { cm.addShortcutField(field) },
-		config.FieldTypeAlias:    func() { cm.addAliasField(field) },
-		config.FieldTypePlugin:   func() { cm.addPluginField(field) },
 	}
 
 	if adder, ok := fieldAdders[field.Type]; ok {
@@ -368,9 +369,9 @@ func (cm *ConfigManager) addDurationField(label string, field *config.ConfigFiel
 	cm.addFieldDescription(description)
 }
 
-// addFieldDescription adds a description text view after a field
+// addFieldDescription adds a non-focusable description text view after a field
 func (cm *ConfigManager) addFieldDescription(description string) {
-	cm.form.AddTextView("", fmt.Sprintf("[gray]%s[white]", description), 0, 2, false, false)
+	cm.form.AddTextView("", description, 0, 2, false, false)
 }
 
 // getConfigValue retrieves a configuration value by key path
@@ -429,21 +430,11 @@ func (cm *ConfigManager) getConfigScalarValue(cfg *config.Config, field string) 
 // getConfigNestedValue returns nested config structures
 func (cm *ConfigManager) getConfigNestedValue(cfg *config.Config, field string, path []string) interface{} {
 	switch field {
-	case "ui":
-		if len(path) == 0 {
-			return cfg.UI
-		}
-		return cm.getUIValue(&cfg.UI, path)
 	case "views":
 		if len(path) == 0 {
 			return cfg.Views
 		}
 		return cm.getViewsValue(&cfg.Views, path)
-	case "features":
-		if len(path) == 0 {
-			return cfg.Features
-		}
-		return cm.getFeaturesValue(&cfg.Features, path)
 	}
 	return nil
 }
@@ -496,87 +487,12 @@ func (cm *ConfigManager) setConfigScalarValue(cfg *config.Config, field string, 
 // setConfigNestedValue sets nested config structure values
 func (cm *ConfigManager) setConfigNestedValue(cfg *config.Config, field string, path []string, value interface{}) {
 	switch field {
-	case "ui":
-		cm.setUIValue(&cfg.UI, path, value)
 	case "views":
 		cm.setViewsValue(&cfg.Views, path, value)
-	case "features":
-		cm.setFeaturesValue(&cfg.Features, path, value)
 	}
 }
 
 // Helper methods for nested struct access
-func (cm *ConfigManager) getUIValue(ui *config.UIConfig, path []string) interface{} {
-	if ui == nil {
-		return nil
-	}
-	if len(path) == 0 {
-		return ui
-	}
-
-	switch path[0] {
-	case "skin":
-		return ui.Skin
-	case "enableMouse":
-		return ui.EnableMouse
-	case "logoless":
-		return ui.Logoless
-	case "statusless":
-		return ui.Statusless
-	case "noIcons":
-		return ui.NoIcons
-	}
-	return nil
-}
-
-func (cm *ConfigManager) setUIValue(ui *config.UIConfig, path []string, value interface{}) {
-	if ui == nil || len(path) == 0 {
-		return
-	}
-
-	setters := map[string]func(){
-		"skin":        func() { cm.setUISkin(ui, value) },
-		"enableMouse": func() { cm.setUIMouse(ui, value) },
-		"logoless":    func() { cm.setUILogoless(ui, value) },
-		"statusless":  func() { cm.setUIStatusless(ui, value) },
-		"noIcons":     func() { cm.setUIIcons(ui, value) },
-	}
-
-	if setter, ok := setters[path[0]]; ok {
-		setter()
-	}
-}
-
-func (cm *ConfigManager) setUISkin(ui *config.UIConfig, value interface{}) {
-	if v, ok := value.(string); ok {
-		ui.Skin = v
-	}
-}
-
-func (cm *ConfigManager) setUIMouse(ui *config.UIConfig, value interface{}) {
-	if v, ok := value.(bool); ok {
-		ui.EnableMouse = v
-	}
-}
-
-func (cm *ConfigManager) setUILogoless(ui *config.UIConfig, value interface{}) {
-	if v, ok := value.(bool); ok {
-		ui.Logoless = v
-	}
-}
-
-func (cm *ConfigManager) setUIStatusless(ui *config.UIConfig, value interface{}) {
-	if v, ok := value.(bool); ok {
-		ui.Statusless = v
-	}
-}
-
-func (cm *ConfigManager) setUIIcons(ui *config.UIConfig, value interface{}) {
-	if v, ok := value.(bool); ok {
-		ui.NoIcons = v
-	}
-}
-
 func (cm *ConfigManager) getViewsValue(views *config.ViewsConfig, path []string) interface{} {
 	if views == nil || len(path) < 2 {
 		return nil
@@ -696,46 +612,6 @@ func (cm *ConfigManager) setNodesViewValue(nodes *config.NodesViewConfig, path [
 	case "showUtilization":
 		if v, ok := value.(bool); ok {
 			nodes.ShowUtilization = v
-		}
-	}
-}
-
-func (cm *ConfigManager) getFeaturesValue(features *config.FeaturesConfig, path []string) interface{} {
-	if features == nil {
-		return nil
-	}
-	if len(path) == 0 {
-		return features
-	}
-
-	switch path[0] {
-	case "streaming":
-		return features.Streaming
-	case "pulseye":
-		return features.Pulseye
-	case "xray":
-		return features.Xray
-	}
-	return nil
-}
-
-func (cm *ConfigManager) setFeaturesValue(features *config.FeaturesConfig, path []string, value interface{}) {
-	if features == nil || len(path) == 0 {
-		return
-	}
-
-	switch path[0] {
-	case "streaming":
-		if v, ok := value.(bool); ok {
-			features.Streaming = v
-		}
-	case "pulseye":
-		if v, ok := value.(bool); ok {
-			features.Pulseye = v
-		}
-	case "xray":
-		if v, ok := value.(bool); ok {
-			features.Xray = v
 		}
 	}
 }
@@ -882,7 +758,6 @@ func (cm *ConfigManager) copyConfig(original *config.Config) *config.Config {
 		DefaultCluster: original.DefaultCluster,
 		UI:             original.UI,
 		Views:          original.Views,
-		Features:       original.Features,
 		UseMockClient:  original.UseMockClient,
 		Cluster:        original.Cluster,
 	}
@@ -915,8 +790,8 @@ func (cm *ConfigManager) updateStatusBar(text string) {
 	cm.statusBar.SetText(text)
 }
 
-// handleInput processes keyboard input
-func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
+// handleNavigationKeys handles Tab, Escape, and shortcut keys
+func (cm *ConfigManager) handleNavigationKeys(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Key() {
 	case tcell.KeyCtrlS:
 		cm.saveConfiguration()
@@ -928,13 +803,29 @@ func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
 		cm.resetToDefaults()
 		return nil
 	case tcell.KeyTab:
-		// Switch focus between sidebar and form
 		if cm.sidebar.HasFocus() {
 			cm.app.SetFocus(cm.form)
-		} else {
-			cm.app.SetFocus(cm.sidebar)
+			return nil
 		}
-		return nil
+		return event
+	case tcell.KeyEsc:
+		if !cm.sidebar.HasFocus() {
+			cm.app.SetFocus(cm.sidebar)
+			return nil
+		}
+		if cm.onClose != nil {
+			cm.onClose()
+			return nil
+		}
+		return event
+	}
+	return event
+}
+
+// handleInput processes keyboard input
+func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
+	if result := cm.handleNavigationKeys(event); result != event {
+		return result
 	}
 
 	switch event.Rune() {
@@ -944,7 +835,9 @@ func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 	case 'q':
-		cm.cancelChanges()
+		if cm.onClose != nil {
+			cm.onClose()
+		}
 		return nil
 	}
 
@@ -958,6 +851,11 @@ func (cm *ConfigManager) SetCallbacks(onSave, onApply func(*config.Config) error
 	cm.onCancel = onCancel
 }
 
+// SetOnClose sets the callback for when the user requests closing the modal
+func (cm *ConfigManager) SetOnClose(onClose func()) {
+	cm.onClose = onClose
+}
+
 // SetPages sets the pages manager for modal display
 func (cm *ConfigManager) SetPages(pages *tview.Pages) {
 	cm.pages = pages
@@ -968,126 +866,18 @@ func (cm *ConfigManager) GetCurrentConfig() *config.Config {
 	return cm.currentConfig
 }
 
+// Save saves the current configuration to file
+func (cm *ConfigManager) Save() {
+	cm.saveConfiguration()
+}
+
 // HasChanges returns whether there are unsaved changes
 func (cm *ConfigManager) HasChanges() bool {
 	return cm.hasChanges
 }
 
-// addContextField adds a context management field
-func (cm *ConfigManager) addContextField(_ *config.ConfigField) {
-	clusterCount := len(cm.currentConfig.Clusters)
-	summary := fmt.Sprintf("Clusters: %d configured", clusterCount)
-	if cm.currentConfig.DefaultCluster != "" {
-		summary += fmt.Sprintf(" (Default: %s)", cm.currentConfig.DefaultCluster)
-	}
-
-	cm.form.AddButton("Manage Clusters", func() {
-		cm.showContextManager()
-	})
-	cm.addFieldDescription(summary)
+// IsSidebarFocused returns whether the sidebar currently has focus
+func (cm *ConfigManager) IsSidebarFocused() bool {
+	return cm.sidebar.HasFocus()
 }
 
-// addShortcutField adds a shortcut management field
-func (cm *ConfigManager) addShortcutField(_ *config.ConfigField) {
-	shortcutCount := len(cm.currentConfig.Shortcuts)
-	summary := fmt.Sprintf("Shortcuts: %d configured", shortcutCount)
-
-	cm.form.AddButton("Manage Shortcuts", func() {
-		cm.showShortcutManager()
-	})
-	cm.addFieldDescription(summary)
-}
-
-// addAliasField adds an alias management field
-func (cm *ConfigManager) addAliasField(_ *config.ConfigField) {
-	aliasCount := len(cm.currentConfig.Aliases)
-	summary := fmt.Sprintf("Aliases: %d configured", aliasCount)
-
-	cm.form.AddButton("Manage Aliases", func() {
-		cm.showAliasManager()
-	})
-	cm.addFieldDescription(summary)
-}
-
-// addPluginField adds a plugin management field
-func (cm *ConfigManager) addPluginField(_ *config.ConfigField) {
-	pluginCount := len(cm.currentConfig.Plugins)
-	summary := fmt.Sprintf("Plugins: %d configured", pluginCount)
-
-	cm.form.AddButton("Manage Plugins", func() {
-		cm.showPluginManager()
-	})
-	cm.addFieldDescription(summary)
-}
-
-// showContextManager shows a modal for managing contexts
-func (cm *ConfigManager) showContextManager() {
-	if cm.pages == nil {
-		cm.updateStatusBar("[red]Context manager not available - no pages manager set[white]")
-		return
-	}
-
-	modal := tview.NewModal()
-	modal.SetText("Cluster Manager\n(Implementation pending)")
-	modal.AddButtons([]string{"Close"})
-	modal.SetDoneFunc(func(_ int, _ string) {
-		cm.pages.RemovePage("context-modal")
-		cm.app.SetFocus(cm)
-	})
-
-	_ = cm.pages.AddPage("context-modal", modal, false, true)
-}
-
-// showShortcutManager shows a modal for managing shortcuts
-func (cm *ConfigManager) showShortcutManager() {
-	if cm.pages == nil {
-		cm.updateStatusBar("[red]Shortcut manager not available - no pages manager set[white]")
-		return
-	}
-
-	modal := tview.NewModal()
-	modal.SetText("Shortcut Manager\n(Implementation pending)")
-	modal.AddButtons([]string{"Close"})
-	modal.SetDoneFunc(func(_ int, _ string) {
-		cm.pages.RemovePage("shortcut-modal")
-		cm.app.SetFocus(cm)
-	})
-
-	_ = cm.pages.AddPage("shortcut-modal", modal, false, true)
-}
-
-// showAliasManager shows a modal for managing aliases
-func (cm *ConfigManager) showAliasManager() {
-	if cm.pages == nil {
-		cm.updateStatusBar("[red]Alias manager not available - no pages manager set[white]")
-		return
-	}
-
-	modal := tview.NewModal()
-	modal.SetText("Alias Manager\n(Implementation pending)")
-	modal.AddButtons([]string{"Close"})
-	modal.SetDoneFunc(func(_ int, _ string) {
-		cm.pages.RemovePage("alias-modal")
-		cm.app.SetFocus(cm)
-	})
-
-	_ = cm.pages.AddPage("alias-modal", modal, false, true)
-}
-
-// showPluginManager shows a modal for managing plugins
-func (cm *ConfigManager) showPluginManager() {
-	if cm.pages == nil {
-		cm.updateStatusBar("[red]Plugin manager not available - no pages manager set[white]")
-		return
-	}
-
-	modal := tview.NewModal()
-	modal.SetText("Plugin Manager\n(Implementation pending)")
-	modal.AddButtons([]string{"Close"})
-	modal.SetDoneFunc(func(_ int, _ string) {
-		cm.pages.RemovePage("plugin-modal")
-		cm.app.SetFocus(cm)
-	})
-
-	_ = cm.pages.AddPage("plugin-modal", modal, false, true)
-}

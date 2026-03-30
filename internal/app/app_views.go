@@ -49,6 +49,7 @@ func (s *S9s) registerJobsView() error {
 	view.SetStatusBar(s.statusBar)
 	view.SetPages(s.pages)
 	view.SetSubmissionConfig(&s.config.Views.Jobs.Submission)
+	view.SetViewConfig(&s.config.Views.Jobs)
 	view.SetSlurmUser(s.config.ResolveSlurmUser())
 	return s.addViewToApp("jobs", view)
 }
@@ -58,6 +59,9 @@ func (s *S9s) registerNodesView() error {
 	view := views.NewNodesView(s.client)
 	view.SetApp(s.app)
 	view.SetPages(s.pages)
+	if s.config.Views.Nodes.GroupBy != "" {
+		view.SetInitialGroupBy(s.config.Views.Nodes.GroupBy)
+	}
 	return s.addViewToApp("nodes", view)
 }
 

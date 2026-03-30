@@ -49,12 +49,21 @@ type JobsView struct {
 	selectionStatusText *tview.TextView
 	mainStatusBar       *components.StatusBar // Reference to main app status bar
 	submissionConfig    *config.JobSubmissionConfig
+	viewConfig          *config.JobsViewConfig
 	slurmUser           string
 }
 
 // SetSubmissionConfig sets the job submission configuration
 func (v *JobsView) SetSubmissionConfig(cfg *config.JobSubmissionConfig) {
 	v.submissionConfig = cfg
+}
+
+// SetViewConfig sets the jobs view configuration from config file
+func (v *JobsView) SetViewConfig(cfg *config.JobsViewConfig) {
+	v.viewConfig = cfg
+	if cfg != nil && cfg.ShowOnlyActive {
+		v.stateFilter = []string{dao.JobStateRunning, dao.JobStatePending}
+	}
 }
 
 // SetSlurmUser sets the resolved SLURM username for the job submission wizard
@@ -236,9 +245,13 @@ func (v *JobsView) Refresh() error {
 
 // fetchJobs fetches jobs from the backend without touching UI
 func (v *JobsView) fetchJobs() (*dao.JobList, error) {
+	limit := 1000
+	if v.viewConfig != nil && v.viewConfig.MaxJobs > 0 {
+		limit = v.viewConfig.MaxJobs
+	}
 	opts := &dao.ListJobsOptions{
 		States: v.stateFilter,
-		Limit:  1000,
+		Limit:  limit,
 	}
 
 	if v.userFilter != "" {

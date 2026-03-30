@@ -71,7 +71,7 @@ func TestGetCommandCompletions(t *testing.T) {
 		{
 			name:     "empty prefix",
 			prefix:   "",
-			expected: []string{"accounts", "cancel", "config", "configuration", "dashboard", "drain", "h", "health", "help", "hold", "j", "jobs", "layout", "layouts", "n", "nodes", "p", "partitions", "performance", "preferences", "prefs", "q", "qos", "quit", "r", "refresh", "release", "requeue", "reservations", "resume", "settings", "users"},
+			expected: []string{"accounts", "cancel", "config", "configuration", "dashboard", "drain", "h", "health", "help", "hold", "j", "jobs", "layout", "layouts", "n", "nodes", "p", "partitions", "performance", "q", "qos", "quit", "r", "refresh", "release", "requeue", "reservations", "resume", "settings", "users"},
 		},
 		{
 			name:     "prefix 'q'",

@@ -50,14 +50,6 @@ const (
 	FieldTypeArray FieldType = "array"
 	// FieldTypeObject is the field type for object fields.
 	FieldTypeObject FieldType = "object"
-	// FieldTypeContext is the field type for context fields.
-	FieldTypeContext FieldType = "context"
-	// FieldTypeShortcut is the field type for shortcut fields.
-	FieldTypeShortcut FieldType = "shortcut"
-	// FieldTypePlugin is the field type for plugin fields.
-	FieldTypePlugin FieldType = "plugin"
-	// FieldTypeAlias is the field type for alias fields.
-	FieldTypeAlias FieldType = "alias"
 )
 
 // Dependency represents a field dependency
@@ -97,13 +89,7 @@ func GetConfigSchema() *Schema {
 	return &Schema{
 		Groups: []Group{
 			{ID: "general", Name: "General", Description: "Basic application settings", Icon: "⚙️", Order: 1},
-			{ID: "ui", Name: "User Interface", Description: "UI appearance and behavior", Icon: "🎨", Order: 2},
-			{ID: "cluster", Name: "Cluster Contexts", Description: "SLURM cluster connections", Icon: "🔗", Order: 3},
-			{ID: "views", Name: "View Settings", Description: "Table views and display options", Icon: "📊", Order: 4},
-			{ID: "features", Name: "Features", Description: "Feature flags and advanced options", Icon: "🚀", Order: 5},
-			{ID: "shortcuts", Name: "Keyboard Shortcuts", Description: "Custom key bindings", Icon: "⌨️", Order: 6},
-			{ID: "aliases", Name: "Command Aliases", Description: "Command shortcuts", Icon: "📝", Order: 7},
-			{ID: "plugins", Name: "Plugins", Description: "External plugin configuration", Icon: "🔌", Order: 8},
+			{ID: "views", Name: "View Settings", Description: "Table views and display options", Icon: "📊", Order: 2},
 		},
 		Fields: getConfigFields(),
 	}
@@ -145,69 +131,6 @@ func getConfigFields() []Field {
 			Default:     "default",
 			Group:       "general",
 			Order:       3,
-		},
-		{
-			Key:         "useMockClient",
-			Label:       "Use Mock Client",
-			Description: "Use mock data instead of real cluster connection (for development)",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     false,
-			Group:       "general",
-			Order:       4,
-		},
-
-		// UI settings
-		{
-			Key:         "ui.skin",
-			Label:       "Theme",
-			Description: "Color theme for the application",
-			Type:        FieldTypeSelect,
-			Required:    true,
-			Default:     "default",
-			Options:     []string{"default", "monokai", "dracula", "solarized", "github"},
-			Group:       "ui",
-			Order:       1,
-		},
-		{
-			Key:         "ui.enableMouse",
-			Label:       "Enable Mouse",
-			Description: "Allow mouse interaction in the terminal UI",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     true,
-			Group:       "ui",
-			Order:       2,
-		},
-		{
-			Key:         "ui.logoless",
-			Label:       "Hide Logo",
-			Description: "Hide the application logo in the header",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     false,
-			Group:       "ui",
-			Order:       3,
-		},
-		{
-			Key:         "ui.statusless",
-			Label:       "Hide Status Bar",
-			Description: "Hide the status bar at the bottom",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     false,
-			Group:       "ui",
-			Order:       4,
-		},
-		{
-			Key:         "ui.noIcons",
-			Label:       "Disable Icons",
-			Description: "Show text instead of icons (for terminal compatibility)",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     false,
-			Group:       "ui",
-			Order:       5,
 		},
 
 		// View settings
@@ -265,86 +188,6 @@ func getConfigFields() []Field {
 			Options:     []string{"partition", "state", "feature", "none"},
 			Group:       "views",
 			Order:       5,
-		},
-		{
-			Key:         "views.nodes.showUtilization",
-			Label:       "Show Utilization",
-			Description: "Display CPU and memory utilization bars",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     true,
-			Group:       "views",
-			Order:       6,
-		},
-
-		// Features
-		{
-			Key:         "features.streaming",
-			Label:       "Enable Streaming",
-			Description: "Real-time updates via WebSocket connections",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     true,
-			Group:       "features",
-			Order:       1,
-		},
-		{
-			Key:         "features.pulseye",
-			Label:       "Enable Health Scanner",
-			Description: "Automated cluster health monitoring",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     true,
-			Group:       "features",
-			Order:       2,
-		},
-		{
-			Key:         "features.xray",
-			Label:       "Enable X-Ray Mode",
-			Description: "Deep inspection and debugging features",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     false,
-			Group:       "features",
-			Order:       3,
-		},
-
-		// Special fields for complex types
-		{
-			Key:         "clusters",
-			Label:       "Cluster Connections",
-			Description: "SLURM cluster connection configurations",
-			Type:        FieldTypeContext,
-			Required:    false,
-			Group:       "cluster",
-			Order:       1,
-		},
-		{
-			Key:         "shortcuts",
-			Label:       "Keyboard Shortcuts",
-			Description: "Custom key bindings for actions",
-			Type:        FieldTypeShortcut,
-			Required:    false,
-			Group:       "shortcuts",
-			Order:       1,
-		},
-		{
-			Key:         "aliases",
-			Label:       "Command Aliases",
-			Description: "Short names for common commands",
-			Type:        FieldTypeAlias,
-			Required:    false,
-			Group:       "aliases",
-			Order:       1,
-		},
-		{
-			Key:         "plugins",
-			Label:       "Plugins",
-			Description: "External plugin configurations",
-			Type:        FieldTypePlugin,
-			Required:    false,
-			Group:       "plugins",
-			Order:       1,
 		},
 	}
 }

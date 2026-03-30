@@ -169,13 +169,6 @@ func (s *S9s) commandRegistry() map[string]*CommandDef {
 			MaxArgs: 0,
 			Handler: s.cmdHelp,
 		},
-		"prefs": {
-			Name:    "prefs",
-			Aliases: []string{"preferences"},
-			Usage:   ":prefs",
-			MaxArgs: 0,
-			Handler: s.cmdPrefs,
-		},
 		"layout": {
 			Name:    "layout",
 			Aliases: []string{"layouts"},
@@ -319,11 +312,6 @@ func (s *S9s) cmdPerformance(args []string) CommandResult {
 func (s *S9s) cmdHelp(args []string) CommandResult {
 	s.showHelp()
 	return CommandResult{Success: true, Message: "Showing help"}
-}
-
-func (s *S9s) cmdPrefs(args []string) CommandResult {
-	s.showPreferences()
-	return CommandResult{Success: true, Message: "Showing preferences"}
 }
 
 func (s *S9s) cmdLayout(args []string) CommandResult {
