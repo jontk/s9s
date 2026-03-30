@@ -44,7 +44,6 @@ Press `:` to enter command mode (vim-style). Commands support tab completion for
 | Command | Description | Example |
 |---------|-------------|---------|
 | `:refresh` or `:r` | Refresh current view | `:refresh` |
-| `:prefs` or `:preferences` | Show preferences | `:prefs` |
 | `:layout` or `:layouts` | Show layout switcher | `:layout` |
 | `:config` or `:configuration` or `:settings` | Show configuration | `:config` |
 
