@@ -534,7 +534,11 @@ func (c *Config) SaveToFile(path string) error {
 	}
 
 	original := make(map[string]any)
-	_ = yaml.Unmarshal(existing, &original)
+	if err := yaml.Unmarshal(existing, &original); err != nil {
+		// Existing file is malformed — write the full config rather than
+		// silently losing keys from a file we can't parse
+		return os.WriteFile(path, fullData, 0o600)
+	}
 
 	full := make(map[string]any)
 	if err := yaml.Unmarshal(fullData, &full); err != nil {
