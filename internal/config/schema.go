@@ -199,18 +199,6 @@ func getConfigFields() []Field {
 			Group:       "views",
 			Order:       5,
 		},
-		{
-			Key:         "views.nodes.showUtilization",
-			Label:       "Show Utilization",
-			Description: "Display CPU and memory utilization bars",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     true,
-			Group:       "views",
-			Order:       6,
-		},
-
-
 	}
 }
 

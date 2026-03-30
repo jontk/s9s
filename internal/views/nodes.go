@@ -63,6 +63,11 @@ func (v *NodesView) SetPages(pages *tview.Pages) {
 	}
 }
 
+// SetInitialGroupBy sets the initial grouping method from config
+func (v *NodesView) SetInitialGroupBy(groupBy string) {
+	v.groupBy = groupBy
+}
+
 // SetApp sets the application reference
 func (v *NodesView) SetApp(app *tview.Application) {
 	v.app = app
