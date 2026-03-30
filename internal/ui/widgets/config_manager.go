@@ -831,7 +831,9 @@ func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 	case 'q':
-		cm.cancelChanges()
+		if cm.onClose != nil {
+			cm.onClose()
+		}
 		return nil
 	}
 
