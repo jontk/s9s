@@ -145,8 +145,7 @@ func (cm *ConfigManager) loadConfiguration() {
 	}
 
 	if err != nil {
-		cm.updateStatusBar(fmt.Sprintf("[red]Error loading configuration: %v[white]", err))
-		// Create a default configuration with proper initialization
+		// Fall back to defaults — status bar may not exist yet during init
 		cm.currentConfig = config.DefaultConfig()
 	}
 
