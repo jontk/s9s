@@ -177,7 +177,7 @@ func (cm *ConfigManager) buildForm() {
 	fields := cm.schema.GetFieldsByGroup(cm.selectedGroup)
 
 	if len(fields) == 0 {
-		cm.form.AddTextView("No Settings", "No configurable settings in this group.", 0, 1, false, false)
+		cm.form.AddTextView("No Settings", "[gray]No configurable settings in this group.[white]", 0, 1, true, false)
 		cm.addActionButtons()
 		return
 	}
@@ -367,7 +367,7 @@ func (cm *ConfigManager) addDurationField(label string, field *config.ConfigFiel
 
 // addFieldDescription adds a description text view after a field
 func (cm *ConfigManager) addFieldDescription(description string) {
-	cm.form.AddTextView("", fmt.Sprintf("[gray]%s[white]", description), 0, 2, false, false)
+	cm.form.AddTextView("", fmt.Sprintf("[gray]%s[white]", description), 0, 2, true, false)
 }
 
 // getConfigValue retrieves a configuration value by key path
@@ -431,11 +431,6 @@ func (cm *ConfigManager) getConfigNestedValue(cfg *config.Config, field string, 
 			return cfg.Views
 		}
 		return cm.getViewsValue(&cfg.Views, path)
-	case "features":
-		if len(path) == 0 {
-			return cfg.Features
-		}
-		return cm.getFeaturesValue(&cfg.Features, path)
 	}
 	return nil
 }
@@ -490,8 +485,6 @@ func (cm *ConfigManager) setConfigNestedValue(cfg *config.Config, field string, 
 	switch field {
 	case "views":
 		cm.setViewsValue(&cfg.Views, path, value)
-	case "features":
-		cm.setFeaturesValue(&cfg.Features, path, value)
 	}
 }
 
@@ -615,46 +608,6 @@ func (cm *ConfigManager) setNodesViewValue(nodes *config.NodesViewConfig, path [
 	case "showUtilization":
 		if v, ok := value.(bool); ok {
 			nodes.ShowUtilization = v
-		}
-	}
-}
-
-func (cm *ConfigManager) getFeaturesValue(features *config.FeaturesConfig, path []string) interface{} {
-	if features == nil {
-		return nil
-	}
-	if len(path) == 0 {
-		return features
-	}
-
-	switch path[0] {
-	case "streaming":
-		return features.Streaming
-	case "pulseye":
-		return features.Pulseye
-	case "xray":
-		return features.Xray
-	}
-	return nil
-}
-
-func (cm *ConfigManager) setFeaturesValue(features *config.FeaturesConfig, path []string, value interface{}) {
-	if features == nil || len(path) == 0 {
-		return
-	}
-
-	switch path[0] {
-	case "streaming":
-		if v, ok := value.(bool); ok {
-			features.Streaming = v
-		}
-	case "pulseye":
-		if v, ok := value.(bool); ok {
-			features.Pulseye = v
-		}
-	case "xray":
-		if v, ok := value.(bool); ok {
-			features.Xray = v
 		}
 	}
 }
@@ -801,7 +754,6 @@ func (cm *ConfigManager) copyConfig(original *config.Config) *config.Config {
 		DefaultCluster: original.DefaultCluster,
 		UI:             original.UI,
 		Views:          original.Views,
-		Features:       original.Features,
 		UseMockClient:  original.UseMockClient,
 		Cluster:        original.Cluster,
 	}
@@ -834,8 +786,8 @@ func (cm *ConfigManager) updateStatusBar(text string) {
 	cm.statusBar.SetText(text)
 }
 
-// handleInput processes keyboard input
-func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
+// handleNavigationKeys handles Tab, Escape, and shortcut keys
+func (cm *ConfigManager) handleNavigationKeys(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Key() {
 	case tcell.KeyCtrlS:
 		cm.saveConfiguration()
@@ -847,17 +799,12 @@ func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
 		cm.resetToDefaults()
 		return nil
 	case tcell.KeyTab:
-		// Only intercept Tab from the sidebar to move to the form.
-		// When the form has focus, let Tab pass through so tview
-		// moves between form fields.
 		if cm.sidebar.HasFocus() {
 			cm.app.SetFocus(cm.form)
 			return nil
 		}
 		return event
 	case tcell.KeyEsc:
-		// Form → sidebar → close: first press returns to sidebar,
-		// second press closes the config modal.
 		if !cm.sidebar.HasFocus() {
 			cm.app.SetFocus(cm.sidebar)
 			return nil
@@ -867,6 +814,14 @@ func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 		return event
+	}
+	return event
+}
+
+// handleInput processes keyboard input
+func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
+	if result := cm.handleNavigationKeys(event); result != event {
+		return result
 	}
 
 	switch event.Rune() {

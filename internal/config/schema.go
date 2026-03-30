@@ -90,7 +90,6 @@ func GetConfigSchema() *Schema {
 		Groups: []Group{
 			{ID: "general", Name: "General", Description: "Basic application settings", Icon: "⚙️", Order: 1},
 			{ID: "views", Name: "View Settings", Description: "Table views and display options", Icon: "📊", Order: 2},
-			{ID: "features", Name: "Features", Description: "Feature flags and advanced options", Icon: "🚀", Order: 3},
 		},
 		Fields: getConfigFields(),
 	}
@@ -211,37 +210,6 @@ func getConfigFields() []Field {
 			Order:       6,
 		},
 
-		// Features
-		{
-			Key:         "features.streaming",
-			Label:       "Enable Streaming",
-			Description: "Real-time updates via WebSocket connections",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     true,
-			Group:       "features",
-			Order:       1,
-		},
-		{
-			Key:         "features.pulseye",
-			Label:       "Enable Health Scanner",
-			Description: "Automated cluster health monitoring",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     true,
-			Group:       "features",
-			Order:       2,
-		},
-		{
-			Key:         "features.xray",
-			Label:       "Enable X-Ray Mode",
-			Description: "Deep inspection and debugging features",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     false,
-			Group:       "features",
-			Order:       3,
-		},
 
 	}
 }
