@@ -846,13 +846,14 @@ func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
 		cm.resetToDefaults()
 		return nil
 	case tcell.KeyTab:
-		// Switch focus between sidebar and form
+		// Only intercept Tab from the sidebar to move to the form.
+		// When the form has focus, let Tab pass through so tview
+		// moves between form fields.
 		if cm.sidebar.HasFocus() {
 			cm.app.SetFocus(cm.form)
-		} else {
-			cm.app.SetFocus(cm.sidebar)
+			return nil
 		}
-		return nil
+		return event
 	}
 
 	switch event.Rune() {
