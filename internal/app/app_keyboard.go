@@ -122,7 +122,6 @@ func (s *S9s) globalKeyHandlers() map[tcell.Key]KeyHandler {
 		tcell.KeyCtrlK:   s.handleClusterSwitch,
 		tcell.KeyF1:      s.handleF1Help,
 		tcell.KeyF2:      s.handleF2Alerts,
-		tcell.KeyF3:      s.handleF3Preferences,
 		tcell.KeyF5:      s.handleF5Refresh,
 		tcell.KeyF10:     s.handleF10Configuration,
 		tcell.KeyTab:     s.handleTabNavigation,
@@ -170,11 +169,6 @@ func (s *S9s) handleF1Help(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 
 func (s *S9s) handleF2Alerts(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 	s.showAlertsModal()
-	return nil
-}
-
-func (s *S9s) handleF3Preferences(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
-	s.showPreferences()
 	return nil
 }
 

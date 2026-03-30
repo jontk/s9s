@@ -17,7 +17,6 @@ These shortcuts work from any view:
 | `l` | Next view | Move to next view |
 | `F1` | Help | Show help modal |
 | `F2` | Alerts | Show system alerts |
-| `F3` | Preferences | Show preferences dialog |
 | `F5` | Force refresh | Refresh current view data |
 | `F10` | Configuration | Show configuration |
 | `Ctrl+K` | Switch cluster | Switch between configured clusters |

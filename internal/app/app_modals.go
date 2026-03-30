@@ -25,7 +25,6 @@ func (s *S9s) showHelp() {
   [yellow]Tab/Shift+Tab[white] Cycle between views
   [yellow]F1[white]         Show help
   [yellow]F2[white]         Show system alerts
-  [yellow]F3[white]         Preferences
   [yellow]F5[white]         Refresh current view
   [yellow]F10[white]        Configuration settings
   [yellow]:[white]          Command mode (Tab to browse commands)
@@ -133,11 +132,6 @@ func (s *S9s) showAlertsModal() {
 	})
 
 	s.pages.AddPage("alerts", modal, true, true)
-}
-
-// showPreferences displays the preferences modal
-func (s *S9s) showPreferences() {
-	settings.ShowPreferences(s.pages, s.app, s.userPrefs)
 }
 
 // showConfiguration displays the configuration management interface
