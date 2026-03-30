@@ -183,7 +183,7 @@ Press `S` to open the interactive sort modal.
 | `/` | Simple filter |
 | `Ctrl+F` | Global search |
 | `a/A` | Toggle active filter (show active reservations only) |
-| `f/F` | Toggle future filter (show future reservations only) |
+| `t/T` | Toggle future filter (show future reservations only) |
 | `ESC` | Exit filter mode |
 
 ### Data Management
