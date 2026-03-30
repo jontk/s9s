@@ -365,14 +365,9 @@ func (cm *ConfigManager) addDurationField(label string, field *config.ConfigFiel
 	cm.addFieldDescription(description)
 }
 
-// addFieldDescription adds a description text view after a field
+// addFieldDescription adds a non-focusable description text view after a field
 func (cm *ConfigManager) addFieldDescription(description string) {
-	tv := tview.NewTextView().
-		SetText(description).
-		SetTextColor(tcell.ColorGray).
-		SetWordWrap(true)
-	tv.SetBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
-	cm.form.AddFormItem(tv)
+	cm.form.AddTextView("", description, 0, 2, false, false)
 }
 
 // getConfigValue retrieves a configuration value by key path
