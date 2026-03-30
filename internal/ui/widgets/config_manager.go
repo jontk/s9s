@@ -198,6 +198,11 @@ func (cm *ConfigManager) buildForm() {
 
 	cm.addActionButtons()
 	cm.validateAllFields()
+
+	// Restore focus to the form after rebuilding
+	if cm.app != nil {
+		cm.app.SetFocus(cm.form)
+	}
 }
 
 // addFormField adds a single field to the form
