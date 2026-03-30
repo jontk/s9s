@@ -31,7 +31,8 @@ type Config struct {
 	Update         UpdateConfig      `mapstructure:"update"`
 
 	// Computed fields
-	Cluster ClusterConfig `mapstructure:"-"`
+	Cluster    ClusterConfig `mapstructure:"-"`
+	ConfigPath string        `mapstructure:"-"` // Path to the config file that was loaded
 }
 
 // DiscoveryConfig holds settings for auto-discovery of slurmrestd endpoint and token
@@ -288,6 +289,15 @@ func LoadWithPath(configPath string) (*Config, error) {
 	// Set the current cluster based on context
 	if err := cfg.SetCurrentCluster(); err != nil {
 		return nil, err
+	}
+
+	// Record the config file path that was used
+	if configPath != "" {
+		cfg.ConfigPath = configPath
+	} else if usedFile := v.ConfigFileUsed(); usedFile != "" {
+		cfg.ConfigPath = usedFile
+	} else {
+		cfg.ConfigPath = filepath.Join(os.Getenv("HOME"), ".s9s", "config.yaml")
 	}
 
 	// Ensure config directory exists
