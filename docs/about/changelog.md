@@ -6,14 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Recent Changes
 
-### Unreleased
+### Version 0.8.0 (2026-03-30)
 
-Self-update and auto-update checking:
+Keyboard shortcut overhaul, layout system, and configuration consolidation:
 
-- **`s9s update` Command**: Check for and install new versions directly from the terminal — supports `--check`, `--force`, `--pre-release`, and `--target VERSION` (pin to specific version)
-- **Auto-Update Checks**: Background version check on TUI startup notifies via status bar when a newer release is available; respects configurable interval (default 24h)
-- **Update Configuration**: New `update` config section with `enabled`, `checkInterval`, and `preRelease` options
-- **Self-Update**: Binary replacement with SHA256 checksum verification via GitHub Releases
+- **Dashboard Layout Switcher**: Press `L` to toggle between default 6-panel view and Monitoring layout (metrics + health)
+- **Uniform Keyboard Shortcuts**: `f` for advanced filter (all views), `x` for actions menu (jobs), `t` for future filter (reservations)
+- **Contextual Help**: `?` and `F1` show global keys, commands, and the current view's shortcuts
+- **Tab Completion**: Press Tab on empty `:` prompt to browse all available commands
+- **Self-Update**: `s9s update` command with auto-update checks, SHA256 verification, and GitHub Releases
+- **Configuration Overhaul**: F10 modal consolidated to General + View Settings; saves correctly with proper field casing
+- **View Settings Applied**: Max Jobs, Show Only Active, Group Nodes By from config take effect on startup
+- **Dead Code Removed**: Preferences modal (F3), stub widgets, placeholder config groups (-1,500+ lines)
+- **Bug Fixes**: Layout deadlock, command line focus stealing, config save path, hint bar stale hints
 
 ### Version 0.7.1 (2026-03-21)
 
@@ -128,7 +133,9 @@ For a complete list of all changes, features, and fixes across all versions, ref
 
 ## Version History
 
-- [v0.7.0](../../CHANGELOG.md#070---2026-03-16) - Latest release
+- [v0.8.0](../../CHANGELOG.md#080---2026-03-30) - Latest release
+- [v0.7.1](../../CHANGELOG.md#071---2026-03-21) - SLURM username config
+- [v0.7.0](../../CHANGELOG.md#070---2026-03-16) - Job templates
 - [v0.6.3](../../CHANGELOG.md#063---2026-03-14) - Performance and responsiveness
 - [v0.6.2](../../CHANGELOG.md#062---2026-03-10) - Setup wizard fixes
 - [v0.6.1](../../CHANGELOG.md#061---2026-03-09) - Node metrics, job times, dashboard fixes

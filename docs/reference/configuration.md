@@ -315,8 +315,8 @@ update:
 
 The background check runs in a goroutine with a 3-second timeout and caches results to `~/.s9s/update-state.json`. Behavior depends on `autoInstall`:
 
-- **`autoInstall: false`** (default) — shows a status bar notification: `Update available: 0.7.1 -> 0.8.0 (run 's9s update')`
-- **`autoInstall: true`** — downloads and replaces the binary, then shows: `Updated to 0.8.0 — restart s9s to use the new version`. If the auto-install fails (e.g., permissions), falls back to the notification.
+- **`autoInstall: false`** (default) — shows a status bar notification: `Update available: 0.8.0 -> 0.9.0 (run 's9s update')`
+- **`autoInstall: true`** — downloads and replaces the binary, then shows: `Updated to 0.9.0 — restart s9s to use the new version`. If the auto-install fails (e.g., permissions), falls back to the notification.
 
 To update manually, use `s9s update`. See the [Installation Guide](../getting-started/installation.md#upgrading) for details.
 
