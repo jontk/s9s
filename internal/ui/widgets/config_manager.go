@@ -39,6 +39,7 @@ type ConfigManager struct {
 	onSave   func(*config.Config) error
 	onCancel func()
 	onApply  func(*config.Config) error
+	onClose  func()
 }
 
 // NewConfigManager creates a new configuration manager
@@ -855,10 +856,14 @@ func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
 		}
 		return event
 	case tcell.KeyEsc:
-		// Return focus to sidebar from the form. If already on the
-		// sidebar, let Escape propagate to close the config modal.
+		// Form → sidebar → close: first press returns to sidebar,
+		// second press closes the config modal.
 		if !cm.sidebar.HasFocus() {
 			cm.app.SetFocus(cm.sidebar)
+			return nil
+		}
+		if cm.onClose != nil {
+			cm.onClose()
 			return nil
 		}
 		return event
@@ -885,6 +890,11 @@ func (cm *ConfigManager) SetCallbacks(onSave, onApply func(*config.Config) error
 	cm.onCancel = onCancel
 }
 
+// SetOnClose sets the callback for when the user requests closing the modal
+func (cm *ConfigManager) SetOnClose(onClose func()) {
+	cm.onClose = onClose
+}
+
 // SetPages sets the pages manager for modal display
 func (cm *ConfigManager) SetPages(pages *tview.Pages) {
 	cm.pages = pages
@@ -898,5 +908,10 @@ func (cm *ConfigManager) GetCurrentConfig() *config.Config {
 // HasChanges returns whether there are unsaved changes
 func (cm *ConfigManager) HasChanges() bool {
 	return cm.hasChanges
+}
+
+// IsSidebarFocused returns whether the sidebar currently has focus
+func (cm *ConfigManager) IsSidebarFocused() bool {
+	return cm.sidebar.HasFocus()
 }
 

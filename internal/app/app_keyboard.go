@@ -22,19 +22,10 @@ func (s *S9s) setupKeyboardShortcuts() {
 		// Check if a modal is open
 		isModalOpen := s.pages.GetPageCount() > 1
 
-		// If a modal is open, only handle ESC to close it, let the modal handle other keys
+		// If a modal is open, let it handle its own keys.
+		// Pages that manage their own Escape (like config) handle
+		// closing internally via their input capture.
 		if isModalOpen {
-			if event.Key() == tcell.KeyEsc {
-				// Try to close the topmost modal page
-				if s.pages.GetPageCount() > 1 {
-					pageName, _ := s.pages.GetFrontPage()
-					if pageName != "" {
-						s.pages.RemovePage(pageName)
-						return nil
-					}
-				}
-			}
-			// Modal is open, let it handle all other keys
 			return event
 		}
 

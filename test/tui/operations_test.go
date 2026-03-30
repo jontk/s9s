@@ -132,26 +132,20 @@ func TestAlertsModal(t *testing.T) {
 	h.AssertModalClosed()
 }
 
-// TestPreferencesModal verifies that F3 opens preferences modal
-func TestPreferencesModal(t *testing.T) {
+// TestF3NoLongerOpensModal verifies that F3 does nothing (preferences removed)
+func TestF3NoLongerOpensModal(t *testing.T) {
 	h := NewTUITestHarness(t)
 	defer h.Cleanup()
 
 	h.Start()
 	time.Sleep(100 * time.Millisecond)
 
-	// Press F3 to open preferences
+	// Press F3 — should not open a modal (preferences removed)
 	h.SendKey(tcell.KeyF3, 0, tcell.ModNone)
 	time.Sleep(100 * time.Millisecond)
 
-	// Modal should be open
-	h.AssertModalOpen()
-
-	// Close with Esc
-	h.SendEsc()
-	time.Sleep(50 * time.Millisecond)
-
 	h.AssertModalClosed()
+	h.AssertCurrentView("jobs")
 }
 
 // TestConfigurationModal verifies that F10 key is handled
@@ -166,8 +160,10 @@ func TestConfigurationModal(t *testing.T) {
 	h.SendKey(tcell.KeyF10, 0, tcell.ModNone)
 	time.Sleep(200 * time.Millisecond)
 
-	// If modal opened, close it
+	// If modal opened, close it (Esc twice: form→sidebar→close)
 	if h.IsModalOpen() {
+		h.SendEsc()
+		time.Sleep(50 * time.Millisecond)
 		h.SendEsc()
 		time.Sleep(50 * time.Millisecond)
 		h.AssertModalClosed()
