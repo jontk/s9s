@@ -83,11 +83,11 @@ Check for and install new versions of s9s directly from the terminal.
 
 **Example output of `s9s update --check`:**
 ```
-Current version: 0.7.1
-Latest version:  0.8.0
-Release:         https://github.com/jontk/s9s/releases/tag/v0.8.0
+Current version: 0.8.0
+Latest version:  0.9.0
+Release:         https://github.com/jontk/s9s/releases/tag/v0.9.0
 
-A new version is available: 0.7.1 -> 0.8.0
+A new version is available: 0.8.0 -> 0.9.0
 ```
 
 **Notes:**

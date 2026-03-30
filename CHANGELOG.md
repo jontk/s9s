@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-03-30
+
 ### Added
 
 - **`s9s update` command** — check for and install new versions directly from the terminal. Supports `--check` (dry run), `--force` (skip confirmation), `--pre-release` (include pre-release versions), and `--target VERSION` (pin to a specific version, including downgrades with a warning)
@@ -14,14 +16,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auto-install mode** — set `update.autoInstall: true` to automatically download and replace the binary on startup when a newer version is available (default: false, notify only)
 - **Update state caching** — last check result persisted to `~/.s9s/update-state.json` to avoid redundant GitHub API calls
 - **Self-update via GitHub Releases** — binary replacement with SHA256 checksum verification, platform-aware asset selection, and atomic file replacement via `go-selfupdate`
+- **Dashboard layout switcher** — press `L` in the Dashboard view to switch between the default 6-panel view and a Monitoring layout (metrics + health side by side). Layout preference persists across sessions
+- **Uniform `f` key for advanced filter** — opens the advanced filter bar in all 7 data views (jobs, nodes, accounts, partitions, qos, reservations, users). Replaces the unreachable F3 handler
+- **`x` key for actions menu in Jobs view** — context-sensitive action menu based on job state (cancel, hold, release, requeue, view details/output/dependencies)
+- **Contextual help modal** — `?` and `F1` now show Global Keys, Commands, Common View Keys, and the current view's specific shortcuts
+- **Tab completion on empty command prompt** — press Tab on an empty `:` prompt to browse all available commands
+- **View Settings wired to runtime** — Max Jobs, Show Only Active, and Group Nodes By from config now apply on startup
 
 ### Changed
 
 - **Go module minimum version** — bumped to Go 1.25.0 (required by `golang.org/x/mod` v0.34.0)
+- **Keyboard shortcut reorganization**:
+  - `L` opens layout switcher in Dashboard (was F4 globally)
+  - `f` opens advanced filter in all data views (was F3, which was intercepted by Preferences)
+  - `t`/`T` toggles future filter in Reservations (was `f`/`F`, freed for advanced filter)
+  - `s` is the only way to submit jobs (F2 Templates removed, was duplicate)
+  - F2 now consistently opens system alerts across all views
+- **Hint bar decluttered** — shows only view-specific shortcuts with a `?:All shortcuts` nudge. Common keys (/, R, S, e, Ctrl+F) moved to the help modal
+- **Header simplified** — shows `Tab:Switch Views  Enter:Details  ?:Help`
+- **Configuration modal (F10) consolidated** — 2 groups: General and View Settings. Removed placeholder groups (UI, Features, Clusters, Shortcuts, Aliases, Plugins)
+- **Config save rewritten** — uses `yaml.Marshal` with proper yaml struct tags (preserves field casing), smart merge with existing file (prevents viper-injected default pollution), saves to the correct file when using `--config` flag
 
 ### Fixed
 
+- **Layout deadlock** — `SetCurrentLayout` caused RLock re-entrancy deadlock when switching layouts (#148)
+- **Layout switcher non-deterministic ordering** — map iteration produced random layout order each time the switcher opened
+- **Command line stealing modal focus** — `:layout` and other modal-opening commands left the modal unresponsive because `hideCommandLine` restored focus to the view
+- **Advanced filter input stealing** — view shortcuts (c, r, d, etc.) intercepted keystrokes meant for the filter bar input field
+- **Config modal navigation** — Tab now moves between form fields (was toggling sidebar/form), Escape goes form→sidebar→close (was immediately closing)
+- **Config fields showing empty** — form was built before config was loaded
+- **Save & Exit not saving** — was calling `GetCurrentConfig()` (a getter) instead of saving
+- **Reset/Cancel freezing** — focus was lost after form rebuild
+- **Config saving to wrong path** — always saved to `~/.s9s/config.yaml` even with `--config` flag
+- **Config field casing** — `defaultCluster` became `defaultcluster`, `apiVersion` became `apiversion` (viper lowercasing)
+- **Config default pollution** — viper-injected defaults (UI, Features, Plugins, etc.) written to config file
+- **Nil panic on missing config file** — F10 crashed when `~/.s9s/config.yaml` didn't exist
+- **Stale hints persisting** — switching to views with no shortcuts showed the previous view's hints
+
 ### Removed
+
+- **Preferences modal (F3)** — entirely removed. `save()` was a no-op, only 1 of ~80 fields was used. `UserPreferences` stripped to `Layouts.CurrentLayout` only (-1,344 lines)
+- **Stub widget implementations** — QuickStart, Terminal, Logs, Clock, Status, Alerts widgets removed (hardcoded/mock data, never functional)
+- **F4 global layout shortcut** — replaced by `L` in Dashboard view only
+- **F2 Templates in Jobs view** — duplicate of `s` Submit Job
+- **Dead F1/F3 handlers in Jobs view** — globally intercepted before reaching the view
+- **J/N/P shortcuts in Dashboard** — view switching via number keys is sufficient
+- **Configuration placeholder groups** — UI settings, Features, Keyboard Shortcuts, Command Aliases, Plugins, Cluster Contexts (all showed "Implementation pending" or were never applied)
 
 ## [0.7.1] - 2026-03-21
 
@@ -513,7 +553,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Versions prior to 0.1.0 were in active development and did not follow semantic versioning.
 
-[Unreleased]: https://github.com/jontk/s9s/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/jontk/s9s/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/jontk/s9s/compare/v0.7.1...v0.8.0
+[0.7.1]: https://github.com/jontk/s9s/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/jontk/s9s/compare/v0.6.3...v0.7.0
 [0.6.3]: https://github.com/jontk/s9s/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/jontk/s9s/compare/v0.6.1...v0.6.2
