@@ -854,6 +854,14 @@ func (cm *ConfigManager) handleInput(event *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 		return event
+	case tcell.KeyEsc:
+		// Return focus to sidebar from the form. If already on the
+		// sidebar, let Escape propagate to close the config modal.
+		if !cm.sidebar.HasFocus() {
+			cm.app.SetFocus(cm.sidebar)
+			return nil
+		}
+		return event
 	}
 
 	switch event.Rune() {
