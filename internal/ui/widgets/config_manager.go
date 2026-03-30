@@ -367,7 +367,12 @@ func (cm *ConfigManager) addDurationField(label string, field *config.ConfigFiel
 
 // addFieldDescription adds a description text view after a field
 func (cm *ConfigManager) addFieldDescription(description string) {
-	cm.form.AddTextView("", fmt.Sprintf("[gray]%s[white]", description), 0, 2, true, false)
+	tv := tview.NewTextView().
+		SetText(description).
+		SetTextColor(tcell.ColorGray).
+		SetWordWrap(true)
+	tv.SetBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
+	cm.form.AddFormItem(tv)
 }
 
 // getConfigValue retrieves a configuration value by key path
