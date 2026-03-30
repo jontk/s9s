@@ -11,155 +11,156 @@ import (
 
 	"github.com/jontk/s9s/internal/fileperms"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 // Config represents the application configuration
 type Config struct {
-	RefreshRate    string            `mapstructure:"refreshRate"`
-	MaxRetries     int               `mapstructure:"maxRetries"`
-	DefaultCluster string            `mapstructure:"defaultCluster"`
-	Clusters       []ClusterContext  `mapstructure:"clusters"`
-	UI             UIConfig          `mapstructure:"ui"`
-	Views          ViewsConfig       `mapstructure:"views"`
-	Features       FeaturesConfig    `mapstructure:"features"`
-	Shortcuts      []ShortcutConfig  `mapstructure:"shortcuts"`
-	Aliases        map[string]string `mapstructure:"aliases"`
-	Plugins        []PluginConfig    `mapstructure:"plugins"`
-	UseMockClient  bool              `mapstructure:"useMockClient"`
-	PluginSettings PluginSettings    `mapstructure:"pluginSettings"`
-	Discovery      DiscoveryConfig   `mapstructure:"discovery"`
-	Update         UpdateConfig      `mapstructure:"update"`
+	RefreshRate    string            `mapstructure:"refreshRate" yaml:"refreshRate"`
+	MaxRetries     int               `mapstructure:"maxRetries" yaml:"maxRetries"`
+	DefaultCluster string            `mapstructure:"defaultCluster" yaml:"defaultCluster"`
+	Clusters       []ClusterContext  `mapstructure:"clusters" yaml:"clusters"`
+	UI             UIConfig          `mapstructure:"ui" yaml:"ui"`
+	Views          ViewsConfig       `mapstructure:"views" yaml:"views"`
+	Features       FeaturesConfig    `mapstructure:"features" yaml:"features"`
+	Shortcuts      []ShortcutConfig  `mapstructure:"shortcuts" yaml:"shortcuts"`
+	Aliases        map[string]string `mapstructure:"aliases" yaml:"aliases"`
+	Plugins        []PluginConfig    `mapstructure:"plugins" yaml:"plugins"`
+	UseMockClient  bool              `mapstructure:"useMockClient" yaml:"useMockClient"`
+	PluginSettings PluginSettings    `mapstructure:"pluginSettings" yaml:"pluginSettings"`
+	Discovery      DiscoveryConfig   `mapstructure:"discovery" yaml:"discovery"`
+	Update         UpdateConfig      `mapstructure:"update" yaml:"update"`
 
 	// Computed fields
-	Cluster    ClusterConfig `mapstructure:"-"`
-	ConfigPath string        `mapstructure:"-"` // Path to the config file that was loaded
+	Cluster    ClusterConfig `mapstructure:"-" yaml:"-"`
+	ConfigPath string        `mapstructure:"-" yaml:"-"` // Path to the config file that was loaded
 }
 
 // DiscoveryConfig holds settings for auto-discovery of slurmrestd endpoint and token
 type DiscoveryConfig struct {
-	Enabled        bool   `mapstructure:"enabled"`
-	EnableEndpoint bool   `mapstructure:"enableEndpoint"`
-	EnableToken    bool   `mapstructure:"enableToken"`
-	Timeout        string `mapstructure:"timeout"`
-	DefaultPort    int    `mapstructure:"defaultPort"`
-	ScontrolPath   string `mapstructure:"scontrolPath"`
+	Enabled        bool   `mapstructure:"enabled" yaml:"enabled"`
+	EnableEndpoint bool   `mapstructure:"enableEndpoint" yaml:"enableEndpoint"`
+	EnableToken    bool   `mapstructure:"enableToken" yaml:"enableToken"`
+	Timeout        string `mapstructure:"timeout" yaml:"timeout"`
+	DefaultPort    int    `mapstructure:"defaultPort" yaml:"defaultPort"`
+	ScontrolPath   string `mapstructure:"scontrolPath" yaml:"scontrolPath"`
 }
 
 // ClusterContext represents a cluster context
 type ClusterContext struct {
-	Name      string        `mapstructure:"name"`
-	Cluster   ClusterConfig `mapstructure:"cluster"`
-	Namespace string        `mapstructure:"namespace"`
-	ReadOnly  bool          `mapstructure:"readOnly"`
+	Name      string        `mapstructure:"name" yaml:"name"`
+	Cluster   ClusterConfig `mapstructure:"cluster" yaml:"cluster"`
+	Namespace string        `mapstructure:"namespace" yaml:"namespace"`
+	ReadOnly  bool          `mapstructure:"readOnly" yaml:"readOnly"`
 }
 
 // ClusterConfig holds SLURM cluster connection details
 type ClusterConfig struct {
-	Endpoint   string `mapstructure:"endpoint"`
-	Token      string `mapstructure:"token"`
-	APIVersion string `mapstructure:"apiVersion"`
-	Insecure   bool   `mapstructure:"insecure"`
-	Timeout    string `mapstructure:"timeout"`
-	User       string `mapstructure:"user"` // Override X-SLURM-USER-NAME header
+	Endpoint   string `mapstructure:"endpoint" yaml:"endpoint"`
+	Token      string `mapstructure:"token" yaml:"token"`
+	APIVersion string `mapstructure:"apiVersion" yaml:"apiVersion"`
+	Insecure   bool   `mapstructure:"insecure" yaml:"insecure"`
+	Timeout    string `mapstructure:"timeout" yaml:"timeout"`
+	User       string `mapstructure:"user" yaml:"user"` // Override X-SLURM-USER-NAME header
 }
 
 // UIConfig holds UI-related settings
 type UIConfig struct {
-	Skin        string `mapstructure:"skin"`
-	Logoless    bool   `mapstructure:"logoless"`
-	Crumbsless  bool   `mapstructure:"crumbsless"`
-	Statusless  bool   `mapstructure:"statusless"`
-	Headless    bool   `mapstructure:"headless"`
-	NoIcons     bool   `mapstructure:"noIcons"`
-	EnableMouse bool   `mapstructure:"enableMouse"`
+	Skin        string `mapstructure:"skin" yaml:"skin"`
+	Logoless    bool   `mapstructure:"logoless" yaml:"logoless"`
+	Crumbsless  bool   `mapstructure:"crumbsless" yaml:"crumbsless"`
+	Statusless  bool   `mapstructure:"statusless" yaml:"statusless"`
+	Headless    bool   `mapstructure:"headless" yaml:"headless"`
+	NoIcons     bool   `mapstructure:"noIcons" yaml:"noIcons"`
+	EnableMouse bool   `mapstructure:"enableMouse" yaml:"enableMouse"`
 }
 
 // ViewsConfig holds view-specific settings
 type ViewsConfig struct {
-	Jobs       JobsViewConfig       `mapstructure:"jobs"`
-	Nodes      NodesViewConfig      `mapstructure:"nodes"`
-	Partitions PartitionsViewConfig `mapstructure:"partitions"`
+	Jobs       JobsViewConfig       `mapstructure:"jobs" yaml:"jobs"`
+	Nodes      NodesViewConfig      `mapstructure:"nodes" yaml:"nodes"`
+	Partitions PartitionsViewConfig `mapstructure:"partitions" yaml:"partitions"`
 }
 
 // JobsViewConfig holds jobs view settings
 type JobsViewConfig struct {
-	Columns        []string            `mapstructure:"columns"`
-	ShowOnlyActive bool                `mapstructure:"showOnlyActive"`
-	DefaultSort    string              `mapstructure:"defaultSort"`
-	MaxJobs        int                 `mapstructure:"maxJobs"`
-	Submission     JobSubmissionConfig `mapstructure:"submission"`
+	Columns        []string            `mapstructure:"columns" yaml:"columns"`
+	ShowOnlyActive bool                `mapstructure:"showOnlyActive" yaml:"showOnlyActive"`
+	DefaultSort    string              `mapstructure:"defaultSort" yaml:"defaultSort"`
+	MaxJobs        int                 `mapstructure:"maxJobs" yaml:"maxJobs"`
+	Submission     JobSubmissionConfig `mapstructure:"submission" yaml:"submission"`
 }
 
 // JobSubmissionConfig holds job submission form settings and templates
 type JobSubmissionConfig struct {
-	FormDefaults         map[string]any      `mapstructure:"formDefaults"`
-	HiddenFields         []string            `mapstructure:"hiddenFields"`
-	FieldOptions         map[string][]string `mapstructure:"fieldOptions"`
-	ShowBuiltinTemplates *bool               `mapstructure:"showBuiltinTemplates"`
-	TemplateSources      []string            `mapstructure:"templateSources"`
-	Templates            []JobTemplateConfig `mapstructure:"templates"`
+	FormDefaults         map[string]any      `mapstructure:"formDefaults" yaml:"formDefaults"`
+	HiddenFields         []string            `mapstructure:"hiddenFields" yaml:"hiddenFields"`
+	FieldOptions         map[string][]string `mapstructure:"fieldOptions" yaml:"fieldOptions"`
+	ShowBuiltinTemplates *bool               `mapstructure:"showBuiltinTemplates" yaml:"showBuiltinTemplates"`
+	TemplateSources      []string            `mapstructure:"templateSources" yaml:"templateSources"`
+	Templates            []JobTemplateConfig `mapstructure:"templates" yaml:"templates"`
 }
 
 // JobTemplateConfig represents a user-defined job submission template
 type JobTemplateConfig struct {
-	Name         string         `mapstructure:"name"`
-	Description  string         `mapstructure:"description"`
-	Defaults     map[string]any `mapstructure:"defaults"`
-	HiddenFields []string       `mapstructure:"hiddenFields"`
+	Name         string         `mapstructure:"name" yaml:"name"`
+	Description  string         `mapstructure:"description" yaml:"description"`
+	Defaults     map[string]any `mapstructure:"defaults" yaml:"defaults"`
+	HiddenFields []string       `mapstructure:"hiddenFields" yaml:"hiddenFields"`
 }
 
 // NodesViewConfig holds nodes view settings
 type NodesViewConfig struct {
-	GroupBy         string `mapstructure:"groupBy"`
-	ShowUtilization bool   `mapstructure:"showUtilization"`
-	MaxNodes        int    `mapstructure:"maxNodes"`
+	GroupBy         string `mapstructure:"groupBy" yaml:"groupBy"`
+	ShowUtilization bool   `mapstructure:"showUtilization" yaml:"showUtilization"`
+	MaxNodes        int    `mapstructure:"maxNodes" yaml:"maxNodes"`
 }
 
 // PartitionsViewConfig holds partitions view settings
 type PartitionsViewConfig struct {
-	ShowQueueDepth bool `mapstructure:"showQueueDepth"`
-	ShowWaitTime   bool `mapstructure:"showWaitTime"`
+	ShowQueueDepth bool `mapstructure:"showQueueDepth" yaml:"showQueueDepth"`
+	ShowWaitTime   bool `mapstructure:"showWaitTime" yaml:"showWaitTime"`
 }
 
 // FeaturesConfig holds feature flags
 type FeaturesConfig struct {
-	Streaming      bool `mapstructure:"streaming"`
-	Pulseye        bool `mapstructure:"pulseye"`
-	Xray           bool `mapstructure:"xray"`
-	AppDiagnostics bool `mapstructure:"appDiagnostics"`
+	Streaming      bool `mapstructure:"streaming" yaml:"streaming"`
+	Pulseye        bool `mapstructure:"pulseye" yaml:"pulseye"`
+	Xray           bool `mapstructure:"xray" yaml:"xray"`
+	AppDiagnostics bool `mapstructure:"appDiagnostics" yaml:"appDiagnostics"`
 }
 
 // ShortcutConfig represents a custom keyboard shortcut
 type ShortcutConfig struct {
-	Key         string `mapstructure:"key"`
-	Action      string `mapstructure:"action"`
-	Description string `mapstructure:"description"`
+	Key         string `mapstructure:"key" yaml:"key"`
+	Action      string `mapstructure:"action" yaml:"action"`
+	Description string `mapstructure:"description" yaml:"description"`
 }
 
 // PluginConfig represents a plugin configuration
 type PluginConfig struct {
-	Name    string         `mapstructure:"name"`
-	Enabled bool           `mapstructure:"enabled"`
-	Path    string         `mapstructure:"path"`
-	Config  map[string]any `mapstructure:"config"`
+	Name    string         `mapstructure:"name" yaml:"name"`
+	Enabled bool           `mapstructure:"enabled" yaml:"enabled"`
+	Path    string         `mapstructure:"path" yaml:"path"`
+	Config  map[string]any `mapstructure:"config" yaml:"config"`
 }
 
 // UpdateConfig holds auto-update check settings
 type UpdateConfig struct {
-	Enabled       bool   `mapstructure:"enabled"`
-	AutoInstall   bool   `mapstructure:"autoInstall"`
-	CheckInterval string `mapstructure:"checkInterval"`
-	PreRelease    bool   `mapstructure:"preRelease"`
+	Enabled       bool   `mapstructure:"enabled" yaml:"enabled"`
+	AutoInstall   bool   `mapstructure:"autoInstall" yaml:"autoInstall"`
+	CheckInterval string `mapstructure:"checkInterval" yaml:"checkInterval"`
+	PreRelease    bool   `mapstructure:"preRelease" yaml:"preRelease"`
 }
 
 // PluginSettings contains global plugin settings
 type PluginSettings struct {
-	EnableAll     bool    `mapstructure:"enableAll"`
-	PluginDir     string  `mapstructure:"pluginDir"`
-	AutoDiscover  bool    `mapstructure:"autoDiscover"`
-	SafeMode      bool    `mapstructure:"safeMode"`      // Disable external plugins
-	MaxMemoryMB   int     `mapstructure:"maxMemoryMB"`   // Memory limit per plugin
-	MaxCPUPercent float64 `mapstructure:"maxCPUPercent"` // CPU limit per plugin
+	EnableAll     bool    `mapstructure:"enableAll" yaml:"enableAll"`
+	PluginDir     string  `mapstructure:"pluginDir" yaml:"pluginDir"`
+	AutoDiscover  bool    `mapstructure:"autoDiscover" yaml:"autoDiscover"`
+	SafeMode      bool    `mapstructure:"safeMode" yaml:"safeMode"`           // Disable external plugins
+	MaxMemoryMB   int     `mapstructure:"maxMemoryMB" yaml:"maxMemoryMB"`     // Memory limit per plugin
+	MaxCPUPercent float64 `mapstructure:"maxCPUPercent" yaml:"maxCPUPercent"` // CPU limit per plugin
 }
 
 // DefaultConfig returns a configuration with sensible defaults
@@ -512,22 +513,17 @@ func ResolveSlurmUserForCluster(cfg *ClusterConfig) string {
 
 // SaveToFile saves the configuration to a file
 func (c *Config) SaveToFile(path string) error {
-	v := viper.New()
+	data, err := yaml.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("marshaling config: %w", err)
+	}
 
-	// Set all values from the config struct
-	v.Set("refreshRate", c.RefreshRate)
-	v.Set("maxRetries", c.MaxRetries)
-	v.Set("defaultCluster", c.DefaultCluster)
-	v.Set("clusters", c.Clusters)
-	v.Set("ui", c.UI)
-	v.Set("views", c.Views)
-	v.Set("features", c.Features)
-	v.Set("shortcuts", c.Shortcuts)
-	v.Set("aliases", c.Aliases)
-	v.Set("plugins", c.Plugins)
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return fmt.Errorf("creating config directory: %w", err)
+	}
 
-	// Write to file
-	return v.WriteConfigAs(path)
+	return os.WriteFile(path, data, 0o600)
 }
 
 // getEnvOrDefault returns environment variable value or default
