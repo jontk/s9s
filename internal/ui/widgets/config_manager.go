@@ -52,8 +52,8 @@ func NewConfigManager(app *tview.Application, configPath string) *ConfigManager 
 		validationErrors: make(map[string]config.FieldValidationResult),
 	}
 
-	cm.initializeUI()
 	cm.loadConfiguration()
+	cm.initializeUI()
 
 	return cm
 }
