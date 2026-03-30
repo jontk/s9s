@@ -132,16 +132,6 @@ func getConfigFields() []Field {
 			Group:       "general",
 			Order:       3,
 		},
-		{
-			Key:         "useMockClient",
-			Label:       "Use Mock Client",
-			Description: "Use mock data instead of real cluster connection (for development)",
-			Type:        FieldTypeBool,
-			Required:    false,
-			Default:     false,
-			Group:       "general",
-			Order:       4,
-		},
 
 		// View settings
 		{
