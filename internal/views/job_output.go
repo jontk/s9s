@@ -595,6 +595,9 @@ func (v *JobOutputView) startStreaming() {
 		return
 	}
 
+	// Clear existing content — the stream will re-emit from the beginning
+	v.textView.SetText("")
+
 	// Start the stream
 	err := v.streamManager.StartStream(v.jobID, v.outputType)
 	if err != nil {
