@@ -770,13 +770,13 @@ func (v *NodesView) onFilterDone(_ tcell.Key) {
 // drainSelectedNode drains the selected node
 func (v *NodesView) drainSelectedNode() {
 	debug.Logger.Printf("drainSelectedNode() called")
-	data := v.table.GetSelectedData()
-	if len(data) == 0 {
-		debug.Logger.Printf("drainSelectedNode() - no data selected")
+	nodeName := v.getSelectedNodeName()
+	if nodeName == "" {
+		debug.Logger.Printf("drainSelectedNode() - no node selected")
 		return
 	}
 
-	nodeName := data[0] // Still used for drain operation
+	data := v.table.GetSelectedData()
 	state := data[1]
 
 	// Check if node can be drained
@@ -872,13 +872,13 @@ func (v *NodesView) performDrainNode(nodeName, reason string) {
 // resumeSelectedNode resumes the selected node
 func (v *NodesView) resumeSelectedNode() {
 	debug.Logger.Printf("resumeSelectedNode() called")
-	data := v.table.GetSelectedData()
-	if len(data) == 0 {
-		debug.Logger.Printf("resumeSelectedNode() - no data selected")
+	nodeName := v.getSelectedNodeName()
+	if nodeName == "" {
+		debug.Logger.Printf("resumeSelectedNode() - no node selected")
 		return
 	}
 
-	nodeName := data[0]
+	data := v.table.GetSelectedData()
 	state := data[1]
 
 	node := v.findNode(nodeName)
@@ -1009,14 +1009,31 @@ func (v *NodesView) performResumeNode(nodeName string) {
 	}
 }
 
-// showNodeDetails shows detailed information for the selected node
-func (v *NodesView) showNodeDetails() {
+// getSelectedNodeName returns the selected node name, trimming any group
+// indent. Returns empty string if a group header is selected or nothing
+// is selected.
+func (v *NodesView) getSelectedNodeName() string {
 	data := v.table.GetSelectedData()
 	if len(data) == 0 {
+		return ""
+	}
+	name := strings.TrimSpace(data[0])
+	if strings.HasPrefix(name, "[yellow]") {
+		return "" // group header, not a node
+	}
+	return name
+}
+
+// showNodeDetails shows detailed information for the selected node
+func (v *NodesView) showNodeDetails() {
+	nodeName := v.getSelectedNodeName()
+	if nodeName == "" {
+		// If on a group header, toggle expansion instead
+		if data := v.table.GetSelectedData(); len(data) > 0 && strings.HasPrefix(strings.TrimSpace(data[0]), "[yellow]") {
+			v.toggleGroupExpansion()
+		}
 		return
 	}
-
-	nodeName := data[0]
 
 	go func() {
 		// Fetch full node details off the UI thread
@@ -1164,12 +1181,12 @@ func (v *NodesView) writeMemoryDetails(w *strings.Builder, node *dao.Node) {
 
 // sshToNode opens SSH connection to the selected node
 func (v *NodesView) sshToNode() {
-	data := v.table.GetSelectedData()
-	if len(data) == 0 {
+	nodeName := v.getSelectedNodeName()
+	if nodeName == "" {
 		return
 	}
 
-	nodeName := data[0]
+	data := v.table.GetSelectedData()
 	nodeState := data[2]
 
 	// Check if SSH is available
@@ -1579,6 +1596,8 @@ func (v *NodesView) promptGroupBy() {
 func (v *NodesView) setGroupBy(groupBy string) {
 	v.groupBy = groupBy
 	if groupBy != "none" {
+		// Grouping is incompatible with sort — clear sort
+		v.table.ClearSort()
 		// Expand all groups by default when switching to grouped view
 		v.expandAllGroups()
 	}
@@ -1843,6 +1862,12 @@ func (v *NodesView) focusOnNode(nodeName string) {
 
 // promptSortBy prompts for column to sort by
 func (v *NodesView) promptSortBy() {
+	// Sorting is incompatible with grouping — clear groups first
+	if v.groupBy != "none" {
+		v.groupBy = "none"
+		v.updateTable()
+	}
+
 	sortable := v.table.GetSortableColumns()
 	if len(sortable) == 0 {
 		return

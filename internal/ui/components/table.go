@@ -624,3 +624,10 @@ func (t *Table) GetCurrentSortColumn() (column int, ascending bool) {
 func (t *Table) SetSortColumn(column int) {
 	t.Sort(column)
 }
+
+// ClearSort removes any active sort and restores the original data order
+func (t *Table) ClearSort() {
+	t.sortColumn = -1
+	t.sortAscending = true
+	t.renderHeader()
+}
