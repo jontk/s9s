@@ -1044,7 +1044,7 @@ func (v *JobsView) formatJobDetails(job *dao.Job) string {
 	}
 	v.writeIndentedField(&d, "Time Limit", job.TimeLimit)
 	v.writeIndentedField(&d, "Time Used", job.TimeUsed)
-	if job.StateReason != "" {
+	if job.StateReason != "" && job.StateReason != "None" {
 		stateColor := dao.GetJobStateColor(job.State)
 		v.writeIndentedField(&d, "Reason", fmt.Sprintf("[%s]%s[white]", stateColor, job.StateReason))
 	}
