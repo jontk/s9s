@@ -1133,14 +1133,14 @@ func (v *JobsView) formatJobDetails(job *dao.Job) string {
 // writeField writes a field only if the value is non-empty
 func (v *JobsView) writeField(d *strings.Builder, label, value string) {
 	if value != "" && value != "0" {
-		d.WriteString(fmt.Sprintf("[yellow]%s:[white] %s\n", label, value))
+		fmt.Fprintf(d, "[yellow]%s:[white] %s\n", label, value)
 	}
 }
 
 // writeIndentedField writes an indented field only if the value is non-empty
 func (v *JobsView) writeIndentedField(d *strings.Builder, label, value string) {
 	if value != "" {
-		d.WriteString(fmt.Sprintf("  [yellow]%-11s[white] %s\n", label+":", value))
+		fmt.Fprintf(d, "  [yellow]%-11s[white] %s\n", label+":", value)
 	}
 }
 
