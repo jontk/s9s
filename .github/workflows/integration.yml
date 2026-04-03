@@ -107,7 +107,7 @@ jobs:
 
     - name: Upload test results
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: integration-test-results-${{ matrix.test-suite }}
         path: |
@@ -163,7 +163,7 @@ jobs:
         make bench | tee benchmark-results.txt
 
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: benchmark-results
         path: benchmark-results.txt
