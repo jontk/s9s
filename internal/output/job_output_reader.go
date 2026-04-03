@@ -89,15 +89,13 @@ func (r *JobOutputReader) ReadPartial(ctx context.Context, jobID, outputType str
 
 // readContent applies the local-first strategy: try local filesystem, fall back to SSH
 func (r *JobOutputReader) readContent(ctx context.Context, filePath, nodeID string, opts ReadOptions) (string, *FileMetadata, string, error) {
+	// Try local first — shared filesystems (NFS/Lustre) are the common case
 	localMeta, localErr := r.localReader.GetFileInfo(filePath)
-	if localErr != nil {
-		return "", nil, "", fmt.Errorf("failed to check local file: %w", localErr)
-	}
-
-	if localMeta.Exists {
+	if localErr == nil && localMeta.Exists {
 		return r.readLocalContent(ctx, filePath, opts)
 	}
 
+	// Fall back to remote node via SSH
 	if nodeID != "" && r.remoteReader.HasSSHClient() {
 		return r.readRemoteContent(ctx, nodeID, filePath, opts)
 	}
