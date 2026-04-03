@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Job output streaming** — press `o` to view job output, `t` for real-time tail-f streaming, `s` to switch stdout/stderr, `e` to export (#157)
+- **Array job output patterns** — `%A` (array master ID) and `%a` (array task ID) now expanded in output file paths (#158)
+- **Enriched job detail modal** — shows TRES requested/allocated, GRES detail with GPU index, batch host, cluster, memory, CPUs, tasks, submit command line, and 22 additional SLURM API fields. State icons and organized sections (#159)
+- **GRES submission fix** — `gres: gpu:1` correctly mapped to `tres_per_node: gres/gpu:1` for SLURM REST API (#159)
+- **Dependabot** for dependency scanning, replacing Trivy (#163)
+- **gofmt gate in CI** — formatting enforced in lint job (#180)
+
+### Changed
+
+- **Go minimum version** — bumped to Go 1.25 (Go 1.24 no longer receives security patches)
+- **CI test matrix** — tests Go 1.25 and 1.26 (was 1.23 and 1.24)
+
+### Fixed
+
+- **Dashboard Analytics and Health Check modals** not responding to ESC/R (#160)
+- **Node operations when grouped** — Enter/drain/resume/SSH now work on indented nodes; Enter on group header toggles expansion (#161)
+- **Sort breaks grouping** — sort and group are now mutually exclusive (#161)
+- **Health checks random order** — checks display in stable alphabetical order on each refresh (#162)
+
 ## [0.8.0] - 2026-03-30
 
 ### Added

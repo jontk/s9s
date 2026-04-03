@@ -13,7 +13,7 @@ This guide covers everything you need to set up your development environment for
 
 ### Go Installation
 
-1. **Go 1.24 or higher**
+1. **Go 1.25 or higher**
    ```bash
    # Check version
    go version
@@ -23,8 +23,8 @@ This guide covers everything you need to set up your development environment for
    brew install go
 
    # Linux
-   wget https://go.dev/dl/go1.24.4.linux-amd64.tar.gz
-   sudo tar -C /usr/local -xzf go1.24.4.linux-amd64.tar.gz
+   wget https://go.dev/dl/go1.25.0.linux-amd64.tar.gz
+   sudo tar -C /usr/local -xzf go1.25.0.linux-amd64.tar.gz
    ```
 
 ### Development Tools

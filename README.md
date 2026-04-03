@@ -56,7 +56,7 @@ s9s provides a terminal interface for managing SLURM clusters, inspired by the p
 
 ### Prerequisites
 
-- Go 1.24 or higher
+- Go 1.25 or higher
 - Access to a SLURM cluster (or use mock mode)
 - Terminal with 256 color support
 

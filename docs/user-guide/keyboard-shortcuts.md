@@ -72,6 +72,17 @@ These shortcuts work from any view:
 | `o/O` | View output | View job output/logs |
 | `d/D` | View dependencies | Show job dependency graph |
 
+### Job Output Viewer
+| Key | Action | Description |
+|-----|--------|-------------|
+| `o/O` | Open viewer | Open job output viewer for selected job |
+| `t` | Toggle stream | Start/stop real-time streaming (tail -f) |
+| `s` | Switch output | Toggle between stdout and stderr |
+| `r` | Refresh | Reload output from file |
+| `a` | Auto-scroll | Toggle auto-scroll on new content |
+| `e` | Export | Export output to file (text/JSON/CSV/markdown) |
+| `ESC` | Close | Close the output viewer |
+
 ### Batch Operations
 | Key | Action | Description |
 |-----|--------|-------------|

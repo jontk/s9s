@@ -5,7 +5,7 @@ s9s can be installed using several methods. Choose the one that best fits your e
 ## System Requirements
 
 - **Operating System**: Linux, macOS, or Windows
-- **Go Version**: 1.24 or higher (for building from source)
+- **Go Version**: 1.25 or higher (for building from source)
 - **Terminal**: 256 color support recommended
 - **SLURM REST API**: A running `slurmrestd` instance — see [Troubleshooting](../guides/troubleshooting.md#cannot-connect-to-slurm-cluster) if connection fails ([mock mode](../guides/mock-mode.md) available for testing without SLURM)
 
