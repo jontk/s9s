@@ -383,9 +383,11 @@ func convertJobSubmissionToJobCreate(job *JobSubmission) *slurm.JobCreate {
 		jc.QoS = ptrString(job.QoS)
 	}
 
-	// GPUs → TRESPerNode
-	if job.GPUs > 0 {
-		jc.TRESPerNode = ptrString(fmt.Sprintf("gres/gpu:%d", job.GPUs))
+	// GPUs and Gres → TRESPerNode
+	// The SLURM REST API uses tres_per_node for what sbatch calls --gres.
+	// Each resource needs the "gres/" prefix in TRES notation.
+	if tresPerNode := buildTRESPerNode(job.GPUs, job.Gres); tresPerNode != "" {
+		jc.TRESPerNode = ptrString(tresPerNode)
 	}
 
 	// Output/Error files
@@ -439,10 +441,6 @@ func convertJobSubmissionToJobCreate(job *JobSubmission) *slurm.JobCreate {
 		jc.TasksPerNode = ptrInt32(int32(job.NTasksPerNode))
 	}
 
-	// Gres (generic resources, overrides GPUs if both set)
-	if job.Gres != "" {
-		jc.TRESPerNode = ptrString(job.Gres)
-	}
 
 	// Hold
 	if job.Hold {
@@ -960,6 +958,33 @@ func parseDurationUnit(n int, unit string) time.Duration {
 // pointer helpers for JobCreate fields
 func ptrString(s string) *string { return &s }
 
+// buildTRESPerNode constructs the tres_per_node value from GPUs and Gres fields.
+// TRES (Trackable Resources) can include cpu, mem, energy, node, billing, and gres.
+// Only GRES items need the "gres/" prefix — standard TRES like "cpu=4" are passed through.
+// If both GPUs and Gres are set, Gres takes precedence (it's more expressive).
+// Examples: "gres/gpu:1", "gres/gpu:2,gres/shard:4", "cpu=4,gres/gpu:1"
+func buildTRESPerNode(gpus int, gres string) string {
+	if gres != "" {
+		parts := strings.Split(gres, ",")
+		for i, part := range parts {
+			part = strings.TrimSpace(part)
+			// Standard TRES types use "key=value" format (cpu=4, mem=8G)
+			// GRES types use "type:count" format (gpu:1, shard:4)
+			// Only add "gres/" prefix to GRES items that don't already have it
+			if !strings.HasPrefix(part, "gres/") && !strings.Contains(part, "=") {
+				parts[i] = "gres/" + part
+			} else {
+				parts[i] = part
+			}
+		}
+		return strings.Join(parts, ",")
+	}
+	if gpus > 0 {
+		return fmt.Sprintf("gres/gpu:%d", gpus)
+	}
+	return ""
+}
+
 func derefString(s *string) string {
 	if s == nil {
 		return ""
@@ -971,6 +996,34 @@ func ptrUint32(i uint32) *uint32 { return &i }
 func ptrUint64(i uint64) *uint64 { return &i }
 func ptrInt64(i int64) *int64    { return &i }
 func ptrBool(b bool) *bool       { return &b }
+
+func derefBool(p *bool) bool {
+	if p == nil {
+		return false
+	}
+	return *p
+}
+
+func derefUint32Int(p *uint32) int {
+	if p == nil {
+		return 0
+	}
+	return int(*p)
+}
+
+func derefUint16Int(p *uint16) int {
+	if p == nil {
+		return 0
+	}
+	return int(*p)
+}
+
+func derefUint64Int64(p *uint64) int64 {
+	if p == nil {
+		return 0
+	}
+	return int64(*p)
+}
 
 func derefUint32String(p *uint32) string {
 	if p == nil || *p == 0 {
@@ -1509,14 +1562,14 @@ func convertJob(job *slurm.Job) *Job {
 		ID:         jobID,
 		Name:       name,
 		User:       username,
-		Account:    "", // Not available in basic Job struct
+		Account:    derefString(job.Account),
 		Partition:  partition,
 		State:      state,
 		Priority:   priority,
-		QOS:        "", // Not available in basic Job struct
+		QOS:        derefString(job.QoS),
 		NodeCount:  nodeCount,
 		TimeLimit:  timeLimit,
-		TimeUsed:   "", // Not available in basic Job struct
+		TimeUsed:   "",
 		SubmitTime: job.SubmitTime,
 		StartTime:  startTime,
 		EndTime:    endTime,
@@ -1527,7 +1580,33 @@ func convertJob(job *slurm.Job) *Job {
 		StdErr:      derefString(job.StandardError),
 		ArrayJobID:  derefUint32String(job.ArrayJobID),
 		ArrayTaskID: derefUint32String(job.ArrayTaskID),
-		ExitCode:    exitCode,
+		TRESReq:     derefString(job.TRESReqStr),
+		TRESAlloc:   derefString(job.TRESAllocStr),
+		TRESPerNode: derefString(job.TRESPerNode),
+		GRESDetail:     strings.Join(job.GRESDetail, ", "),
+		ExitCode:       exitCode,
+		BatchHost:      derefString(job.BatchHost),
+		Cluster:        derefString(job.Cluster),
+		CPUs:           derefUint32Int(job.CPUs),
+		CPUsPerTask:    derefUint16Int(job.CPUsPerTask),
+		MemoryPerNode:  derefUint64Int64(job.MemoryPerNode),
+		MemoryPerCPU:   derefUint64Int64(job.MemoryPerCPU),
+		Tasks:          derefUint32Int(job.Tasks),
+		TasksPerNode:   derefUint16Int(job.TasksPerNode),
+		TRESPerTask:    derefString(job.TRESPerTask),
+		Requeue:        derefBool(job.Requeue),
+		SubmitLine:     derefString(job.SubmitLine),
+		StdOutExpanded: derefString(job.StdoutExpanded),
+		StdErrExpanded: derefString(job.StderrExpanded),
+		Dependency:     derefString(job.Dependency),
+		Licenses:       derefString(job.Licenses),
+		Reservation:    derefString(job.ResvName),
+		Features:       derefString(job.Features),
+		Comment:        derefString(job.Comment),
+		AdminComment:   derefString(job.AdminComment),
+		Wckey:          derefString(job.Wckey),
+		MailUser:       derefString(job.MailUser),
+		StateReason:    derefString(job.StateReason),
 	}
 }
 

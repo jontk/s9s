@@ -1002,61 +1002,175 @@ func (v *JobsView) showJobDetails() {
 	}()
 }
 
-// formatJobDetails formats job details for display
+// formatJobDetails formats job details for display with organized sections
 func (v *JobsView) formatJobDetails(job *dao.Job) string {
-	var details strings.Builder
+	var d strings.Builder
 
-	details.WriteString(fmt.Sprintf("[yellow]Job ID:[white] %s\n", job.ID))
-	details.WriteString(fmt.Sprintf("[yellow]Name:[white] %s\n", job.Name))
-	details.WriteString(fmt.Sprintf("[yellow]User:[white] %s\n", job.User))
-	details.WriteString(fmt.Sprintf("[yellow]Account:[white] %s\n", job.Account))
-
+	// Header with state indicator
 	stateColor := dao.GetJobStateColor(job.State)
-	details.WriteString(fmt.Sprintf("[yellow]State:[white] [%s]%s[white]\n", stateColor, job.State))
-
-	details.WriteString(fmt.Sprintf("[yellow]Partition:[white] %s\n", job.Partition))
-	details.WriteString(fmt.Sprintf("[yellow]QOS:[white] %s\n", job.QOS))
-	details.WriteString(fmt.Sprintf("[yellow]Priority:[white] %.0f\n", job.Priority))
-	details.WriteString(fmt.Sprintf("[yellow]Node Count:[white] %d\n", job.NodeCount))
-
-	if job.NodeList != "" {
-		details.WriteString(fmt.Sprintf("[yellow]Node List:[white] %s\n", job.NodeList))
+	stateIcon := "●"
+	switch {
+	case strings.Contains(job.State, "RUNNING"):
+		stateIcon = "▶"
+	case strings.Contains(job.State, "PENDING"):
+		stateIcon = "⏳"
+	case strings.Contains(job.State, "COMPLETED"):
+		stateIcon = "✓"
+	case strings.Contains(job.State, "FAILED"):
+		stateIcon = "✗"
+	case strings.Contains(job.State, "CANCEL"):
+		stateIcon = "⊘"
 	}
+	d.WriteString(fmt.Sprintf("[%s]%s %s[white]  [yellow]%s[white] (%s)\n", stateColor, stateIcon, job.State, job.Name, job.ID))
+	d.WriteString("[gray]" + strings.Repeat("─", 60) + "[white]\n")
 
-	details.WriteString(fmt.Sprintf("[yellow]Time Limit:[white] %s\n", job.TimeLimit))
-	details.WriteString(fmt.Sprintf("[yellow]Time Used:[white] %s\n", job.TimeUsed))
+	// Identity
+	writeDetailField(&d, "User", job.User)
+	writeDetailField(&d, "Account", job.Account)
+	writeDetailField(&d, "Partition", job.Partition)
+	writeDetailField(&d, "QoS", job.QOS)
+	writeDetailField(&d, "Priority", fmt.Sprintf("%.0f", job.Priority))
+	writeDetailField(&d, "Cluster", job.Cluster)
+	d.WriteString("\n")
 
-	details.WriteString(fmt.Sprintf("[yellow]Submit Time:[white] %s\n", job.SubmitTime.Format("2006-01-02 15:04:05")))
-
+	// Scheduling
+	d.WriteString("[teal]Scheduling[white]\n")
+	d.WriteString(fmt.Sprintf("  [yellow]Submitted:[white]  %s\n", job.SubmitTime.Format("2006-01-02 15:04:05")))
 	if job.StartTime != nil {
-		details.WriteString(fmt.Sprintf("[yellow]Start Time:[white] %s\n", job.StartTime.Format("2006-01-02 15:04:05")))
+		d.WriteString(fmt.Sprintf("  [yellow]Started:[white]    %s\n", job.StartTime.Format("2006-01-02 15:04:05")))
 	}
-
 	if job.EndTime != nil {
-		details.WriteString(fmt.Sprintf("[yellow]End Time:[white] %s\n", job.EndTime.Format("2006-01-02 15:04:05")))
+		d.WriteString(fmt.Sprintf("  [yellow]End:[white]        %s\n", job.EndTime.Format("2006-01-02 15:04:05")))
+	}
+	writeDetailIndented(&d, "Time Limit", formatTimeLimitStr(job.TimeLimit))
+	writeDetailIndented(&d, "Time Used", job.TimeUsed)
+	if job.StateReason != "" && job.StateReason != "None" {
+		stateColor := dao.GetJobStateColor(job.State)
+		writeDetailIndented(&d, "Reason", fmt.Sprintf("[%s]%s[white]", stateColor, job.StateReason))
+	}
+	writeDetailIndented(&d, "Dependency", job.Dependency)
+	if job.Requeue {
+		writeDetailIndented(&d, "Requeue", "Yes")
+	}
+	d.WriteString("\n")
+
+	// Resources
+	d.WriteString("[teal]Resources[white]\n")
+	writeDetailIndented(&d, "Nodes", fmt.Sprintf("%d", job.NodeCount))
+	writeDetailIndented(&d, "Node List", job.NodeList)
+	writeDetailIndented(&d, "TRES Req", job.TRESReq)
+	writeDetailIndented(&d, "TRES Alloc", job.TRESAlloc)
+	writeDetailIndented(&d, "TRES/Node", job.TRESPerNode)
+	writeDetailIndented(&d, "GRES", job.GRESDetail)
+	if job.CPUs > 0 {
+		writeDetailIndented(&d, "CPUs", fmt.Sprintf("%d", job.CPUs))
+	}
+	if job.CPUsPerTask > 0 {
+		writeDetailIndented(&d, "CPUs/Task", fmt.Sprintf("%d", job.CPUsPerTask))
+	}
+	if job.Tasks > 0 {
+		writeDetailIndented(&d, "Tasks", fmt.Sprintf("%d", job.Tasks))
+	}
+	if job.TasksPerNode > 0 {
+		writeDetailIndented(&d, "Tasks/Node", fmt.Sprintf("%d", job.TasksPerNode))
+	}
+	if job.MemoryPerNode > 0 {
+		if job.MemoryPerNode >= 1024 && job.MemoryPerNode%1024 == 0 {
+			writeDetailIndented(&d, "Mem/Node", fmt.Sprintf("%dG", job.MemoryPerNode/1024))
+		} else {
+			writeDetailIndented(&d, "Mem/Node", fmt.Sprintf("%dM", job.MemoryPerNode))
+		}
+	}
+	if job.MemoryPerCPU > 0 {
+		if job.MemoryPerCPU >= 1024 && job.MemoryPerCPU%1024 == 0 {
+			writeDetailIndented(&d, "Mem/CPU", fmt.Sprintf("%dG", job.MemoryPerCPU/1024))
+		} else {
+			writeDetailIndented(&d, "Mem/CPU", fmt.Sprintf("%dM", job.MemoryPerCPU))
+		}
+	}
+	writeDetailIndented(&d, "TRES/Task", job.TRESPerTask)
+	writeDetailIndented(&d, "Batch Host", job.BatchHost)
+	writeDetailIndented(&d, "Features", job.Features)
+	writeDetailIndented(&d, "Licenses", job.Licenses)
+	d.WriteString("\n")
+
+	// Paths
+	d.WriteString("[teal]Paths[white]\n")
+	writeDetailIndented(&d, "Work Dir", job.WorkingDir)
+	writeDetailIndented(&d, "Command", job.Command)
+	if job.StdOutExpanded != "" {
+		writeDetailIndented(&d, "StdOut", job.StdOutExpanded)
+	} else if job.StdOut != "" {
+		writeDetailIndented(&d, "StdOut", expandJobPattern(job.StdOut, job))
+	}
+	if job.StdErrExpanded != "" {
+		writeDetailIndented(&d, "StdErr", job.StdErrExpanded)
+	} else if job.StdErr != "" {
+		writeDetailIndented(&d, "StdErr", expandJobPattern(job.StdErr, job))
+	}
+	writeDetailIndented(&d, "Submit Line", job.SubmitLine)
+
+	// Notes
+	if job.Comment != "" || job.AdminComment != "" || job.Wckey != "" || job.MailUser != "" || job.Reservation != "" {
+		d.WriteString("\n")
+		d.WriteString("[teal]Notes[white]\n")
+		writeDetailIndented(&d, "Comment", job.Comment)
+		writeDetailIndented(&d, "Admin Note", job.AdminComment)
+		writeDetailIndented(&d, "Wckey", job.Wckey)
+		writeDetailIndented(&d, "Mail User", job.MailUser)
+		writeDetailIndented(&d, "Reservation", job.Reservation)
 	}
 
-	details.WriteString(fmt.Sprintf("[yellow]Working Dir:[white] %s\n", job.WorkingDir))
-
-	// Note: SLURM API doesn't return the actual command/script, only job metadata
-	// For job details, see StdOut file path below
-	if job.Command != "" {
-		details.WriteString(fmt.Sprintf("[yellow]Command:[white] %s\n", job.Command))
-	}
-
-	if job.StdOut != "" {
-		details.WriteString(fmt.Sprintf("[yellow]StdOut:[white] %s\n", job.StdOut))
-	}
-
-	if job.StdErr != "" {
-		details.WriteString(fmt.Sprintf("[yellow]StdErr:[white] %s\n", job.StdErr))
-	}
-
+	// Exit
 	if job.ExitCode != nil {
-		details.WriteString(fmt.Sprintf("[yellow]Exit Code:[white] %d\n", *job.ExitCode))
+		d.WriteString("\n")
+		d.WriteString(fmt.Sprintf("[yellow]Exit Code:[white] %d\n", *job.ExitCode))
 	}
 
-	return details.String()
+	return d.String()
+}
+
+// writeField writes a field only if the value is non-empty
+func writeDetailField(d *strings.Builder, label, value string) {
+	if value != "" {
+		fmt.Fprintf(d, "[yellow]%s:[white] %s\n", label, value)
+	}
+}
+
+// writeIndentedField writes an indented field only if the value is non-empty
+func writeDetailIndented(d *strings.Builder, label, value string) {
+	if value != "" {
+		fmt.Fprintf(d, "  [yellow]%-11s[white] %s\n", label+":", value)
+	}
+}
+
+// formatTimeLimitStr converts a time limit string (minutes) to human-readable.
+func formatTimeLimitStr(limit string) string {
+	if limit == "" || limit == "0" {
+		return ""
+	}
+	if strings.Contains(limit, ":") || strings.ContainsAny(limit, "dhms") {
+		return limit
+	}
+	var minutes int
+	if _, err := fmt.Sscanf(limit, "%d", &minutes); err == nil && minutes > 0 {
+		return formatTimeLimit(minutes)
+	}
+	return limit
+}
+
+// expandJobPattern expands SLURM filename patterns (%j, %x, etc.) for display
+func expandJobPattern(pattern string, job *dao.Job) string {
+	if !strings.Contains(pattern, "%") {
+		return pattern
+	}
+	r := strings.NewReplacer(
+		"%%", "%",
+		"%j", job.ID, "%J", job.ID,
+		"%A", job.ArrayJobID, "%a", job.ArrayTaskID,
+		"%x", job.Name, "%u", job.User, "%N", job.NodeList,
+	)
+	return r.Replace(pattern)
 }
 
 // showJobOutput shows job output logs using the new output viewer
