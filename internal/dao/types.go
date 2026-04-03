@@ -28,6 +28,10 @@ type Job struct {
 	StdErr       string
 	ArrayJobID   string // Master job ID for array jobs (empty if not array)
 	ArrayTaskID  string // Task ID within the array (empty if not array)
+	TRESReq      string // Requested TRES (e.g., "cpu=1,mem=2G,gres/gpu=1")
+	TRESAlloc    string // Allocated TRES
+	TRESPerNode  string // TRES per node (e.g., "gres/gpu:1")
+	GRESDetail   string // GRES detail (e.g., "gpu:1(IDX:0)")
 	ExitCode     *int
 }
 

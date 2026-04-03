@@ -1044,12 +1044,27 @@ func (v *JobsView) formatJobDetails(job *dao.Job) string {
 		details.WriteString(fmt.Sprintf("[yellow]Command:[white] %s\n", job.Command))
 	}
 
+	if job.TRESReq != "" {
+		details.WriteString(fmt.Sprintf("[yellow]TRES Requested:[white] %s\n", job.TRESReq))
+	}
+	if job.TRESAlloc != "" {
+		details.WriteString(fmt.Sprintf("[yellow]TRES Allocated:[white] %s\n", job.TRESAlloc))
+	}
+	if job.TRESPerNode != "" {
+		details.WriteString(fmt.Sprintf("[yellow]TRES/Node:[white] %s\n", job.TRESPerNode))
+	}
+	if job.GRESDetail != "" {
+		details.WriteString(fmt.Sprintf("[yellow]GRES Detail:[white] %s\n", job.GRESDetail))
+	}
+
 	if job.StdOut != "" {
-		details.WriteString(fmt.Sprintf("[yellow]StdOut:[white] %s\n", job.StdOut))
+		stdout := expandJobPattern(job.StdOut, job)
+		details.WriteString(fmt.Sprintf("[yellow]StdOut:[white] %s\n", stdout))
 	}
 
 	if job.StdErr != "" {
-		details.WriteString(fmt.Sprintf("[yellow]StdErr:[white] %s\n", job.StdErr))
+		stderr := expandJobPattern(job.StdErr, job)
+		details.WriteString(fmt.Sprintf("[yellow]StdErr:[white] %s\n", stderr))
 	}
 
 	if job.ExitCode != nil {
@@ -1057,6 +1072,20 @@ func (v *JobsView) formatJobDetails(job *dao.Job) string {
 	}
 
 	return details.String()
+}
+
+// expandJobPattern expands SLURM filename patterns (%j, %x, etc.) for display
+func expandJobPattern(pattern string, job *dao.Job) string {
+	if !strings.Contains(pattern, "%") {
+		return pattern
+	}
+	r := strings.NewReplacer(
+		"%%", "%",
+		"%j", job.ID, "%J", job.ID,
+		"%A", job.ArrayJobID, "%a", job.ArrayTaskID,
+		"%x", job.Name, "%u", job.User, "%N", job.NodeList,
+	)
+	return r.Replace(pattern)
 }
 
 // showJobOutput shows job output logs using the new output viewer
