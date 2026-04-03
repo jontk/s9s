@@ -3,6 +3,7 @@ package views
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -316,7 +317,15 @@ func (v *HealthView) updateHealthChecks() {
 
 	var checksText strings.Builder
 
-	for name, check := range health.Checks {
+	// Sort check names for stable display order
+	checkNames := make([]string, 0, len(health.Checks))
+	for name := range health.Checks {
+		checkNames = append(checkNames, name)
+	}
+	sort.Strings(checkNames)
+
+	for _, name := range checkNames {
+		check := health.Checks[name]
 		statusColor := v.getStatusColor(check.Status)
 		icon := v.getStatusIcon(check.Status)
 
@@ -495,7 +504,14 @@ func (v *HealthView) showHealthDetails() {
 	var details strings.Builder
 	details.WriteString("[yellow]Health Check Details[white]\n\n")
 
-	for name, check := range health.Checks {
+	detailNames := make([]string, 0, len(health.Checks))
+	for name := range health.Checks {
+		detailNames = append(detailNames, name)
+	}
+	sort.Strings(detailNames)
+
+	for _, name := range detailNames {
+		check := health.Checks[name]
 		statusColor := v.getStatusColor(check.Status)
 		details.WriteString(fmt.Sprintf("[%s]%s %s[white]\n",
 			statusColor, v.getStatusIcon(check.Status), cases.Title(language.English).String(name)))
