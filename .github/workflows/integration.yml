@@ -172,7 +172,7 @@ jobs:
     - name: Comment benchmark results on PR
       if: github.event_name == 'pull_request'
       continue-on-error: true  # May fail due to permissions - results are uploaded as artifact
-      uses: actions/github-script@v6
+      uses: actions/github-script@v8
       with:
         script: |
           const fs = require('fs');
