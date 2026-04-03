@@ -24,9 +24,11 @@ type Job struct {
 	NodeList   string
 	Command    string
 	WorkingDir string
-	StdOut     string
-	StdErr     string
-	ExitCode   *int
+	StdOut       string
+	StdErr       string
+	ArrayJobID   string // Master job ID for array jobs (empty if not array)
+	ArrayTaskID  string // Task ID within the array (empty if not array)
+	ExitCode     *int
 }
 
 // JobList represents a list of jobs

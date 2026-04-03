@@ -972,6 +972,13 @@ func ptrUint64(i uint64) *uint64 { return &i }
 func ptrInt64(i int64) *int64    { return &i }
 func ptrBool(b bool) *bool       { return &b }
 
+func derefUint32String(p *uint32) string {
+	if p == nil || *p == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%d", *p)
+}
+
 func (j *jobManager) Cancel(id string) error {
 	debug.Logger.Printf("Cancel job %s", id)
 	err := j.client.Cancel(j.ctx, id)
@@ -1516,9 +1523,11 @@ func convertJob(job *slurm.Job) *Job {
 		NodeList:   nodeList,
 		Command:    command,
 		WorkingDir: workingDir,
-		StdOut:     derefString(job.StandardOutput),
-		StdErr:     derefString(job.StandardError),
-		ExitCode:   exitCode,
+		StdOut:      derefString(job.StandardOutput),
+		StdErr:      derefString(job.StandardError),
+		ArrayJobID:  derefUint32String(job.ArrayJobID),
+		ArrayTaskID: derefUint32String(job.ArrayTaskID),
+		ExitCode:    exitCode,
 	}
 }
 

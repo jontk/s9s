@@ -9,21 +9,36 @@ import (
 )
 
 // expandSlurmPattern replaces SLURM filename patterns with actual values.
-// Common patterns: %j=jobID, %x=jobName, %u=user, %N=nodelist, %%=literal %
+// Supports: %j=jobID, %J=jobID, %A=arrayJobID, %a=arrayTaskID,
+// %x=jobName, %u=user, %N=nodelist, %%=literal %
 func expandSlurmPattern(pattern string, job *dao.Job) string {
 	if !strings.Contains(pattern, "%") {
 		return pattern
 	}
 
+	// For %A: use ArrayJobID if set, otherwise fall back to job ID
+	arrayJobID := job.ArrayJobID
+	if arrayJobID == "" {
+		arrayJobID = job.ID
+	}
+	// For %a: use ArrayTaskID if set, otherwise "0"
+	arrayTaskID := job.ArrayTaskID
+	if arrayTaskID == "" {
+		arrayTaskID = "0"
+	}
+
 	r := strings.NewReplacer(
+		"%%", "\x00", // Temporarily escape literal %% to avoid double-replacement
+		"%A", arrayJobID,
+		"%a", arrayTaskID,
 		"%j", job.ID,
 		"%J", job.ID,
 		"%x", job.Name,
 		"%u", job.User,
 		"%N", job.NodeList,
-		"%%", "%",
 	)
-	return r.Replace(pattern)
+	result := r.Replace(pattern)
+	return strings.ReplaceAll(result, "\x00", "%")
 }
 
 // PathResolver resolves SLURM job output file paths using SLURM API data
