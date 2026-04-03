@@ -870,8 +870,8 @@ func (v *DashboardView) showAdvancedAnalytics() {
 			AddItem(nil, 0, 1, false), 0, 8, true).
 		AddItem(nil, 0, 1, false)
 
-	// Handle keys
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	// Handle keys on the text view (the focused element)
+	textView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEsc:
 			if v.pages != nil {
@@ -880,8 +880,6 @@ func (v *DashboardView) showAdvancedAnalytics() {
 			return nil
 		case tcell.KeyRune:
 			if event.Rune() == 'R' || event.Rune() == 'r' {
-				// Regenerate analytics from current data (Refresh() is async
-				// so we can't wait for it; use whatever data we have now)
 				newAnalytics := v.generateAdvancedAnalytics()
 				textView.SetText(newAnalytics)
 				return nil
@@ -892,6 +890,9 @@ func (v *DashboardView) showAdvancedAnalytics() {
 
 	if v.pages != nil {
 		v.pages.AddPage("advanced-analytics", centeredModal, true, true)
+		if v.GetApp() != nil {
+			v.GetApp().SetFocus(textView)
+		}
 	}
 }
 
@@ -1062,8 +1063,8 @@ func (v *DashboardView) showHealthCheck() {
 			AddItem(nil, 0, 1, false), 0, 8, true).
 		AddItem(nil, 0, 1, false)
 
-	// Handle keys
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	// Handle keys on the text view (the focused element)
+	textView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEsc:
 			if v.pages != nil {
@@ -1072,8 +1073,6 @@ func (v *DashboardView) showHealthCheck() {
 			return nil
 		case tcell.KeyRune:
 			if event.Rune() == 'R' || event.Rune() == 'r' {
-				// Regenerate health check from current data (Refresh() is async
-				// so we can't wait for it; use whatever data we have now)
 				newHealthCheck := v.generateHealthCheck()
 				textView.SetText(newHealthCheck)
 				return nil
@@ -1084,6 +1083,9 @@ func (v *DashboardView) showHealthCheck() {
 
 	if v.pages != nil {
 		v.pages.AddPage("health-check", centeredModal, true, true)
+		if v.GetApp() != nil {
+			v.GetApp().SetFocus(textView)
+		}
 	}
 }
 
