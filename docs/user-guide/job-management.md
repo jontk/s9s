@@ -310,12 +310,13 @@ Press `d` to view job dependencies (not details).
 View job output in real-time:
 
 1. Select job and press `o`
-2. Choose output type:
-   - Standard output (stdout)
-   - Standard error (stderr)
+2. Output opens showing stdout by default
 3. Options:
-   - `f` - Follow/tail output
+   - `t` - Toggle real-time streaming (tail -f style)
    - `s` - Switch between stdout/stderr
+   - `r` - Refresh output
+   - `a` - Toggle auto-scroll
+   - `e` - Export output to file (text, JSON, CSV, markdown)
    - `Esc` - Exit viewer
 
 For more details, see the [Jobs View Guide](./views/jobs.md).

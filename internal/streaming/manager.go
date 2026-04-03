@@ -75,12 +75,19 @@ func (sm *StreamManager) StartStream(jobID, outputType string) error {
 	}
 
 	// Create new job stream
+	// Start from the current end of file so we only stream new content.
+	// The caller already has the existing content from loadOutput().
+	var initialOffset int64
+	if info, err := os.Stat(filePath); err == nil {
+		initialOffset = info.Size()
+	}
+
 	stream := &JobStream{
 		JobID:       jobID,
 		OutputType:  outputType,
 		Buffer:      NewCircularBuffer(sm.slurmConfig.BufferSize),
 		FilePath:    filePath,
-		LastOffset:  0,
+		LastOffset:  initialOffset,
 		IsActive:    true,
 		IsRemote:    isRemote,
 		NodeID:      nodeID,
@@ -406,32 +413,48 @@ func (sm *StreamManager) handleFileEvent(event fsnotify.Event) {
 		return
 	}
 
-	sm.mu.RLock()
-	var relevantStream *JobStream
-	for _, stream := range sm.activeStreams {
-		if stream.FilePath == event.Name && stream.IsActive && !stream.IsRemote {
-			relevantStream = stream
+	stream, content, offset, err := sm.readNewContent(event.Name)
+	if stream == nil {
+		return
+	}
+	if err != nil {
+		sm.emitError(stream, err)
+		return
+	}
+	if len(content) > 0 {
+		sm.emitNewContent(stream, content, offset)
+	}
+}
+
+// readNewContent finds the stream for a file path and reads any new content.
+// The lock is held during the read-and-offset-update to prevent concurrent
+// reads from the same offset.
+func (sm *StreamManager) readNewContent(filePath string) (*JobStream, string, int64, error) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	var stream *JobStream
+	for _, s := range sm.activeStreams {
+		if s.FilePath == filePath && s.IsActive && !s.IsRemote {
+			stream = s
 			break
 		}
 	}
-	sm.mu.RUnlock()
-
-	if relevantStream == nil {
-		return
+	if stream == nil {
+		return nil, "", 0, nil
 	}
 
-	// Read new content
-	content, offset, err := sm.readFileFromOffset(relevantStream.FilePath, relevantStream.LastOffset)
+	content, offset, err := sm.readFileFromOffset(stream.FilePath, stream.LastOffset)
 	if err != nil {
-		sm.emitError(relevantStream, err)
-		return
+		return stream, "", 0, err
 	}
 
 	if len(content) > 0 {
-		sm.emitNewContent(relevantStream, content, offset)
-		relevantStream.LastOffset = offset
-		relevantStream.LastUpdate = GetCurrentTime()
+		stream.LastOffset = offset
+		stream.LastUpdate = GetCurrentTime()
 	}
+
+	return stream, content, offset, nil
 }
 
 // handleFileError processes file watcher errors

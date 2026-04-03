@@ -17,6 +17,7 @@ import (
 	"github.com/jontk/s9s/internal/notifications"
 	"github.com/jontk/s9s/internal/plugins"
 	"github.com/jontk/s9s/internal/preferences"
+	"github.com/jontk/s9s/internal/streaming"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/views"
 	"github.com/jontk/s9s/pkg/slurm"
@@ -54,8 +55,9 @@ type S9s struct {
 	alertsBadge     *components.AlertsBadge
 	notificationMgr *notifications.NotificationManager
 
-	userPrefs     *preferences.UserPreferences
-	layoutManager *layouts.LayoutManager
+	userPrefs      *preferences.UserPreferences
+	layoutManager  *layouts.LayoutManager
+	streamManager  *streaming.StreamManager
 
 	// Main layout
 	mainLayout   *tview.Flex
@@ -118,6 +120,13 @@ func NewWithScreen(ctx context.Context, cfg *config.Config, screen tcell.Screen)
 
 	// Initialize layout manager
 	s9s.layoutManager = layouts.NewLayoutManager(app)
+
+	// Initialize stream manager for job output streaming (non-fatal)
+	if streamMgr, err := streaming.NewStreamManager(s9s.client, nil, nil, nil); err == nil {
+		s9s.streamManager = streamMgr
+	} else {
+		s9s.logger.Warn().Err(err).Msg("Failed to create stream manager, streaming disabled")
+	}
 
 	// Initialize UI and views
 	if err := s9s.initUI(); err != nil {
@@ -263,6 +272,11 @@ func (s *S9s) Stop() error {
 
 	// Stop all views
 	_ = s.viewMgr.StopAll()
+
+	// Stop stream manager
+	if s.streamManager != nil {
+		_ = s.streamManager.Close()
+	}
 
 	// Stop the tview application
 	s.app.Stop()

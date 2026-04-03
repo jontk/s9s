@@ -12,6 +12,7 @@ import (
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/export"
+	"github.com/jontk/s9s/internal/streaming"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
 	"github.com/jontk/s9s/internal/ui/styles"
@@ -51,6 +52,7 @@ type JobsView struct {
 	submissionConfig    *config.JobSubmissionConfig
 	viewConfig          *config.JobsViewConfig
 	slurmUser           string
+	streamMgr           *streaming.StreamManager
 }
 
 // SetSubmissionConfig sets the job submission configuration
@@ -69,6 +71,14 @@ func (v *JobsView) SetViewConfig(cfg *config.JobsViewConfig) {
 // SetSlurmUser sets the resolved SLURM username for the job submission wizard
 func (v *JobsView) SetSlurmUser(user string) {
 	v.slurmUser = user
+}
+
+// SetStreamManager sets the stream manager for job output streaming
+func (v *JobsView) SetStreamManager(sm *streaming.StreamManager) {
+	v.streamMgr = sm
+	if v.jobOutputView != nil {
+		v.jobOutputView.SetStreamManager(sm)
+	}
 }
 
 // SetPages sets the pages reference for modal handling
@@ -104,6 +114,9 @@ func (v *JobsView) SetApp(app *tview.Application) {
 	v.jobOutputView = NewJobOutputView(v.client, app)
 	if v.pages != nil {
 		v.jobOutputView.SetPages(v.pages)
+	}
+	if v.streamMgr != nil {
+		v.jobOutputView.SetStreamManager(v.streamMgr)
 	}
 
 	// Create batch operations view

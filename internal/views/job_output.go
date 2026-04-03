@@ -2,8 +2,10 @@ package views
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -39,6 +41,7 @@ type JobOutputView struct {
 	autoScroll    bool
 	streamChannel <-chan streaming.StreamEvent
 	streamStatus  string
+	streamContent strings.Builder // accumulates streamed content
 	outputBuffer  *streaming.CircularBuffer
 	streamToggle  *tview.Button
 	scrollToggle  *tview.Button
@@ -164,9 +167,9 @@ func (v *JobOutputView) buildStreamingControls() {
 	v.streamToggle.SetSelectedFunc(v.toggleStreaming)
 
 	// Auto-scroll toggle button
-	scrollText := "↓ Auto-scroll: ON"
+	scrollText := "Auto-scroll: ✓"
 	if !v.autoScroll {
-		scrollText = "↓ Auto-scroll: OFF"
+		scrollText = "Auto-scroll: ✗"
 	}
 	v.scrollToggle = tview.NewButton(scrollText)
 	v.scrollToggle.SetSelectedFunc(v.toggleAutoScroll)
@@ -268,8 +271,9 @@ func (v *JobOutputView) getJobOutput() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Read job output with default options
+	// Read job output, bypassing cache to get current content
 	opts := output.DefaultReadOptions()
+	opts.ForceRefresh = true
 	content, err := v.outputReader.ReadPartial(ctx, v.jobID, v.outputType, opts)
 	if err != nil {
 		return "", fmt.Errorf("failed to read job output: %w", err)
@@ -382,6 +386,12 @@ func (v *JobOutputView) stopAutoRefresh() {
 
 // switchOutputType switches between stdout and stderr
 func (v *JobOutputView) switchOutputType() {
+	// Stop any active stream before switching
+	if v.isStreaming {
+		v.stopStreaming()
+	}
+	v.streamContent.Reset()
+
 	if v.outputType == "stdout" {
 		v.outputType = "stderr"
 	} else {
@@ -389,6 +399,7 @@ func (v *JobOutputView) switchOutputType() {
 	}
 
 	v.textView.SetTitle(fmt.Sprintf(" Job %s - %s (%s) ", v.jobID, v.jobName, strings.ToUpper(v.outputType)))
+	v.updateStreamingUI()
 	v.loadOutput()
 }
 
@@ -421,7 +432,8 @@ func (v *JobOutputView) showExportDialog() {
 		export.FormatMarkdown: "Markdown format with code blocks",
 	}
 
-	for _, format := range formats {
+	for _, f := range formats {
+		format := f // capture for closure
 		desc := formatDescriptions[format]
 		list.AddItem(
 			fmt.Sprintf("%s (.%s)", strings.ToUpper(string(format)), string(format)),
@@ -478,8 +490,8 @@ func (v *JobOutputView) performExport(format export.ExportFormat) {
 		ContentSize: len(content),
 	}
 
-	// Perform export
-	filePath, err := v.exporter.ExportJobOutput(exportData.JobID, exportData.JobName, exportData.OutputType, exportData.Content)
+	// Perform export using the selected format
+	result, err := v.exporter.Export(&exportData, format, "")
 	if err != nil {
 		v.showNotification(fmt.Sprintf("Export failed: %v", err))
 		return
@@ -487,11 +499,11 @@ func (v *JobOutputView) performExport(format export.ExportFormat) {
 
 	// Show success notification
 	message := fmt.Sprintf("Export successful!\n\nFile: %s\nFormat: %s\nSize: %d bytes",
-		filePath,
+		result.FilePath,
 		strings.ToUpper(string(format)),
-		len(exportData.Content))
+		result.Size)
 
-	v.showExportResult(message, filePath)
+	v.showExportResult(message, result.FilePath)
 }
 
 // showExportResult shows export success with options
@@ -512,18 +524,21 @@ func (v *JobOutputView) showExportResult(message, filePath string) {
 	v.pages.AddPage("export-result", modal, true, true)
 }
 
-// openExportFolder opens the folder containing the exported file
-func (v *JobOutputView) openExportFolder(_ string) {
-	// This is a platform-specific operation
-	// For now, just show the path
-	v.showNotification(fmt.Sprintf("Export folder:\n%s", v.exporter.GetDefaultPath()))
+// openExportFolder copies the export folder path to clipboard via OSC 52
+func (v *JobOutputView) openExportFolder(filePath string) {
+	dir := filepath.Dir(filePath)
+	encoded := base64.StdEncoding.EncodeToString([]byte(dir))
+	fmt.Fprintf(os.Stderr, "\033]52;c;%s\a", encoded)
+	v.showNotification(fmt.Sprintf("Folder path copied to clipboard:\n%s", dir))
 }
 
-// copyPathToClipboard copies the file path to clipboard
+// copyPathToClipboard copies the file path to clipboard via OSC 52.
+// Writes to stderr to bypass tview's screen — the terminal emulator
+// intercepts the escape sequence before it reaches the display.
 func (v *JobOutputView) copyPathToClipboard(filePath string) {
-	// This would require a clipboard library
-	// For now, just show the path
-	v.showNotification(fmt.Sprintf("File path:\n%s\n\n(Copy this path manually)", filePath))
+	encoded := base64.StdEncoding.EncodeToString([]byte(filePath))
+	fmt.Fprintf(os.Stderr, "\033]52;c;%s\a", encoded)
+	v.showNotification("Path copied to clipboard!")
 }
 
 /*
@@ -593,6 +608,16 @@ func (v *JobOutputView) toggleStreaming() {
 func (v *JobOutputView) startStreaming() {
 	if v.streamManager == nil || v.isStreaming {
 		return
+	}
+
+	// Re-read the full file to catch any lines written since loadOutput
+	v.streamContent.Reset()
+	if content, err := v.getJobOutput(); err == nil {
+		v.streamContent.WriteString(content)
+		v.textView.SetText(content)
+	} else {
+		// Fall back to whatever is currently displayed
+		v.streamContent.WriteString(v.textView.GetText(false))
 	}
 
 	// Start the stream
@@ -670,10 +695,10 @@ func (v *JobOutputView) handleStreamEvent(event *streaming.StreamEvent) {
 	v.app.QueueUpdateDraw(func() {
 		switch event.EventType {
 		case streaming.StreamEventNewOutput:
-			// Append new content
-			currentText := v.textView.GetText(false)
-			newText := currentText + event.Content
-			v.textView.SetText(newText)
+			// Accumulate content in our own builder to preserve newlines,
+			// then set the full text (avoids tview's Write/GetText quirks)
+			v.streamContent.WriteString(event.Content)
+			v.textView.SetText(v.streamContent.String())
 
 			// Auto-scroll if enabled
 			if v.autoScroll {
@@ -742,9 +767,9 @@ func (v *JobOutputView) updateStreamingUI() {
 
 	if v.scrollToggle != nil {
 		if v.autoScroll {
-			v.scrollToggle.SetLabel("↓ Auto-scroll: ON")
+			v.scrollToggle.SetLabel("Auto-scroll: ✓")
 		} else {
-			v.scrollToggle.SetLabel("↓ Auto-scroll: OFF")
+			v.scrollToggle.SetLabel("Auto-scroll: ✗")
 		}
 	}
 

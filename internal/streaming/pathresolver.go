@@ -8,6 +8,24 @@ import (
 	"github.com/jontk/s9s/internal/dao"
 )
 
+// expandSlurmPattern replaces SLURM filename patterns with actual values.
+// Common patterns: %j=jobID, %x=jobName, %u=user, %N=nodelist, %%=literal %
+func expandSlurmPattern(pattern string, job *dao.Job) string {
+	if !strings.Contains(pattern, "%") {
+		return pattern
+	}
+
+	r := strings.NewReplacer(
+		"%j", job.ID,
+		"%J", job.ID,
+		"%x", job.Name,
+		"%u", job.User,
+		"%N", job.NodeList,
+		"%%", "%",
+	)
+	return r.Replace(pattern)
+}
+
 // PathResolver resolves SLURM job output file paths using SLURM API data
 type PathResolver struct {
 	slurmConfig *SlurmConfig
@@ -52,38 +70,43 @@ func (pr *PathResolver) ResolveOutputPath(jobID, outputType string) (string, boo
 
 // resolveStdoutPath resolves the stdout file path using SLURM API data
 func (pr *PathResolver) resolveStdoutPath(job *dao.Job) string {
-	// Use stdout path provided by SLURM API via slurm-client
 	if job.StdOut != "" && job.StdOut != "/dev/null" {
-		return job.StdOut // Direct path from SLURM API
+		return pr.makeAbsolute(expandSlurmPattern(job.StdOut, job), job.WorkingDir)
 	}
 
-	// Use working directory from SLURM API if available
 	if job.WorkingDir != "" {
 		return filepath.Join(job.WorkingDir,
 			fmt.Sprintf(pr.slurmConfig.FilePattern, job.ID))
 	}
 
-	// Fallback to SLURM spool directory
 	return filepath.Join(pr.slurmConfig.OutputDir,
 		fmt.Sprintf(pr.slurmConfig.FilePattern, job.ID))
 }
 
 // resolveStderrPath resolves the stderr file path using SLURM API data
 func (pr *PathResolver) resolveStderrPath(job *dao.Job) string {
-	// Use stderr path provided by SLURM API via slurm-client
 	if job.StdErr != "" && job.StdErr != "/dev/null" {
-		return job.StdErr // Direct path from SLURM API
+		return pr.makeAbsolute(expandSlurmPattern(job.StdErr, job), job.WorkingDir)
 	}
 
-	// Use working directory from SLURM API if available
 	if job.WorkingDir != "" {
 		return filepath.Join(job.WorkingDir,
 			fmt.Sprintf(pr.slurmConfig.ErrorPattern, job.ID))
 	}
 
-	// Fallback to SLURM spool directory
 	return filepath.Join(pr.slurmConfig.ErrorDir,
 		fmt.Sprintf(pr.slurmConfig.ErrorPattern, job.ID))
+}
+
+// makeAbsolute prepends the working directory if the path is relative
+func (pr *PathResolver) makeAbsolute(path, workingDir string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	if workingDir != "" {
+		return filepath.Join(workingDir, path)
+	}
+	return path
 }
 
 // isRemoteNode determines if the job is running on remote nodes

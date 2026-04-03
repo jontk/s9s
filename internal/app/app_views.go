@@ -51,6 +51,9 @@ func (s *S9s) registerJobsView() error {
 	view.SetSubmissionConfig(&s.config.Views.Jobs.Submission)
 	view.SetViewConfig(&s.config.Views.Jobs)
 	view.SetSlurmUser(s.config.ResolveSlurmUser())
+	if s.streamManager != nil {
+		view.SetStreamManager(s.streamManager)
+	}
 	return s.addViewToApp("jobs", view)
 }
 
