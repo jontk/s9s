@@ -11,6 +11,10 @@ import (
 
 // TestSessionManager tests the SSH session manager functionality
 func TestSessionManager(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	// Create custom config for testing
 	config := &ssh.SSHConfig{
 		Username:   "testuser",
@@ -152,6 +156,10 @@ func TestSessionManager(t *testing.T) {
 
 // TestSessionManagerConfig tests configuration handling
 func TestSessionManagerConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	// Test 1: Default configuration
 	t.Run("DefaultConfig", func(t *testing.T) {
 		manager, err := ssh.NewSessionManager(nil)
@@ -199,6 +207,10 @@ func TestSessionManagerConfig(t *testing.T) {
 
 // TestSessionManagerEdgeCases tests edge cases and error handling
 func TestSessionManagerEdgeCases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	manager, err := ssh.NewSessionManager(nil)
 	if err != nil {
 		t.Fatalf("Failed to create session manager: %v", err)
@@ -264,6 +276,10 @@ func TestSessionManagerEdgeCases(t *testing.T) {
 
 // TestSessionManagerConcurrency tests concurrent operations
 func TestSessionManagerConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	manager, err := ssh.NewSessionManager(nil)
 	if err != nil {
 		t.Fatalf("Failed to create session manager: %v", err)
@@ -364,6 +380,10 @@ func TestSessionManagerConcurrency(t *testing.T) {
 
 // TestSSHStates tests SSH session state constants
 func TestSSHStates(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	states := []ssh.SessionState{
 		ssh.SessionIdle,
 		ssh.SessionConnecting,
@@ -397,6 +417,10 @@ func TestSSHStates(t *testing.T) {
 
 // TestTunnelCreation tests SSH tunnel functionality
 func TestTunnelCreation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	manager, err := ssh.NewSessionManager(nil)
 	if err != nil {
 		t.Fatalf("Failed to create session manager: %v", err)

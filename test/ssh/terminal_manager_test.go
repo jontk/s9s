@@ -12,6 +12,10 @@ import (
 
 // TestTerminalManager tests the SSH terminal manager functionality
 func TestTerminalManager(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	// Create a mock app for testing
 	app := tview.NewApplication()
 
@@ -158,6 +162,10 @@ func TestTerminalManager(t *testing.T) {
 
 // TestTerminalManagerEdgeCases tests edge cases
 func TestTerminalManagerEdgeCases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	app := tview.NewApplication()
 	manager := ssh.NewTerminalManager(app)
 
@@ -213,6 +221,10 @@ func TestTerminalManagerEdgeCases(t *testing.T) {
 
 // TestTerminalFeatures tests specific terminal features
 func TestTerminalFeatures(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	app := tview.NewApplication()
 	manager := ssh.NewTerminalManager(app)
 
@@ -363,6 +375,10 @@ func (m *MockTerminal) GetNodeID() string {
 
 // TestSSHConnectionScenarios tests realistic SSH connection scenarios
 func TestSSHConnectionScenarios(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	app := tview.NewApplication()
 	manager := ssh.NewTerminalManager(app)
 
@@ -459,6 +475,10 @@ func TestSSHConnectionScenarios(t *testing.T) {
 
 // TestTerminalManagerConcurrency tests concurrent operations
 func TestTerminalManagerConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	app := tview.NewApplication()
 	manager := ssh.NewTerminalManager(app)
 

@@ -30,7 +30,7 @@ GOMOD=$(GOCMD) mod
 TEST_TIMEOUT=30m
 INTEGRATION_TEST_TIMEOUT=45m
 
-.PHONY: all build clean test test-unit test-integration test-performance test-ssh test-streaming coverage bench lint fmt vet tidy deps install uninstall run dev version help
+.PHONY: all build clean test test-local test-unit test-integration test-performance test-ssh test-streaming coverage bench lint fmt vet tidy deps install uninstall run dev version help
 
 # Default target
 all: clean deps test build
@@ -69,6 +69,11 @@ deps-update:
 
 # Run all tests
 test: test-unit test-integration
+
+# Run tests locally (skips tests needing external services like SSH agent)
+test-local:
+	@echo "Running tests in short mode (no external services required)..."
+	$(GOTEST) -short -timeout $(TEST_TIMEOUT) ./...
 
 # Run unit tests only
 test-unit:

@@ -11,6 +11,10 @@ import (
 
 // TestSessionPersistence tests session persistence functionality
 func TestSessionPersistence(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	// Create temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "s9s_ssh_test")
 	if err != nil {
@@ -203,6 +207,10 @@ func TestSessionPersistence(t *testing.T) {
 
 // TestSessionManagerWithPersistence tests session manager persistence integration
 func TestSessionManagerWithPersistence(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	// Create temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "s9s_ssh_mgr_test")
 	if err != nil {
@@ -282,6 +290,10 @@ func TestSessionManagerWithPersistence(t *testing.T) {
 
 // TestPersistenceEdgeCases tests edge cases
 func TestPersistenceEdgeCases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	// Test 1: Default directory
 	t.Run("DefaultDirectory", func(t *testing.T) {
 		persistence, err := ssh.NewSessionPersistence("")

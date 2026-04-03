@@ -12,6 +12,10 @@ import (
 )
 
 func TestKeyManager(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	// Create temporary SSH directory
 	tempDir := t.TempDir()
 	sshDir := filepath.Join(tempDir, ".ssh")
@@ -253,6 +257,10 @@ func TestKeyManager(t *testing.T) {
 }
 
 func TestKeyManagerWithAgent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	// These tests require an SSH agent - skip if not available
 	if !ssh.IsAgentAvailable() {
 		t.Skip("SSH agent not available")
@@ -329,6 +337,10 @@ func TestKeyManagerWithAgent(t *testing.T) {
 }
 
 func TestAgentOperations(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	if !ssh.IsAgentAvailable() {
 		t.Skip("SSH agent not available")
 	}
