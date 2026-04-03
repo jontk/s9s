@@ -228,6 +228,8 @@ When grouped:
 - Groups show summary counts
 - Expand groups to see individual nodes
 
+> **Note:** Sorting and grouping are mutually exclusive — enabling grouping clears the active sort, and sorting clears the grouping. All node operations (Enter for details, `d` for drain, `r` for resume, `s` for SSH) work correctly when nodes are grouped.
+
 **Example grouped view:**
 ```
 ▼ Partition: gpu [8 nodes]

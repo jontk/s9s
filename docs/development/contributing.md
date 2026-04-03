@@ -28,7 +28,7 @@ By participating in this project, you agree to abide by our Code of Conduct:
 
 ### Prerequisites
 
-- Go 1.24 or higher
+- Go 1.25 or higher
 - Git
 - Make (optional but recommended)
 - golangci-lint (for linting)

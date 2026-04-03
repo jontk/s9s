@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Recent Changes
 
+### Post-0.8.0 (Unreleased)
+
+Job output viewer, enriched job details, and grouped node fixes:
+
+- **Job Output Streaming**: Press `o` to view job output, `t` for real-time tail-f streaming, `s` to switch stdout/stderr, `e` to export
+- **Array Job Output Patterns**: `%A` and `%a` expanded in output file paths
+- **Enriched Job Detail Modal**: TRES requested/allocated, GRES with GPU index, batch host, cluster, memory, submit command line, and 22 additional SLURM fields
+- **GRES Submission Fix**: `gres: gpu:1` correctly mapped to `tres_per_node: gres/gpu:1`
+- **Go 1.25 Minimum**: Go 1.24 no longer receives security patches; CI tests Go 1.25 and 1.26
+- **Bug Fixes**: Dashboard modal ESC/R, node operations when grouped, sort/group mutual exclusivity, health checks stable ordering
+- **Dependabot**: Replaces Trivy for dependency scanning
+- **gofmt CI Gate**: Formatting enforced in lint job
+
 ### Version 0.8.0 (2026-03-30)
 
 Keyboard shortcut overhaul, layout system, and configuration consolidation:

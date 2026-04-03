@@ -55,6 +55,12 @@ Shows detailed information about the selected job:
 - Working directory and command
 - Standard output/error paths
 
+The detail modal shows comprehensive job information including:
+- TRES (Trackable Resources) requested and allocated
+- GRES details with GPU index assignments
+- Batch host, cluster, memory, submit command line
+- Expanded output file paths (%j → actual job ID)
+
 ### Submit New Job
 **Shortcut**: `s`
 
@@ -98,6 +104,12 @@ Opens the job output viewer with:
 - Standard output (stdout)
 - Standard error (stderr)
 - Real-time log streaming for running jobs
+
+The output viewer supports:
+- **Real-time streaming** — press `t` to watch output as it's written (like `tail -f`)
+- **Stdout/stderr switching** — press `s` to toggle between output streams
+- **Export** — press `e` to save output in text, JSON, CSV, or markdown format
+- **Auto-scroll** — press `a` to follow new content automatically
 
 See [Job Streaming Guide](../../guides/job-streaming.md) for details.
 
