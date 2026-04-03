@@ -383,6 +383,12 @@ func (v *JobOutputView) stopAutoRefresh() {
 
 // switchOutputType switches between stdout and stderr
 func (v *JobOutputView) switchOutputType() {
+	// Stop any active stream before switching
+	if v.isStreaming {
+		v.stopStreaming()
+	}
+	v.streamContent.Reset()
+
 	if v.outputType == "stdout" {
 		v.outputType = "stderr"
 	} else {
@@ -390,6 +396,7 @@ func (v *JobOutputView) switchOutputType() {
 	}
 
 	v.textView.SetTitle(fmt.Sprintf(" Job %s - %s (%s) ", v.jobID, v.jobName, strings.ToUpper(v.outputType)))
+	v.updateStreamingUI()
 	v.loadOutput()
 }
 
