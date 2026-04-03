@@ -38,18 +38,21 @@ s9s provides a terminal interface for managing SLURM clusters, inspired by the p
 
 ## ✨ Features
 
-- **Real-time Monitoring**: Live updates of jobs, nodes, and cluster status
-- **Multi-View Interface**: Dedicated views for jobs, nodes, partitions, users, QoS, and more
-- **Job Management**: Submit, cancel, hold, release, and monitor jobs
-- **Batch Operations**: Perform actions on multiple jobs simultaneously
-- **Advanced Filtering**: Powerful search and filter capabilities
-- **Command Mode with Autocomplete**: Vim-style `:` commands with Tab completion for commands and arguments
-- **SSH Integration**: Connect directly to compute nodes
-- **Export Capabilities**: Export data in CSV, JSON, Markdown, HTML formats
-- **Real-time Job Log Streaming**: Live job output monitoring with filtering
-- **Plugin System**: Extensible architecture for custom functionality
-- **Cluster Performance Monitoring**: Real-time cluster-wide metrics and resource utilization
-- **Vim-like Navigation**: Familiar keyboard shortcuts for power users
+- **10 Dedicated Views**: Jobs, Nodes, Partitions, Reservations, QoS, Accounts, Users, Dashboard, Health, Performance
+- **Job Management**: Submit, cancel, hold, release, requeue, and monitor jobs with rich detail modal (TRES/GRES, batch host, submit command)
+- **Real-time Job Output Streaming**: Live `tail -f` style output viewer with stdout/stderr switching and export
+- **Batch Operations**: Perform actions on multiple jobs simultaneously with multi-select mode
+- **Advanced Filtering**: `/` for quick filter, `f` for advanced filter, `Ctrl+F` for cross-view search
+- **Command Mode**: Vim-style `:` commands with Tab completion (press Tab on empty prompt to browse all commands)
+- **Dashboard Layouts**: Switch between default 6-panel view and monitoring layout with `L`
+- **Contextual Help**: Press `?` for view-specific keyboard shortcuts
+- **SSH Integration**: Connect directly to compute nodes from the Nodes view
+- **Export**: CSV, JSON, Markdown, HTML, and Text export in all data views
+- **Health Monitoring**: Automated cluster health checks with alerts and scoring
+- **Cluster Performance**: Real-time cluster-wide CPU, memory, and job metrics
+- **Configuration**: In-app settings (F10) with live config editing and save
+- **Multi-Cluster**: Switch between clusters with `Ctrl+K`
+- **Self-Update**: `s9s update` to check and install new versions
 - **Mock Mode**: Built-in SLURM simulator for development and testing
 
 ## 🚀 Quick Start
@@ -163,67 +166,70 @@ refreshRate: 2s
 
 | Key | Action |
 |-----|--------|
-| `?` | Show help |
+| `?`/`F1` | Contextual help (shows current view's shortcuts) |
 | `q` | Quit |
-| `:` | Command mode |
-| `/` | Search/filter |
+| `:` | Command mode (Tab to browse all commands) |
+| `/` | Quick filter |
+| `f` | Advanced filter (all data views) |
+| `Ctrl+F` | Cross-view search |
 | `Tab` | Switch view |
+| `1`-`0` | Jump to specific view |
 | `Ctrl+K` | Switch cluster |
+| `F2` | System alerts |
 | `F5` | Force refresh |
-
-#### Command Mode with Autocomplete
-
-Press `:` to enter vim-style command mode with intelligent Tab completion:
-
-```bash
-# Tab completes command names
-:req<Tab>          → :requeue
-
-# Tab shows available job IDs
-:cancel <Tab>      → Shows: 12345, 12346, 12347...
-
-# Tab shows available node names
-:drain <Tab>       → Shows: node01, node02, node03...
-
-# Full commands
-:cancel 12345      # Cancel job 12345
-:drain node01      # Drain node01
-:requeue 67890     # Requeue failed job
-```
+| `F10` | Configuration settings |
+| `R` | Refresh current view |
+| `S` | Sort by column |
+| `e` | Export data |
 
 ### Jobs View
 
 | Key | Action |
 |-----|--------|
+| `Enter` | Job details (TRES, GRES, batch host, submit line) |
+| `o` | View job output |
+| `s` | Submit new job |
 | `c` | Cancel job |
 | `H` | Hold job |
 | `r` | Release job |
-| `d` | Show job dependencies |
-| `Enter` | Show job details |
-| `o` | View job output |
-| `s` | Submit new job |
+| `q` | Requeue job |
+| `x` | Actions menu (context-sensitive) |
+| `d` | Show dependencies |
 | `b` | Batch operations |
+| `v` | Multi-select mode |
 | `m` | Toggle auto-refresh |
-| `q` | Requeue job (use `:requeue` if `q` quits) |
-| `e` | Export data |
-| `v` | Toggle multi-select mode |
-| `a` | Filter all states |
-| `p` | Filter pending jobs |
-| `u` | Filter by user |
+
+### Job Output Viewer (press `o`)
+
+| Key | Action |
+|-----|--------|
+| `t` | Toggle real-time streaming (tail -f) |
+| `s` | Switch stdout/stderr |
+| `r` | Refresh output |
+| `a` | Toggle auto-scroll |
+| `e` | Export output |
+| `ESC` | Close viewer |
 
 ### Nodes View
 
 | Key | Action |
 |-----|--------|
+| `Enter` | Node details |
 | `d` | Drain node |
 | `r` | Resume node |
 | `s` | SSH to node |
-| `Enter` | Node details |
-| `i` | Filter idle nodes |
-| `m` | Filter mixed nodes |
-| `g` | Group by |
-| `e` | Export data |
+| `g` | Group by (partition/state/features) |
+| `Space` | Toggle group expansion |
 | `p` | Filter by partition |
+| `a` | Toggle all states |
+
+### Dashboard
+
+| Key | Action |
+|-----|--------|
+| `L` | Switch layout (default/monitoring) |
+| `A` | Advanced analytics |
+| `H` | Health check |
 
 ## 🏗️ Architecture
 
@@ -232,21 +238,20 @@ s9s follows a modular architecture with clear separation of concerns:
 ```
 cmd/s9s/          # Main application entry point
 internal/
-  ├── app/        # Application lifecycle management
+  ├── app/        # Application lifecycle, keyboard shortcuts, modals
   ├── cli/        # CLI commands and flags
-  ├── auth/       # Authentication
-  ├── config/     # Configuration management
+  ├── config/     # Configuration management and schema
   ├── dao/        # Data Access Objects (SLURM client abstraction)
-  ├── debug/      # Debug utilities
-  ├── discovery/  # Cluster auto-discovery
-  ├── export/     # Export functionality
-  ├── monitoring/ # Health monitoring and alerts
-  ├── performance/# Performance profiling and optimization
-  ├── plugin/     # Plugin interfaces (compile-time registration)
-  ├── plugins/    # Plugin system (.so loading)
-  ├── ssh/        # SSH integration
-  ├── ui/         # UI components and utilities
-  └── views/      # Terminal UI views
+  ├── discovery/  # Cluster auto-discovery (DNS SRV, scontrol)
+  ├── export/     # Export functionality (CSV, JSON, Markdown, HTML)
+  ├── layouts/    # Dashboard layout manager and widgets
+  ├── monitoring/ # Health monitoring, alerts, and scoring
+  ├── output/     # Job output file reading (local + SSH)
+  ├── preferences/# User preferences (layout persistence)
+  ├── streaming/  # Real-time file streaming (fsnotify)
+  ├── ssh/        # SSH client integration
+  ├── ui/         # UI components, tables, filters, styles
+  └── views/      # Terminal UI views (10 views + modals)
 pkg/
   └── slurm/      # Mock SLURM implementation
 ```
