@@ -1,21 +1,23 @@
 module github.com/jontk/s9s
 
-go 1.24.4
+go 1.24.0
+
+toolchain go1.24.5
 
 require (
-	github.com/creativeprojects/go-selfupdate v1.5.0
-	github.com/fsnotify/fsnotify v1.8.0
+	github.com/creativeprojects/go-selfupdate v1.4.1
+	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gdamore/tcell/v2 v2.8.1
-	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jontk/slurm-client v0.4.0
 	github.com/mattn/go-runewidth v0.0.16
-	github.com/rivo/tview v0.0.0-20250625164341-a4a78f1e05cb
-	github.com/rs/zerolog v1.34.0
-	github.com/spf13/cobra v1.9.1
+	github.com/rivo/tview v0.42.0
+	github.com/rs/zerolog v1.35.0
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.11.1
-	github.com/zalando/go-keyring v0.2.6
-	golang.org/x/crypto v0.38.0
+	github.com/zalando/go-keyring v0.2.8
+	golang.org/x/crypto v0.35.0
 	golang.org/x/mod v0.22.0
 	golang.org/x/term v0.38.0
 	golang.org/x/text v0.25.0
@@ -24,9 +26,8 @@ require (
 )
 
 require (
-	al.essio.dev/pkg/shellescape v1.6.0 // indirect
 	code.gitea.io/sdk/gitea v0.21.0 // indirect
-	github.com/42wim/httpsig v1.2.3 // indirect
+	github.com/42wim/httpsig v1.2.2 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
@@ -37,8 +38,8 @@ require (
 	github.com/go-fed/httpsig v1.1.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
-	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
-	github.com/godbus/dbus/v5 v5.2.0 // indirect
+	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
+	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-github/v30 v30.1.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -50,7 +51,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/oapi-codegen/runtime v1.1.1 // indirect
@@ -64,7 +65,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/woodsbury/decimal128 v1.3.0 // indirect
