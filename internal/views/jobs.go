@@ -52,6 +52,7 @@ type JobsView struct {
 	submissionConfig    *config.JobSubmissionConfig
 	viewConfig          *config.JobsViewConfig
 	slurmUser           string
+	streamMgr           *streaming.StreamManager
 }
 
 // SetSubmissionConfig sets the job submission configuration
@@ -74,6 +75,7 @@ func (v *JobsView) SetSlurmUser(user string) {
 
 // SetStreamManager sets the stream manager for job output streaming
 func (v *JobsView) SetStreamManager(sm *streaming.StreamManager) {
+	v.streamMgr = sm
 	if v.jobOutputView != nil {
 		v.jobOutputView.SetStreamManager(sm)
 	}
@@ -112,6 +114,9 @@ func (v *JobsView) SetApp(app *tview.Application) {
 	v.jobOutputView = NewJobOutputView(v.client, app)
 	if v.pages != nil {
 		v.jobOutputView.SetPages(v.pages)
+	}
+	if v.streamMgr != nil {
+		v.jobOutputView.SetStreamManager(v.streamMgr)
 	}
 
 	// Create batch operations view
