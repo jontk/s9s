@@ -236,7 +236,7 @@ docker-run: docker-build
 # Test with Docker
 docker-test:
 	@echo "Running tests in Docker..."
-	docker run --rm -v $(PWD):/app -w /app golang:1.24 make test
+	docker run --rm -v $(PWD):/app -w /app golang:1.25 make test
 
 # Release targets
 .PHONY: release release-snapshot
