@@ -31,7 +31,7 @@ func NewUserPreferences(configPath string) (*UserPreferences, error) {
 	up := &UserPreferences{
 		mu:         &sync.RWMutex{},
 		configPath: configPath,
-		onChange:    make([]func(), 0),
+		onChange:   make([]func(), 0),
 	}
 
 	// Set defaults

@@ -192,4 +192,3 @@ func (w *MetricsWidget) startAutoUpdate() {
 		}
 	}()
 }
-

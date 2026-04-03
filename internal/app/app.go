@@ -55,9 +55,9 @@ type S9s struct {
 	alertsBadge     *components.AlertsBadge
 	notificationMgr *notifications.NotificationManager
 
-	userPrefs      *preferences.UserPreferences
-	layoutManager  *layouts.LayoutManager
-	streamManager  *streaming.StreamManager
+	userPrefs     *preferences.UserPreferences
+	layoutManager *layouts.LayoutManager
+	streamManager *streaming.StreamManager
 
 	// Main layout
 	mainLayout   *tview.Flex

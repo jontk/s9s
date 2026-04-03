@@ -441,7 +441,6 @@ func convertJobSubmissionToJobCreate(job *JobSubmission) *slurm.JobCreate {
 		jc.TasksPerNode = ptrInt32(int32(job.NTasksPerNode))
 	}
 
-
 	// Hold
 	if job.Hold {
 		jc.Hold = ptrBool(true)
@@ -1559,30 +1558,30 @@ func convertJob(job *slurm.Job) *Job {
 	}
 
 	return &Job{
-		ID:         jobID,
-		Name:       name,
-		User:       username,
-		Account:    derefString(job.Account),
-		Partition:  partition,
-		State:      state,
-		Priority:   priority,
-		QOS:        derefString(job.QoS),
-		NodeCount:  nodeCount,
-		TimeLimit:  timeLimit,
-		TimeUsed:   "",
-		SubmitTime: job.SubmitTime,
-		StartTime:  startTime,
-		EndTime:    endTime,
-		NodeList:   nodeList,
-		Command:    command,
-		WorkingDir: workingDir,
-		StdOut:      derefString(job.StandardOutput),
-		StdErr:      derefString(job.StandardError),
-		ArrayJobID:  derefUint32String(job.ArrayJobID),
-		ArrayTaskID: derefUint32String(job.ArrayTaskID),
-		TRESReq:     derefString(job.TRESReqStr),
-		TRESAlloc:   derefString(job.TRESAllocStr),
-		TRESPerNode: derefString(job.TRESPerNode),
+		ID:             jobID,
+		Name:           name,
+		User:           username,
+		Account:        derefString(job.Account),
+		Partition:      partition,
+		State:          state,
+		Priority:       priority,
+		QOS:            derefString(job.QoS),
+		NodeCount:      nodeCount,
+		TimeLimit:      timeLimit,
+		TimeUsed:       "",
+		SubmitTime:     job.SubmitTime,
+		StartTime:      startTime,
+		EndTime:        endTime,
+		NodeList:       nodeList,
+		Command:        command,
+		WorkingDir:     workingDir,
+		StdOut:         derefString(job.StandardOutput),
+		StdErr:         derefString(job.StandardError),
+		ArrayJobID:     derefUint32String(job.ArrayJobID),
+		ArrayTaskID:    derefUint32String(job.ArrayTaskID),
+		TRESReq:        derefString(job.TRESReqStr),
+		TRESAlloc:      derefString(job.TRESAllocStr),
+		TRESPerNode:    derefString(job.TRESPerNode),
 		GRESDetail:     strings.Join(job.GRESDetail, ", "),
 		ExitCode:       exitCode,
 		BatchHost:      derefString(job.BatchHost),

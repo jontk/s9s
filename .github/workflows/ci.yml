@@ -37,6 +37,15 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
 
+    - name: Check formatting
+      run: |
+        unformatted=$(gofmt -l ./internal/ ./cmd/ ./pkg/ 2>/dev/null)
+        if [ -n "$unformatted" ]; then
+          echo "::error::The following files are not formatted. Run 'gofmt -w ./internal/ ./cmd/ ./pkg/' to fix."
+          echo "$unformatted"
+          exit 1
+        fi
+
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v9
       with:

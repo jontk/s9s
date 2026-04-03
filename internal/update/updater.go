@@ -148,9 +148,9 @@ func (u *Updater) newSelfUpdater(opts UpdateOptions) (*selfupdate.Updater, error
 
 	updater, err := selfupdate.NewUpdater(selfupdate.Config{
 		Source:     source,
-		Filters:   nil, // go-selfupdate matches goreleaser archive names automatically
-		OS:        runtime.GOOS,
-		Arch:      runtime.GOARCH,
+		Filters:    nil, // go-selfupdate matches goreleaser archive names automatically
+		OS:         runtime.GOOS,
+		Arch:       runtime.GOARCH,
 		Prerelease: opts.PreRelease,
 	})
 	if err != nil {
