@@ -17,10 +17,10 @@ require (
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.11.1
 	github.com/zalando/go-keyring v0.2.8
-	golang.org/x/crypto v0.35.0
-	golang.org/x/mod v0.22.0
+	golang.org/x/crypto v0.45.0
+	golang.org/x/mod v0.29.0
 	golang.org/x/term v0.38.0
-	golang.org/x/text v0.25.0
+	golang.org/x/text v0.31.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 )
