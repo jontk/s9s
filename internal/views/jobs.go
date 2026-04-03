@@ -12,6 +12,7 @@ import (
 	"github.com/jontk/s9s/internal/dao"
 	"github.com/jontk/s9s/internal/debug"
 	"github.com/jontk/s9s/internal/export"
+	"github.com/jontk/s9s/internal/streaming"
 	"github.com/jontk/s9s/internal/ui/components"
 	"github.com/jontk/s9s/internal/ui/filters"
 	"github.com/jontk/s9s/internal/ui/styles"
@@ -69,6 +70,13 @@ func (v *JobsView) SetViewConfig(cfg *config.JobsViewConfig) {
 // SetSlurmUser sets the resolved SLURM username for the job submission wizard
 func (v *JobsView) SetSlurmUser(user string) {
 	v.slurmUser = user
+}
+
+// SetStreamManager sets the stream manager for job output streaming
+func (v *JobsView) SetStreamManager(sm *streaming.StreamManager) {
+	if v.jobOutputView != nil {
+		v.jobOutputView.SetStreamManager(sm)
+	}
 }
 
 // SetPages sets the pages reference for modal handling
