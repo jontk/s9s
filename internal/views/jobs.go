@@ -1042,7 +1042,7 @@ func (v *JobsView) formatJobDetails(job *dao.Job) string {
 	if job.EndTime != nil {
 		d.WriteString(fmt.Sprintf("  [yellow]End:[white]        %s\n", job.EndTime.Format("2006-01-02 15:04:05")))
 	}
-	v.writeIndentedField(&d, "Time Limit", job.TimeLimit)
+	v.writeIndentedField(&d, "Time Limit", formatTimeLimitStr(job.TimeLimit))
 	v.writeIndentedField(&d, "Time Used", job.TimeUsed)
 	if job.StateReason != "" && job.StateReason != "None" {
 		stateColor := dao.GetJobStateColor(job.State)
@@ -1142,6 +1142,21 @@ func (v *JobsView) writeIndentedField(d *strings.Builder, label, value string) {
 	if value != "" {
 		fmt.Fprintf(d, "  [yellow]%-11s[white] %s\n", label+":", value)
 	}
+}
+
+// formatTimeLimitStr converts a time limit string (minutes) to human-readable.
+func formatTimeLimitStr(limit string) string {
+	if limit == "" || limit == "0" {
+		return ""
+	}
+	if strings.Contains(limit, ":") || strings.ContainsAny(limit, "dhms") {
+		return limit
+	}
+	var minutes int
+	if _, err := fmt.Sscanf(limit, "%d", &minutes); err == nil && minutes > 0 {
+		return formatTimeLimit(minutes)
+	}
+	return limit
 }
 
 // expandJobPattern expands SLURM filename patterns (%j, %x, etc.) for display
