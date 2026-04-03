@@ -144,7 +144,7 @@ jobs:
         submodules: recursive
 
     - name: Run gosec security scanner
-      uses: securego/gosec@v2
+      uses: securego/gosec@v2.25.0
       continue-on-error: true  # Allow to fail - issues will be fixed in follow-up PRs
       with:
         args: './...'
