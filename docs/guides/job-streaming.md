@@ -11,16 +11,9 @@ s9s supports real-time job output streaming, allowing you to watch stdout and st
 
 Output appears in real time as the job writes to its log files.
 
-## Enabling Streaming
+## How It Works
 
-Streaming is enabled by default. You can toggle it in your configuration file:
-
-```yaml
-features:
-  streaming: true
-```
-
-Or set the default in `config.example.yaml`. When disabled, the Job Output Viewer still works for loading output on demand (press `r` to refresh), but real-time streaming is unavailable.
+Streaming uses `fsnotify` to watch the job's output file for changes (similar to `tail -f`). When new content is written, it appears in the viewer automatically. The output file path is resolved from the SLURM API, with support for custom output patterns like `job_%j.out`.
 
 ## Job Output Viewer
 
