@@ -2,8 +2,10 @@ package views
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -269,8 +271,9 @@ func (v *JobOutputView) getJobOutput() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Read job output with default options
+	// Read job output, bypassing cache to get current content
 	opts := output.DefaultReadOptions()
+	opts.ForceRefresh = true
 	content, err := v.outputReader.ReadPartial(ctx, v.jobID, v.outputType, opts)
 	if err != nil {
 		return "", fmt.Errorf("failed to read job output: %w", err)
@@ -429,7 +432,8 @@ func (v *JobOutputView) showExportDialog() {
 		export.FormatMarkdown: "Markdown format with code blocks",
 	}
 
-	for _, format := range formats {
+	for _, f := range formats {
+		format := f // capture for closure
 		desc := formatDescriptions[format]
 		list.AddItem(
 			fmt.Sprintf("%s (.%s)", strings.ToUpper(string(format)), string(format)),
@@ -486,8 +490,8 @@ func (v *JobOutputView) performExport(format export.ExportFormat) {
 		ContentSize: len(content),
 	}
 
-	// Perform export
-	filePath, err := v.exporter.ExportJobOutput(exportData.JobID, exportData.JobName, exportData.OutputType, exportData.Content)
+	// Perform export using the selected format
+	result, err := v.exporter.Export(&exportData, format, "")
 	if err != nil {
 		v.showNotification(fmt.Sprintf("Export failed: %v", err))
 		return
@@ -495,11 +499,11 @@ func (v *JobOutputView) performExport(format export.ExportFormat) {
 
 	// Show success notification
 	message := fmt.Sprintf("Export successful!\n\nFile: %s\nFormat: %s\nSize: %d bytes",
-		filePath,
+		result.FilePath,
 		strings.ToUpper(string(format)),
-		len(exportData.Content))
+		result.Size)
 
-	v.showExportResult(message, filePath)
+	v.showExportResult(message, result.FilePath)
 }
 
 // showExportResult shows export success with options
@@ -520,18 +524,19 @@ func (v *JobOutputView) showExportResult(message, filePath string) {
 	v.pages.AddPage("export-result", modal, true, true)
 }
 
-// openExportFolder opens the folder containing the exported file
-func (v *JobOutputView) openExportFolder(_ string) {
-	// This is a platform-specific operation
-	// For now, just show the path
-	v.showNotification(fmt.Sprintf("Export folder:\n%s", v.exporter.GetDefaultPath()))
+// openExportFolder copies the export folder path to clipboard
+func (v *JobOutputView) openExportFolder(filePath string) {
+	dir := filepath.Dir(filePath)
+	encoded := base64.StdEncoding.EncodeToString([]byte(dir))
+	fmt.Fprintf(os.Stderr, "\033]52;c;%s\a", encoded)
+	v.showNotification(fmt.Sprintf("Folder path copied to clipboard:\n%s", dir))
 }
 
-// copyPathToClipboard copies the file path to clipboard
+// copyPathToClipboard copies the file path to clipboard via OSC 52
 func (v *JobOutputView) copyPathToClipboard(filePath string) {
-	// This would require a clipboard library
-	// For now, just show the path
-	v.showNotification(fmt.Sprintf("File path:\n%s\n\n(Copy this path manually)", filePath))
+	encoded := base64.StdEncoding.EncodeToString([]byte(filePath))
+	fmt.Fprintf(os.Stderr, "\033]52;c;%s\a", encoded)
+	v.showNotification("Path copied to clipboard!")
 }
 
 /*
@@ -603,10 +608,15 @@ func (v *JobOutputView) startStreaming() {
 		return
 	}
 
-	// Seed the stream content with what loadOutput already displayed,
-	// so we don't lose historical output when streaming starts
+	// Re-read the full file to catch any lines written since loadOutput
 	v.streamContent.Reset()
-	v.streamContent.WriteString(v.textView.GetText(false))
+	if content, err := v.getJobOutput(); err == nil {
+		v.streamContent.WriteString(content)
+		v.textView.SetText(content)
+	} else {
+		// Fall back to whatever is currently displayed
+		v.streamContent.WriteString(v.textView.GetText(false))
+	}
 
 	// Start the stream
 	err := v.streamManager.StartStream(v.jobID, v.outputType)
