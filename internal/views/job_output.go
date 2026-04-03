@@ -165,9 +165,9 @@ func (v *JobOutputView) buildStreamingControls() {
 	v.streamToggle.SetSelectedFunc(v.toggleStreaming)
 
 	// Auto-scroll toggle button
-	scrollText := "↓ Auto-scroll: ON"
+	scrollText := "Auto-scroll: ✓"
 	if !v.autoScroll {
-		scrollText = "↓ Auto-scroll: OFF"
+		scrollText = "Auto-scroll: ✗"
 	}
 	v.scrollToggle = tview.NewButton(scrollText)
 	v.scrollToggle.SetSelectedFunc(v.toggleAutoScroll)
@@ -748,9 +748,9 @@ func (v *JobOutputView) updateStreamingUI() {
 
 	if v.scrollToggle != nil {
 		if v.autoScroll {
-			v.scrollToggle.SetLabel("↓ Auto-scroll: ON")
+			v.scrollToggle.SetLabel("Auto-scroll: ✓")
 		} else {
-			v.scrollToggle.SetLabel("↓ Auto-scroll: OFF")
+			v.scrollToggle.SetLabel("Auto-scroll: ✗")
 		}
 	}
 
