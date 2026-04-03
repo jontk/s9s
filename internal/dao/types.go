@@ -33,6 +33,30 @@ type Job struct {
 	TRESPerNode  string // TRES per node (e.g., "gres/gpu:1")
 	GRESDetail   string // GRES detail (e.g., "gpu:1(IDX:0)")
 	ExitCode     *int
+
+	// Additional detail fields (populated from SLURM API)
+	BatchHost      string // Node running the batch script
+	Cluster        string // Cluster name
+	CPUs           int    // Total CPUs allocated
+	CPUsPerTask    int    // CPUs per task
+	MemoryPerNode  int64  // Memory per node in MB
+	MemoryPerCPU   int64  // Memory per CPU in MB
+	Tasks          int    // Number of tasks
+	TasksPerNode   int    // Tasks per node
+	TRESPerTask    string // TRES per task
+	Requeue        bool   // Whether job can be requeued
+	SubmitLine     string // Full sbatch command line
+	StdOutExpanded string // SLURM-expanded stdout path
+	StdErrExpanded string // SLURM-expanded stderr path
+	Dependency     string // Job dependencies
+	Licenses       string // Required licenses
+	Reservation    string // Reservation name
+	Features       string // Required node features
+	Comment        string // User comment
+	AdminComment   string // Admin comment
+	Wckey          string // Workload characterization key
+	MailUser       string // Email notification user
+	StateReason    string // Why job is in current state
 }
 
 // JobList represents a list of jobs

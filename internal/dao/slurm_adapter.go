@@ -997,6 +997,34 @@ func ptrUint64(i uint64) *uint64 { return &i }
 func ptrInt64(i int64) *int64    { return &i }
 func ptrBool(b bool) *bool       { return &b }
 
+func derefBool(p *bool) bool {
+	if p == nil {
+		return false
+	}
+	return *p
+}
+
+func derefUint32(p *uint32) int {
+	if p == nil {
+		return 0
+	}
+	return int(*p)
+}
+
+func derefUint16(p *uint16) int {
+	if p == nil {
+		return 0
+	}
+	return int(*p)
+}
+
+func derefUint64(p *uint64) int64 {
+	if p == nil {
+		return 0
+	}
+	return int64(*p)
+}
+
 func derefUint32String(p *uint32) string {
 	if p == nil || *p == 0 {
 		return ""
@@ -1555,8 +1583,30 @@ func convertJob(job *slurm.Job) *Job {
 		TRESReq:     derefString(job.TRESReqStr),
 		TRESAlloc:   derefString(job.TRESAllocStr),
 		TRESPerNode: derefString(job.TRESPerNode),
-		GRESDetail:  strings.Join(job.GRESDetail, ", "),
-		ExitCode:    exitCode,
+		GRESDetail:     strings.Join(job.GRESDetail, ", "),
+		ExitCode:       exitCode,
+		BatchHost:      derefString(job.BatchHost),
+		Cluster:        derefString(job.Cluster),
+		CPUs:           derefUint32(job.CPUs),
+		CPUsPerTask:    derefUint16(job.CPUsPerTask),
+		MemoryPerNode:  derefUint64(job.MemoryPerNode),
+		MemoryPerCPU:   derefUint64(job.MemoryPerCPU),
+		Tasks:          derefUint32(job.Tasks),
+		TasksPerNode:   derefUint16(job.TasksPerNode),
+		TRESPerTask:    derefString(job.TRESPerTask),
+		Requeue:        derefBool(job.Requeue),
+		SubmitLine:     derefString(job.SubmitLine),
+		StdOutExpanded: derefString(job.StdoutExpanded),
+		StdErrExpanded: derefString(job.StderrExpanded),
+		Dependency:     derefString(job.Dependency),
+		Licenses:       derefString(job.Licenses),
+		Reservation:    derefString(job.ResvName),
+		Features:       derefString(job.Features),
+		Comment:        derefString(job.Comment),
+		AdminComment:   derefString(job.AdminComment),
+		Wckey:          derefString(job.Wckey),
+		MailUser:       derefString(job.MailUser),
+		StateReason:    derefString(job.StateReason),
 	}
 }
 

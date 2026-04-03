@@ -10,14 +10,14 @@ import (
 
 // derefString is now in slurm_adapter.go
 
-func derefInt32(p *int32) int32 {
+func testDerefInt32(p *int32) int32 {
 	if p == nil {
 		return 0
 	}
 	return *p
 }
 
-func derefUint32(p *uint32) uint32 {
+func testDerefUint32(p *uint32) uint32 {
 	if p == nil {
 		return 0
 	}
@@ -43,9 +43,9 @@ func TestConvertJobSubmissionToJobCreate_CoreFields(t *testing.T) {
 	assert.Equal(t, "#!/bin/bash\necho hello", derefString(jc.Script))
 	assert.Equal(t, "gpu", derefString(jc.Partition))
 	assert.Equal(t, "research", derefString(jc.Account))
-	assert.Equal(t, int32(4), derefInt32(jc.CPUsPerTask))
-	assert.Equal(t, int32(2), derefInt32(jc.MinimumNodes))
-	assert.Equal(t, uint32(60), derefUint32(jc.TimeLimit))
+	assert.Equal(t, int32(4), testDerefInt32(jc.CPUsPerTask))
+	assert.Equal(t, int32(2), testDerefInt32(jc.MinimumNodes))
+	assert.Equal(t, uint32(60), testDerefUint32(jc.TimeLimit))
 	assert.Equal(t, "/home/user/work", derefString(jc.CurrentWorkingDirectory))
 }
 
@@ -72,7 +72,7 @@ func TestConvertJobSubmissionToJobCreate_TimeParsing(t *testing.T) {
 				TimeLimit: tt.input,
 			}
 			jc := convertJobSubmissionToJobCreate(job)
-			assert.Equal(t, tt.expected, derefUint32(jc.TimeLimit))
+			assert.Equal(t, tt.expected, testDerefUint32(jc.TimeLimit))
 		})
 	}
 }
