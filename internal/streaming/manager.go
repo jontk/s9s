@@ -406,7 +406,7 @@ func (sm *StreamManager) handleFileEvent(event fsnotify.Event) {
 		return
 	}
 
-	sm.mu.RLock()
+	sm.mu.Lock()
 	var relevantStream *JobStream
 	for _, stream := range sm.activeStreams {
 		if stream.FilePath == event.Name && stream.IsActive && !stream.IsRemote {
@@ -414,23 +414,28 @@ func (sm *StreamManager) handleFileEvent(event fsnotify.Event) {
 			break
 		}
 	}
-	sm.mu.RUnlock()
 
 	if relevantStream == nil {
+		sm.mu.Unlock()
 		return
 	}
 
-	// Read new content
+	// Read new content while holding the lock to prevent concurrent
+	// reads from the same offset
 	content, offset, err := sm.readFileFromOffset(relevantStream.FilePath, relevantStream.LastOffset)
 	if err != nil {
+		sm.mu.Unlock()
 		sm.emitError(relevantStream, err)
 		return
 	}
 
 	if len(content) > 0 {
-		sm.emitNewContent(relevantStream, content, offset)
 		relevantStream.LastOffset = offset
 		relevantStream.LastUpdate = GetCurrentTime()
+		sm.mu.Unlock()
+		sm.emitNewContent(relevantStream, content, offset)
+	} else {
+		sm.mu.Unlock()
 	}
 }
 

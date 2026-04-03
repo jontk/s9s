@@ -673,8 +673,7 @@ func (v *JobOutputView) handleStreamEvent(event *streaming.StreamEvent) {
 	v.app.QueueUpdateDraw(func() {
 		switch event.EventType {
 		case streaming.StreamEventNewOutput:
-			// Append new content using Write (avoids GetText/SetText round-trip
-			// which can lose trailing newlines)
+			// Append new content directly to the text view
 			fmt.Fprint(v.textView, event.Content)
 
 			// Auto-scroll if enabled
