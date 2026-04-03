@@ -413,37 +413,48 @@ func (sm *StreamManager) handleFileEvent(event fsnotify.Event) {
 		return
 	}
 
+	stream, content, offset, err := sm.readNewContent(event.Name)
+	if stream == nil {
+		return
+	}
+	if err != nil {
+		sm.emitError(stream, err)
+		return
+	}
+	if len(content) > 0 {
+		sm.emitNewContent(stream, content, offset)
+	}
+}
+
+// readNewContent finds the stream for a file path and reads any new content.
+// The lock is held during the read-and-offset-update to prevent concurrent
+// reads from the same offset.
+func (sm *StreamManager) readNewContent(filePath string) (*JobStream, string, int64, error) {
 	sm.mu.Lock()
-	var relevantStream *JobStream
-	for _, stream := range sm.activeStreams {
-		if stream.FilePath == event.Name && stream.IsActive && !stream.IsRemote {
-			relevantStream = stream
+	defer sm.mu.Unlock()
+
+	var stream *JobStream
+	for _, s := range sm.activeStreams {
+		if s.FilePath == filePath && s.IsActive && !s.IsRemote {
+			stream = s
 			break
 		}
 	}
-
-	if relevantStream == nil {
-		sm.mu.Unlock()
-		return
+	if stream == nil {
+		return nil, "", 0, nil
 	}
 
-	// Read new content while holding the lock to prevent concurrent
-	// reads from the same offset
-	content, offset, err := sm.readFileFromOffset(relevantStream.FilePath, relevantStream.LastOffset)
+	content, offset, err := sm.readFileFromOffset(stream.FilePath, stream.LastOffset)
 	if err != nil {
-		sm.mu.Unlock()
-		sm.emitError(relevantStream, err)
-		return
+		return stream, "", 0, err
 	}
 
 	if len(content) > 0 {
-		relevantStream.LastOffset = offset
-		relevantStream.LastUpdate = GetCurrentTime()
-		sm.mu.Unlock()
-		sm.emitNewContent(relevantStream, content, offset)
-	} else {
-		sm.mu.Unlock()
+		stream.LastOffset = offset
+		stream.LastUpdate = GetCurrentTime()
 	}
+
+	return stream, content, offset, nil
 }
 
 // handleFileError processes file watcher errors

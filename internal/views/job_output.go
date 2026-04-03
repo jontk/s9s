@@ -524,7 +524,7 @@ func (v *JobOutputView) showExportResult(message, filePath string) {
 	v.pages.AddPage("export-result", modal, true, true)
 }
 
-// openExportFolder copies the export folder path to clipboard
+// openExportFolder copies the export folder path to clipboard via OSC 52
 func (v *JobOutputView) openExportFolder(filePath string) {
 	dir := filepath.Dir(filePath)
 	encoded := base64.StdEncoding.EncodeToString([]byte(dir))
@@ -532,7 +532,9 @@ func (v *JobOutputView) openExportFolder(filePath string) {
 	v.showNotification(fmt.Sprintf("Folder path copied to clipboard:\n%s", dir))
 }
 
-// copyPathToClipboard copies the file path to clipboard via OSC 52
+// copyPathToClipboard copies the file path to clipboard via OSC 52.
+// Writes to stderr to bypass tview's screen — the terminal emulator
+// intercepts the escape sequence before it reaches the display.
 func (v *JobOutputView) copyPathToClipboard(filePath string) {
 	encoded := base64.StdEncoding.EncodeToString([]byte(filePath))
 	fmt.Fprintf(os.Stderr, "\033]52;c;%s\a", encoded)
