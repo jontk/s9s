@@ -7,32 +7,32 @@ import (
 
 // Job represents a SLURM job
 type Job struct {
-	ID         string
-	Name       string
-	User       string
-	Account    string
-	Partition  string
-	State      string
-	Priority   float64
-	QOS        string
-	NodeCount  int
-	TimeLimit  string
-	TimeUsed   string
-	SubmitTime time.Time
-	StartTime  *time.Time
-	EndTime    *time.Time
-	NodeList   string
-	Command    string
-	WorkingDir string
-	StdOut       string
-	StdErr       string
-	ArrayJobID   string // Master job ID for array jobs (empty if not array)
-	ArrayTaskID  string // Task ID within the array (empty if not array)
-	TRESReq      string // Requested TRES (e.g., "cpu=1,mem=2G,gres/gpu=1")
-	TRESAlloc    string // Allocated TRES
-	TRESPerNode  string // TRES per node (e.g., "gres/gpu:1")
-	GRESDetail   string // GRES detail (e.g., "gpu:1(IDX:0)")
-	ExitCode     *int
+	ID          string
+	Name        string
+	User        string
+	Account     string
+	Partition   string
+	State       string
+	Priority    float64
+	QOS         string
+	NodeCount   int
+	TimeLimit   string
+	TimeUsed    string
+	SubmitTime  time.Time
+	StartTime   *time.Time
+	EndTime     *time.Time
+	NodeList    string
+	Command     string
+	WorkingDir  string
+	StdOut      string
+	StdErr      string
+	ArrayJobID  string // Master job ID for array jobs (empty if not array)
+	ArrayTaskID string // Task ID within the array (empty if not array)
+	TRESReq     string // Requested TRES (e.g., "cpu=1,mem=2G,gres/gpu=1")
+	TRESAlloc   string // Allocated TRES
+	TRESPerNode string // TRES per node (e.g., "gres/gpu:1")
+	GRESDetail  string // GRES detail (e.g., "gpu:1(IDX:0)")
+	ExitCode    *int
 
 	// Additional detail fields (populated from SLURM API)
 	BatchHost      string // Node running the batch script

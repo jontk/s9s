@@ -880,4 +880,3 @@ func (cm *ConfigManager) HasChanges() bool {
 func (cm *ConfigManager) IsSidebarFocused() bool {
 	return cm.sidebar.HasFocus()
 }
-

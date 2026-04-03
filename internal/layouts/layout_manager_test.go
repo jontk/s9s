@@ -113,17 +113,17 @@ func newStubWidget(id string) *stubWidget {
 	return &stubWidget{id: id, prim: tview.NewBox()}
 }
 
-func (w *stubWidget) ID() string                  { return w.id }
-func (w *stubWidget) Name() string                { return w.id }
-func (w *stubWidget) Description() string          { return "" }
-func (w *stubWidget) Type() WidgetType             { return "test" }
-func (w *stubWidget) Render() tview.Primitive      { return w.prim }
-func (w *stubWidget) Update() error                { return nil }
-func (w *stubWidget) Configure() error             { return nil }
-func (w *stubWidget) MinSize() (int, int)          { return 0, 0 }
-func (w *stubWidget) MaxSize() (int, int)          { return 0, 0 }
-func (w *stubWidget) OnResize(_, _ int)            {}
-func (w *stubWidget) OnFocus(_ bool)               {}
+func (w *stubWidget) ID() string              { return w.id }
+func (w *stubWidget) Name() string            { return w.id }
+func (w *stubWidget) Description() string     { return "" }
+func (w *stubWidget) Type() WidgetType        { return "test" }
+func (w *stubWidget) Render() tview.Primitive { return w.prim }
+func (w *stubWidget) Update() error           { return nil }
+func (w *stubWidget) Configure() error        { return nil }
+func (w *stubWidget) MinSize() (int, int)     { return 0, 0 }
+func (w *stubWidget) MaxSize() (int, int)     { return 0, 0 }
+func (w *stubWidget) OnResize(_, _ int)       {}
+func (w *stubWidget) OnFocus(_ bool)          {}
 
 func TestBuildBandFlex_SingleWidget(t *testing.T) {
 	lm := NewLayoutManager(tview.NewApplication())
