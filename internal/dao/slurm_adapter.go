@@ -1534,14 +1534,14 @@ func convertJob(job *slurm.Job) *Job {
 		ID:         jobID,
 		Name:       name,
 		User:       username,
-		Account:    "", // Not available in basic Job struct
+		Account:    derefString(job.Account),
 		Partition:  partition,
 		State:      state,
 		Priority:   priority,
-		QOS:        "", // Not available in basic Job struct
+		QOS:        derefString(job.QoS),
 		NodeCount:  nodeCount,
 		TimeLimit:  timeLimit,
-		TimeUsed:   "", // Not available in basic Job struct
+		TimeUsed:   "",
 		SubmitTime: job.SubmitTime,
 		StartTime:  startTime,
 		EndTime:    endTime,

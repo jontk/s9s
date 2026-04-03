@@ -1002,76 +1002,91 @@ func (v *JobsView) showJobDetails() {
 	}()
 }
 
-// formatJobDetails formats job details for display
+// formatJobDetails formats job details for display with organized sections
 func (v *JobsView) formatJobDetails(job *dao.Job) string {
-	var details strings.Builder
+	var d strings.Builder
 
-	details.WriteString(fmt.Sprintf("[yellow]Job ID:[white] %s\n", job.ID))
-	details.WriteString(fmt.Sprintf("[yellow]Name:[white] %s\n", job.Name))
-	details.WriteString(fmt.Sprintf("[yellow]User:[white] %s\n", job.User))
-	details.WriteString(fmt.Sprintf("[yellow]Account:[white] %s\n", job.Account))
-
+	// Header with state indicator
 	stateColor := dao.GetJobStateColor(job.State)
-	details.WriteString(fmt.Sprintf("[yellow]State:[white] [%s]%s[white]\n", stateColor, job.State))
-
-	details.WriteString(fmt.Sprintf("[yellow]Partition:[white] %s\n", job.Partition))
-	details.WriteString(fmt.Sprintf("[yellow]QOS:[white] %s\n", job.QOS))
-	details.WriteString(fmt.Sprintf("[yellow]Priority:[white] %.0f\n", job.Priority))
-	details.WriteString(fmt.Sprintf("[yellow]Node Count:[white] %d\n", job.NodeCount))
-
-	if job.NodeList != "" {
-		details.WriteString(fmt.Sprintf("[yellow]Node List:[white] %s\n", job.NodeList))
+	stateIcon := "●"
+	switch {
+	case strings.Contains(job.State, "RUNNING"):
+		stateIcon = "▶"
+	case strings.Contains(job.State, "PENDING"):
+		stateIcon = "⏳"
+	case strings.Contains(job.State, "COMPLETED"):
+		stateIcon = "✓"
+	case strings.Contains(job.State, "FAILED"):
+		stateIcon = "✗"
+	case strings.Contains(job.State, "CANCEL"):
+		stateIcon = "⊘"
 	}
+	d.WriteString(fmt.Sprintf("[%s]%s %s[white]  [yellow]%s[white] (%s)\n", stateColor, stateIcon, job.State, job.Name, job.ID))
+	d.WriteString("[gray]" + strings.Repeat("─", 60) + "[white]\n")
 
-	details.WriteString(fmt.Sprintf("[yellow]Time Limit:[white] %s\n", job.TimeLimit))
-	details.WriteString(fmt.Sprintf("[yellow]Time Used:[white] %s\n", job.TimeUsed))
+	// Identity
+	v.writeField(&d, "User", job.User)
+	v.writeField(&d, "Account", job.Account)
+	v.writeField(&d, "Partition", job.Partition)
+	v.writeField(&d, "QoS", job.QOS)
+	v.writeField(&d, "Priority", fmt.Sprintf("%.0f", job.Priority))
+	d.WriteString("\n")
 
-	details.WriteString(fmt.Sprintf("[yellow]Submit Time:[white] %s\n", job.SubmitTime.Format("2006-01-02 15:04:05")))
-
+	// Scheduling
+	d.WriteString("[teal]Scheduling[white]\n")
+	d.WriteString(fmt.Sprintf("  [yellow]Submitted:[white]  %s\n", job.SubmitTime.Format("2006-01-02 15:04:05")))
 	if job.StartTime != nil {
-		details.WriteString(fmt.Sprintf("[yellow]Start Time:[white] %s\n", job.StartTime.Format("2006-01-02 15:04:05")))
+		d.WriteString(fmt.Sprintf("  [yellow]Started:[white]    %s\n", job.StartTime.Format("2006-01-02 15:04:05")))
 	}
-
 	if job.EndTime != nil {
-		details.WriteString(fmt.Sprintf("[yellow]End Time:[white] %s\n", job.EndTime.Format("2006-01-02 15:04:05")))
+		d.WriteString(fmt.Sprintf("  [yellow]End:[white]        %s\n", job.EndTime.Format("2006-01-02 15:04:05")))
 	}
+	v.writeIndentedField(&d, "Time Limit", job.TimeLimit)
+	v.writeIndentedField(&d, "Time Used", job.TimeUsed)
+	d.WriteString("\n")
 
-	details.WriteString(fmt.Sprintf("[yellow]Working Dir:[white] %s\n", job.WorkingDir))
+	// Resources
+	d.WriteString("[teal]Resources[white]\n")
+	v.writeIndentedField(&d, "Nodes", fmt.Sprintf("%d", job.NodeCount))
+	v.writeIndentedField(&d, "Node List", job.NodeList)
+	v.writeIndentedField(&d, "TRES Req", job.TRESReq)
+	v.writeIndentedField(&d, "TRES Alloc", job.TRESAlloc)
+	v.writeIndentedField(&d, "TRES/Node", job.TRESPerNode)
+	v.writeIndentedField(&d, "GRES", job.GRESDetail)
+	d.WriteString("\n")
 
-	// Note: SLURM API doesn't return the actual command/script, only job metadata
-	// For job details, see StdOut file path below
-	if job.Command != "" {
-		details.WriteString(fmt.Sprintf("[yellow]Command:[white] %s\n", job.Command))
-	}
-
-	if job.TRESReq != "" {
-		details.WriteString(fmt.Sprintf("[yellow]TRES Requested:[white] %s\n", job.TRESReq))
-	}
-	if job.TRESAlloc != "" {
-		details.WriteString(fmt.Sprintf("[yellow]TRES Allocated:[white] %s\n", job.TRESAlloc))
-	}
-	if job.TRESPerNode != "" {
-		details.WriteString(fmt.Sprintf("[yellow]TRES/Node:[white] %s\n", job.TRESPerNode))
-	}
-	if job.GRESDetail != "" {
-		details.WriteString(fmt.Sprintf("[yellow]GRES Detail:[white] %s\n", job.GRESDetail))
-	}
-
+	// Paths
+	d.WriteString("[teal]Paths[white]\n")
+	v.writeIndentedField(&d, "Work Dir", job.WorkingDir)
+	v.writeIndentedField(&d, "Command", job.Command)
 	if job.StdOut != "" {
-		stdout := expandJobPattern(job.StdOut, job)
-		details.WriteString(fmt.Sprintf("[yellow]StdOut:[white] %s\n", stdout))
+		v.writeIndentedField(&d, "StdOut", expandJobPattern(job.StdOut, job))
 	}
-
 	if job.StdErr != "" {
-		stderr := expandJobPattern(job.StdErr, job)
-		details.WriteString(fmt.Sprintf("[yellow]StdErr:[white] %s\n", stderr))
+		v.writeIndentedField(&d, "StdErr", expandJobPattern(job.StdErr, job))
 	}
 
+	// Exit
 	if job.ExitCode != nil {
-		details.WriteString(fmt.Sprintf("[yellow]Exit Code:[white] %d\n", *job.ExitCode))
+		d.WriteString("\n")
+		d.WriteString(fmt.Sprintf("[yellow]Exit Code:[white] %d\n", *job.ExitCode))
 	}
 
-	return details.String()
+	return d.String()
+}
+
+// writeField writes a field only if the value is non-empty
+func (v *JobsView) writeField(d *strings.Builder, label, value string) {
+	if value != "" && value != "0" {
+		d.WriteString(fmt.Sprintf("[yellow]%s:[white] %s\n", label, value))
+	}
+}
+
+// writeIndentedField writes an indented field only if the value is non-empty
+func (v *JobsView) writeIndentedField(d *strings.Builder, label, value string) {
+	if value != "" {
+		d.WriteString(fmt.Sprintf("  [yellow]%-11s[white] %s\n", label+":", value))
+	}
 }
 
 // expandJobPattern expands SLURM filename patterns (%j, %x, etc.) for display
