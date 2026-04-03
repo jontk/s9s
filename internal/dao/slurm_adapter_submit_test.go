@@ -8,13 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// helper to dereference pointer or return zero value
-func derefString(p *string) string {
-	if p == nil {
-		return ""
-	}
-	return *p
-}
+// derefString is now in slurm_adapter.go
 
 func derefInt32(p *int32) int32 {
 	if p == nil {

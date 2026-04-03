@@ -959,6 +959,13 @@ func parseDurationUnit(n int, unit string) time.Duration {
 
 // pointer helpers for JobCreate fields
 func ptrString(s string) *string { return &s }
+
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
 func ptrInt32(i int32) *int32    { return &i }
 func ptrUint32(i uint32) *uint32 { return &i }
 func ptrUint64(i uint64) *uint64 { return &i }
@@ -1509,8 +1516,8 @@ func convertJob(job *slurm.Job) *Job {
 		NodeList:   nodeList,
 		Command:    command,
 		WorkingDir: workingDir,
-		StdOut:     "", // Not available in basic Job struct
-		StdErr:     "", // Not available in basic Job struct
+		StdOut:     derefString(job.StandardOutput),
+		StdErr:     derefString(job.StandardError),
 		ExitCode:   exitCode,
 	}
 }
