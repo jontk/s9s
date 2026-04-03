@@ -75,12 +75,19 @@ func (sm *StreamManager) StartStream(jobID, outputType string) error {
 	}
 
 	// Create new job stream
+	// Start from the current end of file so we only stream new content.
+	// The caller already has the existing content from loadOutput().
+	var initialOffset int64
+	if info, err := os.Stat(filePath); err == nil {
+		initialOffset = info.Size()
+	}
+
 	stream := &JobStream{
 		JobID:       jobID,
 		OutputType:  outputType,
 		Buffer:      NewCircularBuffer(sm.slurmConfig.BufferSize),
 		FilePath:    filePath,
-		LastOffset:  0,
+		LastOffset:  initialOffset,
 		IsActive:    true,
 		IsRemote:    isRemote,
 		NodeID:      nodeID,

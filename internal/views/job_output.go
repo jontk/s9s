@@ -596,9 +596,10 @@ func (v *JobOutputView) startStreaming() {
 		return
 	}
 
-	// Clear existing content — the stream will re-emit from the beginning
-	v.textView.SetText("")
+	// Seed the stream content with what loadOutput already displayed,
+	// so we don't lose historical output when streaming starts
 	v.streamContent.Reset()
+	v.streamContent.WriteString(v.textView.GetText(false))
 
 	// Start the stream
 	err := v.streamManager.StartStream(v.jobID, v.outputType)
