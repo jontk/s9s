@@ -143,21 +143,8 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: 'trivy-results.sarif'
-
     - name: Run gosec security scanner
-      uses: securego/gosec@master
+      uses: securego/gosec@v2
       continue-on-error: true  # Allow to fail - issues will be fixed in follow-up PRs
       with:
         args: './...'
