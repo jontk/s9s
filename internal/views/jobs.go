@@ -1025,12 +1025,12 @@ func (v *JobsView) formatJobDetails(job *dao.Job) string {
 	d.WriteString("[gray]" + strings.Repeat("─", 60) + "[white]\n")
 
 	// Identity
-	v.writeField(&d, "User", job.User)
-	v.writeField(&d, "Account", job.Account)
-	v.writeField(&d, "Partition", job.Partition)
-	v.writeField(&d, "QoS", job.QOS)
-	v.writeField(&d, "Priority", fmt.Sprintf("%.0f", job.Priority))
-	v.writeField(&d, "Cluster", job.Cluster)
+	writeDetailField(&d, "User", job.User)
+	writeDetailField(&d, "Account", job.Account)
+	writeDetailField(&d, "Partition", job.Partition)
+	writeDetailField(&d, "QoS", job.QOS)
+	writeDetailField(&d, "Priority", fmt.Sprintf("%.0f", job.Priority))
+	writeDetailField(&d, "Cluster", job.Cluster)
 	d.WriteString("\n")
 
 	// Scheduling
@@ -1042,83 +1042,83 @@ func (v *JobsView) formatJobDetails(job *dao.Job) string {
 	if job.EndTime != nil {
 		d.WriteString(fmt.Sprintf("  [yellow]End:[white]        %s\n", job.EndTime.Format("2006-01-02 15:04:05")))
 	}
-	v.writeIndentedField(&d, "Time Limit", formatTimeLimitStr(job.TimeLimit))
-	v.writeIndentedField(&d, "Time Used", job.TimeUsed)
+	writeDetailIndented(&d, "Time Limit", formatTimeLimitStr(job.TimeLimit))
+	writeDetailIndented(&d, "Time Used", job.TimeUsed)
 	if job.StateReason != "" && job.StateReason != "None" {
 		stateColor := dao.GetJobStateColor(job.State)
-		v.writeIndentedField(&d, "Reason", fmt.Sprintf("[%s]%s[white]", stateColor, job.StateReason))
+		writeDetailIndented(&d, "Reason", fmt.Sprintf("[%s]%s[white]", stateColor, job.StateReason))
 	}
-	v.writeIndentedField(&d, "Dependency", job.Dependency)
+	writeDetailIndented(&d, "Dependency", job.Dependency)
 	if job.Requeue {
-		v.writeIndentedField(&d, "Requeue", "Yes")
+		writeDetailIndented(&d, "Requeue", "Yes")
 	}
 	d.WriteString("\n")
 
 	// Resources
 	d.WriteString("[teal]Resources[white]\n")
-	v.writeIndentedField(&d, "Nodes", fmt.Sprintf("%d", job.NodeCount))
-	v.writeIndentedField(&d, "Node List", job.NodeList)
-	v.writeIndentedField(&d, "TRES Req", job.TRESReq)
-	v.writeIndentedField(&d, "TRES Alloc", job.TRESAlloc)
-	v.writeIndentedField(&d, "TRES/Node", job.TRESPerNode)
-	v.writeIndentedField(&d, "GRES", job.GRESDetail)
+	writeDetailIndented(&d, "Nodes", fmt.Sprintf("%d", job.NodeCount))
+	writeDetailIndented(&d, "Node List", job.NodeList)
+	writeDetailIndented(&d, "TRES Req", job.TRESReq)
+	writeDetailIndented(&d, "TRES Alloc", job.TRESAlloc)
+	writeDetailIndented(&d, "TRES/Node", job.TRESPerNode)
+	writeDetailIndented(&d, "GRES", job.GRESDetail)
 	if job.CPUs > 0 {
-		v.writeIndentedField(&d, "CPUs", fmt.Sprintf("%d", job.CPUs))
+		writeDetailIndented(&d, "CPUs", fmt.Sprintf("%d", job.CPUs))
 	}
 	if job.CPUsPerTask > 0 {
-		v.writeIndentedField(&d, "CPUs/Task", fmt.Sprintf("%d", job.CPUsPerTask))
+		writeDetailIndented(&d, "CPUs/Task", fmt.Sprintf("%d", job.CPUsPerTask))
 	}
 	if job.Tasks > 0 {
-		v.writeIndentedField(&d, "Tasks", fmt.Sprintf("%d", job.Tasks))
+		writeDetailIndented(&d, "Tasks", fmt.Sprintf("%d", job.Tasks))
 	}
 	if job.TasksPerNode > 0 {
-		v.writeIndentedField(&d, "Tasks/Node", fmt.Sprintf("%d", job.TasksPerNode))
+		writeDetailIndented(&d, "Tasks/Node", fmt.Sprintf("%d", job.TasksPerNode))
 	}
 	if job.MemoryPerNode > 0 {
 		if job.MemoryPerNode >= 1024 && job.MemoryPerNode%1024 == 0 {
-			v.writeIndentedField(&d, "Mem/Node", fmt.Sprintf("%dG", job.MemoryPerNode/1024))
+			writeDetailIndented(&d, "Mem/Node", fmt.Sprintf("%dG", job.MemoryPerNode/1024))
 		} else {
-			v.writeIndentedField(&d, "Mem/Node", fmt.Sprintf("%dM", job.MemoryPerNode))
+			writeDetailIndented(&d, "Mem/Node", fmt.Sprintf("%dM", job.MemoryPerNode))
 		}
 	}
 	if job.MemoryPerCPU > 0 {
 		if job.MemoryPerCPU >= 1024 && job.MemoryPerCPU%1024 == 0 {
-			v.writeIndentedField(&d, "Mem/CPU", fmt.Sprintf("%dG", job.MemoryPerCPU/1024))
+			writeDetailIndented(&d, "Mem/CPU", fmt.Sprintf("%dG", job.MemoryPerCPU/1024))
 		} else {
-			v.writeIndentedField(&d, "Mem/CPU", fmt.Sprintf("%dM", job.MemoryPerCPU))
+			writeDetailIndented(&d, "Mem/CPU", fmt.Sprintf("%dM", job.MemoryPerCPU))
 		}
 	}
-	v.writeIndentedField(&d, "TRES/Task", job.TRESPerTask)
-	v.writeIndentedField(&d, "Batch Host", job.BatchHost)
-	v.writeIndentedField(&d, "Features", job.Features)
-	v.writeIndentedField(&d, "Licenses", job.Licenses)
+	writeDetailIndented(&d, "TRES/Task", job.TRESPerTask)
+	writeDetailIndented(&d, "Batch Host", job.BatchHost)
+	writeDetailIndented(&d, "Features", job.Features)
+	writeDetailIndented(&d, "Licenses", job.Licenses)
 	d.WriteString("\n")
 
 	// Paths
 	d.WriteString("[teal]Paths[white]\n")
-	v.writeIndentedField(&d, "Work Dir", job.WorkingDir)
-	v.writeIndentedField(&d, "Command", job.Command)
+	writeDetailIndented(&d, "Work Dir", job.WorkingDir)
+	writeDetailIndented(&d, "Command", job.Command)
 	if job.StdOutExpanded != "" {
-		v.writeIndentedField(&d, "StdOut", job.StdOutExpanded)
+		writeDetailIndented(&d, "StdOut", job.StdOutExpanded)
 	} else if job.StdOut != "" {
-		v.writeIndentedField(&d, "StdOut", expandJobPattern(job.StdOut, job))
+		writeDetailIndented(&d, "StdOut", expandJobPattern(job.StdOut, job))
 	}
 	if job.StdErrExpanded != "" {
-		v.writeIndentedField(&d, "StdErr", job.StdErrExpanded)
+		writeDetailIndented(&d, "StdErr", job.StdErrExpanded)
 	} else if job.StdErr != "" {
-		v.writeIndentedField(&d, "StdErr", expandJobPattern(job.StdErr, job))
+		writeDetailIndented(&d, "StdErr", expandJobPattern(job.StdErr, job))
 	}
-	v.writeIndentedField(&d, "Submit Line", job.SubmitLine)
+	writeDetailIndented(&d, "Submit Line", job.SubmitLine)
 
 	// Notes
 	if job.Comment != "" || job.AdminComment != "" || job.Wckey != "" || job.MailUser != "" || job.Reservation != "" {
 		d.WriteString("\n")
 		d.WriteString("[teal]Notes[white]\n")
-		v.writeIndentedField(&d, "Comment", job.Comment)
-		v.writeIndentedField(&d, "Admin Note", job.AdminComment)
-		v.writeIndentedField(&d, "Wckey", job.Wckey)
-		v.writeIndentedField(&d, "Mail User", job.MailUser)
-		v.writeIndentedField(&d, "Reservation", job.Reservation)
+		writeDetailIndented(&d, "Comment", job.Comment)
+		writeDetailIndented(&d, "Admin Note", job.AdminComment)
+		writeDetailIndented(&d, "Wckey", job.Wckey)
+		writeDetailIndented(&d, "Mail User", job.MailUser)
+		writeDetailIndented(&d, "Reservation", job.Reservation)
 	}
 
 	// Exit
@@ -1131,14 +1131,14 @@ func (v *JobsView) formatJobDetails(job *dao.Job) string {
 }
 
 // writeField writes a field only if the value is non-empty
-func (v *JobsView) writeField(d *strings.Builder, label, value string) {
-	if value != "" && value != "0" {
+func writeDetailField(d *strings.Builder, label, value string) {
+	if value != "" {
 		fmt.Fprintf(d, "[yellow]%s:[white] %s\n", label, value)
 	}
 }
 
 // writeIndentedField writes an indented field only if the value is non-empty
-func (v *JobsView) writeIndentedField(d *strings.Builder, label, value string) {
+func writeDetailIndented(d *strings.Builder, label, value string) {
 	if value != "" {
 		fmt.Fprintf(d, "  [yellow]%-11s[white] %s\n", label+":", value)
 	}

@@ -1004,21 +1004,21 @@ func derefBool(p *bool) bool {
 	return *p
 }
 
-func derefUint32(p *uint32) int {
+func derefUint32Int(p *uint32) int {
 	if p == nil {
 		return 0
 	}
 	return int(*p)
 }
 
-func derefUint16(p *uint16) int {
+func derefUint16Int(p *uint16) int {
 	if p == nil {
 		return 0
 	}
 	return int(*p)
 }
 
-func derefUint64(p *uint64) int64 {
+func derefUint64Int64(p *uint64) int64 {
 	if p == nil {
 		return 0
 	}
@@ -1587,12 +1587,12 @@ func convertJob(job *slurm.Job) *Job {
 		ExitCode:       exitCode,
 		BatchHost:      derefString(job.BatchHost),
 		Cluster:        derefString(job.Cluster),
-		CPUs:           derefUint32(job.CPUs),
-		CPUsPerTask:    derefUint16(job.CPUsPerTask),
-		MemoryPerNode:  derefUint64(job.MemoryPerNode),
-		MemoryPerCPU:   derefUint64(job.MemoryPerCPU),
-		Tasks:          derefUint32(job.Tasks),
-		TasksPerNode:   derefUint16(job.TasksPerNode),
+		CPUs:           derefUint32Int(job.CPUs),
+		CPUsPerTask:    derefUint16Int(job.CPUsPerTask),
+		MemoryPerNode:  derefUint64Int64(job.MemoryPerNode),
+		MemoryPerCPU:   derefUint64Int64(job.MemoryPerCPU),
+		Tasks:          derefUint32Int(job.Tasks),
+		TasksPerNode:   derefUint16Int(job.TasksPerNode),
 		TRESPerTask:    derefString(job.TRESPerTask),
 		Requeue:        derefBool(job.Requeue),
 		SubmitLine:     derefString(job.SubmitLine),
