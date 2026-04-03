@@ -39,6 +39,7 @@ type JobOutputView struct {
 	autoScroll    bool
 	streamChannel <-chan streaming.StreamEvent
 	streamStatus  string
+	streamContent strings.Builder // accumulates streamed content
 	outputBuffer  *streaming.CircularBuffer
 	streamToggle  *tview.Button
 	scrollToggle  *tview.Button
@@ -597,6 +598,7 @@ func (v *JobOutputView) startStreaming() {
 
 	// Clear existing content — the stream will re-emit from the beginning
 	v.textView.SetText("")
+	v.streamContent.Reset()
 
 	// Start the stream
 	err := v.streamManager.StartStream(v.jobID, v.outputType)
@@ -673,8 +675,10 @@ func (v *JobOutputView) handleStreamEvent(event *streaming.StreamEvent) {
 	v.app.QueueUpdateDraw(func() {
 		switch event.EventType {
 		case streaming.StreamEventNewOutput:
-			// Append new content directly to the text view
-			fmt.Fprint(v.textView, event.Content)
+			// Accumulate content in our own builder to preserve newlines,
+			// then set the full text (avoids tview's Write/GetText quirks)
+			v.streamContent.WriteString(event.Content)
+			v.textView.SetText(v.streamContent.String())
 
 			// Auto-scroll if enabled
 			if v.autoScroll {
