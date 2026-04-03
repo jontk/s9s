@@ -10,6 +10,10 @@ import (
 
 // TestSSHClient tests the SSH client functionality
 func TestSSHClient(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	// Test 1: Create client with default config
 	t.Run("DefaultClient", func(t *testing.T) {
 		client := ssh.NewSSHClient(nil)
@@ -47,6 +51,10 @@ func TestSSHClient(t *testing.T) {
 
 // TestSSHClientArguments tests SSH argument building
 func TestSSHClientArguments(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	// This would require exposing buildSSHArgs method or testing through ExecuteCommand
 	// For now, we'll test through the public interface
 
@@ -88,6 +96,10 @@ func TestSSHClientArguments(t *testing.T) {
 
 // TestDefaultSSHConfig tests the default configuration
 func TestDefaultSSHConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	config := ssh.DefaultSSHConfig()
 
 	if config.Port != 22 {
@@ -117,6 +129,10 @@ func TestDefaultSSHConfig(t *testing.T) {
 
 // TestSSHClientEdgeCases tests edge cases
 func TestSSHClientEdgeCases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	// Test with various invalid configurations
 	t.Run("EmptyHostname", func(t *testing.T) {
 		client := ssh.NewSSHClient(nil)
@@ -160,6 +176,10 @@ func TestSSHClientEdgeCases(t *testing.T) {
 
 // TestGetNodeInfo tests node information retrieval
 func TestGetNodeInfo(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SSH test in short mode")
+	}
+
 	client := ssh.NewSSHClient(nil)
 	ctx := context.Background()
 
