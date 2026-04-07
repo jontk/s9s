@@ -167,7 +167,7 @@ type PluginSettings struct {
 // NOTE: These values must match setDefaults() to ensure consistent behavior
 func DefaultConfig() *Config {
 	return &Config{
-		RefreshRate:    "2s", // Aligned with setDefaults
+		RefreshRate:    "10s", // Aligned with setDefaults
 		MaxRetries:     3,
 		DefaultCluster: "default",
 		Clusters:       []ClusterContext{},
@@ -311,7 +311,7 @@ func LoadWithPath(configPath string) (*Config, error) {
 // setDefaults sets default configuration values
 func setDefaults(v *viper.Viper) {
 	// General defaults
-	v.SetDefault("refreshRate", "2s")
+	v.SetDefault("refreshRate", "10s")
 	v.SetDefault("maxRetries", 3)
 	v.SetDefault("defaultCluster", "default")
 	v.SetDefault("useMockClient", false)

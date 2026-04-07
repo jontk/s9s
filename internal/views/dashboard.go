@@ -16,12 +16,10 @@ import (
 // DashboardView displays a comprehensive cluster overview
 type DashboardView struct {
 	*BaseView
-	client       dao.SlurmClient
-	mu           sync.RWMutex
-	refreshTimer *time.Timer
-	refreshRate  time.Duration
-	container    *tview.Flex
-	pages        *tview.Pages
+	client    dao.SlurmClient
+	mu        sync.RWMutex
+	container *tview.Flex
+	pages     *tview.Pages
 
 	// Dashboard components
 	clusterOverview *tview.TextView
@@ -52,9 +50,8 @@ func (v *DashboardView) SetPages(pages *tview.Pages) {
 // NewDashboardView creates a new dashboard view
 func NewDashboardView(client dao.SlurmClient) *DashboardView {
 	v := &DashboardView{
-		BaseView:    NewBaseView("dashboard", "Dashboard"),
-		client:      client,
-		refreshRate: 10 * time.Second, // More frequent updates for dashboard
+		BaseView: NewBaseView("dashboard", "Dashboard"),
+		client:   client,
 	}
 
 	// Create dashboard components
@@ -236,20 +233,13 @@ func (v *DashboardView) Refresh() error {
 			})
 		}
 
-		v.scheduleRefresh()
 	}()
 
 	return nil
 }
 
-// TODO: implement per-view toggleable auto-refresh (like jobs view)
-func (v *DashboardView) scheduleRefresh() {}
-
 // Stop stops the view
 func (v *DashboardView) Stop() error {
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-	}
 	return nil
 }
 
@@ -298,12 +288,6 @@ func (v *DashboardView) OnFocus() error {
 // OnLoseFocus handles loss of focus
 func (v *DashboardView) OnLoseFocus() error {
 	v.SetFocused(false)
-	v.mu.Lock()
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-		v.refreshTimer = nil
-	}
-	v.mu.Unlock()
 	return nil
 }
 

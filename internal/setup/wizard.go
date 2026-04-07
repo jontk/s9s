@@ -51,7 +51,7 @@ func (w *Wizard) Run() error {
 	}
 
 	// Initialize config defaults
-	w.config.RefreshRate = "30s"
+	w.config.RefreshRate = "10s"
 	w.config.Clusters = []config.ClusterContext{}
 
 	// Step 1: Cluster endpoint
@@ -478,7 +478,7 @@ func (w *Wizard) renderConfig() string {
 		b.WriteString("\n")
 	}
 
-	if w.config.RefreshRate != "" && w.config.RefreshRate != "30s" {
+	if w.config.RefreshRate != "" && w.config.RefreshRate != "10s" {
 		fmt.Fprintf(&b, "refreshRate: %s\n", w.config.RefreshRate)
 	}
 

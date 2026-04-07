@@ -242,7 +242,7 @@ func TestDefaultConfig(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	// Test basic settings (aligned with setDefaults)
-	assert.Equal(t, "2s", cfg.RefreshRate)
+	assert.Equal(t, "10s", cfg.RefreshRate)
 	assert.Equal(t, 3, cfg.MaxRetries)
 	assert.Equal(t, "default", cfg.DefaultCluster)
 	assert.False(t, cfg.UseMockClient)

@@ -24,6 +24,7 @@ func (s *S9s) showHelp() {
   [yellow]F1[white]         Show help
   [yellow]F2[white]         Show system alerts
   [yellow]F5[white]         Refresh current view
+  [yellow]F6[white]         Pause/resume auto-refresh
   [yellow]F10[white]        Configuration settings
   [yellow]:[white]          Command mode (Tab to browse commands)
   [yellow]?[white]          Show this help
@@ -55,7 +56,7 @@ func (s *S9s) showHelp() {
 		}
 	}
 
-	helpText += "\nPress [yellow]ESC[white] to close this help."
+	helpText += "\nPress [yellow]ESC[white] to close  •  [yellow]F1[white] for full keyboard reference"
 
 	modal := tview.NewTextView().
 		SetDynamicColors(true).
@@ -139,13 +140,15 @@ func (s *S9s) showConfiguration() {
 
 	// Set callback for configuration changes
 	configView.SetConfigChangedCallback(func(newConfig *config.Config) {
-		// Apply new configuration to running application
-		if newConfig != nil {
-			s.config = newConfig
-			// TODO: Apply configuration changes to running components
-			// This would involve updating refresh rates, UI settings, etc.
-			s.statusBar.Success("Configuration applied")
+		if newConfig == nil {
+			return
 		}
+		// Apply new configuration to running components (currently:
+		// swap in the new config and re-arm the refresh ticker with
+		// the new cadence). Other UI settings are picked up on the
+		// next redraw or view switch.
+		s.ApplyConfig(newConfig)
+		s.statusBar.Success("Configuration applied")
 	})
 
 	// Add the config view as a modal-like page

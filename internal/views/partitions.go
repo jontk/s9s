@@ -30,8 +30,6 @@ type PartitionsView struct {
 	partitions     []*dao.Partition
 	queueInfo      map[string]*dao.QueueInfo
 	mu             sync.RWMutex
-	refreshTimer   *time.Timer
-	refreshRate    time.Duration
 	filter         string
 	container      *tview.Flex
 	filterInput    *tview.InputField
@@ -69,11 +67,10 @@ func (v *PartitionsView) SetApp(app *tview.Application) {
 // NewPartitionsView creates a new partitions view
 func NewPartitionsView(client dao.SlurmClient) *PartitionsView {
 	v := &PartitionsView{
-		BaseView:    NewBaseView("partitions", "Partitions"),
-		client:      client,
-		refreshRate: 30 * time.Second,
-		partitions:  []*dao.Partition{},
-		queueInfo:   make(map[string]*dao.QueueInfo),
+		BaseView:   NewBaseView("partitions", "Partitions"),
+		client:     client,
+		partitions: []*dao.Partition{},
+		queueInfo:  make(map[string]*dao.QueueInfo),
 	}
 
 	// Create table with partition columns
@@ -177,7 +174,6 @@ func (v *PartitionsView) Refresh() error {
 			})
 		}
 
-		v.scheduleRefresh()
 	}()
 
 	return nil
@@ -254,14 +250,8 @@ func (v *PartitionsView) buildAllQueueInfo(jobs []*dao.Job, partitions []*dao.Pa
 	return infoMap
 }
 
-// TODO: implement per-view toggleable auto-refresh (like jobs view)
-func (v *PartitionsView) scheduleRefresh() {}
-
 // Stop stops the view
 func (v *PartitionsView) Stop() error {
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-	}
 	return nil
 }
 
@@ -395,12 +385,6 @@ func (v *PartitionsView) OnFocus() error {
 // OnLoseFocus handles loss of focus
 func (v *PartitionsView) OnLoseFocus() error {
 	v.SetFocused(false)
-	v.mu.Lock()
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-		v.refreshTimer = nil
-	}
-	v.mu.Unlock()
 	return nil
 }
 

@@ -29,8 +29,6 @@ type HealthView struct {
 	app           *tview.Application
 	pages         *tview.Pages
 	mu            sync.RWMutex
-	refreshTimer  *time.Timer
-	refreshRate   time.Duration
 }
 
 // NewHealthView creates a new health monitoring view
@@ -38,7 +36,6 @@ func NewHealthView(client dao.SlurmClient) *HealthView {
 	v := &HealthView{
 		BaseView:      NewBaseView("health", "Health Monitor"),
 		client:        client,
-		refreshRate:   10 * time.Second,                                    // Refresh every 10 seconds
 		healthMonitor: monitoring.NewHealthMonitor(client, 30*time.Second), // Check every 30 seconds
 	}
 
@@ -115,7 +112,8 @@ func (v *HealthView) Render() tview.Primitive {
 
 // Refresh updates the health monitoring data.
 // Health data is fetched by the healthMonitor on its own timer;
-// this just re-renders the current state.
+// this just re-renders the current state. It is driven by the global
+// refresh ticker in app.go, which honors the user-configured refreshRate.
 func (v *HealthView) Refresh() error {
 	if v.app != nil {
 		v.app.QueueUpdateDraw(func() {
@@ -124,16 +122,11 @@ func (v *HealthView) Refresh() error {
 			v.updateHealthChecks()
 		})
 	}
-
-	v.scheduleRefresh()
 	return nil
 }
 
 // Stop stops the view
 func (v *HealthView) Stop() error {
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-	}
 	if v.healthMonitor != nil {
 		v.healthMonitor.Stop()
 	}
@@ -204,22 +197,13 @@ func (v *HealthView) OnFocus() error {
 	if !v.IsInitialized() {
 		v.SetInitialized(true)
 		go func() { _ = v.Refresh() }()
-		return nil
 	}
-	// Restart the refresh timer when regaining focus
-	v.scheduleRefresh()
 	return nil
 }
 
 // OnLoseFocus handles loss of focus
 func (v *HealthView) OnLoseFocus() error {
 	v.SetFocused(false)
-	v.mu.Lock()
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-		v.refreshTimer = nil
-	}
-	v.mu.Unlock()
 	return nil
 }
 
@@ -358,24 +342,6 @@ func (v *HealthView) updateStatusBar() {
 	v.statusBar.SetText(status)
 }
 */
-
-// scheduleRefresh schedules the next refresh
-func (v *HealthView) scheduleRefresh() {
-	if !v.IsFocused() {
-		return
-	}
-
-	v.mu.Lock()
-	defer v.mu.Unlock()
-
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-	}
-
-	v.refreshTimer = time.AfterFunc(v.refreshRate, func() {
-		_ = v.Refresh()
-	})
-}
 
 // getStatusColor returns the color for a health status
 func (v *HealthView) getStatusColor(status monitoring.HealthStatus) string {
