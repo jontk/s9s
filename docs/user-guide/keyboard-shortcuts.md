@@ -17,7 +17,8 @@ These shortcuts work from any view:
 | `l` | Next view | Move to next view |
 | `F1` | Help | Show help modal |
 | `F2` | Alerts | Show system alerts |
-| `F5` | Force refresh | Refresh current view data |
+| `F5` | Force refresh | Refresh current view data (always works) |
+| `F6` | Toggle auto-refresh | Pause or resume the global auto-refresh ticker |
 | `F10` | Configuration | Show configuration |
 | `Ctrl+K` | Switch cluster | Switch between configured clusters |
 | `Ctrl+C` | Exit application | Exit s9s entirely |
@@ -107,9 +108,11 @@ These shortcuts work from any view:
 | Key | Action | Description |
 |-----|--------|-------------|
 | `R` | Manual refresh | Refresh jobs data |
-| `m/M` | Toggle auto-refresh | Enable/disable auto-refresh (30s) |
 | `S` | Sort modal | Open interactive sorting dialog |
 | `e/E` | Export | Export job list to CSV/JSON/Text/Markdown/HTML |
+
+> Auto-refresh is now global: press `F6` from any view to pause or resume it.
+> The cadence is controlled by `refreshRate` in config (default `10s`).
 
 ## Nodes View
 
@@ -385,9 +388,11 @@ Works in Jobs and Nodes views.
 3. Makes large node lists easier to navigate
 
 ### Refresh Strategies
-- Three views auto-refresh: Jobs (30s), Health (10s), Performance (5s)
-- Use `R` for immediate manual refresh
-- Jobs view: `m/M` toggles auto-refresh on/off
+- All views share a single auto-refresh cadence controlled by `refreshRate` in config (default `10s`)
+- Only the currently focused view is refreshed by the global ticker — background views keep their last snapshot until you switch to them
+- Use `R` or `F5` for immediate manual refresh (always works, even when auto-refresh is paused)
+- Press `F6` to pause or resume auto-refresh globally without editing the config
+- Set `refreshRate: ""` in config to disable auto-refresh entirely
 
 ### Help When Stuck
 - Press `?` for context-sensitive help

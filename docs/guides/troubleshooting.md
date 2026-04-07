@@ -184,8 +184,10 @@ echo $SLURM_JWT
 1. **Adjust refresh rate**:
    Change the `refreshRate` setting in your configuration file (`~/.s9s/config.yaml`):
    ```yaml
-   refreshRate: "10s"  # Slower refresh (default is 2s)
+   refreshRate: "30s"  # Slower refresh (default is 10s)
    ```
+   Or press `F6` at runtime to pause auto-refresh entirely; `F5` and `R`
+   still work for manual refresh.
 
 2. **Customize visible columns**:
    Configure columns in your configuration file:

@@ -148,7 +148,7 @@ The following schema reflects the actual `Config` struct in the codebase. All fi
 
 ```yaml
 # General settings
-refreshRate: duration        # Auto-refresh interval (default: 2s)
+refreshRate: duration        # Auto-refresh interval (default: 10s; "" disables)
 maxRetries: integer          # Max API retry attempts (default: 3)
 defaultCluster: string       # Active cluster name (default: "default")
 useMockClient: boolean       # Enable mock SLURM client (default: false)
@@ -292,7 +292,7 @@ ui:
   noIcons: false             # Disable icons
   enableMouse: true          # Enable mouse support
 
-refreshRate: 2s              # Auto-refresh interval
+refreshRate: 10s             # Auto-refresh interval (default: 10s; "" disables)
 ```
 
 ### Column Configuration
@@ -450,6 +450,42 @@ ui:
   skin: "default"
 ```
 
+### Refresh Rate
+
+`refreshRate` controls how often the currently focused view refreshes its
+data from slurmrestd. A single global cadence applies to every view — jobs,
+nodes, partitions, dashboard, health, performance, and the rest. The default
+is `10s`, which is a reasonable balance for most clusters.
+
+```yaml
+refreshRate: 10s   # default — applies to all views
+```
+
+**Disabling auto-refresh**: set `refreshRate` to an empty string:
+
+```yaml
+refreshRate: ""    # auto-refresh disabled; F5 and R still work for manual refresh
+```
+
+This is a deliberate, meaningful state — the validator will not rewrite it
+to a default. Useful on bandwidth-constrained links or slow schedulers where
+polling every few seconds is unwelcome.
+
+**Runtime toggle**: press `F6` at any time to pause or resume auto-refresh
+globally without touching your config file. The status bar shows the current
+state. Manual refresh (`F5` or `R`) always works regardless of the toggle.
+
+**Changing the rate live**: edit `refreshRate` via the F10 configuration
+modal and click Save — the ticker re-arms at the new cadence immediately,
+no restart required. Saving an invalid duration format will be rejected by
+validation.
+
+**Choosing a value**: values below `1s` are allowed but generate a warning
+because they put noticeable load on `slurmctld`. Values above `10m`
+generate a warning in the other direction because they'll show stale data.
+For production clusters with many concurrent s9s users, `15s`–`30s` is a
+courteous choice.
+
 ## Advanced Configuration
 
 ### Multiple Clusters
@@ -542,7 +578,7 @@ clusters:
       timeout: 60s
       insecure: false
 
-refreshRate: 2s
+refreshRate: 10s
 maxRetries: 5
 
 ui:
@@ -565,7 +601,7 @@ clusters:
       endpoint: https://slurm-dev.example.com:6820
       token: ${SLURM_JWT}
 
-refreshRate: 2s
+refreshRate: 5s
 
 ui:
   skin: default

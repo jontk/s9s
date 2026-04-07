@@ -18,7 +18,7 @@ S9S uses a hierarchical configuration system with the following precedence (high
 The in-app Configuration modal is opened with `F10` or the `:config` command. It contains two setting groups:
 
 ### General
-- **Refresh Rate** (`refreshRate`) -- auto-refresh interval
+- **Refresh Rate** (`refreshRate`) -- global auto-refresh interval applied to every view (default: `10s`). Edits to this field are re-applied live: click Save and the running ticker immediately re-arms at the new cadence. Set to an empty string to disable auto-refresh entirely; `F5` and `R` still work for manual refresh, and `F6` toggles the pause at runtime without touching the config file.
 - **Default Cluster** (`defaultCluster`) -- which cluster to connect to on startup
 
 ### View Settings
@@ -39,7 +39,7 @@ All other configuration options (UI settings, feature flags, keyboard shortcuts,
 # ~/.s9s/config.yaml
 
 # General settings
-refreshRate: "2s"
+refreshRate: "10s"
 maxRetries: 3
 defaultCluster: "default"
 
@@ -279,8 +279,10 @@ aliases:
 ## General Settings
 
 ```yaml
-# Auto-refresh interval (default: 2s)
-refreshRate: "2s"
+# Auto-refresh interval applied to every view (default: 10s).
+# Set to "" to disable auto-refresh; F5/R still work for manual refresh,
+# and F6 toggles the pause at runtime without touching the config file.
+refreshRate: "10s"
 
 # Maximum API retries (default: 3)
 maxRetries: 3

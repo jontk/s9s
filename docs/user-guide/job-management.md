@@ -335,7 +335,7 @@ For more details, see the [Jobs View Guide](./views/jobs.md).
 | `d`/`D` | Dependencies | View job dependencies |
 | `p`/`P` | Toggle Pending | Toggle pending state filter |
 | `e`/`E` | Export | Open export dialog |
-| `m`/`M` | Auto-refresh | Toggle auto-refresh |
+| `F6` | Auto-refresh | Global pause/resume (applies to all views) |
 
 ### Batch Operations
 

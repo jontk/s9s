@@ -68,7 +68,6 @@ These shortcuts work across all views:
 | `d` | Dependencies | Show job dependencies |
 | `b` | Batch Ops | Enter batch operations mode |
 | `v` | Multi-Select | Toggle multi-select mode |
-| `m` | Auto Refresh | Toggle auto-refresh |
 | `/` | Filter | Filter jobs |
 | `f` | Advanced Filter | Open advanced filter bar |
 | `Ctrl+F` | Search | Global search across all entity types |
