@@ -105,7 +105,7 @@ func getConfigFields() []Field {
 			Description: "How often to refresh data from the cluster",
 			Type:        FieldTypeDuration,
 			Required:    true,
-			Default:     "2s",
+			Default:     "10s",
 			Group:       "general",
 			Order:       1,
 			Examples:    []string{"1s", "5s", "10s", "30s"},

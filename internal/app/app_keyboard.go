@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/jontk/s9s/internal/views"
 	"github.com/rivo/tview"
 )
 
@@ -114,6 +115,7 @@ func (s *S9s) globalKeyHandlers() map[tcell.Key]KeyHandler {
 		tcell.KeyF1:      s.handleF1Help,
 		tcell.KeyF2:      s.handleF2Alerts,
 		tcell.KeyF5:      s.handleF5Refresh,
+		tcell.KeyF6:      s.handleF6ToggleAutoRefresh,
 		tcell.KeyF10:     s.handleF10Configuration,
 		tcell.KeyTab:     s.handleTabNavigation,
 		tcell.KeyBacktab: s.handleBacktabNavigation,
@@ -154,7 +156,7 @@ func (s *S9s) handleClusterSwitch(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 }
 
 func (s *S9s) handleF1Help(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
-	s.showHelp()
+	views.ShowFullHelpModal(s.pages, s.viewMgr)
 	return nil
 }
 
@@ -175,6 +177,17 @@ func (s *S9s) handleF5Refresh(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
 				s.statusBar.SetHints(currentView.Hints())
 			}
 		}()
+	}
+	return nil
+}
+
+func (s *S9s) handleF6ToggleAutoRefresh(_ *S9s, _ *tcell.EventKey) *tcell.EventKey {
+	enabled := !s.autoRefresh.Load()
+	s.autoRefresh.Store(enabled)
+	if enabled {
+		s.statusBar.Success("Auto-refresh enabled")
+	} else {
+		s.statusBar.Info("Auto-refresh paused")
 	}
 	return nil
 }

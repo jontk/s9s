@@ -26,8 +26,6 @@ type JobsView struct {
 	table               *components.MultiSelectTable
 	jobs                []*dao.Job
 	mu                  sync.RWMutex
-	refreshTimer        *time.Timer
-	refreshRate         time.Duration
 	filter              string
 	stateFilter         []string
 	userFilter          string
@@ -38,7 +36,6 @@ type JobsView struct {
 	statusBar           *tview.TextView
 	app                 *tview.Application
 	pages               *tview.Pages
-	autoRefresh         bool
 	selectedJobs        map[string]bool
 	filterBar           *components.FilterBar
 	advancedFilter      *filters.Filter
@@ -136,9 +133,7 @@ func NewJobsView(client dao.SlurmClient) *JobsView {
 	v := &JobsView{
 		BaseView:     NewBaseView("jobs", "Jobs"),
 		client:       client,
-		refreshRate:  30 * time.Second,
 		jobs:         []*dao.Job{},
-		autoRefresh:  true,
 		selectedJobs: make(map[string]bool),
 	}
 
@@ -249,8 +244,6 @@ func (v *JobsView) Refresh() error {
 				v.updateTable()
 			})
 		}
-
-		v.scheduleRefresh()
 	}()
 
 	return nil
@@ -280,12 +273,6 @@ func (v *JobsView) fetchJobs() (*dao.JobList, error) {
 
 // Stop stops the view
 func (v *JobsView) Stop() error {
-	v.mu.Lock()
-	defer v.mu.Unlock()
-
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-	}
 	return nil
 }
 
@@ -302,7 +289,6 @@ func (v *JobsView) Hints() []string {
 		"[yellow]x[white] Actions",
 		"[yellow]b[white] Batch Ops",
 		"[yellow]v[white] Multi-Select",
-		"[yellow]m[white] Auto Refresh",
 	}
 
 	if v.isAdvancedMode {
@@ -395,8 +381,6 @@ func (v *JobsView) jobsRuneHandlers() map[rune]func(*JobsView, *tcell.EventKey) 
 		'D': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showJobDependencies(); return nil },
 		'b': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showBatchOperations(); return nil },
 		'B': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.showBatchOperations(); return nil },
-		'm': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleAutoRefresh(); return nil },
-		'M': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.toggleAutoRefresh(); return nil },
 		'q': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.requeueSelectedJob(); return nil },
 		'Q': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.requeueSelectedJob(); return nil },
 		'/': func(v *JobsView, _ *tcell.EventKey) *tcell.EventKey { v.app.SetFocus(v.filterInput); return nil },
@@ -438,12 +422,6 @@ func (v *JobsView) OnFocus() error {
 // OnLoseFocus handles loss of focus
 func (v *JobsView) OnLoseFocus() error {
 	v.SetFocused(false)
-	v.mu.Lock()
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-		v.refreshTimer = nil
-	}
-	v.mu.Unlock()
 	return nil
 }
 
@@ -557,63 +535,6 @@ func (v *JobsView) updateTable() {
 	}
 
 	v.table.SetData(data)
-}
-
-/*
-TODO(lint): Review unused code - func (*JobsView).updateStatusBar is unused
-
-updateStatusBar updates the status bar
-func (v *JobsView) updateStatusBar(message string) {
-	if message != "" {
-		v.statusBar.SetText(message)
-		return
-	}
-
-	v.mu.RLock()
-	total := len(v.jobs)
-	v.mu.RUnlock()
-
-	filtered := len(v.table.GetFilteredData())
-
-	status := fmt.Sprintf("Total: %d", total)
-	if filtered < total {
-		status += fmt.Sprintf(" | Filtered: %d", filtered)
-	}
-
-	if len(v.selectedJobs) > 0 {
-		status += fmt.Sprintf(" | Selected: %d", len(v.selectedJobs))
-	}
-
-	if v.autoRefresh {
-		status += " | [green]Auto-refresh: ON[white]"
-	} else {
-		status += " | [yellow]Auto-refresh: OFF[white]"
-	}
-
-	if v.IsRefreshing() {
-		status += " | [yellow]Refreshing...[white]"
-	}
-
-	v.statusBar.SetText(status)
-}
-*/
-
-// scheduleRefresh schedules the next refresh
-func (v *JobsView) scheduleRefresh() {
-	if !v.IsFocused() || !v.autoRefresh {
-		return
-	}
-
-	v.mu.Lock()
-	defer v.mu.Unlock()
-
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-	}
-
-	v.refreshTimer = time.AfterFunc(v.refreshRate, func() {
-		_ = v.Refresh()
-	})
 }
 
 // onJobSelect handles job selection
@@ -1453,26 +1374,6 @@ func FormatDurationDetailed(d time.Duration) string {
 		return fmt.Sprintf("%d-%02d:%02d:%02d", days, hours, minutes, seconds)
 	}
 	return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
-}
-
-// toggleAutoRefresh toggles automatic refresh mode
-func (v *JobsView) toggleAutoRefresh() {
-	debug.Logger.Printf("toggleAutoRefresh() called, current state: %v", v.autoRefresh)
-	v.autoRefresh = !v.autoRefresh
-
-	if v.autoRefresh {
-		if v.mainStatusBar != nil {
-			v.mainStatusBar.Success("Auto-refresh enabled")
-		}
-		v.scheduleRefresh()
-	} else {
-		if v.mainStatusBar != nil {
-			v.mainStatusBar.Info("Auto-refresh disabled")
-		}
-		if v.refreshTimer != nil {
-			v.refreshTimer.Stop()
-		}
-	}
 }
 
 // showBatchOperations shows batch operations menu

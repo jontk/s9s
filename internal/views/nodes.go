@@ -29,8 +29,6 @@ type NodesView struct {
 	table          *components.Table
 	nodes          []*dao.Node
 	mu             sync.RWMutex
-	refreshTimer   *time.Timer
-	refreshRate    time.Duration
 	filter         string
 	stateFilter    []string
 	partFilter     string
@@ -95,7 +93,6 @@ func NewNodesView(client dao.SlurmClient) *NodesView {
 	v := &NodesView{
 		BaseView:      NewBaseView("nodes", "Nodes"),
 		client:        client,
-		refreshRate:   30 * time.Second,
 		nodes:         []*dao.Node{},
 		groupBy:       "none",
 		groupExpanded: make(map[string]bool),
@@ -195,20 +192,13 @@ func (v *NodesView) Refresh() error {
 			})
 		}
 
-		v.scheduleRefresh()
 	}()
 
 	return nil
 }
 
-// TODO: implement per-view toggleable auto-refresh (like jobs view)
-func (v *NodesView) scheduleRefresh() {}
-
 // Stop stops the view
 func (v *NodesView) Stop() error {
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-	}
 	return nil
 }
 
@@ -345,12 +335,6 @@ func (v *NodesView) OnFocus() error {
 // OnLoseFocus handles loss of focus
 func (v *NodesView) OnLoseFocus() error {
 	v.SetFocused(false)
-	v.mu.Lock()
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-		v.refreshTimer = nil
-	}
-	v.mu.Unlock()
 	return nil
 }
 

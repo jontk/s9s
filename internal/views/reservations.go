@@ -23,8 +23,6 @@ type ReservationsView struct {
 	table               *components.Table
 	reservations        []*dao.Reservation
 	mu                  sync.RWMutex
-	refreshTimer        *time.Timer
-	refreshRate         time.Duration
 	filter              string
 	container           *tview.Flex
 	filterInput         *tview.InputField
@@ -67,7 +65,6 @@ func NewReservationsView(client dao.SlurmClient) *ReservationsView {
 	v := &ReservationsView{
 		BaseView:     NewBaseView("reservations", "Reservations"),
 		client:       client,
-		refreshRate:  30 * time.Second,
 		reservations: []*dao.Reservation{},
 	}
 
@@ -158,20 +155,13 @@ func (v *ReservationsView) Refresh() error {
 			})
 		}
 
-		v.scheduleRefresh()
 	}()
 
 	return nil
 }
 
-// TODO: implement per-view toggleable auto-refresh (like jobs view)
-func (v *ReservationsView) scheduleRefresh() {}
-
 // Stop stops the view
 func (v *ReservationsView) Stop() error {
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-	}
 	return nil
 }
 
@@ -283,12 +273,6 @@ func (v *ReservationsView) OnFocus() error {
 // OnLoseFocus handles loss of focus
 func (v *ReservationsView) OnLoseFocus() error {
 	v.SetFocused(false)
-	v.mu.Lock()
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-		v.refreshTimer = nil
-	}
-	v.mu.Unlock()
 	return nil
 }
 

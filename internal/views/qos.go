@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
@@ -23,8 +22,6 @@ type QoSView struct {
 	table          *components.Table
 	qosList        []*dao.QoS
 	mu             sync.RWMutex
-	refreshTimer   *time.Timer
-	refreshRate    time.Duration
 	filter         string
 	container      *tview.Flex
 	filterInput    *tview.InputField
@@ -63,10 +60,9 @@ func (v *QoSView) SetApp(app *tview.Application) {
 // NewQoSView creates a new QoS view
 func NewQoSView(client dao.SlurmClient) *QoSView {
 	v := &QoSView{
-		BaseView:    NewBaseView("qos", "QoS"),
-		client:      client,
-		refreshRate: 30 * time.Second,
-		qosList:     []*dao.QoS{},
+		BaseView: NewBaseView("qos", "QoS"),
+		client:   client,
+		qosList:  []*dao.QoS{},
 	}
 
 	// Create table with QoS columns
@@ -156,20 +152,13 @@ func (v *QoSView) Refresh() error {
 			})
 		}
 
-		v.scheduleRefresh()
 	}()
 
 	return nil
 }
 
-// TODO: implement per-view toggleable auto-refresh (like jobs view)
-func (v *QoSView) scheduleRefresh() {}
-
 // Stop stops the view
 func (v *QoSView) Stop() error {
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-	}
 	return nil
 }
 
@@ -263,12 +252,6 @@ func (v *QoSView) OnFocus() error {
 // OnLoseFocus handles loss of focus
 func (v *QoSView) OnLoseFocus() error {
 	v.SetFocused(false)
-	v.mu.Lock()
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-		v.refreshTimer = nil
-	}
-	v.mu.Unlock()
 	return nil
 }
 

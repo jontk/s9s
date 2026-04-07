@@ -130,11 +130,11 @@ func (v *Validator) validateBasicStructure() {
 
 	// Note: Version field not part of current Config struct - skipping validation
 
-	// Refresh rate validation
-	if v.config.RefreshRate == "" {
-		v.fix("refresh_rate", "Missing refresh rate", "", "30s")
-	} else if !v.isValidDuration(v.config.RefreshRate) {
-		v.fix("refresh_rate", "Invalid refresh rate format", v.config.RefreshRate, "30s")
+	// Refresh rate validation. Note: we only heal an *invalid* value here.
+	// An empty value is a deliberate, meaningful state meaning "auto-refresh
+	// disabled" and must not be rewritten to a default.
+	if v.config.RefreshRate != "" && !v.isValidDuration(v.config.RefreshRate) {
+		v.fix("refresh_rate", "Invalid refresh rate format", v.config.RefreshRate, "10s")
 	}
 
 	// Default cluster validation
@@ -261,7 +261,7 @@ func (v *Validator) validatePerformanceSettings() {
 	// Refresh rate validation
 	if v.config.RefreshRate != "" {
 		if duration, err := time.ParseDuration(v.config.RefreshRate); err != nil {
-			v.fix("refresh_rate", "Invalid refresh rate duration", v.config.RefreshRate, "30s")
+			v.fix("refresh_rate", "Invalid refresh rate duration", v.config.RefreshRate, "10s")
 		} else if duration < time.Second {
 			v.addWarning("refresh_rate",
 				"Very fast refresh rate may impact performance",

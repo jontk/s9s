@@ -3,8 +3,6 @@ package views
 import (
 	"context"
 	"fmt"
-	"sync"
-	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
@@ -31,19 +29,13 @@ type PerformanceView struct {
 	controlBar  *tview.TextView
 
 	// State
-	mu              sync.RWMutex
-	autoRefresh     bool
-	refreshInterval time.Duration
-	refreshTimer    *time.Timer
-	metrics         *dao.ClusterMetrics
+	metrics *dao.ClusterMetrics
 }
 
 // NewPerformanceView creates a new cluster performance monitoring view
 func NewPerformanceView(client dao.SlurmClient) *PerformanceView {
 	pv := &PerformanceView{
-		client:          client,
-		autoRefresh:     true,
-		refreshInterval: 5 * time.Second,
+		client: client,
 	}
 
 	pv.BaseView = BaseView{
@@ -108,61 +100,20 @@ func (pv *PerformanceView) createMetricBox(title string) *tview.TextView {
 
 // handleInput processes keyboard input
 func (pv *PerformanceView) handleInput(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Rune() {
-	case 'r', 'R':
-		pv.toggleAutoRefresh()
-		return nil
-	}
-
-	switch event.Key() {
-	case tcell.KeyF5:
+	if event.Key() == tcell.KeyF5 {
 		_ = pv.Refresh()
 		return nil
 	}
-
 	return event
-}
-
-// toggleAutoRefresh toggles automatic refresh
-func (pv *PerformanceView) toggleAutoRefresh() {
-	pv.mu.Lock()
-	pv.autoRefresh = !pv.autoRefresh
-	enabled := pv.autoRefresh
-	if !enabled && pv.refreshTimer != nil {
-		pv.refreshTimer.Stop()
-		pv.refreshTimer = nil
-	}
-	pv.mu.Unlock()
-
-	pv.updateControlBar()
-
-	if enabled {
-		pv.scheduleRefresh()
-	}
 }
 
 // updateControlBar updates the control bar with current status
 func (pv *PerformanceView) updateControlBar() {
 	status := ""
-
-	// Auto-refresh status
-	if pv.autoRefresh {
-		status += "[green]●[white] Auto-refresh: ON  "
-	} else {
-		status += "[gray]●[white] Auto-refresh: OFF  "
-	}
-
-	// Refresh interval
-	status += fmt.Sprintf("Interval: %v  ", pv.refreshInterval)
-
-	// Last update
 	if pv.metrics != nil {
 		status += fmt.Sprintf("Last update: %s  ", pv.metrics.LastUpdated.Format("15:04:05"))
 	}
-
-	// Controls hint
-	status += "\n[gray]R:Toggle Auto-refresh F5:Refresh[white]"
-
+	status += "\n[gray]F5:Refresh F6:Pause auto-refresh[white]"
 	pv.controlBar.SetText(status)
 }
 
@@ -187,34 +138,9 @@ func (pv *PerformanceView) Refresh() error {
 				pv.updateControlBar()
 			})
 		}
-
-		pv.mu.Lock()
-		shouldSchedule := pv.autoRefresh
-		pv.mu.Unlock()
-		if shouldSchedule {
-			pv.scheduleRefresh()
-		}
 	}()
 
 	return nil
-}
-
-// scheduleRefresh schedules the next auto-refresh
-func (pv *PerformanceView) scheduleRefresh() {
-	if !pv.IsFocused() {
-		return
-	}
-
-	pv.mu.Lock()
-	defer pv.mu.Unlock()
-
-	if pv.refreshTimer != nil {
-		pv.refreshTimer.Stop()
-	}
-
-	pv.refreshTimer = time.AfterFunc(pv.refreshInterval, func() {
-		_ = pv.Refresh()
-	})
 }
 
 // updateDisplay updates all metric displays
@@ -306,12 +232,6 @@ func (pv *PerformanceView) OnFocus() error {
 // OnLoseFocus is called when the view loses focus
 func (pv *PerformanceView) OnLoseFocus() error {
 	pv.SetFocused(false)
-	pv.mu.Lock()
-	if pv.refreshTimer != nil {
-		pv.refreshTimer.Stop()
-		pv.refreshTimer = nil
-	}
-	pv.mu.Unlock()
 	return nil
 }
 
@@ -328,18 +248,12 @@ func (pv *PerformanceView) OnKey(event *tcell.EventKey) *tcell.EventKey {
 // Hints returns keyboard shortcuts
 func (pv *PerformanceView) Hints() []string {
 	return []string{
-		"R: Toggle auto-refresh",
 		"F5: Manual refresh",
 	}
 }
 
 // Stop stops the performance monitoring
 func (pv *PerformanceView) Stop() error {
-	pv.mu.Lock()
-	if pv.refreshTimer != nil {
-		pv.refreshTimer.Stop()
-	}
-	pv.mu.Unlock()
 	return nil
 }
 

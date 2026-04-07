@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -69,8 +70,16 @@ type S9s struct {
 	cmdShowAllCompletions bool
 
 	// State
+	// refreshTicker / refreshStop are only mutated from the UI goroutine
+	// (Run, Stop, ApplyConfig, startRefreshTimer, stopRefreshTimer).
 	refreshTicker *time.Ticker
-	isRunning     bool
+	refreshStop   chan struct{} // signals the current refresh goroutine to exit
+
+	// isRunning and autoRefresh are read from the refresh goroutine and
+	// written from the UI goroutine (Stop, handleF6ToggleAutoRefresh),
+	// so they must be accessed atomically.
+	isRunning   atomic.Bool
+	autoRefresh atomic.Bool // global auto-refresh toggle (F6)
 }
 
 // New creates a new S9s application instance
@@ -111,6 +120,7 @@ func NewWithScreen(ctx context.Context, cfg *config.Config, screen tcell.Screen)
 		contentPages:  tview.NewPages(),
 		pluginManager: plugins.NewManager(appCtx, client),
 	}
+	s9s.autoRefresh.Store(true)
 
 	// Load user preferences
 	if err := s9s.loadUserPreferences(); err != nil {
@@ -215,7 +225,7 @@ func (s *S9s) loadAndRegisterPlugins() {
 
 // Run starts the application
 func (s *S9s) Run() error {
-	s.isRunning = true
+	s.isRunning.Store(true)
 
 	// Start background services (removed updateLoop to prevent duplicate refreshes)
 
@@ -260,12 +270,10 @@ func (s *S9s) HideModal(name string) {
 
 // Stop gracefully stops the application
 func (s *S9s) Stop() error {
-	s.isRunning = false
+	s.isRunning.Store(false)
 
 	// Stop refresh timer
-	if s.refreshTicker != nil {
-		s.refreshTicker.Stop()
-	}
+	s.stopRefreshTimer()
 
 	// Stop header
 	s.header.Stop()
@@ -287,24 +295,64 @@ func (s *S9s) Stop() error {
 	return nil
 }
 
-// startRefreshTimer starts the automatic refresh timer
+// startRefreshTimer starts the automatic refresh timer. Any previously
+// running ticker is stopped first so this is safe to call repeatedly
+// (e.g. after the user changes refreshRate in the config modal).
 func (s *S9s) startRefreshTimer(duration time.Duration) {
+	s.stopRefreshTimer()
+
 	s.refreshTicker = time.NewTicker(duration)
+	stop := make(chan struct{})
+	s.refreshStop = stop
+	ticker := s.refreshTicker
 
 	go func() {
 		for {
 			select {
-			case <-s.refreshTicker.C:
-				if s.isRunning {
+			case <-ticker.C:
+				if s.isRunning.Load() && s.autoRefresh.Load() {
 					if currentView, err := s.viewMgr.GetCurrentView(); err == nil {
 						_ = currentView.Refresh()
 					}
 				}
+			case <-stop:
+				return
 			case <-s.ctx.Done():
 				return
 			}
 		}
 	}()
+}
+
+// stopRefreshTimer stops the current refresh ticker and signals its
+// goroutine to exit. Safe to call when no ticker is running.
+func (s *S9s) stopRefreshTimer() {
+	if s.refreshTicker != nil {
+		s.refreshTicker.Stop()
+		s.refreshTicker = nil
+	}
+	if s.refreshStop != nil {
+		close(s.refreshStop)
+		s.refreshStop = nil
+	}
+}
+
+// ApplyConfig swaps in an updated configuration and re-applies any
+// settings that affect running components (currently: refresh cadence).
+// Called by the config modal when the user applies or saves changes.
+func (s *S9s) ApplyConfig(newCfg *config.Config) {
+	if newCfg == nil {
+		return
+	}
+	s.config = newCfg
+
+	// Re-arm the global refresh ticker with the new cadence.
+	s.stopRefreshTimer()
+	if newCfg.RefreshRate != "" {
+		if duration, err := time.ParseDuration(newCfg.RefreshRate); err == nil && duration > 0 {
+			s.startRefreshTimer(duration)
+		}
+	}
 }
 
 // GetCurrentViewName returns the name of the current view

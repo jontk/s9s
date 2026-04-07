@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
@@ -24,8 +23,6 @@ type AccountsView struct {
 	table          *components.Table
 	accounts       []*dao.Account
 	mu             sync.RWMutex
-	refreshTimer   *time.Timer
-	refreshRate    time.Duration
 	filter         string
 	container      *tview.Flex
 	filterInput    *tview.InputField
@@ -64,10 +61,9 @@ func (v *AccountsView) SetApp(app *tview.Application) {
 // NewAccountsView creates a new accounts view
 func NewAccountsView(client dao.SlurmClient) *AccountsView {
 	v := &AccountsView{
-		BaseView:    NewBaseView("accounts", "Accounts"),
-		client:      client,
-		refreshRate: 30 * time.Second,
-		accounts:    []*dao.Account{},
+		BaseView: NewBaseView("accounts", "Accounts"),
+		client:   client,
+		accounts: []*dao.Account{},
 	}
 
 	// Create table with account columns
@@ -157,20 +153,13 @@ func (v *AccountsView) Refresh() error {
 			})
 		}
 
-		v.scheduleRefresh()
 	}()
 
 	return nil
 }
 
-// TODO: implement per-view toggleable auto-refresh (like jobs view)
-func (v *AccountsView) scheduleRefresh() {}
-
 // Stop stops the view
 func (v *AccountsView) Stop() error {
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-	}
 	return nil
 }
 
@@ -267,12 +256,6 @@ func (v *AccountsView) OnFocus() error {
 // OnLoseFocus handles loss of focus
 func (v *AccountsView) OnLoseFocus() error {
 	v.SetFocused(false)
-	v.mu.Lock()
-	if v.refreshTimer != nil {
-		v.refreshTimer.Stop()
-		v.refreshTimer = nil
-	}
-	v.mu.Unlock()
 	return nil
 }
 
