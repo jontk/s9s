@@ -3,7 +3,6 @@ package views
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/jontk/s9s/internal/dao"
@@ -30,7 +29,6 @@ type PerformanceView struct {
 	controlBar  *tview.TextView
 
 	// State
-	mu      sync.RWMutex
 	metrics *dao.ClusterMetrics
 }
 

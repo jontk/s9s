@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -28,7 +27,6 @@ type HealthView struct {
 	statusBar     *tview.TextView
 	app           *tview.Application
 	pages         *tview.Pages
-	mu            sync.RWMutex
 }
 
 // NewHealthView creates a new health monitoring view
