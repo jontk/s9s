@@ -246,11 +246,17 @@ Press `S` to open the interactive sort modal. Select a column and sort direction
 
 ## Auto-Refresh
 
-Jobs view auto-refreshes every **30 seconds** by default.
+The Jobs view refreshes on the global auto-refresh ticker, controlled by
+`refreshRate` in config (default **10 seconds**). All views share this
+single cadence — editing `refreshRate` in the F10 modal re-arms the ticker
+live.
 
-**Toggle auto-refresh**: `m/M`
+**Toggle globally**: `F6` pauses or resumes auto-refresh across all views.
 
-When disabled, use `R` for manual refresh.
+**Manual refresh**: `R` or `F5` — always works, even when auto-refresh is
+paused.
+
+**Disable entirely**: set `refreshRate: ""` in config.
 
 ## Keyboard Shortcuts Reference
 
@@ -290,7 +296,8 @@ When disabled, use `R` for manual refresh.
 | Key | Action |
 |-----|--------|
 | `R` | Manual refresh |
-| `m/M` | Toggle auto-refresh |
+| `F5` | Manual refresh (global) |
+| `F6` | Pause/resume global auto-refresh |
 | `e/E` | Export view data |
 | `F1` | Help (global) |
 | `S` | Sort modal |
@@ -335,5 +342,5 @@ See [Job Management](../job-management.md) for detailed submission guide.
 - Use `p:name` syntax in simple filter for quick partition filtering
 - Check job output with `o/O` to debug issues
 - Use `d/D` to understand job dependencies before canceling
-- Enable auto-refresh (`m/M`) for monitoring active jobs
+- Lower `refreshRate` in F10 or press `F6` to toggle auto-refresh while monitoring active jobs
 - Press `?` when unsure what actions are available for a job

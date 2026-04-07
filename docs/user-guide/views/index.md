@@ -72,8 +72,8 @@ The following capabilities are available in all table-based data views (Jobs, No
 ### Refresh
 - **`R`** - Manual refresh
 - **`F5`** - Manual refresh (global)
-- **`m/M`** - Toggle auto-refresh (Jobs view)
-- Auto-refresh varies by view: Jobs (30s), Health (10s), Performance (5s). Other views (including Dashboard) use manual refresh with `R`.
+- **`F6`** - Pause/resume global auto-refresh (applies to every view)
+- All views share a single auto-refresh cadence controlled by `refreshRate` in config (default `10s`). Set to `""` to disable, or edit in the F10 modal to change it live.
 
 ### Help
 - **`?`** - Show help and keyboard shortcuts

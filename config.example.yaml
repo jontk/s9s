@@ -1,8 +1,12 @@
 # S9S Configuration Example
 # Copy this file to ~/.s9s/config.yaml and modify as needed
 
-# Refresh rate for automatic updates
-refreshRate: 2s
+# Refresh rate for automatic updates.
+# Applies to the currently focused view only; all views share this
+# single cadence (default: 10s). Set to an empty string ("") to
+# disable auto-refresh entirely — F5 and R still work for manual
+# refresh. F6 pauses/resumes at runtime without touching config.
+refreshRate: 10s
 
 # Maximum retries for API calls
 maxRetries: 3

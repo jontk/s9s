@@ -4,7 +4,7 @@ The Performance view provides real-time cluster-wide metrics and utilization sta
 
 ![Performance Demo](/assets/demos/performance.gif)
 
-*Performance view showing cluster-wide job, node, and resource metrics with auto-refresh*
+*Performance view showing cluster-wide job, node, and resource metrics*
 
 ## Overview
 
@@ -69,16 +69,19 @@ Shows aggregate cluster utilization:
 
 | Key | Action |
 |-----|--------|
-| `R` | Toggle auto-refresh on/off |
 | `F5` | Manual refresh |
+| `F6` | Pause/resume global auto-refresh |
 
 ## Auto-Refresh
 
-The Performance view automatically refreshes every **5 seconds** by default when auto-refresh is enabled.
+The Performance view refreshes on the global auto-refresh ticker,
+controlled by `refreshRate` in config (default **10 seconds**). All views
+share this single cadence.
 
-- **Enable/Disable**: Press `R` to toggle
-- **Manual Refresh**: Press `F5` to update immediately
-- **Status Indicator**: Control bar shows auto-refresh state
+- **Manual refresh**: Press `F5` to update immediately
+- **Pause/resume globally**: Press `F6` — applies to every view, not just Performance
+- **Change cadence**: Edit `refreshRate` in the F10 configuration modal; changes apply live
+- **Disable entirely**: Set `refreshRate: ""` in config
 
 ## Interpretation Guide
 

@@ -304,7 +304,15 @@ Auto-refresh occurs every 10 seconds.
 
 ## Auto-Refresh
 
-Health view auto-refreshes every **10 seconds** to provide real-time monitoring.
+The Health view refreshes on the global auto-refresh ticker, controlled by
+`refreshRate` in config (default **10 seconds**). All views share this
+single cadence. Press `F6` to pause or resume auto-refresh globally, or
+`R`/`F5` for manual refresh.
+
+Note: the underlying `HealthMonitor` runs its own independent 30-second
+health-check cycle regardless of `refreshRate` — the UI refresh controls
+how often the view re-renders the current health state, not how often
+health is re-evaluated.
 
 ## Alert Example
 

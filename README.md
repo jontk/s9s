@@ -157,7 +157,7 @@ clusters:
       token: "${SLURM_DEV_TOKEN}"
       apiVersion: v0.0.43
 
-refreshRate: 2s
+refreshRate: 10s
 ```
 
 ## 🎮 Key Bindings
@@ -177,6 +177,7 @@ refreshRate: 2s
 | `Ctrl+K` | Switch cluster |
 | `F2` | System alerts |
 | `F5` | Force refresh |
+| `F6` | Pause/resume global auto-refresh |
 | `F10` | Configuration settings |
 | `R` | Refresh current view |
 | `S` | Sort by column |
@@ -197,7 +198,6 @@ refreshRate: 2s
 | `d` | Show dependencies |
 | `b` | Batch operations |
 | `v` | Multi-select mode |
-| `m` | Toggle auto-refresh |
 
 ### Job Output Viewer (press `o`)
 

@@ -169,7 +169,7 @@ In the Nodes view:
 
 ### Auto-Refresh
 
-When auto-refresh is enabled (toggle with `m`/`M` in Jobs view), filters remain active as data refreshes. The filtered view updates automatically with each refresh cycle.
+Filters remain active as data refreshes on the global auto-refresh ticker. The filtered view updates automatically with each refresh cycle. Press `F6` to pause the global ticker if you want to freeze the view while reading; filters are preserved across pause/resume.
 
 ### Context-Aware Fields
 
