@@ -7,22 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-08
+
 ### Added
 
 - **Job output streaming** — press `o` to view job output, `t` for real-time tail-f streaming, `s` to switch stdout/stderr, `e` to export (#157)
 - **Array job output patterns** — `%A` (array master ID) and `%a` (array task ID) now expanded in output file paths (#158)
 - **Enriched job detail modal** — shows TRES requested/allocated, GRES detail with GPU index, batch host, cluster, memory, CPUs, tasks, submit command line, and 22 additional SLURM API fields. State icons and organized sections (#159)
 - **GRES submission fix** — `gres: gpu:1` correctly mapped to `tres_per_node: gres/gpu:1` for SLURM REST API (#159)
+- **Global auto-refresh toggle (F6)** — pause or resume the global auto-refresh ticker from any view. Manual refresh (`R`, `F5`) still works while paused (#189)
+- **Live reconfiguration of `refreshRate`** — edit `refreshRate` in the F10 configuration modal, click Save, and the running ticker re-arms at the new cadence immediately. No restart required (#189)
+- **`j`/`k` scrolling in the F1 help modal** — advertised in the footer but was never wired; now works (#189)
 - **Dependabot** for dependency scanning, replacing Trivy (#163)
 - **gofmt gate in CI** — formatting enforced in lint job (#180)
 
 ### Changed
 
-- **Go minimum version** — bumped to Go 1.25 (Go 1.24 no longer receives security patches)
+- **`refreshRate` applies consistently across every view** — previously, views like Jobs, Health, and Performance ignored the user-configured `refreshRate` and used their own hardcoded cadences (30s, 10s, 5s respectively). All views now share a single global auto-refresh ticker driven by `refreshRate` (#189)
+- **Default `refreshRate` changed from `2s` to `10s`** — the old 2s default was too aggressive for shared clusters now that a single global ticker drives all views. Users with an explicit value in their config are unaffected (#189)
+- **Empty `refreshRate` is now a preserved state** — set `refreshRate: ""` to disable auto-refresh entirely. The validator no longer rewrites empty values to a default (#189)
+- **Go minimum version** — bumped to Go 1.25 (Go 1.24 no longer receives security patches) (#183)
 - **CI test matrix** — tests Go 1.25 and 1.26 (was 1.23 and 1.24)
+
+### Removed
+
+- **Per-view `m/M` auto-refresh toggle on Jobs view** — replaced by the global F6 toggle (#189)
+- **Per-view `R` auto-refresh toggle on Performance view** — replaced by the global F6 toggle (#189)
+- **Dead per-view refresh timers** — removed hardcoded `time.AfterFunc` tickers and dead `refreshTimer` fields from jobs, nodes, partitions, users, accounts, qos, reservations, dashboard, health, and performance views (#189)
 
 ### Fixed
 
+- **`refreshRate` never took effect** — the F10 modal saved to disk but the running ticker continued at its startup cadence (literal `TODO: Apply configuration changes to running components` in the code). Now wired through a new `ApplyConfig` method (#189)
+- **Data race on auto-refresh state** — `isRunning` and `autoRefresh` were written from the UI goroutine and read from the refresh goroutine without synchronization; now both use `atomic.Bool` (#189)
 - **Dashboard Analytics and Health Check modals** not responding to ESC/R (#160)
 - **Node operations when grouped** — Enter/drain/resume/SSH now work on indented nodes; Enter on group header toggles expansion (#161)
 - **Sort breaks grouping** — sort and group are now mutually exclusive (#161)
@@ -574,7 +590,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Versions prior to 0.1.0 were in active development and did not follow semantic versioning.
 
-[Unreleased]: https://github.com/jontk/s9s/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/jontk/s9s/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/jontk/s9s/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/jontk/s9s/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/jontk/s9s/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/jontk/s9s/compare/v0.6.3...v0.7.0
