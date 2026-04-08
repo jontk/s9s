@@ -6,16 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Recent Changes
 
-### Post-0.8.0 (Unreleased)
+### Version 0.9.0 (2026-04-08)
 
-Job output viewer, enriched job details, and grouped node fixes:
+Refresh-rate consistency, job output viewer, enriched job details, and grouped node fixes:
 
+- **Unified Auto-Refresh**: All views now share a single refresh cadence driven by `refreshRate` in config. Previously, Jobs (30s), Health (10s), and Performance (5s) used hardcoded intervals that ignored the config. The per-view `m/M` toggle on Jobs and `R` toggle on Performance are removed in favor of a new global **F6** pause/resume
+- **Live Reconfiguration**: Editing `refreshRate` in the F10 modal re-arms the running ticker immediately — no restart required. Empty string (`refreshRate: ""`) is now a deliberate "auto-refresh disabled" state
+- **Default Refresh Rate**: Bumped from `2s` to `10s` — saner for shared clusters now that a single ticker drives all views
+- **Data Race Fix**: Auto-refresh state is now accessed via `atomic.Bool`, fixing a real cross-goroutine race
 - **Job Output Streaming**: Press `o` to view job output, `t` for real-time tail-f streaming, `s` to switch stdout/stderr, `e` to export
 - **Array Job Output Patterns**: `%A` and `%a` expanded in output file paths
 - **Enriched Job Detail Modal**: TRES requested/allocated, GRES with GPU index, batch host, cluster, memory, submit command line, and 22 additional SLURM fields
 - **GRES Submission Fix**: `gres: gpu:1` correctly mapped to `tres_per_node: gres/gpu:1`
-- **Go 1.25 Minimum**: Go 1.24 no longer receives security patches; CI tests Go 1.25 and 1.26
-- **Bug Fixes**: Dashboard modal ESC/R, node operations when grouped, sort/group mutual exclusivity, health checks stable ordering
+- **Go 1.25 Minimum**: Go 1.24 no longer receives security patches; source builds require Go 1.25+. Prebuilt binaries unaffected
+- **Bug Fixes**: Dashboard modal ESC/R, node operations when grouped, sort/group mutual exclusivity, health checks stable ordering, F1 help modal `j`/`k` scrolling
 - **Dependabot**: Replaces Trivy for dependency scanning
 - **gofmt CI Gate**: Formatting enforced in lint job
 
@@ -146,7 +150,8 @@ For a complete list of all changes, features, and fixes across all versions, ref
 
 ## Version History
 
-- [v0.8.0](../../CHANGELOG.md#080---2026-03-30) - Latest release
+- [v0.9.0](../../CHANGELOG.md#090---2026-04-08) - Latest release
+- [v0.8.0](../../CHANGELOG.md#080---2026-03-30) - Layouts, self-update, config overhaul
 - [v0.7.1](../../CHANGELOG.md#071---2026-03-21) - SLURM username config
 - [v0.7.0](../../CHANGELOG.md#070---2026-03-16) - Job templates
 - [v0.6.3](../../CHANGELOG.md#063---2026-03-14) - Performance and responsiveness
