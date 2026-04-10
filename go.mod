@@ -8,7 +8,7 @@ require (
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jontk/slurm-client v0.4.0
-	github.com/mattn/go-runewidth v0.0.16
+	github.com/mattn/go-runewidth v0.0.23
 	github.com/rivo/tview v0.42.0
 	github.com/rs/zerolog v1.35.0
 	github.com/spf13/cobra v1.10.2
@@ -28,6 +28,7 @@ require (
 	github.com/42wim/httpsig v1.2.2 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
+	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
