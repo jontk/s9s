@@ -226,7 +226,7 @@ jobs:
         go test -timeout 30m -coverprofile=integration-coverage.out -covermode=atomic ./test/integration/...
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v6
       with:
         file: ./integration-coverage.out
         flags: integration
