@@ -84,7 +84,7 @@ jobs:
 
     - name: Set up Docker for SSH tests
       if: matrix.test-suite == 'ssh'
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@v4
 
     - name: Run SSH Integration Tests
       if: matrix.test-suite == 'ssh'
@@ -125,7 +125,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@v4
 
     - name: Run Docker tests
       run: make docker-test
