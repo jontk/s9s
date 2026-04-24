@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/creativeprojects/go-selfupdate v1.4.1
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/gdamore/tcell/v2 v2.8.1
+	github.com/gdamore/tcell/v2 v2.13.9
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jontk/slurm-client v0.4.0
 	github.com/mattn/go-runewidth v0.0.16
@@ -47,7 +47,7 @@ require (
 	github.com/hashicorp/go-version v1.8.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
+	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
