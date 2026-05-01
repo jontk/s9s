@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/creativeprojects/go-selfupdate v1.4.1
-	github.com/fsnotify/fsnotify v1.9.0
+	github.com/fsnotify/fsnotify v1.10.0
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jontk/slurm-client v0.4.0
