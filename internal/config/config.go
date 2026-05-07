@@ -397,7 +397,7 @@ func applyEnvironmentOverrides(cfg *Config) {
 	}
 
 	// If endpoint is set in environment, it overrides everything
-	if endpoint != "" {
+	if endpoint != "" && token != "" {
 		// Create or update default context with environment values
 		defaultEntry := ClusterContext{
 			Name: "default",
