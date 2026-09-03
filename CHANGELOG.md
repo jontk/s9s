@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Environment overrides no longer wipe config file values** — `applyEnvironmentOverrides` used to replace the entire selected cluster entry whenever `SLURM_REST_URL` was set, dropping `token`, `user`, `timeout`, and `insecure` from the config file. Each env var (`S9S_SLURM_REST_URL`/`SLURM_REST_URL`, `S9S_SLURM_JWT`/`SLURM_JWT`, `SLURM_API_VERSION`, `SLURM_TIMEOUT`) now independently overrides its matching field only when non-empty, applied to the currently-selected cluster.
+
 ## [0.9.0] - 2026-04-08
 
 ### Added

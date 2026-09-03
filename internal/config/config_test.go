@@ -55,6 +55,125 @@ func TestEnvironmentOverrides(t *testing.T) {
 	assert.Equal(t, "default", cfg.DefaultCluster)
 }
 
+func TestEnvironmentOverridesPreservesConfigFileValues(t *testing.T) {
+	// SLURM_REST_URL set, SLURM_JWT empty — config file token/user must survive
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("SLURM_REST_URL", "http://env-override:6820")
+	t.Setenv("SLURM_JWT", "")
+	t.Setenv("S9S_SLURM_JWT", "")
+	t.Setenv("SLURM_API_VERSION", "")
+	t.Setenv("SLURM_TIMEOUT", "")
+
+	// Write config to $HOME/.s9s/config.yaml (where Load() looks)
+	configDir := filepath.Join(tmpDir, ".s9s")
+	require.NoError(t, os.MkdirAll(configDir, 0o755))
+	configPath := filepath.Join(configDir, "config.yaml")
+	yamlContent := `
+clusters:
+  - name: default
+    cluster:
+      endpoint: http://config-file:6820
+      token: config-token-abc
+      user: config-user
+      timeout: 60s
+      insecure: true
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(yamlContent), 0o644))
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Endpoint overridden by env
+	assert.Equal(t, "http://env-override:6820", cfg.Cluster.Endpoint)
+	// Token, user, timeout, insecure preserved from config file
+	assert.Equal(t, "config-token-abc", cfg.Cluster.Token)
+	assert.Equal(t, "config-user", cfg.Cluster.User)
+	assert.Equal(t, "60s", cfg.Cluster.Timeout)
+	assert.True(t, cfg.Cluster.Insecure)
+}
+
+func TestEnvironmentOverridesTokenOnly(t *testing.T) {
+	// Only SLURM_JWT set — endpoint and other config values must survive
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("SLURM_REST_URL", "")
+	t.Setenv("S9S_SLURM_REST_URL", "")
+	t.Setenv("SLURM_JWT", "env-jwt-xyz")
+	t.Setenv("S9S_SLURM_JWT", "")
+	t.Setenv("SLURM_API_VERSION", "")
+	t.Setenv("SLURM_TIMEOUT", "")
+
+	configDir := filepath.Join(tmpDir, ".s9s")
+	require.NoError(t, os.MkdirAll(configDir, 0o755))
+	configPath := filepath.Join(configDir, "config.yaml")
+	yamlContent := `
+clusters:
+  - name: default
+    cluster:
+      endpoint: http://config-file:6820
+      token: config-token-abc
+      user: config-user
+      timeout: 60s
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(yamlContent), 0o644))
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Token overridden by env
+	assert.Equal(t, "env-jwt-xyz", cfg.Cluster.Token)
+	// Everything else preserved from config file
+	assert.Equal(t, "http://config-file:6820", cfg.Cluster.Endpoint)
+	assert.Equal(t, "config-user", cfg.Cluster.User)
+	assert.Equal(t, "60s", cfg.Cluster.Timeout)
+	assert.Equal(t, "default", cfg.DefaultCluster)
+}
+
+func TestEnvironmentOverridesTargetsDefaultCluster(t *testing.T) {
+	// Env overrides apply to the selected (default) cluster, not a literal "default" one
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("SLURM_REST_URL", "http://env-prod:6820")
+	t.Setenv("SLURM_JWT", "")
+	t.Setenv("S9S_SLURM_JWT", "")
+	t.Setenv("SLURM_API_VERSION", "")
+	t.Setenv("SLURM_TIMEOUT", "")
+
+	configDir := filepath.Join(tmpDir, ".s9s")
+	require.NoError(t, os.MkdirAll(configDir, 0o755))
+	configPath := filepath.Join(configDir, "config.yaml")
+	yamlContent := `
+defaultCluster: production
+clusters:
+  - name: production
+    cluster:
+      endpoint: http://prod.example.com:6820
+      token: prod-token
+  - name: staging
+    cluster:
+      endpoint: http://staging.example.com:6820
+      token: staging-token
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(yamlContent), 0o644))
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Default cluster "production" endpoint overridden, token preserved
+	assert.Equal(t, "http://env-prod:6820", cfg.Cluster.Endpoint)
+	assert.Equal(t, "prod-token", cfg.Cluster.Token)
+	assert.Equal(t, "production", cfg.DefaultCluster)
+	// Staging untouched
+	staging, err := cfg.GetCluster("staging")
+	require.NoError(t, err)
+	assert.Equal(t, "http://staging.example.com:6820", staging.Cluster.Endpoint)
+	assert.Equal(t, "staging-token", staging.Cluster.Token)
+}
+
 func TestLoadWithYAMLFile(t *testing.T) {
 	// Isolate environment from host
 	t.Setenv("SLURM_REST_URL", "")

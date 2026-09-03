@@ -377,53 +377,51 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("discovery.scontrolPath", "scontrol")
 }
 
-// applyEnvironmentOverrides applies environment variable overrides
-// Environment variables always take precedence over config file settings
+// applyEnvironmentOverrides applies environment variable overrides.
+// Each env var independently overrides its corresponding config field
+// when set (non-empty). Config file values are the base; env vars layer on top.
 func applyEnvironmentOverrides(cfg *Config) {
-	// Check for cluster endpoint override (support both S9S_ prefixed and unprefixed)
-	endpoint := os.Getenv("S9S_SLURM_REST_URL")
-	if endpoint == "" {
-		endpoint = os.Getenv("SLURM_REST_URL")
-	}
-
-	token := os.Getenv("S9S_SLURM_JWT")
-	if token == "" {
-		token = os.Getenv("SLURM_JWT")
-	}
-
+	endpoint := getEnvFirst("S9S_SLURM_REST_URL", "SLURM_REST_URL")
+	token := getEnvFirst("S9S_SLURM_JWT", "SLURM_JWT")
 	apiVersion := os.Getenv("SLURM_API_VERSION")
-	if apiVersion == "" {
-		apiVersion = "v0.0.43"
+	timeout := os.Getenv("SLURM_TIMEOUT")
+
+	// Only act when at least one cluster-related env var is set
+	if endpoint == "" && token == "" && apiVersion == "" && timeout == "" {
+		return
 	}
 
-	// If endpoint is set in environment, it overrides everything
+	// Locate the currently-selected cluster entry; create a
+	// "default" one if no cluster matches the target name
+	target := cfg.DefaultCluster
+	if target == "" {
+		target = "default"
+	}
+	defaultIdx := -1
+	for i, cl := range cfg.Clusters {
+		if cl.Name == target {
+			defaultIdx = i
+			break
+		}
+	}
+	if defaultIdx < 0 {
+		cfg.Clusters = append(cfg.Clusters, ClusterContext{
+			Name: target,
+		})
+		defaultIdx = len(cfg.Clusters) - 1
+	}
+
 	if endpoint != "" {
-		// Create or update default context with environment values
-		defaultEntry := ClusterContext{
-			Name: "default",
-			Cluster: ClusterConfig{
-				Endpoint:   endpoint,
-				Token:      token,
-				APIVersion: apiVersion,
-			},
-		}
-
-		// Check if default cluster already exists
-		found := false
-		for i, cl := range cfg.Clusters {
-			if cl.Name == "default" {
-				cfg.Clusters[i] = defaultEntry
-				found = true
-				break
-			}
-		}
-
-		// If not found, add it
-		if !found {
-			cfg.Clusters = append(cfg.Clusters, defaultEntry)
-		}
-
-		cfg.DefaultCluster = "default"
+		cfg.Clusters[defaultIdx].Cluster.Endpoint = endpoint
+	}
+	if token != "" {
+		cfg.Clusters[defaultIdx].Cluster.Token = token
+	}
+	if apiVersion != "" {
+		cfg.Clusters[defaultIdx].Cluster.APIVersion = apiVersion
+	}
+	if timeout != "" {
+		cfg.Clusters[defaultIdx].Cluster.Timeout = timeout
 	}
 }
 
@@ -579,6 +577,15 @@ func (c *Config) mergeWithExisting(path string, fullData []byte) (map[string]any
 }
 
 // getEnvOrDefault returns environment variable value or default
+func getEnvFirst(keys ...string) string {
+	for _, k := range keys {
+		if v := os.Getenv(k); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
